@@ -11,7 +11,8 @@
     "actions": "Actions",
     "status": "Status",
     "createdAt": "Created At",
-    "back": "Back"
+    "back": "Back",
+    "close": "Close"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -21,12 +22,18 @@
     "media": "Media",
     "groups": "Groups",
     "communities": "Communities",
-    "logout": "Logout"
+    "logout": "Logout",
+    "about": "About",
+    "policies": "Policies",
+    "adminLogin": "Administrator"
   },
   "login": {
     "title": "Login",
+    "subtitle": "For system administrators",
     "email": "Email",
     "password": "Password",
+    "emailPlaceholder": "Enter email",
+    "passwordPlaceholder": "Enter password",
     "submit": "Login",
     "error": "Invalid email or password"
   },
@@ -35,15 +42,40 @@
     "totalUsers": "Total Users",
     "totalPosts": "Total Posts",
     "totalReports": "Total Reports",
-    "recentActivity": "Recent Activity"
+    "totalGeneratedAt": "Generated At",
+    "usersTrend": "Users",
+    "postsTrend": "Posts",
+    "reportsTrend": "Reports",
+    "recentActivity": "Recent Activity",
+    "recentUsers": "Recent Users",
+    "recentReports": "Recent Reports",
+    "noUsers": "No users yet",
+    "noReports": "No reports yet"
   },
   "users": {
     "title": "User Management",
     "username": "Username",
     "email": "Email",
+    "allStatuses": "All",
+    "active": "Active",
+    "banned": "Banned",
+    "suspended": "Suspended",
+    "suspendUser": "Suspend",
+    "activateUser": "Activate",
+    "unbanUser": "Unban",
     "banUser": "Ban User",
     "banReason": "Ban Reason",
-    "banDuration": "Ban Duration"
+    "banDuration": "Ban Duration",
+    "confirmBan": "Confirm Ban",
+    "viewDetail": "View Details",
+    "updateStatus": "Update Status",
+    "statusUpdated": "Status updated successfully",
+    "banSuccess": "User banned successfully",
+    "searchPlaceholder": "Search users...",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "permanent": "Permanent",
+    "detailTitle": "User Details"
   },
   "posts": {
     "title": "Post Management",

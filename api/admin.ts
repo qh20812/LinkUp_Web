@@ -1,136 +1,163 @@
 import { request } from './api'
 import type {
-  ApiResponse,
-  PaginatedResponse,
-  DashboardStats,
-  User,
-  Post,
-  Report,
-  Media,
-  Group,
-  Community,
+  AdminAnalyticsResponse,
+  AdminUserListResponse,
+  AdminBanUserResponse,
+  AdminUserBanInput,
+  AdminPostListResponse,
+  AdminReportListResponse,
+  AdminReportDetailResponse,
+  AdminReportReviewInput,
+  AdminMediaListResponse,
+  AdminReviewMediaInput,
+  AdminGroupListResponse,
+  AdminGroupDetailResponse,
+  AdminCommunityListResponse,
+  AdminCommunityDetailResponse,
+  AdminModerateInput,
+  AdminWarnInput,
 } from '../types'
 
 // Dashboard
-export const getDashboardStats = () =>
-  request<ApiResponse<DashboardStats>>('/admin/dashboard/stats')
+export const getDashboardStats = (type?: string) => {
+  const params = type ? `?type=${type}` : ''
+  return request<AdminAnalyticsResponse>(`/admin/analytics${params}`)
+}
 
 // Users
-export const getUsers = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<User>>>(
-    `/admin/users?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
-
-export const getUser = (id: string) =>
-  request<ApiResponse<User>>(`/admin/users/${id}`)
-
-export const banUser = (id: string, reason: string, duration: number) =>
-  request<ApiResponse<User>>(`/admin/users/${id}/ban`, {
-    method: 'POST',
-    body: JSON.stringify({ reason, duration }),
-  })
+export const getUsers = (page = 1, pageSize = 20, search?: string, status?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (search) params.set('keyword', search)
+  if (status) params.set('status', status)
+  return request<AdminUserListResponse>(`/admin/users?${params}`)
+}
 
 export const updateUserStatus = (id: string, status: string) =>
-  request<ApiResponse<User>>(`/admin/users/${id}/status`, {
-    method: 'PATCH',
+  request<{ message: string }>(`/admin/users/${id}/status`, {
+    method: 'PUT',
     body: JSON.stringify({ status }),
   })
 
-// Posts
-export const getPosts = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<Post>>>(
-    `/admin/posts?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
+export const banUser = (id: string, input: AdminUserBanInput) =>
+  request<AdminBanUserResponse>(`/admin/users/${id}/ban`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 
-export const getPost = (id: string) =>
-  request<ApiResponse<Post>>(`/admin/posts/${id}`)
+// Posts
+export const getPosts = (page = 1, pageSize = 20, search?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (search) params.set('keyword', search)
+  return request<AdminPostListResponse>(`/admin/posts?${params}`)
+}
 
 export const hidePost = (id: string, reason: string) =>
-  request<ApiResponse<Post>>(`/admin/posts/${id}/hide`, {
-    method: 'POST',
+  request<{ message: string }>(`/admin/posts/${id}/hide`, {
+    method: 'PUT',
     body: JSON.stringify({ reason }),
   })
 
 export const updatePostStatus = (id: string, status: string) =>
-  request<ApiResponse<Post>>(`/admin/posts/${id}/status`, {
-    method: 'PATCH',
+  request<{ message: string }>(`/admin/posts/${id}/status`, {
+    method: 'PUT',
     body: JSON.stringify({ status }),
   })
 
 // Reports
-export const getReports = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<Report>>>(
-    `/admin/reports?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
+export const getReports = (page = 1, pageSize = 20, filters?: { keyword?: string; status?: string; target_type?: string }) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (filters?.keyword) params.set('keyword', filters.keyword)
+  if (filters?.status) params.set('status', filters.status)
+  if (filters?.target_type) params.set('target_type', filters.target_type)
+  return request<AdminReportListResponse>(`/admin/reports?${params}`)
+}
 
 export const getReport = (id: string) =>
-  request<ApiResponse<Report>>(`/admin/reports/${id}`)
+  request<AdminReportDetailResponse>(`/admin/reports/${id}`)
 
-export const reviewReport = (id: string, action: string, note?: string) =>
-  request<ApiResponse<Report>>(`/admin/reports/${id}/review`, {
+export const reviewReport = (id: string, input: AdminReportReviewInput) =>
+  request<{ message: string }>(`/admin/reports/${id}/decision`, {
     method: 'POST',
-    body: JSON.stringify({ action, note }),
+    body: JSON.stringify(input),
   })
 
 // Media
-export const getMedia = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<Media>>>(
-    `/admin/media?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
+export const getFlaggedMedia = (page = 1, pageSize = 20, status?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (status) params.set('status', status)
+  return request<AdminMediaListResponse>(`/admin/media/flagged?${params}`)
+}
 
-export const approveMedia = (id: string) =>
-  request<ApiResponse<Media>>(`/admin/media/${id}/approve`, { method: 'POST' })
-
-export const rejectMedia = (id: string, reason: string) =>
-  request<ApiResponse<Media>>(`/admin/media/${id}/reject`, {
+export const reviewMedia = (id: string, input: AdminReviewMediaInput) =>
+  request<{ message: string }>(`/admin/media/${id}/review`, {
     method: 'POST',
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input),
   })
 
 // Groups
-export const getGroups = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<Group>>>(
-    `/admin/groups?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
+export const getGroups = (page = 1, pageSize = 20, search?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (search) params.set('keyword', search)
+  return request<AdminGroupListResponse>(`/admin/groups?${params}`)
+}
 
 export const getGroup = (id: string) =>
-  request<ApiResponse<Group>>(`/admin/groups/${id}`)
+  request<AdminGroupDetailResponse>(`/admin/groups/${id}`)
 
-export const hideGroup = (id: string) =>
-  request<ApiResponse<Group>>(`/admin/groups/${id}/hide`, { method: 'POST' })
-
-export const archiveGroup = (id: string) =>
-  request<ApiResponse<Group>>(`/admin/groups/${id}/archive`, { method: 'POST' })
-
-export const warnGroup = (id: string, reason: string) =>
-  request<ApiResponse<Group>>(`/admin/groups/${id}/warn`, {
+export const hideGroup = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/groups/${id}/hide`, {
     method: 'POST',
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input),
   })
 
-export const deleteGroup = (id: string) =>
-  request<ApiResponse<Group>>(`/admin/groups/${id}`, { method: 'DELETE' })
+export const archiveGroup = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/groups/${id}/archive`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const warnGroup = (id: string, input: AdminWarnInput) =>
+  request<{ message: string }>(`/admin/groups/${id}/warn`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const deleteGroup = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/groups/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify(input),
+  })
 
 // Communities
-export const getCommunities = (page = 1, pageSize = 20, search?: string) =>
-  request<ApiResponse<PaginatedResponse<Community>>>(
-    `/admin/communities?page=${page}&pageSize=${pageSize}${search ? `&search=${search}` : ''}`
-  )
+export const getCommunities = (page = 1, pageSize = 20, search?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (search) params.set('keyword', search)
+  return request<AdminCommunityListResponse>(`/admin/communities?${params}`)
+}
 
 export const getCommunity = (id: string) =>
-  request<ApiResponse<Community>>(`/admin/communities/${id}`)
+  request<AdminCommunityDetailResponse>(`/admin/communities/${id}`)
 
-export const hideCommunity = (id: string) =>
-  request<ApiResponse<Community>>(`/admin/communities/${id}/hide`, { method: 'POST' })
-
-export const archiveCommunity = (id: string) =>
-  request<ApiResponse<Community>>(`/admin/communities/${id}/archive`, { method: 'POST' })
-
-export const warnCommunity = (id: string, reason: string) =>
-  request<ApiResponse<Community>>(`/admin/communities/${id}/warn`, {
+export const hideCommunity = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/communities/${id}/hide`, {
     method: 'POST',
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input),
   })
 
-export const deleteCommunity = (id: string) =>
-  request<ApiResponse<Community>>(`/admin/communities/${id}`, { method: 'DELETE' })
+export const archiveCommunity = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/communities/${id}/archive`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const warnCommunity = (id: string, input: AdminWarnInput) =>
+  request<{ message: string }>(`/admin/communities/${id}/warn`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const deleteCommunity = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/communities/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify(input),
+  })
