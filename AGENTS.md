@@ -17,37 +17,28 @@ No test runner configured (no test deps). No CI/CD, no pre-commit hooks, no depl
 
 # Architecture
 
-- **Stack:** Next.js 16.2.7 (App Router), React 19.2.4, TypeScript 5 (strict), Tailwind CSS v4
+- **Stack:** Next.js 16.2.7 (App Router), React 19.2.4, TypeScript 5 (strict), plain CSS
 - **Project:** "LinkUp" — a Vietnamese social network (`lang="vi"` in root `layout.tsx`)
-- **Entrypoints:** `app/layout.tsx` (root), `app/page.tsx` (home), `app/login/page.tsx` (login)
-- **Styling:** Tailwind v4 — `@import "tailwindcss"` (not `@tailwind`). Theme tokens via `@theme inline` in `app/globals.css`.
+- **Entrypoints:** `app/layout.tsx` (root), `app/page.tsx` (home)
+- **Styling:** Plain CSS via `app/globals.css` (reset + design tokens). See `DESIGN.md` for full design system.
 - **Path alias:** `@/*` → repo root
-- **PostCSS:** `@tailwindcss/postcss` plugin (via `postcss.config.mjs`)
 - **ESLint:** `eslint.config.mjs` — `eslint-config-next` (core-web-vitals + TypeScript). No separate `.eslintrc.*`.
 - **Static assets:** `public/` directory
-- **Fonts:** 5 Google fonts via `next/font/google` in layout: Geist, Geist_Mono, Hanken_Grotesk, JetBrains_Mono, Sora
-- **Icons:** Material Symbols Outlined (loaded via `<link>` in `app/layout.tsx:52-56`)
-- **`next.config.ts`:** remote image pattern for `lh3.googleusercontent.com` (Google OAuth avatars)
+- **Docker:** `Dockerfile` with two-stage build. Uses `output: "standalone"` in `next.config.ts`. Pass `NEXT_PUBLIC_API_BASE_URL` as build arg.
+- **Templates:** `templates/Dashboard-Designs/` contains reference UI designs (third-party, separate `.git`).
+- **API backend:** `.env` sets `API_BASE_URL=localhost:8080` — this is the backend the frontend proxies to.
 
-# Design system
+# Current state
 
-- **CSS custom properties** in `app/globals.css` for surfaces, primary/secondary/tertiary/error colors, outlines, spacing, and layout constants. Light and dark modes via `prefers-color-scheme`.
-- **Utility classes:** `.headline-xl`, `.headline-lg`, `.headline-lg-mobile`, `.body-md`, `.body-sm`, `.label-md`, `.button` — with dark-mode overrides.
-- **Font aliases:** `--font-display` (Geist Sans / Sora in dark), `--font-body` (Hanken Grotesk), `--font-label` (JetBrains Mono). Mapped in `@theme inline` as `font-sans`, `font-display`, `font-body`, `font-label`.
-- **Custom spacing:** `--spacing-unit` (4px base). Shorthand tokens: `px-xs/sm/md/lg/xl/gutter`. `--margin-desktop` (64px / 40px dark), `--margin-mobile` (16px).
-- **Radius scale:** `sm`→`full` (0.25rem→9999px), plus `--radius-default` (0.5rem).
-- **Design token usage pattern:** use CSS var utility classes from `@theme inline` (e.g. `bg-surface-container-low`, `text-primary`, `border-outline-variant/30`, `px-margin-desktop`, `gap-lg`). Avoid hardcoding colors/radii that have token equivalents.
-
-# Component conventions
-
-- `components/` — app-level (navbar, footer). `components/ui/` — primitives (button, input, label, badge, feature-card).
-- Components use `function ComponentName()` named functions with `export default`.
-- Client components use `"use client"` directive (navbar, button, input, login page).
-- `utils/` and `api/` exist but are empty — add shared logic and API routes there.
-- Existing `app/page.tsx` renders an empty placeholder (`<div>page</div>`).
+Early-stage scaffold (2 commits). Most files are empty placeholders:
+- `app/globals.css` — CSS reset (no component styles yet)
+- `app/layout.tsx` — bare placeholder (`<div>layout</div>`)
+- `app/page.tsx` — bare placeholder (`<div>Landing</div>`)
+- `components/`, `utils/` — empty directories
+- `api/api.ts` — empty file
 
 # Workflow notes
 
 - `.env*` gitignored — create `.env.local` for local secrets. `.env` checked in with `API_BASE_URL=localhost:8080`.
-- Single commit (`Initial commit from Create Next App`) — early-stage scaffold.
 - `CLAUDE.md` delegates to this file via `@AGENTS.md`.
+- `next.config.ts` sets `output: "standalone"` — required for Docker production builds.
