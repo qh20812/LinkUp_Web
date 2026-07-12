@@ -1,0 +1,83 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "confirm": "Xác nhận",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "back": "Quay lại"
+  },
+  "nav": {
+    "dashboard": "Bảng điều khiển",
+    "users": "Người dùng",
+    "posts": "Bài viết",
+    "reports": "Báo cáo",
+    "media": "Media",
+    "groups": "Nhóm chat",
+    "communities": "Cộng đồng",
+    "logout": "Đăng xuất"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "submit": "Đăng nhập",
+    "error": "Email hoặc mật khẩu không đúng"
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "totalUsers": "Tổng người dùng",
+    "totalPosts": "Tổng bài viết",
+    "totalReports": "Tổng báo cáo",
+    "recentActivity": "Hoạt động gần đây"
+  },
+  "users": {
+    "title": "Quản lý người dùng",
+    "username": "Tên người dùng",
+    "email": "Email",
+    "banUser": "Cấm người dùng",
+    "banReason": "Lý do cấm",
+    "banDuration": "Thời hạn cấm"
+  },
+  "posts": {
+    "title": "Quản lý bài viết",
+    "hidePost": "Ẩn bài viết",
+    "hideReason": "Lý do ẩn"
+  },
+  "reports": {
+    "title": "Quản lý báo cáo",
+    "reporter": "Người báo cáo",
+    "targetType": "Loại mục tiêu",
+    "reviewReport": "Xử lý báo cáo"
+  },
+  "media": {
+    "title": "Quản lý media",
+    "flagged": "Bị gắn cờ",
+    "rejected": "Bị từ chối",
+    "approve": "Chấp nhận",
+    "reject": "Từ chối"
+  },
+  "groups": {
+    "title": "Quản lý nhóm chat",
+    "members": "Thành viên",
+    "hideGroup": "Ẩn nhóm",
+    "archiveGroup": "Đình chỉ nhóm",
+    "warnGroup": "Cảnh báo nhóm",
+    "deleteGroup": "Xóa nhóm"
+  },
+  "communities": {
+    "title": "Quản lý cộng đồng",
+    "members": "Thành viên",
+    "privacy": "Quyền riêng tư",
+    "hideCommunity": "Ẩn cộng đồng",
+    "archiveCommunity": "Đình chỉ cộng đồng",
+    "warnCommunity": "Cảnh báo cộng đồng",
+    "deleteCommunity": "Xóa cộng đồng"
+  }
+}

@@ -1,9 +1,44 @@
 import React from 'react'
+import { Montserrat, Open_Sans } from 'next/font/google'
+import { LanguageProvider } from '../contexts/LanguageContext'
+import { ToastProvider } from '../contexts/ToastContext'
+import './globals.css'
 
-function layout() {
-  return (
-    <div>layout</div>
-  )
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-family-heading',
+  weight: ['400', '600', '700'],
+})
+
+const openSans = Open_Sans({
+  subsets: ['latin'],
+  variable: '--font-family-body',
+  weight: ['300', '400'],
+})
+
+export const metadata = {
+  title: 'Trang chủ - LinkUp',
+  description: 'Admin dashboard for LinkUp social network',
 }
 
-export default layout
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="vi" className={`${montserrat.variable} ${openSans.variable}`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+        />
+      </head>
+      <body>
+        <LanguageProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </LanguageProvider>
+      </body>
+    </html>
+  )
+}

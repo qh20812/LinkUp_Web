@@ -169,7 +169,7 @@ Apply via `<body className={`${montserrat.variable} ${openSans.variable}`}>`
 
 ```
 ┌──────────┬────────────────────────────┐
-│          │       Navbar (56px)         │
+│          │       Navbar (56px)        │
 │ Sidebar  ├────────────────────────────┤
 │ (230px)  │                            │
 │          │       Main Content         │

@@ -1,0 +1,83 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created At",
+    "back": "Back"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "posts": "Posts",
+    "reports": "Reports",
+    "media": "Media",
+    "groups": "Groups",
+    "communities": "Communities",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Login",
+    "error": "Invalid email or password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalUsers": "Total Users",
+    "totalPosts": "Total Posts",
+    "totalReports": "Total Reports",
+    "recentActivity": "Recent Activity"
+  },
+  "users": {
+    "title": "User Management",
+    "username": "Username",
+    "email": "Email",
+    "banUser": "Ban User",
+    "banReason": "Ban Reason",
+    "banDuration": "Ban Duration"
+  },
+  "posts": {
+    "title": "Post Management",
+    "hidePost": "Hide Post",
+    "hideReason": "Hide Reason"
+  },
+  "reports": {
+    "title": "Report Management",
+    "reporter": "Reporter",
+    "targetType": "Target Type",
+    "reviewReport": "Review Report"
+  },
+  "media": {
+    "title": "Media Management",
+    "flagged": "Flagged",
+    "rejected": "Rejected",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "groups": {
+    "title": "Group Management",
+    "members": "Members",
+    "hideGroup": "Hide Group",
+    "archiveGroup": "Archive Group",
+    "warnGroup": "Warn Group",
+    "deleteGroup": "Delete Group"
+  },
+  "communities": {
+    "title": "Community Management",
+    "members": "Members",
+    "privacy": "Privacy",
+    "hideCommunity": "Hide Community",
+    "archiveCommunity": "Archive Community",
+    "warnCommunity": "Warn Community",
+    "deleteCommunity": "Delete Community"
+  }
+}
