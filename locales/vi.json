@@ -1,0 +1,115 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "confirm": "Xác nhận",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "back": "Quay lại",
+    "close": "Đóng"
+  },
+  "nav": {
+    "dashboard": "Bảng điều khiển",
+    "users": "Người dùng",
+    "posts": "Bài viết",
+    "reports": "Báo cáo",
+    "media": "Media",
+    "groups": "Nhóm chat",
+    "communities": "Cộng đồng",
+    "logout": "Đăng xuất",
+    "about": "Giới thiệu",
+    "policies": "Chính sách",
+    "adminLogin": "Quản trị viên"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "subtitle": "Dành cho quản trị viên hệ thống",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "emailPlaceholder": "Nhập email",
+    "passwordPlaceholder": "Nhập mật khẩu",
+    "submit": "Đăng nhập",
+    "error": "Email hoặc mật khẩu không đúng"
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "totalUsers": "Tổng người dùng",
+    "totalPosts": "Tổng bài viết",
+    "totalReports": "Tổng báo cáo",
+    "totalGeneratedAt": "Thời điểm tạo",
+    "usersTrend": "Người dùng",
+    "postsTrend": "Bài viết",
+    "reportsTrend": "Báo cáo",
+    "recentActivity": "Hoạt động gần đây",
+    "recentUsers": "Người dùng gần đây",
+    "recentReports": "Báo cáo gần đây",
+    "noUsers": "Chưa có người dùng nào",
+    "noReports": "Chưa có báo cáo nào"
+  },
+  "users": {
+    "title": "Quản lý người dùng",
+    "username": "Tên người dùng",
+    "email": "Email",
+    "allStatuses": "Tất cả",
+    "active": "Hoạt động",
+    "banned": "Bị cấm",
+    "suspended": "Bị tạm khóa",
+    "suspendUser": "Tạm khóa",
+    "activateUser": "Kích hoạt",
+    "unbanUser": "Bỏ cấm",
+    "banUser": "Cấm người dùng",
+    "banReason": "Lý do cấm",
+    "banDuration": "Thời hạn cấm",
+    "confirmBan": "Xác nhận cấm",
+    "viewDetail": "Xem chi tiết",
+    "updateStatus": "Cập nhật trạng thái",
+    "statusUpdated": "Cập nhật trạng thái thành công",
+    "banSuccess": "Cấm người dùng thành công",
+    "searchPlaceholder": "Tìm kiếm người dùng...",
+    "prevPage": "Trang trước",
+    "nextPage": "Trang sau",
+    "permanent": "Vĩnh viễn",
+    "detailTitle": "Chi tiết người dùng"
+  },
+  "posts": {
+    "title": "Quản lý bài viết",
+    "hidePost": "Ẩn bài viết",
+    "hideReason": "Lý do ẩn"
+  },
+  "reports": {
+    "title": "Quản lý báo cáo",
+    "reporter": "Người báo cáo",
+    "targetType": "Loại mục tiêu",
+    "reviewReport": "Xử lý báo cáo"
+  },
+  "media": {
+    "title": "Quản lý media",
+    "flagged": "Bị gắn cờ",
+    "rejected": "Bị từ chối",
+    "approve": "Chấp nhận",
+    "reject": "Từ chối"
+  },
+  "groups": {
+    "title": "Quản lý nhóm chat",
+    "members": "Thành viên",
+    "hideGroup": "Ẩn nhóm",
+    "archiveGroup": "Đình chỉ nhóm",
+    "warnGroup": "Cảnh báo nhóm",
+    "deleteGroup": "Xóa nhóm"
+  },
+  "communities": {
+    "title": "Quản lý cộng đồng",
+    "members": "Thành viên",
+    "privacy": "Quyền riêng tư",
+    "hideCommunity": "Ẩn cộng đồng",
+    "archiveCommunity": "Đình chỉ cộng đồng",
+    "warnCommunity": "Cảnh báo cộng đồng",
+    "deleteCommunity": "Xóa cộng đồng"
+  }
+}

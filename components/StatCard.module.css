@@ -1,0 +1,129 @@
+.card {
+  display: flex;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.accent {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.iconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+
+.value {
+  font: var(--text-h2);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font: var(--text-caption);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-pill);
+  width: fit-content;
+}
+
+.trend i {
+  font-size: 14px;
+}
+
+.trendUp {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.trendDown {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.trendFlat {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+}
+
+/* Skeleton loading */
+.skeletonIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonContent {
+  flex: 1;
+}
+
+.skeletonTitle {
+  height: 13px;
+  width: 60%;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonValue {
+  height: 24px;
+  width: 40%;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@media screen and (max-width: 576px) {
+  .body {
+    padding: var(--space-md);
+  }
+}

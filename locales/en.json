@@ -1,0 +1,115 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created At",
+    "back": "Back",
+    "close": "Close"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "posts": "Posts",
+    "reports": "Reports",
+    "media": "Media",
+    "groups": "Groups",
+    "communities": "Communities",
+    "logout": "Logout",
+    "about": "About",
+    "policies": "Policies",
+    "adminLogin": "Administrator"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "For system administrators",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "Enter email",
+    "passwordPlaceholder": "Enter password",
+    "submit": "Login",
+    "error": "Invalid email or password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalUsers": "Total Users",
+    "totalPosts": "Total Posts",
+    "totalReports": "Total Reports",
+    "totalGeneratedAt": "Generated At",
+    "usersTrend": "Users",
+    "postsTrend": "Posts",
+    "reportsTrend": "Reports",
+    "recentActivity": "Recent Activity",
+    "recentUsers": "Recent Users",
+    "recentReports": "Recent Reports",
+    "noUsers": "No users yet",
+    "noReports": "No reports yet"
+  },
+  "users": {
+    "title": "User Management",
+    "username": "Username",
+    "email": "Email",
+    "allStatuses": "All",
+    "active": "Active",
+    "banned": "Banned",
+    "suspended": "Suspended",
+    "suspendUser": "Suspend",
+    "activateUser": "Activate",
+    "unbanUser": "Unban",
+    "banUser": "Ban User",
+    "banReason": "Ban Reason",
+    "banDuration": "Ban Duration",
+    "confirmBan": "Confirm Ban",
+    "viewDetail": "View Details",
+    "updateStatus": "Update Status",
+    "statusUpdated": "Status updated successfully",
+    "banSuccess": "User banned successfully",
+    "searchPlaceholder": "Search users...",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "permanent": "Permanent",
+    "detailTitle": "User Details"
+  },
+  "posts": {
+    "title": "Post Management",
+    "hidePost": "Hide Post",
+    "hideReason": "Hide Reason"
+  },
+  "reports": {
+    "title": "Report Management",
+    "reporter": "Reporter",
+    "targetType": "Target Type",
+    "reviewReport": "Review Report"
+  },
+  "media": {
+    "title": "Media Management",
+    "flagged": "Flagged",
+    "rejected": "Rejected",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "groups": {
+    "title": "Group Management",
+    "members": "Members",
+    "hideGroup": "Hide Group",
+    "archiveGroup": "Archive Group",
+    "warnGroup": "Warn Group",
+    "deleteGroup": "Delete Group"
+  },
+  "communities": {
+    "title": "Community Management",
+    "members": "Members",
+    "privacy": "Privacy",
+    "hideCommunity": "Hide Community",
+    "archiveCommunity": "Archive Community",
+    "warnCommunity": "Warn Community",
+    "deleteCommunity": "Delete Community"
+  }
+}

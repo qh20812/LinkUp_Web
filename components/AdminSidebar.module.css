@@ -1,0 +1,162 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--color-bg);
+  width: 230px;
+  height: 100%;
+  z-index: 2000;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  transition: all 0.3s ease;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar.close {
+  width: 60px;
+}
+
+/* Logo */
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  z-index: 500;
+  padding-bottom: 20px;
+  box-sizing: content-box;
+}
+
+.logoImg {
+  min-width: 60px;
+  display: flex;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.logoName {
+  font: var(--text-h2);
+  font-size: 20px;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.close .logoName {
+  display: none;
+}
+
+/* Side menu */
+.sideMenu {
+  width: 100%;
+  margin-top: 48px;
+}
+
+.sideMenu li {
+  height: 48px;
+  background: transparent;
+  margin-left: 6px;
+  border-radius: 48px 0 0 48px;
+  padding: 4px;
+}
+
+.sideMenu li.active {
+  background: var(--color-bg-secondary);
+  position: relative;
+}
+
+.sideMenu li.active::before {
+  content: "";
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  top: -40px;
+  right: 0;
+  box-shadow: 20px 20px 0 var(--color-bg-secondary);
+  z-index: -1;
+}
+
+.sideMenu li.active::after {
+  content: "";
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  bottom: -40px;
+  right: 0;
+  box-shadow: 20px -20px 0 var(--color-bg-secondary);
+  z-index: -1;
+}
+
+.sideMenu li a {
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  border-radius: 48px;
+  font-size: 16px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow-x: hidden;
+  transition: all 0.3s ease;
+}
+
+.sideMenu li.active a {
+  color: var(--color-primary);
+}
+
+.sideMenu li a i {
+  min-width: calc(60px - (4px + 6px) * 2);
+  display: flex;
+  font-size: 1.6rem;
+  justify-content: center;
+}
+
+.sideMenu li a span {
+  overflow: hidden;
+}
+
+.close .sideMenu li a {
+  width: calc(48px - 4px * 2);
+  transition: all 0.3s ease;
+}
+
+.close .sideMenu li a span {
+  display: none;
+}
+
+/* Logout */
+.logout {
+  color: var(--color-danger) !important;
+}
+
+/* Mobile */
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+  }
+
+  .logoName {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .sidebar {
+    width: 230px;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+  }
+}
