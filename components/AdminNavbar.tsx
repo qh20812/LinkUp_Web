@@ -1,7 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useTranslation } from '../hooks/useTranslation'
+import { useToast } from '../contexts/ToastContext'
+import { changePassword } from '../api/auth'
 import styles from './AdminNavbar.module.css'
 
 interface AdminNavbarProps {
@@ -10,6 +14,8 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const { t, language, setLanguage } = useTranslation()
+  const { toast } = useToast()
+  const pathname = usePathname()
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
@@ -18,15 +24,60 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     return 'light'
   })
   const [searchOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  useEffect(() => {
+    if (!dropdownOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [dropdownOpen])
+
+  useEffect(() => {
+    setDropdownOpen(false)
+    setShowPasswordModal(false)
+  }, [pathname])
+
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
+  }
+
+  const handleSubmitPassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) return
+    if (newPassword !== confirmPassword) {
+      toast({ title: t('common.error'), type: 'error' })
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await changePassword(oldPassword, newPassword)
+      toast({ title: t('common.passwordChanged'), type: 'success' })
+      setShowPasswordModal(false)
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setChangingPassword(false)
+    }
   }
 
   return (
@@ -67,9 +118,77 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
         <i className="bx bx-bell" />
       </button>
 
-      <button className={styles.profile} aria-label="Profile">
-        <img src="/S-Logo.png" alt="Profile" />
-      </button>
+      <div className={styles.profileWrap} ref={dropdownRef}>
+        <button className={styles.profile} aria-label="Profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
+          <img src="/S-Logo.png" alt="Profile" />
+        </button>
+
+        {dropdownOpen && (
+          <div className={styles.dropdown}>
+            <Link href="/admin/profile" className={styles.dropdownItem}>
+              <i className="bx bx-user-circle" />
+              <span>{t('nav.profile')}</span>
+            </Link>
+            <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); setShowPasswordModal(true) }}>
+              <i className="bx bx-lock-alt" />
+              <span>{t('nav.changePassword')}</span>
+            </button>
+            <div className={styles.dropdownDivider} />
+            <Link href="/login" className={`${styles.dropdownItem} ${styles.dropdownDanger}`}>
+              <i className="bx bx-log-out-circle" />
+              <span>{t('nav.logout')}</span>
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {showPasswordModal && (
+        <div className={styles.overlay} onClick={() => setShowPasswordModal(false)}>
+          <div className={styles.passwordModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.passwordModalHeader}>
+              <h3>{t('nav.changePassword')}</h3>
+              <button className={styles.passwordModalClose} onClick={() => setShowPasswordModal(false)}>
+                <i className="bx bx-x" />
+              </button>
+            </div>
+            <div className={styles.passwordModalBody}>
+              <input
+                type="password"
+                className={styles.passwordInput}
+                placeholder={t('common.oldPassword')}
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+              />
+              <input
+                type="password"
+                className={styles.passwordInput}
+                placeholder={t('common.newPassword')}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <input
+                type="password"
+                className={styles.passwordInput}
+                placeholder={t('common.confirmPassword')}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            <div className={styles.passwordModalFooter}>
+              <button className={styles.passwordBtnCancel} onClick={() => setShowPasswordModal(false)}>
+                {t('common.cancel')}
+              </button>
+              <button
+                className={styles.passwordBtnSubmit}
+                disabled={!oldPassword || !newPassword || !confirmPassword || changingPassword}
+                onClick={handleSubmitPassword}
+              >
+                {changingPassword ? t('common.loading') : t('common.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

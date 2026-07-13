@@ -6,3 +6,9 @@ export const login = (email: string, password: string) =>
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+
+export const changePassword = (oldPassword: string, newPassword: string) =>
+  request<{ message: string }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  })

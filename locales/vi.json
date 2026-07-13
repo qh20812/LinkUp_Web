@@ -12,7 +12,13 @@
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
     "back": "Quay lại",
-    "close": "Đóng"
+    "close": "Đóng",
+    "comingSoon": "Sắp ra mắt",
+    "comingSoonDesc": "Tính năng này đang được phát triển. Vui lòng quay lại sau.",
+    "oldPassword": "Mật khẩu cũ",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "passwordChanged": "Đổi mật khẩu thành công"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",
@@ -23,6 +29,8 @@
     "groups": "Nhóm chat",
     "communities": "Cộng đồng",
     "logout": "Đăng xuất",
+    "profile": "Hồ sơ của tôi",
+    "changePassword": "Đổi mật khẩu",
     "about": "Giới thiệu",
     "policies": "Chính sách",
     "adminLogin": "Quản trị viên"

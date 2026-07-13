@@ -42,7 +42,7 @@ export default function UsersPage() {
       try {
         const res = await getUsers(page, pageSize, keyword || undefined, statusFilter || undefined)
         if (!cancelled) {
-          setUsers(res.users)
+          setUsers(res.users ?? [])
           setTotal(res.total)
         }
       } catch (err) {
