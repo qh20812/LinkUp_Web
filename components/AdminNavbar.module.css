@@ -129,6 +129,11 @@
   cursor: pointer;
 }
 
+/* Profile wrap */
+.profileWrap {
+  position: relative;
+}
+
 /* Profile */
 .profile {
   display: flex;
@@ -147,6 +152,193 @@
   height: 36px;
   object-fit: cover;
   border-radius: 50%;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 200px;
+  padding: 4px;
+  z-index: 1100;
+  animation: fadeIn 0.15s ease;
+}
+
+.dropdownItem {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--text-body);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.dropdownItem:hover {
+  background: var(--color-bg-secondary);
+}
+
+.dropdownItem i {
+  font-size: 18px;
+  width: 20px;
+  color: var(--color-text-secondary);
+}
+
+.dropdownDanger {
+  color: var(--color-danger) !important;
+}
+
+.dropdownDanger i {
+  color: var(--color-danger) !important;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 8px;
+}
+
+/* Password modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeIn 0.15s ease;
+}
+
+.passwordModal {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 400px;
+  margin: 16px;
+  animation: scaleIn 0.2s ease;
+}
+
+.passwordModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.passwordModalHeader h3 {
+  font: var(--text-h3);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.passwordModalClose {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.passwordModalClose:hover {
+  background: var(--color-bg-secondary);
+}
+
+.passwordModalBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--text-body);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.passwordInput:focus {
+  border-color: var(--color-primary);
+}
+
+.passwordModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.passwordBtnCancel {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--text-body);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.passwordBtnCancel:hover {
+  background: var(--color-bg-secondary);
+}
+
+.passwordBtnSubmit {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-secondary);
+  font: var(--text-body);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.passwordBtnSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.passwordBtnSubmit:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* Mobile */

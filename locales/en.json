@@ -12,7 +12,13 @@
     "status": "Status",
     "createdAt": "Created At",
     "back": "Back",
-    "close": "Close"
+    "close": "Close",
+    "comingSoon": "Coming Soon",
+    "comingSoonDesc": "This feature is under development. Please check back later.",
+    "oldPassword": "Old Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "passwordChanged": "Password changed successfully"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -23,6 +29,8 @@
     "groups": "Groups",
     "communities": "Communities",
     "logout": "Logout",
+    "profile": "My Profile",
+    "changePassword": "Change Password",
     "about": "About",
     "policies": "Policies",
     "adminLogin": "Administrator"
