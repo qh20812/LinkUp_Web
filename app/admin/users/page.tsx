@@ -22,6 +22,7 @@ export default function UsersPage() {
 
   const [searchInput, setSearchInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuStyle, setMenuStyle] = useState<{top: number; left: number} | null>(null)
   const [banTarget, setBanTarget] = useState<AdminUserListItem | null>(null)
   const [detailTarget, setDetailTarget] = useState<AdminUserListItem | null>(null)
   const [banReason, setBanReason] = useState('')
@@ -71,7 +72,7 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
-    if (!openMenuId) return
+    if (!openMenuId) { setMenuStyle(null); return }
     const handleClick = () => setOpenMenuId(null)
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
@@ -269,12 +270,27 @@ export default function UsersPage() {
                       <div className={styles.actionMenuWrap}>
                         <button
                           className={styles.actionsBtn}
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === user.id ? null : user.id) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (openMenuId === user.id) {
+                              setOpenMenuId(null)
+                            } else {
+                              const btn = e.currentTarget as HTMLElement
+                              const rect = btn.getBoundingClientRect()
+                              const menuH = 130
+                              let top = rect.bottom + 4
+                              if (top + menuH > window.innerHeight) top = rect.top - 4 - menuH
+                              let left = rect.right - 180
+                              if (left < 8) left = 8
+                              setMenuStyle({ top, left })
+                              setOpenMenuId(user.id)
+                            }
+                          }}
                         >
                           <i className="bx bx-dots-vertical-rounded" />
                         </button>
-                        {openMenuId === user.id && (
-                          <div className={styles.actionMenu} onClick={(e) => e.stopPropagation()}>
+                        {openMenuId === user.id && menuStyle && (
+                          <div className={styles.actionMenu} style={{ position: 'fixed', top: menuStyle.top, left: menuStyle.left, zIndex: 1000 }} onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.actionMenuItem}
                               onClick={() => { setDetailTarget(user); setOpenMenuId(null) }}
