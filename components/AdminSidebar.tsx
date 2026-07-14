@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '../hooks/useTranslation'
 import styles from './AdminSidebar.module.css'
@@ -28,7 +29,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   return (
     <aside className={`${styles.sidebar}${collapsed ? ` ${styles.close}` : ''}${mobileOpen ? ` ${styles.mobileOpen}` : ''}`}>
       <Link href="/admin/dashboard" className={styles.logo}>
-        <img src="/S-Logo-Rmbg.png" alt="LinkUp" className={styles.logoImg} />
+        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
         <span className={styles.logoName}>LinkUp</span>
       </Link>
 

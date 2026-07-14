@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getUsers, updateUserStatus, banUser } from '../../../api/admin'
@@ -71,9 +72,14 @@ export default function UsersPage() {
     setPage(1)
   }
 
+  const closeMenu = () => {
+    setOpenMenuId(null)
+    setMenuStyle(null)
+  }
+
   useEffect(() => {
-    if (!openMenuId) { setMenuStyle(null); return }
-    const handleClick = () => setOpenMenuId(null)
+    if (!openMenuId) return
+    const handleClick = () => closeMenu()
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
   }, [openMenuId])
@@ -248,10 +254,13 @@ export default function UsersPage() {
                   <tr key={user.id}>
                     <td>
                       <div className={styles.cellUser}>
-                        <img
+                        <Image
                           src={user.avatar_uri || '/default-avatar.png'}
                           alt=""
+                          width={36}
+                          height={36}
                           className={styles.avatar}
+                          unoptimized
                         />
                         <div>
                           <div className={styles.userName}>{user.display_name || user.username}</div>
@@ -273,7 +282,7 @@ export default function UsersPage() {
                           onClick={(e) => {
                             e.stopPropagation()
                             if (openMenuId === user.id) {
-                              setOpenMenuId(null)
+                              closeMenu()
                             } else {
                               const btn = e.currentTarget as HTMLElement
                               const rect = btn.getBoundingClientRect()
@@ -293,7 +302,7 @@ export default function UsersPage() {
                           <div className={styles.actionMenu} style={{ position: 'fixed', top: menuStyle.top, left: menuStyle.left, zIndex: 1000 }} onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.actionMenuItem}
-                              onClick={() => { setDetailTarget(user); setOpenMenuId(null) }}
+                              onClick={() => { setDetailTarget(user); closeMenu() }}
                             >
                               <i className="bx bx-show" /> {t('users.viewDetail')}
                             </button>
@@ -302,7 +311,7 @@ export default function UsersPage() {
                               disabled={updatingStatus === user.id}
                               onClick={() => {
                                 handleStatusChange(user.id, nextUserStatus(user.status))
-                                setOpenMenuId(null)
+                                closeMenu()
                               }}
                             >
                               <i className="bx bx-shield" /> {updatingStatus === user.id ? t('common.loading') : statusActionLabel(user.status)}
@@ -310,7 +319,7 @@ export default function UsersPage() {
                             {user.status !== 'banned' && (
                               <button
                                 className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
-                                onClick={() => { setBanTarget(user); setOpenMenuId(null) }}
+                                onClick={() => { setBanTarget(user); closeMenu() }}
                               >
                                 <i className="bx bx-block" /> {t('users.banUser')}
                               </button>
@@ -370,10 +379,13 @@ export default function UsersPage() {
             </div>
             <div className={styles.modalBody}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                <img
+                <Image
                   src={detailTarget.avatar_uri || '/default-avatar.png'}
                   alt=""
+                  width={64}
+                  height={64}
                   className={styles.detailAvatar}
+                  unoptimized
                 />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 18 }}>{detailTarget.display_name || detailTarget.username}</div>

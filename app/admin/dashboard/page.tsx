@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import {
   ResponsiveContainer,
   LineChart,
@@ -10,14 +11,18 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { getDashboardStats, getUsers, getReports } from '../../../api/admin'
+import { getDashboardStats } from '../../../api/admin'
 import StatCard from '../../../components/StatCard'
 import type {
   ChartDataPoint,
-  AdminUserListItem,
-  AdminReportListItem,
+  TopActiveUser,
+  TopEngagedPost,
+  StatusCount,
 } from '../../../types'
 import styles from './Dashboard.module.css'
 
@@ -26,35 +31,72 @@ interface MergedChartPoint {
   users: number
   posts: number
   reports: number
+  comments: number
 }
 
 interface DashboardData {
   total_users: number
   total_posts: number
   total_reports: number
+  total_comments: number
+  total_media: number
+  total_groups: number
+  total_communities: number
+  total_likes: number
+  total_shares: number
+  total_active_bans: number
+  pending_reports: number
+  flagged_media_count: number
+  active_users_today: number
   users_change_percent: number
   posts_change_percent: number
   reports_change_percent: number
+  comments_change_percent: number
+  media_change_percent: number
+  groups_change_percent: number
+  communities_change_percent: number
   generated_at: string
   chartData: MergedChartPoint[]
+  top_users?: TopActiveUser[]
+  top_posts?: TopEngagedPost[]
+  user_status_distribution?: StatusCount[]
+  report_status_distribution?: StatusCount[]
+}
+
+const STAT_CARDS_CONFIG = [
+  { key: 'total_users', icon: 'bx bx-group', color: 'var(--color-primary)', i18nKey: 'totalUsers', changeKey: 'users_change_percent' },
+  { key: 'total_posts', icon: 'bx bx-file', color: 'var(--color-accent)', i18nKey: 'totalPosts', changeKey: 'posts_change_percent' },
+  { key: 'total_comments', icon: 'bx bx-comment', color: '#0ea5e9', i18nKey: 'total_comments', changeKey: 'comments_change_percent' },
+  { key: 'total_groups', icon: 'bx bx-chat', color: '#8b5cf6', i18nKey: 'total_groups', changeKey: 'groups_change_percent' },
+  { key: 'total_communities', icon: 'bx bx-buildings', color: '#f59e0b', i18nKey: 'total_communities', changeKey: 'communities_change_percent' },
+  { key: 'total_reports', icon: 'bx bx-flag', color: 'var(--color-danger)', i18nKey: 'totalReports', changeKey: 'reports_change_percent' },
+] as const
+
+const PIE_COLORS: Record<string, string> = {
+  active: '#22c55e',
+  banned: '#ef4444',
+  suspended: '#f59e0b',
+  inactive: '#6b7280',
+  pending: '#f97316',
 }
 
 function mergeChartData(
   users?: ChartDataPoint[],
   posts?: ChartDataPoint[],
   reports?: ChartDataPoint[],
+  comments?: ChartDataPoint[],
 ): MergedChartPoint[] {
   const dateMap = new Map<string, MergedChartPoint>()
 
   for (const point of users ?? []) {
-    dateMap.set(point.date, { date: point.date, users: point.count, posts: 0, reports: 0 })
+    dateMap.set(point.date, { date: point.date, users: point.count, posts: 0, reports: 0, comments: 0 })
   }
   for (const point of posts ?? []) {
     const existing = dateMap.get(point.date)
     if (existing) {
       existing.posts = point.count
     } else {
-      dateMap.set(point.date, { date: point.date, users: 0, posts: point.count, reports: 0 })
+      dateMap.set(point.date, { date: point.date, users: 0, posts: point.count, reports: 0, comments: 0 })
     }
   }
   for (const point of reports ?? []) {
@@ -62,11 +104,39 @@ function mergeChartData(
     if (existing) {
       existing.reports = point.count
     } else {
-      dateMap.set(point.date, { date: point.date, users: 0, posts: 0, reports: point.count })
+      dateMap.set(point.date, { date: point.date, users: 0, posts: 0, reports: point.count, comments: 0 })
+    }
+  }
+  for (const point of comments ?? []) {
+    const existing = dateMap.get(point.date)
+    if (existing) {
+      existing.comments = point.count
+    } else {
+      dateMap.set(point.date, { date: point.date, users: 0, posts: 0, reports: 0, comments: point.count })
     }
   }
 
   return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+type Period = '7d' | '30d' | 'thisMonth' | 'lastMonth'
+
+function getDateRange(period: Period): { start: Date; end: Date } {
+  const now = new Date()
+  switch (period) {
+    case '7d': return { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+    case '30d': return { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30), end: now }
+    case 'thisMonth': return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now }
+    case 'lastMonth': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const end = new Date(now.getFullYear(), now.getMonth(), 0)
+      return { start, end }
+    }
+  }
+}
+
+function formatISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export default function DashboardPage() {
@@ -74,45 +144,64 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [recentUsers, setRecentUsers] = useState<AdminUserListItem[]>([])
-  const [recentReports, setRecentReports] = useState<AdminReportListItem[]>([])
+  const [period, setPeriod] = useState<Period>('7d')
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+    let cancelled = false
+    const { start, end } = getDateRange(period)
+    const startDate = formatISO(start)
+    const endDate = formatISO(end)
 
-        const [allStats, usersChart, postsChart, reportsChart, userList, reportList] = await Promise.all([
-          getDashboardStats(),
-          getDashboardStats('users'),
-          getDashboardStats('posts'),
-          getDashboardStats('reports'),
-          getUsers(1, 5),
-          getReports(1, 5),
-        ])
+    Promise.all([
+      getDashboardStats(undefined, startDate, endDate),
+      getDashboardStats('users', startDate, endDate),
+      getDashboardStats('posts', startDate, endDate),
+      getDashboardStats('reports', startDate, endDate),
+      getDashboardStats('comments', startDate, endDate),
+    ]).then(([allStats, usersChart, postsChart, reportsChart, commentsChart]) => {
+      if (cancelled) return
+      setData({
+        total_users: allStats.total_users,
+        total_posts: allStats.total_posts,
+        total_reports: allStats.total_reports,
+        total_comments: allStats.total_comments,
+        total_media: allStats.total_media,
+        total_groups: allStats.total_groups,
+        total_communities: allStats.total_communities,
+        total_likes: allStats.total_likes,
+        total_shares: allStats.total_shares,
+        total_active_bans: allStats.total_active_bans,
+        pending_reports: allStats.pending_reports,
+        flagged_media_count: allStats.flagged_media_count,
+        active_users_today: allStats.active_users_today,
+        users_change_percent: allStats.users_change_percent,
+        posts_change_percent: allStats.posts_change_percent,
+        reports_change_percent: allStats.reports_change_percent,
+        comments_change_percent: allStats.comments_change_percent,
+        media_change_percent: allStats.media_change_percent,
+        groups_change_percent: allStats.groups_change_percent,
+        communities_change_percent: allStats.communities_change_percent,
+        generated_at: allStats.generated_at,
+        chartData: mergeChartData(
+          usersChart.chart_data,
+          postsChart.chart_data,
+          reportsChart.chart_data,
+          commentsChart.chart_data,
+        ),
+        top_users: allStats.top_users,
+        top_posts: allStats.top_posts,
+        user_status_distribution: allStats.user_status_distribution,
+        report_status_distribution: allStats.report_status_distribution,
+      })
+      setLoading(false)
+    }).catch((err) => {
+      if (cancelled) return
+      setError(err instanceof Error ? err.message : t('common.error'))
+      setLoading(false)
+    })
 
-        setData({
-          total_users: allStats.total_users,
-          total_posts: allStats.total_posts,
-          total_reports: allStats.total_reports,
-          users_change_percent: allStats.users_change_percent,
-          posts_change_percent: allStats.posts_change_percent,
-          reports_change_percent: allStats.reports_change_percent,
-          generated_at: allStats.generated_at,
-          chartData: mergeChartData(usersChart.chart_data, postsChart.chart_data, reportsChart.chart_data),
-        })
-        setRecentUsers(userList.users)
-        setRecentReports(reportList.reports)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('common.error'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStats()
-  }, [t])
+    return () => { cancelled = true }
+  }, [period, t])
 
   const formatDate = (label: unknown): string => {
     if (typeof label !== 'string') return String(label)
@@ -131,11 +220,6 @@ export default function DashboardPage() {
     }
   }
 
-  const now = new Date()
-  const periodStart = new Date(now)
-  periodStart.setDate(periodStart.getDate() - 7)
-  const periodLabel = `${periodStart.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} – ${now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
-
   const formatDateTime = (iso: string): string => {
     try {
       const d = new Date(iso)
@@ -145,17 +229,14 @@ export default function DashboardPage() {
     }
   }
 
-  const statusBadgeClass = (status: string): string => {
-    const map: Record<string, string> = {
-      active: styles.badgeActive,
-      banned: styles.badgeBanned,
-      suspended: styles.badgeSuspended,
-      pending: styles.badgePending,
-      reviewed: styles.badgeReviewed,
-      resolved: styles.badgeResolved,
-      dismissed: styles.badgeDismissed,
-    }
-    return map[status] ?? ''
+  const periodDateRange = getDateRange(period)
+  const periodDateLabel = `${periodDateRange.start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} – ${periodDateRange.end.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+
+  const rankClass = (i: number): string => {
+    if (i === 0) return `${styles.topListRank} ${styles.gold}`
+    if (i === 1) return `${styles.topListRank} ${styles.silver}`
+    if (i === 2) return `${styles.topListRank} ${styles.bronze}`
+    return styles.topListRank
   }
 
   const tableSkeleton = () => (
@@ -174,37 +255,22 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>{t('dashboard.title')}</h1>
-        <p className={styles.subtitle}>{periodLabel}</p>
+        <p className={styles.subtitle}>{periodDateLabel}</p>
       </header>
 
       <div className={styles.statsGrid}>
-        <StatCard
-          title={t('dashboard.totalUsers')}
-          value={loading ? '—' : (data?.total_users ?? 0).toLocaleString()}
-          icon="bx bx-group"
-          color="var(--color-primary)"
-          loading={loading}
-          animateValue={loading ? undefined : data?.total_users}
-          trend={loading ? null : data?.users_change_percent}
-        />
-        <StatCard
-          title={t('dashboard.totalPosts')}
-          value={loading ? '—' : (data?.total_posts ?? 0).toLocaleString()}
-          icon="bx bx-file"
-          color="var(--color-accent)"
-          loading={loading}
-          animateValue={loading ? undefined : data?.total_posts}
-          trend={loading ? null : data?.posts_change_percent}
-        />
-        <StatCard
-          title={t('dashboard.totalReports')}
-          value={loading ? '—' : (data?.total_reports ?? 0).toLocaleString()}
-          icon="bx bx-flag"
-          color="var(--color-danger)"
-          loading={loading}
-          animateValue={loading ? undefined : data?.total_reports}
-          trend={loading ? null : data?.reports_change_percent}
-        />
+        {STAT_CARDS_CONFIG.map((cfg) => (
+          <StatCard
+            key={cfg.key}
+            title={t(`dashboard.${cfg.i18nKey}`)}
+            value={loading ? '—' : (data?.[cfg.key as keyof DashboardData] ?? 0).toLocaleString()}
+            icon={cfg.icon}
+            color={cfg.color}
+            loading={loading}
+            animateValue={loading ? undefined : (data?.[cfg.key as keyof DashboardData] as number)}
+            trend={loading ? null : (data?.[cfg.changeKey as keyof DashboardData] as number | undefined) ?? null}
+          />
+        ))}
       </div>
 
       {error && (
@@ -214,175 +280,279 @@ export default function DashboardPage() {
         </div>
       )}
 
+      <div className={styles.alertBar}>
+        <div className={styles.alertItem}>
+          <i className="bx bx-flag" style={{ color: 'var(--color-warning)' }} />
+          {t('dashboard.pendingReports')}: {loading ? '—' : (data?.pending_reports ?? 0).toLocaleString()}
+        </div>
+        <div className={styles.alertItem}>
+          <i className="bx bx-image" style={{ color: 'var(--color-danger)' }} />
+          {t('dashboard.flaggedMedia')}: {loading ? '—' : (data?.flagged_media_count ?? 0).toLocaleString()}
+        </div>
+        <div className={styles.alertItem}>
+          <i className="bx bx-block" style={{ color: 'var(--color-danger)' }} />
+          {t('dashboard.activeBans')}: {loading ? '—' : (data?.total_active_bans ?? 0).toLocaleString()}
+        </div>
+        <div className={styles.alertItem}>
+          <i className="bx bx-user-check" style={{ color: 'var(--color-success)' }} />
+          {t('dashboard.activeUsersToday')}: {loading ? '—' : (data?.active_users_today ?? 0).toLocaleString()}
+        </div>
+      </div>
+
       <section className={styles.chartSection}>
         <div className={styles.chartHeader}>
           <h2 className={styles.chartTitle}>{t('dashboard.recentActivity')}</h2>
-          <span className={styles.chartPeriod}>{periodLabel}</span>
+          <select
+            className={styles.periodSelect}
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as Period)}
+          >
+            <option value="7d">{t('dashboard.period7d')}</option>
+            <option value="30d">{t('dashboard.period30d')}</option>
+            <option value="thisMonth">{t('dashboard.periodThisMonth')}</option>
+            <option value="lastMonth">{t('dashboard.periodLastMonth')}</option>
+          </select>
         </div>
-        <div className={styles.chartContainer}>
-          {loading ? (
-            <div className={styles.chartSkeleton}>
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-              <div className={styles.chartSkeletonBar} />
-            </div>
-          ) : data?.chartData && data.chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={data.chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis
-                  dataKey="date"
-                  stroke="var(--color-text-secondary)"
-                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-                  tickFormatter={formatChartDate}
-                />
-                <YAxis
-                  stroke="var(--color-text-secondary)"
-                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-                />
-                <Tooltip
-                  labelFormatter={formatDate}
-                  contentStyle={{
-                    background: 'var(--color-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-text)',
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  name={t('dashboard.usersTrend')}
-                  stroke="#40E0D0"
-                  strokeWidth={2}
-                  dot={{ fill: '#40E0D0', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="posts"
-                  name={t('dashboard.postsTrend')}
-                  stroke="#FF6F00"
-                  strokeWidth={2}
-                  dot={{ fill: '#FF6F00', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="reports"
-                  name={t('dashboard.reportsTrend')}
-                  stroke="#D32F2F"
-                  strokeWidth={2}
-                  dot={{ fill: '#D32F2F', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className={styles.empty}>
-              <i className="bx bx-bar-chart-alt-2" />
-              <p>{t('common.loading')}</p>
-            </div>
-          )}
-          {data?.generated_at && (
-            <div className={styles.chartFooter}>
-              {t('dashboard.totalGeneratedAt')}: {formatDateTime(data.generated_at)}
-            </div>
-          )}
+
+        <div className={styles.chartsRow}>
+          <div className={styles.chartContainer}>
+            {loading ? (
+              <div className={styles.chartSkeleton}>
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+              </div>
+            ) : data?.chartData && data.chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={data.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="var(--color-text-secondary)"
+                    tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
+                    tickFormatter={formatChartDate}
+                  />
+                  <YAxis
+                    stroke="var(--color-text-secondary)"
+                    tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    labelFormatter={formatDate}
+                    contentStyle={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--color-text)',
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="users"
+                    name={t('dashboard.usersTrend')}
+                    stroke="#40E0D0"
+                    strokeWidth={2}
+                    dot={{ fill: '#40E0D0', r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="posts"
+                    name={t('dashboard.postsTrend')}
+                    stroke="#FF6F00"
+                    strokeWidth={2}
+                    dot={{ fill: '#FF6F00', r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="reports"
+                    name={t('dashboard.reportsTrend')}
+                    stroke="#D32F2F"
+                    strokeWidth={2}
+                    dot={{ fill: '#D32F2F', r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="comments"
+                    name={t('dashboard.commentsTrend')}
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                    dot={{ fill: '#0ea5e9', r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className={styles.empty}>
+                <i className="bx bx-bar-chart-alt-2" />
+                <p>{t('common.loading')}</p>
+              </div>
+            )}
+            {data?.generated_at && (
+              <div className={styles.chartFooter}>
+                {t('dashboard.totalGeneratedAt')}: {formatDateTime(data.generated_at)}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.chartContainer}>
+            <h3 style={{ font: 'var(--text-h2)', color: 'var(--color-text)', marginBottom: 'var(--space-md)' }}>
+              {t('dashboard.userStatusDistribution')}
+            </h3>
+            {loading ? (
+              <div className={styles.chartSkeleton}>
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+                <div className={styles.chartSkeletonBar} />
+              </div>
+            ) : data?.user_status_distribution && data.user_status_distribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={data.user_status_distribution}
+                    dataKey="count"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    innerRadius={50}
+                    paddingAngle={3}
+                  >
+                    {data.user_status_distribution.map((entry) => (
+                      <Cell
+                        key={entry.status}
+                        fill={PIE_COLORS[entry.status] ?? '#6b7280'}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--color-text)',
+                    }}
+                  />
+                  <Legend
+                    formatter={(value: string) => (
+                      <span className={styles.pieLabel}>{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className={styles.empty}>
+                <i className="bx bx-pie-chart-alt-2" />
+                <p>{t('common.loading')}</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       <div className={styles.tablesGrid}>
-        {/* Recent Users */}
-        <div className={styles.recentCard}>
-          <h3 className={styles.recentCardTitle}>{t('dashboard.recentUsers')}</h3>
+        <div className={styles.topListCard}>
+          <h3 className={styles.topListTitle}>{t('dashboard.topUsers')}</h3>
           {loading ? (
             tableSkeleton()
-          ) : recentUsers.length > 0 ? (
-            <table className={styles.recentTable}>
+          ) : data?.top_users && data.top_users.length > 0 ? (
+            <table className={styles.topListTable}>
               <thead>
                 <tr>
                   <th></th>
-                  <th>{t('common.status')}</th>
-                  <th>{t('common.createdAt')}</th>
+                  <th>{t('dashboard.user')}</th>
+                  <th>{t('dashboard.postCount')}</th>
                 </tr>
               </thead>
               <tbody>
-                {recentUsers.map((user) => (
-                  <tr key={user.id}>
+                {data.top_users.map((user, i) => (
+                  <tr key={user.user_id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                        <img
+                      <span className={rankClass(i)}>{i + 1}</span>
+                    </td>
+                    <td>
+                      <div className={styles.topListUser}>
+                        <Image
                           src={user.avatar_uri || '/default-avatar.png'}
                           alt=""
-                          className={styles.recentAvatar}
+                          width={28}
+                          height={28}
+                          className={styles.topListAvatar}
+                          unoptimized
                         />
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>{user.display_name || user.username}</div>
-                          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{user.email}</div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>
+                            {user.display_name || user.username}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className={`${styles.badge} ${statusBadgeClass(user.status)}`}>
-                        {user.status}
+                      <span className={styles.engagementBadge}>
+                        <i className="bx bx-file" /> {user.post_count}
                       </span>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {new Date(user.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <div className={styles.recentEmpty}>{t('dashboard.noUsers')}</div>
+            <div className={styles.recentEmpty}>{t('common.noData')}</div>
           )}
         </div>
 
-        {/* Recent Reports */}
-        <div className={styles.recentCard}>
-          <h3 className={styles.recentCardTitle}>{t('dashboard.recentReports')}</h3>
+        <div className={styles.topListCard}>
+          <h3 className={styles.topListTitle}>{t('dashboard.topPosts')}</h3>
           {loading ? (
             tableSkeleton()
-          ) : recentReports.length > 0 ? (
-            <table className={styles.recentTable}>
+          ) : data?.top_posts && data.top_posts.length > 0 ? (
+            <table className={styles.topListTable}>
               <thead>
                 <tr>
-                  <th>{t('common.status')}</th>
-                  <th>Loại</th>
-                  <th>{t('common.createdAt')}</th>
+                  <th></th>
+                  <th>{t('dashboard.title')}</th>
+                  <th>{t('dashboard.engagement')}</th>
                 </tr>
               </thead>
               <tbody>
-                {recentReports.map((report) => (
-                  <tr key={report.id}>
+                {data.top_posts.map((post, i) => (
+                  <tr key={post.post_id}>
                     <td>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{report.reporter_username}</div>
+                      <span className={rankClass(i)}>{i + 1}</span>
+                    </td>
+                    <td>
+                      <div className={styles.topListPostTitle}>
+                        {post.title || 'Untitled'}
+                      </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                        {report.report_type}
+                        {post.username}
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: 13, textTransform: 'capitalize' }}>{report.target_type}</div>
-                      <span className={`${styles.badge} ${statusBadgeClass(report.status)}`}>
-                        {report.status}
+                      <span className={styles.engagementBadge}>
+                        <i className="bx bx-show" /> {post.views_count}
                       </span>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-                      {new Date(report.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                      <span className={styles.engagementBadge} style={{ marginLeft: 8 }}>
+                        <i className="bx bx-heart" /> {post.likes_count}
+                      </span>
+                      <span className={styles.engagementBadge} style={{ marginLeft: 8 }}>
+                        <i className="bx bx-message-rounded" /> {post.comments_count}
+                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <div className={styles.recentEmpty}>{t('dashboard.noReports')}</div>
+            <div className={styles.recentEmpty}>{t('common.noData')}</div>
           )}
         </div>
       </div>

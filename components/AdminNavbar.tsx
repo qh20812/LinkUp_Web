@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
@@ -49,10 +50,8 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     return () => document.removeEventListener('click', handleClick)
   }, [dropdownOpen])
 
-  useEffect(() => {
-    setDropdownOpen(false)
-    setShowPasswordModal(false)
-  }, [pathname])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setDropdownOpen(false); setShowPasswordModal(false) }, [pathname])
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light'
@@ -120,7 +119,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
 
       <div className={styles.profileWrap} ref={dropdownRef}>
         <button className={styles.profile} aria-label="Profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
-          <img src="/S-Logo.png" alt="Profile" />
+          <Image src="/S-Logo.png" alt="Profile" width={36} height={36} priority />
         </button>
 
         {dropdownOpen && (

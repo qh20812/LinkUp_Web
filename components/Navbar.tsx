@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useTranslation } from '../hooks/useTranslation'
 import styles from './Navbar.module.css'
 
@@ -33,7 +34,7 @@ export default function Navbar() {
       <div className={styles.inner}>
         <div className={styles.left}>
           <Link href="/" className={styles.brand}>
-            <img src="/S-Logo-Rmbg.png" alt="LinkUp" className={styles.brandImg} />
+            <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.brandImg} priority />
             <span className={styles.brandText}>LinkUp</span>
           </Link>
 

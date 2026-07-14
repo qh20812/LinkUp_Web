@@ -80,6 +80,14 @@ export default function ReportsPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [reviewTarget, setReviewTarget] = useState<AdminReportListItem | null>(null)
   const [reviewAction, setReviewAction] = useState<string>('cancel')
+  const [reviewReason, setReviewReason] = useState('')
+  const [reviewDuration, setReviewDuration] = useState('permanent')
+  const [reviewing, setReviewing] = useState(false)
+
+  const closeMenu = () => {
+    setOpenMenuId(null)
+    setMenuStyle(null)
+  }
 
   const getAvailableActions = (report: AdminReportListItem): string[] => {
     switch (report.target_type) {
@@ -90,22 +98,8 @@ export default function ReportsPage() {
   }
 
   useEffect(() => {
-    if (reviewTarget) {
-      const available = getAvailableActions(reviewTarget)
-      if (!available.includes(reviewAction)) {
-        setReviewAction('cancel')
-        setReviewReason('')
-      }
-    }
-  }, [reviewTarget])
-
-  const [reviewReason, setReviewReason] = useState('')
-  const [reviewDuration, setReviewDuration] = useState('permanent')
-  const [reviewing, setReviewing] = useState(false)
-
-  useEffect(() => {
-    if (!openMenuId) { setMenuStyle(null); return }
-    const handleClick = () => setOpenMenuId(null)
+    if (!openMenuId) return
+    const handleClick = () => closeMenu()
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
   }, [openMenuId])
@@ -291,7 +285,7 @@ export default function ReportsPage() {
                           onClick={(e) => {
                             e.stopPropagation()
                             if (openMenuId === report.id) {
-                              setOpenMenuId(null)
+                              closeMenu()
                             } else {
                               const btn = e.currentTarget as HTMLElement
                               const rect = btn.getBoundingClientRect()
@@ -311,9 +305,9 @@ export default function ReportsPage() {
                           <div className={styles.actionMenu} style={{ position: 'fixed', top: menuStyle.top, left: menuStyle.left, zIndex: 1000 }} onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.actionMenuItem}
-                              onClick={async () => {
-                                setOpenMenuId(null)
-                                setDetailLoading(true)
+                                onClick={async () => {
+                                  closeMenu()
+                                  setDetailLoading(true)
                                 try {
                                   const detail = await getReport(report.id)
                                   setDetailTarget(detail)
@@ -328,7 +322,7 @@ export default function ReportsPage() {
                             </button>
                             <button
                               className={styles.actionMenuItem}
-                              onClick={() => { setReviewTarget(report); setOpenMenuId(null) }}
+                              onClick={() => { setReviewTarget(report); closeMenu(); setReviewAction('cancel'); setReviewReason(''); setReviewDuration('permanent') }}
                             >
                               <i className="bx bx-check-shield" /> {t('reports.reviewReport')}
                             </button>
