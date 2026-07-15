@@ -120,10 +120,27 @@
   },
   "media": {
     "title": "Quản lý media",
+    "subtitle": "Xem và duyệt các file bị gắn cờ bởi hệ thống hoặc người dùng.",
     "flagged": "Bị gắn cờ",
     "rejected": "Bị từ chối",
+    "approved": "Đã duyệt",
     "approve": "Chấp nhận",
-    "reject": "Từ chối"
+    "reject": "Từ chối",
+    "approveSuccess": "Đã phê duyệt media",
+    "rejectSuccess": "Đã từ chối media",
+    "cleanupRejected": "Dọn media bị từ chối",
+    "cleanupSuccess": "Đã dọn {count} media bị từ chối",
+    "empty": "Chưa có media nào cần xử lý",
+    "preview": "Xem trước",
+    "fileType": "Loại file",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "total": "Tổng {count} mục",
+    "reviewTitle": "Duyệt media",
+    "reviewHint": "Vui lòng nhập lý do xử lý để quản trị viên theo dõi.",
+    "reasonPlaceholder": "Nhập lý do phê duyệt hoặc từ chối...",
+    "confirmReview": "Xác nhận",
+    "reviewDefaultReason": "Đã được xử lý bởi quản trị viên"
   },
   "groups": {
     "title": "Quản lý nhóm chat",

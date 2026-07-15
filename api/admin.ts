@@ -161,3 +161,8 @@ export const deleteCommunity = (id: string, input: AdminModerateInput) =>
     method: 'DELETE',
     body: JSON.stringify(input),
   })
+
+export const cleanupRejectedMedia = () =>
+  request<{ cleaned: number }>('/admin/media/cleanup-rejected', {
+    method: 'POST',
+  })
