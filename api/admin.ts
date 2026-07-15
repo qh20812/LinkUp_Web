@@ -16,6 +16,7 @@ import type {
   AdminCommunityDetailResponse,
   AdminModerateInput,
   AdminWarnInput,
+  AdminModerationLogListResponse,
 } from "../types";
 
 // Dashboard
@@ -162,12 +163,20 @@ export const unhideGroup = (id: string, input: AdminModerateInput) =>
   });
 
 // Communities
-export const getCommunities = (page = 1, pageSize = 20, search?: string) => {
+export const getCommunities = (
+  page = 1,
+  pageSize = 20,
+  search?: string,
+  status?: string,
+  privacy?: string
+) => {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
   if (search) params.set("keyword", search);
+  if (status) params.set("status", status);
+  if (privacy) params.set("privacy", privacy);
   return request<AdminCommunityListResponse>(`/admin/communities?${params}`);
 };
 
@@ -197,3 +206,13 @@ export const deleteCommunity = (id: string, input: AdminModerateInput) =>
     method: "DELETE",
     body: JSON.stringify(input),
   });
+
+export const unhideCommunity = (id: string) =>
+  request<{ message: string }>(`/admin/communities/${id}/unhide`, {
+    method: "POST",
+  });
+
+export const getCommunityLogs = (id: string, page = 1, pageSize = 20) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  return request<AdminModerationLogListResponse>(`/admin/communities/${id}/logs?${params}`)
+}

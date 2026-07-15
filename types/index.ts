@@ -278,6 +278,25 @@ export interface AdminCommunityDetailResponse {
   updated_at?: string
 }
 
+// ===== Moderation Logs =====
+export interface AdminModerationLogItem {
+  id: string
+  moderator_id: string
+  moderator_name: string
+  action: string
+  target_type: string
+  target_id: string
+  reason: string
+  created_at: string
+}
+
+export interface AdminModerationLogListResponse {
+  logs: AdminModerationLogItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 // ===== Shared =====
 export interface AdminModerateInput {
   reason: string
