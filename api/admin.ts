@@ -1,4 +1,4 @@
-import { request } from './api'
+import { request } from "./api";
 import type {
   AdminAnalyticsResponse,
   AdminUserListResponse,
@@ -16,7 +16,7 @@ import type {
   AdminCommunityDetailResponse,
   AdminModerateInput,
   AdminWarnInput,
-} from '../types'
+} from "../types";
 
 // Dashboard
 export const getDashboardStats = (type?: string, startDate?: string, endDate?: string) => {
@@ -28,139 +28,172 @@ export const getDashboardStats = (type?: string, startDate?: string, endDate?: s
 }
 
 // Users
-export const getUsers = (page = 1, pageSize = 20, search?: string, status?: string) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (search) params.set('keyword', search)
-  if (status) params.set('status', status)
-  return request<AdminUserListResponse>(`/admin/users?${params}`)
-}
+export const getUsers = (
+  page = 1,
+  pageSize = 20,
+  search?: string,
+  status?: string
+) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (search) params.set("keyword", search);
+  if (status) params.set("status", status);
+  return request<AdminUserListResponse>(`/admin/users?${params}`);
+};
 
 export const updateUserStatus = (id: string, status: string) =>
   request<{ message: string }>(`/admin/users/${id}/status`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify({ status }),
-  })
+  });
 
 export const banUser = (id: string, input: AdminUserBanInput) =>
   request<AdminBanUserResponse>(`/admin/users/${id}/ban`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 // Posts
 export const getPosts = (page = 1, pageSize = 20, search?: string) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (search) params.set('keyword', search)
-  return request<AdminPostListResponse>(`/admin/posts?${params}`)
-}
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (search) params.set("keyword", search);
+  return request<AdminPostListResponse>(`/admin/posts?${params}`);
+};
 
 export const hidePost = (id: string, reason: string) =>
   request<{ message: string }>(`/admin/posts/${id}/hide`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify({ reason }),
-  })
+  });
 
 export const updatePostStatus = (id: string, status: string) =>
   request<{ message: string }>(`/admin/posts/${id}/status`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify({ status }),
-  })
+  });
 
 // Reports
-export const getReports = (page = 1, pageSize = 20, filters?: { keyword?: string; status?: string; target_type?: string }) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (filters?.keyword) params.set('keyword', filters.keyword)
-  if (filters?.status) params.set('status', filters.status)
-  if (filters?.target_type) params.set('target_type', filters.target_type)
-  return request<AdminReportListResponse>(`/admin/reports?${params}`)
-}
+export const getReports = (
+  page = 1,
+  pageSize = 20,
+  filters?: { keyword?: string; status?: string; target_type?: string }
+) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (filters?.keyword) params.set("keyword", filters.keyword);
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.target_type) params.set("target_type", filters.target_type);
+  return request<AdminReportListResponse>(`/admin/reports?${params}`);
+};
 
 export const getReport = (id: string) =>
-  request<AdminReportDetailResponse>(`/admin/reports/${id}`)
+  request<AdminReportDetailResponse>(`/admin/reports/${id}`);
 
 export const reviewReport = (id: string, input: AdminReportReviewInput) =>
   request<{ message: string }>(`/admin/reports/${id}/decision`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 // Media
 export const getFlaggedMedia = (page = 1, pageSize = 20, status?: string) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (status) params.set('status', status)
-  return request<AdminMediaListResponse>(`/admin/media/flagged?${params}`)
-}
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (status) params.set("status", status);
+  return request<AdminMediaListResponse>(`/admin/media/flagged?${params}`);
+};
 
 export const reviewMedia = (id: string, input: AdminReviewMediaInput) =>
   request<{ message: string }>(`/admin/media/${id}/review`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 // Groups
 export const getGroups = (page = 1, pageSize = 20, search?: string) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (search) params.set('keyword', search)
-  return request<AdminGroupListResponse>(`/admin/groups?${params}`)
-}
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (search) params.set("keyword", search);
+  return request<AdminGroupListResponse>(`/admin/groups?${params}`);
+};
 
 export const getGroup = (id: string) =>
-  request<AdminGroupDetailResponse>(`/admin/groups/${id}`)
+  request<AdminGroupDetailResponse>(`/admin/groups/${id}`);
 
 export const hideGroup = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/groups/${id}/hide`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const archiveGroup = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/groups/${id}/archive`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const warnGroup = (id: string, input: AdminWarnInput) =>
   request<{ message: string }>(`/admin/groups/${id}/warn`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const deleteGroup = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/groups/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     body: JSON.stringify(input),
-  })
+  });
+
+export const unhideGroup = (id: string, input: AdminModerateInput) =>
+  request<{ message: string }>(`/admin/groups/${id}/unhide`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 
 // Communities
 export const getCommunities = (page = 1, pageSize = 20, search?: string) => {
-  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (search) params.set('keyword', search)
-  return request<AdminCommunityListResponse>(`/admin/communities?${params}`)
-}
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (search) params.set("keyword", search);
+  return request<AdminCommunityListResponse>(`/admin/communities?${params}`);
+};
 
 export const getCommunity = (id: string) =>
-  request<AdminCommunityDetailResponse>(`/admin/communities/${id}`)
+  request<AdminCommunityDetailResponse>(`/admin/communities/${id}`);
 
 export const hideCommunity = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/communities/${id}/hide`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const archiveCommunity = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/communities/${id}/archive`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const warnCommunity = (id: string, input: AdminWarnInput) =>
   request<{ message: string }>(`/admin/communities/${id}/warn`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(input),
-  })
+  });
 
 export const deleteCommunity = (id: string, input: AdminModerateInput) =>
   request<{ message: string }>(`/admin/communities/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     body: JSON.stringify(input),
-  })
+  });
