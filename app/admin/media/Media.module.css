@@ -290,22 +290,92 @@
 }
 
 .groupCard {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    background: var(--color-card);
 }
 
 .groupHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .groupMeta {
-  color: var(--color-text-secondary);
-  font-size: 13px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.previewButton {
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+}
+
+.previewButton:hover .previewImage,
+.previewButton:hover .previewVideo {
+    transform: scale(1.02);
+    border-color: var(--color-primary);
+}
+
+.previewVideo {
+    background: var(--color-bg-secondary);
+}
+
+.previewModalContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.previewModalImage,
+.previewModalVideo {
+    width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+}
+
+.previewPlaceholderLarge {
+    width: 100%;
+    min-height: 260px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-secondary);
+}
+
+.previewMetaCard {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    background: var(--color-bg-secondary);
+}
+
+.previewMetaRow {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: 6px 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.previewMetaRow strong {
+    color: var(--color-text);
+}
+
+.modal {
+    width: min(92vw, 900px);
+    max-width: 900px;
 }

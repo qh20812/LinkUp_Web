@@ -140,7 +140,9 @@
     "reviewHint": "Vui lòng nhập lý do xử lý để quản trị viên theo dõi.",
     "reasonPlaceholder": "Nhập lý do phê duyệt hoặc từ chối...",
     "confirmReview": "Xác nhận",
-    "reviewDefaultReason": "Đã được xử lý bởi quản trị viên"
+    "reviewDefaultReason": "Đã được xử lý bởi quản trị viên",
+    "all": "Tất cả",
+    "groupByUser": "Nhóm theo người dùng"
   },
   "groups": {
     "title": "Quản lý nhóm chat",

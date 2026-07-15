@@ -14,9 +14,9 @@ import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
 import styles from "./Media.module.css";
 
-type MediaStatusFilter = "flagged" | "rejected";
+type MediaStatusFilter = "all" | "flagged" | "rejected";
 type ReviewAction = "approve" | "reject";
-type MediaMode = "flagged" | "rejected" | "grouped";
+type MediaMode = "all" | "flagged" | "rejected" | "grouped";
 
 export default function MediaPage() {
   const { t } = useTranslation();
@@ -27,9 +27,9 @@ export default function MediaPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
-  const [mode, setMode] = useState<MediaMode>("flagged");
-  const [statusFilter, setStatusFilter] =
-    useState<MediaStatusFilter>("flagged");
+  const [mode, setMode] = useState<MediaMode>("grouped");
+  const [statusFilter, setStatusFilter] = useState<MediaStatusFilter>("all");
+  const [previewMedia, setPreviewMedia] = useState<AdminMediaItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -50,6 +50,8 @@ export default function MediaPage() {
       setError(null);
 
       try {
+        const normalizedStatus = statusFilter === "all" ? "" : statusFilter;
+
         if (mode === "grouped") {
           const res = await getMediaGroupedByUser(page, pageSize, statusFilter);
           if (!cancelled) {
@@ -57,7 +59,11 @@ export default function MediaPage() {
             setTotal(res.total ?? 0);
           }
         } else {
-          const res = await getFlaggedMedia(page, pageSize, mode);
+          const res = await getFlaggedMedia(
+            page,
+            pageSize,
+            mode === "all" ? normalizedStatus : mode,
+          );
           if (!cancelled) {
             setItems(res.items ?? []);
             setTotal(res.total ?? 0);
@@ -202,9 +208,23 @@ export default function MediaPage() {
               setPage(1);
               setError(null);
             }}>
+            <option value="all">{t("media.all")}</option>
             <option value="flagged">{t("media.flagged")}</option>
             <option value="rejected">{t("media.rejected")}</option>
             <option value="grouped">{t("media.groupByUser")}</option>
+          </select>
+
+          <select
+            className={styles.filterSelect}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as MediaStatusFilter);
+              setPage(1);
+              setError(null);
+            }}>
+            <option value="all">{t("media.all")}</option>
+            <option value="flagged">{t("media.flagged")}</option>
+            <option value="rejected">{t("media.rejected")}</option>
           </select>
 
           <button
@@ -264,7 +284,11 @@ export default function MediaPage() {
                       {group.media.map((item) => (
                         <tr key={item.id}>
                           <td>
-                            <div className={styles.previewCell}>
+                            <button
+                              type="button"
+                              className={styles.previewButton}
+                              onClick={() => setPreviewMedia(item)}
+                              aria-label={t("media.preview")}>
                               {isImage(item) ? (
                                 <img
                                   src={item.file_uri}
@@ -275,14 +299,16 @@ export default function MediaPage() {
                                 <video
                                   src={item.file_uri}
                                   className={styles.previewVideo}
-                                  controls
+                                  muted
+                                  playsInline
+                                  preload="metadata"
                                 />
                               ) : (
                                 <div className={styles.previewPlaceholder}>
                                   <i className="bx bx-file" />
                                 </div>
                               )}
-                            </div>
+                            </button>
                           </td>
                           <td>
                             <div className={styles.fileMeta}>
@@ -431,6 +457,49 @@ export default function MediaPage() {
           </>
         )}
       </div>
+
+      <Modal
+        open={Boolean(previewMedia)}
+        onClose={() => setPreviewMedia(null)}
+        title={t("media.preview")}>
+        <div className={styles.previewModalContent}>
+          {previewMedia && isImage(previewMedia) ? (
+            <img
+              src={previewMedia.file_uri}
+              alt={previewMedia.id}
+              className={styles.previewModalImage}
+            />
+          ) : previewMedia && isVideo(previewMedia) ? (
+            <video
+              src={previewMedia.file_uri}
+              className={styles.previewModalVideo}
+              controls
+              playsInline
+            />
+          ) : (
+            <div className={styles.previewPlaceholderLarge}>
+              <i className="bx bx-file" />
+            </div>
+          )}
+
+          {previewMedia && (
+            <div className={styles.previewMetaCard}>
+              <div className={styles.previewMetaRow}>
+                <span>{t("media.fileType")}</span>
+                <strong>{previewMedia.file_type || "unknown"}</strong>
+              </div>
+              <div className={styles.previewMetaRow}>
+                <span>{t("media.status")}</span>
+                <strong>{getStatusLabel(previewMedia.status)}</strong>
+              </div>
+              <div className={styles.previewMetaRow}>
+                <span>{t("media.createdAt")}</span>
+                <strong>{formatDate(previewMedia.created_at)}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(selectedMedia)}
