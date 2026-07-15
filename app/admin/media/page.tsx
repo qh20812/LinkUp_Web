@@ -6,24 +6,28 @@ import { useToast } from "../../../contexts/ToastContext";
 import {
   cleanupRejectedMedia,
   getFlaggedMedia,
+  getMediaGroupedByUser,
   reviewMedia,
 } from "../../../api/admin";
-import type { AdminMediaItem } from "../../../types";
+import type { AdminMediaGroupItem, AdminMediaItem } from "../../../types";
 import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
 import styles from "./Media.module.css";
 
 type MediaStatusFilter = "flagged" | "rejected";
 type ReviewAction = "approve" | "reject";
+type MediaMode = "flagged" | "rejected" | "grouped";
 
 export default function MediaPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
 
   const [items, setItems] = useState<AdminMediaItem[]>([]);
+  const [groups, setGroups] = useState<AdminMediaGroupItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
+  const [mode, setMode] = useState<MediaMode>("flagged");
   const [statusFilter, setStatusFilter] =
     useState<MediaStatusFilter>("flagged");
   const [loading, setLoading] = useState(true);
@@ -46,19 +50,25 @@ export default function MediaPage() {
       setError(null);
 
       try {
-        const res = await getFlaggedMedia(page, pageSize, statusFilter);
-        if (!cancelled) {
-          setItems(res.items ?? []);
-          setTotal(res.total ?? 0);
+        if (mode === "grouped") {
+          const res = await getMediaGroupedByUser(page, pageSize, statusFilter);
+          if (!cancelled) {
+            setGroups(res.groups ?? []);
+            setTotal(res.total ?? 0);
+          }
+        } else {
+          const res = await getFlaggedMedia(page, pageSize, mode);
+          if (!cancelled) {
+            setItems(res.items ?? []);
+            setTotal(res.total ?? 0);
+          }
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : t("common.error"));
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -66,7 +76,7 @@ export default function MediaPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize, statusFilter, refreshKey, t]);
+  }, [page, pageSize, mode, statusFilter, refreshKey, t]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -186,14 +196,22 @@ export default function MediaPage() {
         <div className={styles.toolbar}>
           <select
             className={styles.filterSelect}
-            value={statusFilter}
+            value={mode}
             onChange={(e) => {
-              setStatusFilter(e.target.value as MediaStatusFilter);
+              setMode(e.target.value as MediaMode);
               setPage(1);
+              setError(null);
             }}>
             <option value="flagged">{t("media.flagged")}</option>
             <option value="rejected">{t("media.rejected")}</option>
+            <option value="grouped">{t("media.groupByUser")}</option>
           </select>
+
+          <button
+            className={styles.buttonSecondary}
+            onClick={() => setRefreshKey((k) => k + 1)}>
+            {t("Tải lại trang")}
+          </button>
 
           <button
             className={styles.buttonSecondary}
@@ -212,6 +230,107 @@ export default function MediaPage() {
             <i className="bx bx-error-circle" />
             <p>{error}</p>
           </div>
+        ) : mode === "grouped" ? (
+          groups.length === 0 ? (
+            <div className={styles.empty}>
+              <i className="bx bx-image-alt" />
+              <p>{t("media.empty")}</p>
+            </div>
+          ) : (
+            groups.map((group) => (
+              <div key={group.user_id} className={styles.groupCard}>
+                <div className={styles.groupHeader}>
+                  <div>
+                    <strong>{group.display_name || group.username}</strong>
+                    <div className={styles.groupMeta}>{group.user_id}</div>
+                  </div>
+                  <div className={styles.groupMeta}>
+                    {t("media.totalMedia", { count: group.media.length })}
+                  </div>
+                </div>
+
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>{t("media.preview")}</th>
+                        <th>{t("media.fileType")}</th>
+                        <th>{t("media.status")}</th>
+                        <th>{t("media.createdAt")}</th>
+                        <th>{t("common.actions")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.media.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <div className={styles.previewCell}>
+                              {isImage(item) ? (
+                                <img
+                                  src={item.file_uri}
+                                  alt={item.id}
+                                  className={styles.previewImage}
+                                />
+                              ) : isVideo(item) ? (
+                                <video
+                                  src={item.file_uri}
+                                  className={styles.previewVideo}
+                                  controls
+                                />
+                              ) : (
+                                <div className={styles.previewPlaceholder}>
+                                  <i className="bx bx-file" />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className={styles.fileMeta}>
+                              <strong>{item.file_type || "unknown"}</strong>
+                              <span>
+                                {(item.file_size / (1024 * 1024)).toFixed(2)} MB
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className={`${styles.badge} ${getStatusClass(
+                                item.status,
+                              )}`}>
+                              {getStatusLabel(item.status)}
+                            </span>
+                          </td>
+                          <td>{formatDate(item.created_at)}</td>
+                          <td>
+                            <div className={styles.actions}>
+                              <button
+                                className={styles.buttonPrimary}
+                                onClick={() => {
+                                  setSelectedMedia(item);
+                                  setReviewAction("approve");
+                                  setReviewReason("");
+                                }}>
+                                {t("media.approve")}
+                              </button>
+                              <button
+                                className={styles.buttonDanger}
+                                onClick={() => {
+                                  setSelectedMedia(item);
+                                  setReviewAction("reject");
+                                  setReviewReason("");
+                                }}>
+                                {t("media.reject")}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )
         ) : items.length === 0 ? (
           <div className={styles.empty}>
             <i className="bx bx-image-alt" />
@@ -264,7 +383,9 @@ export default function MediaPage() {
                       </td>
                       <td>
                         <span
-                          className={`${styles.badge} ${getStatusClass(item.status)}`}>
+                          className={`${styles.badge} ${getStatusClass(
+                            item.status,
+                          )}`}>
                           {getStatusLabel(item.status)}
                         </span>
                       </td>
@@ -320,7 +441,9 @@ export default function MediaPage() {
 
           <div className={styles.radioGroup}>
             <label
-              className={`${styles.radio} ${reviewAction === "approve" ? styles.radioActive : ""}`}>
+              className={`${styles.radio} ${
+                reviewAction === "approve" ? styles.radioActive : ""
+              }`}>
               <input
                 type="radio"
                 name="reviewAction"
@@ -331,7 +454,9 @@ export default function MediaPage() {
             </label>
 
             <label
-              className={`${styles.radio} ${reviewAction === "reject" ? styles.radioActive : ""}`}>
+              className={`${styles.radio} ${
+                reviewAction === "reject" ? styles.radioActive : ""
+              }`}>
               <input
                 type="radio"
                 name="reviewAction"

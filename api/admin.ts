@@ -16,6 +16,7 @@ import type {
   AdminCommunityDetailResponse,
   AdminModerateInput,
   AdminWarnInput,
+  AdminMediaGroupedResponse,
 } from '../types'
 
 // Dashboard
@@ -166,3 +167,12 @@ export const cleanupRejectedMedia = () =>
   request<{ cleaned: number }>('/admin/media/cleanup-rejected', {
     method: 'POST',
   })
+
+export const getMediaGroupedByUser = (page = 1, pageSize = 20, status?: string) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  if (status) params.set("status", status)
+  return request<AdminMediaGroupedResponse>(`/admin/media/grouped?${params}`)
+}

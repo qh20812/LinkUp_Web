@@ -278,3 +278,34 @@
     justify-content: flex-end;
     gap: var(--space-sm);
 }
+
+.input {
+    min-width: 260px;
+    height: 40px;
+    padding: 0 var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-card);
+    color: var(--color-text);
+}
+
+.groupCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--color-card);
+}
+
+.groupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.groupMeta {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
