@@ -9,7 +9,6 @@ import {
   hideGroup,
   unhideGroup,
   archiveGroup,
-  warnGroup,
   deleteGroup,
 } from "../../../api/admin";
 import type { AdminGroupListItem } from "../../../types";
@@ -27,7 +26,12 @@ export default function GroupsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+
+  // Định nghĩa kiểu dữ liệu chặt chẽ cho statusFilter dựa trên AdminGroupListItem
+  const [statusFilter, setStatusFilter] = useState<
+    AdminGroupListItem["status"] | ""
+  >("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,17 +42,14 @@ export default function GroupsPage() {
     left: number;
   } | null>(null);
 
-  // Modals state
+  // Modals state (Đã xóa các logic liên quan tới hành động "warn")
   const [detailTarget, setDetailTarget] = useState<
     (AdminGroupListItem & { avatar_uri?: string }) | null
   >(null);
   const [actionTarget, setActionTarget] = useState<AdminGroupListItem | null>(
     null
   );
-  const [actionType, setActionType] = useState<
-    "warn" | "archive" | "delete" | ""
-  >("");
-  const [actionReason, setActionReason] = useState("");
+  const [actionType, setActionType] = useState<"archive" | "delete" | "">("");
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -97,7 +98,7 @@ export default function GroupsPage() {
   const handleStatusFilterChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setStatusFilter(e.target.value);
+    setStatusFilter(e.target.value as AdminGroupListItem["status"] | "");
     setPage(1);
   };
 
@@ -138,10 +139,7 @@ export default function GroupsPage() {
     if (!actionTarget) return;
     setActionLoading(true);
     try {
-      if (actionType === "warn") {
-        await warnGroup(actionTarget.id, { reason: actionReason } as any);
-        toast({ title: t("groups.warnSuccess"), type: "success" });
-      } else if (actionType === "archive") {
+      if (actionType === "archive") {
         await archiveGroup(actionTarget.id, { reason: "Archive" });
         toast({ title: t("groups.archiveSuccess"), type: "success" });
       } else if (actionType === "delete") {
@@ -150,7 +148,6 @@ export default function GroupsPage() {
       }
       setActionTarget(null);
       setActionType("");
-      setActionReason("");
       setRefreshKey((k) => k + 1);
     } catch (err) {
       toast({
@@ -190,7 +187,6 @@ export default function GroupsPage() {
       active: styles.badgeActive,
       archived: styles.badgeSuspended,
       hidden: styles.badgeBanned,
-      warned: styles.badgeSuspended,
     };
     return map[status] ?? "";
   };
@@ -200,7 +196,6 @@ export default function GroupsPage() {
       active: t("groups.active"),
       archived: t("groups.archived"),
       hidden: t("groups.hidden"),
-      warned: t("groups.warned"),
     };
     return map[status] ?? status;
   };
@@ -328,7 +323,7 @@ export default function GroupsPage() {
                             } else {
                               const btn = e.currentTarget as HTMLElement;
                               const rect = btn.getBoundingClientRect();
-                              const menuH = 190; // 5 item lớn
+                              const menuH = 150; // Giảm bớt chiều cao do bỏ item Cảnh cáo
                               let top = rect.bottom + 4;
                               if (top + menuH > window.innerHeight)
                                 top = rect.top - 4 - menuH;
@@ -394,17 +389,6 @@ export default function GroupsPage() {
                                 {t("groups.archiveGroup")}
                               </button>
                             )}
-
-                            <button
-                              className={styles.actionMenuItem}
-                              onClick={() => {
-                                setActionTarget(group);
-                                setActionType("warn");
-                                closeMenu();
-                              }}>
-                              <i className="bx bx-error" />{" "}
-                              {t("groups.warnGroup")}
-                            </button>
 
                             <button
                               className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
@@ -549,21 +533,18 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Multi-Purpose Action Modal (Warn, Archive, Delete) */}
+      {/* Multi-Purpose Action Modal (Archive, Delete) */}
       {actionTarget && actionType && (
         <div
           className={styles.overlay}
           onClick={() => {
             setActionTarget(null);
             setActionType("");
-            setActionReason("");
           }}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>
-                {actionType === "warn"
-                  ? t("groups.warnGroup")
-                  : actionType === "delete"
+                {actionType === "delete"
                   ? t("groups.deleteGroup")
                   : t("groups.confirmTitle")}
               </h2>
@@ -572,7 +553,6 @@ export default function GroupsPage() {
                 onClick={() => {
                   setActionTarget(null);
                   setActionType("");
-                  setActionReason("");
                 }}>
                 <i className="bx bx-x" />
               </button>
@@ -584,7 +564,6 @@ export default function GroupsPage() {
                   color: "var(--color-text-secondary)",
                   fontSize: 14,
                 }}>
-                {actionType === "warn" && t("groups.confirmWarnMessage")}
                 {actionType === "delete" && t("groups.confirmDeleteMessage")}
                 {actionType === "archive" && t("groups.confirmArchiveMessage")}
                 <br />
@@ -592,21 +571,6 @@ export default function GroupsPage() {
                   {actionTarget.name || actionTarget.id}
                 </strong>
               </p>
-
-              {actionType === "warn" && (
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>
-                    {t("groups.warnReason")}
-                  </label>
-                  <input
-                    type="text"
-                    className={styles.fieldInput}
-                    value={actionReason}
-                    onChange={(e) => setActionReason(e.target.value)}
-                    placeholder={t("groups.warnReasonPlaceholder")}
-                  />
-                </div>
-              )}
             </div>
             <div className={styles.modalFooter}>
               <button
@@ -614,16 +578,12 @@ export default function GroupsPage() {
                 onClick={() => {
                   setActionTarget(null);
                   setActionType("");
-                  setActionReason("");
                 }}>
                 {t("common.cancel")}
               </button>
               <button
                 className={styles.btnDanger}
-                disabled={
-                  actionLoading ||
-                  (actionType === "warn" && !actionReason.trim())
-                }
+                disabled={actionLoading}
                 onClick={executeModalAction}>
                 {actionLoading ? t("common.loading") : t("common.confirm")}
               </button>

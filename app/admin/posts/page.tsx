@@ -5,7 +5,11 @@ import Image from "next/image";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import { getPosts, updatePostStatus, hidePost } from "../../../api/admin";
-import type { AdminPostListItem } from "../../../types";
+import type {
+  AdminPostListItem,
+  AdminPostListResponse,
+  AdminHidePostInput,
+} from "../../../types";
 import styles from "./Posts.module.css";
 
 export default function PostsPage() {
@@ -45,7 +49,7 @@ export default function PostsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await getPosts(
+        const res: AdminPostListResponse = await getPosts(
           page,
           pageSize,
           keyword || undefined,
@@ -117,7 +121,8 @@ export default function PostsPage() {
     if (!hideTarget) return;
     setActionLoading(true);
     try {
-      await hidePost(hideTarget.id, { reason: hideReason });
+      const hideInput: AdminHidePostInput = { reason: hideReason };
+      await hidePost(hideTarget.id, hideInput);
       toast({ title: t("posts.hideSuccess"), type: "success" });
       setHideTarget(null);
       setHideReason("");
@@ -210,7 +215,7 @@ export default function PostsPage() {
             value={statusFilter}
             onChange={handleStatusFilterChange}>
             <option value="">{t("posts.allStatuses")}</option>
-            <option value="public">{t("posts.active")}</option>
+            <option value="active">{t("posts.active")}</option>
             <option value="hidden">{t("posts.hidden")}</option>
           </select>
         </div>
@@ -234,7 +239,7 @@ export default function PostsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>{t("posts.author")}</th>
+                  <th>{t("posts.title")}</th>
                   <th>{t("posts.content")}</th>
                   <th>{t("common.status")}</th>
                   <th>{t("posts.interactions")}</th>
@@ -247,7 +252,6 @@ export default function PostsPage() {
                   <tr key={post.id}>
                     <td>
                       <div className={styles.cellUser}>
-                        {/* Thay vì span ID chay, ta dùng logic Avatar từ user_id (dùng mặc định nếu API không có user object) */}
                         <Image
                           src={"/default-avatar.png"}
                           alt=""
@@ -349,7 +353,7 @@ export default function PostsPage() {
                                 className={styles.actionMenuItem}
                                 disabled={actionLoading}
                                 onClick={() => {
-                                  handleStatusChange(post.id, "public");
+                                  handleStatusChange(post.id, "active");
                                   closeMenu();
                                 }}>
                                 <i className="bx bx-show-alt" />{" "}
@@ -418,6 +422,12 @@ export default function PostsPage() {
                 <span className={styles.detailValue}>{detailTarget.id}</span>
               </div>
               <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("posts.title")}</span>
+                <span className={styles.detailValue}>
+                  {detailTarget.title || t("posts.noTitle")}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t("posts.author")}</span>
                 <span className={styles.detailValue}>
                   {detailTarget.user_id}
@@ -460,12 +470,39 @@ export default function PostsPage() {
               </div>
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>
+                  {t("posts.interactions")}
+                </span>
+                <span className={styles.detailValue}>
+                  <span style={{ marginRight: "12px" }}>
+                    <i className="bx bx-heart" /> {detailTarget.likes_count}
+                  </span>
+                  <span style={{ marginRight: "12px" }}>
+                    <i className="bx bx-comment" />{" "}
+                    {detailTarget.comments_count}
+                  </span>
+                  <span>
+                    <i className="bx bx-share" /> {detailTarget.shares_count}
+                  </span>
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
                   {t("common.createdAt")}
                 </span>
                 <span className={styles.detailValue}>
                   {formatDate(detailTarget.created_at)}
                 </span>
               </div>
+              {detailTarget.updated_at && (
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>
+                    {t("common.updatedAt")}
+                  </span>
+                  <span className={styles.detailValue}>
+                    {formatDate(detailTarget.updated_at)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className={styles.modalFooter}>
               <button
