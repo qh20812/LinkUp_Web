@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import {
@@ -11,76 +12,118 @@ import {
   warnGroup,
   deleteGroup,
 } from "../../../api/admin";
+import type { AdminGroupListItem } from "../../../types";
 import styles from "./Groups.module.css";
 
 export default function GroupsPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { toast } = useToast();
 
-  const [groups, setGroups] = useState<any[]>([]);
+  // Mở rộng Type inline để khớp dữ liệu thực tế
+  const [groups, setGroups] = useState<
+    (AdminGroupListItem & { avatar_uri?: string })[]
+  >([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
 
-  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  // Modals state
+  const [detailTarget, setDetailTarget] = useState<
+    (AdminGroupListItem & { avatar_uri?: string }) | null
+  >(null);
+  const [actionTarget, setActionTarget] = useState<AdminGroupListItem | null>(
+    null
+  );
+  const [actionType, setActionType] = useState<
+    "warn" | "archive" | "delete" | ""
+  >("");
+  const [actionReason, setActionReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [warnModalOpen, setWarnModalOpen] = useState(false);
-  const [warnReason, setWarnReason] = useState("");
-  const [groupToWarn, setGroupToWarn] = useState<string | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 500);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const fetchGroups = async () => {
-    try {
+    let cancelled = false;
+    const fetchData = async () => {
       setLoading(true);
       setError(null);
-      const response = await getGroups(page, pageSize, debouncedSearch);
-      setGroups(response.groups || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setLoading(false);
-    }
+      try {
+        const res = await getGroups(
+          page,
+          pageSize,
+          keyword || undefined,
+          statusFilter || undefined
+        );
+        if (!cancelled) {
+          setGroups(res.groups ?? []);
+          setTotal(res.total);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t("common.error"));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, keyword, statusFilter, pageSize, t, refreshKey]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setKeyword(e.target.value);
+      setPage(1);
+    }, 400);
+  };
+
+  const handleStatusFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  const closeMenu = () => {
+    setOpenMenuId(null);
+    setMenuStyle(null);
   };
 
   useEffect(() => {
-    fetchGroups();
-  }, [page, debouncedSearch]);
+    if (!openMenuId) return;
+    const handleClick = () => closeMenu();
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [openMenuId]);
 
-  const handleToggleStatus = async (group: any) => {
+  const handleToggleHide = async (group: AdminGroupListItem) => {
     setActionLoading(true);
     try {
       const isHidden = group.status === "hidden";
       if (isHidden) {
-        await unhideGroup(group.id as string, {
-          reason: "Hiển thị lại nhóm chat",
-        });
+        await unhideGroup(group.id, { reason: "Unhide" });
       } else {
-        await hideGroup(group.id as string, {
-          reason: "Ẩn nhóm chat do vi phạm",
-        });
+        await hideGroup(group.id, { reason: "Hide" });
       }
-      toast({
-        title: t("common.save") || "Cập nhật thành công",
-        type: "success",
-      });
-      fetchGroups();
-      if (selectedGroup?.id === group.id) {
-        setSelectedGroup({
-          ...selectedGroup,
-          status: isHidden ? "active" : "hidden",
-        });
-      }
+      toast({ title: t("groups.statusUpdated"), type: "success" });
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -91,19 +134,24 @@ export default function GroupsPage() {
     }
   };
 
-  const handleArchiveGroup = async (group: any) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn lưu trữ nhóm "${group.name}"?`))
-      return;
+  const executeModalAction = async () => {
+    if (!actionTarget) return;
     setActionLoading(true);
     try {
-      await archiveGroup(group.id as string, {
-        reason: "Lưu trữ nhóm theo yêu cầu",
-      });
-      toast({ title: "Đã lưu trữ nhóm thành công", type: "success" });
-      fetchGroups();
-      if (selectedGroup?.id === group.id) {
-        setSelectedGroup({ ...selectedGroup, status: "archived" });
+      if (actionType === "warn") {
+        await warnGroup(actionTarget.id, { reason: actionReason } as any);
+        toast({ title: t("groups.warnSuccess"), type: "success" });
+      } else if (actionType === "archive") {
+        await archiveGroup(actionTarget.id, { reason: "Archive" });
+        toast({ title: t("groups.archiveSuccess"), type: "success" });
+      } else if (actionType === "delete") {
+        await deleteGroup(actionTarget.id, { reason: "Delete" });
+        toast({ title: t("groups.deleteSuccess"), type: "success" });
       }
+      setActionTarget(null);
+      setActionType("");
+      setActionReason("");
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -114,535 +162,470 @@ export default function GroupsPage() {
     }
   };
 
-  const openWarnModal = (id: string) => {
-    setGroupToWarn(id);
-    setWarnReason("");
-    setWarnModalOpen(true);
+  const getPageNumbers = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
+    pages.push(1);
+    const left = Math.max(2, page - 1);
+    const right = Math.min(totalPages - 1, page + 1);
+    if (left > 2) pages.push("...");
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < totalPages - 1) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+    return pages;
   };
 
-  const handleConfirmWarn = async () => {
-    if (!groupToWarn || !warnReason.trim()) return;
-
-    setActionLoading(true);
+  const formatDate = (iso: string): string => {
     try {
-      await warnGroup(groupToWarn, { reason: warnReason } as any);
-
-      toast({
-        title: "Gửi cảnh báo đến nhóm chat thành công",
-        type: "success",
-      });
-      setWarnModalOpen(false);
-      fetchGroups();
-      if (selectedGroup?.id === groupToWarn) {
-        setSelectedGroup({ ...selectedGroup, status: "warned" });
-      }
-    } catch (err) {
-      toast({
-        title: err instanceof Error ? err.message : t("common.error"),
-        type: "error",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const openDeleteModal = (id: string) => {
-    setGroupToDelete(id);
-    setDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!groupToDelete) return;
-    setActionLoading(true);
-    try {
-      await deleteGroup(groupToDelete!, {
-        reason: "Xóa vĩnh viễn do vi phạm điều khoản hệ thống",
-      });
-      toast({ title: "Đã xóa nhóm chat vĩnh viễn", type: "success" });
-      setDeleteModalOpen(false);
-      setSelectedGroup(null);
-      fetchGroups();
-    } catch (err) {
-      toast({
-        title: err instanceof Error ? err.message : t("common.error"),
-        type: "error",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const formatDateTime = (iso: string): string => {
-    try {
-      const d = new Date(iso);
-      return `${d.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })}`;
+      return new Date(iso).toLocaleDateString(
+        language === "vi" ? "vi-VN" : "en-US",
+        { day: "2-digit", month: "2-digit", year: "numeric" }
+      );
     } catch {
       return iso;
     }
   };
 
-  const getStatusClass = (status: string) => {
+  const statusBadgeClass = (status: string): string => {
     const map: Record<string, string> = {
       active: styles.badgeActive,
-      archived: styles.badgeArchived,
-      hidden: styles.badgeHidden,
-      warned: styles.badgeWarned,
+      archived: styles.badgeSuspended,
+      hidden: styles.badgeBanned,
+      warned: styles.badgeSuspended,
     };
-    return map[status] ?? styles.badgeActive;
+    return map[status] ?? "";
   };
 
-  const getStatusLabel = (status: string) => {
+  const statusLabel = (status: string): string => {
     const map: Record<string, string> = {
-      active: "Hoạt động",
-      archived: "Lưu trữ",
-      hidden: "Đã ẩn",
-      warned: "Cảnh báo",
+      active: t("groups.active"),
+      archived: t("groups.archived"),
+      hidden: t("groups.hidden"),
+      warned: t("groups.warned"),
     };
     return map[status] ?? status;
   };
 
+  const skeletonRows = () => (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className={styles.skeletonRow}>
+          <div className={styles.skeletonAvatar} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Quản lý nhóm chat</h1>
-        <div className={styles.searchBar}>
-          <i className="bx bx-search" />
-          <input
-            type="text"
-            placeholder={t("common.search") || "Tìm kiếm nhóm..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className={styles.header}>
+        <h1 className={styles.title}>{t("groups.title")}</h1>
+        <div className={styles.toolbar}>
+          <div className={styles.searchWrap}>
+            <i className={`bx bx-search ${styles.searchIcon}`} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={t("groups.searchPlaceholder")}
+              value={searchInput}
+              onChange={handleSearchChange}
+            />
+          </div>
+          <select
+            className={styles.filterSelect}
+            value={statusFilter}
+            onChange={handleStatusFilterChange}>
+            <option value="">{t("groups.allStatuses")}</option>
+            <option value="active">{t("groups.active")}</option>
+            <option value="archived">{t("groups.archived")}</option>
+            <option value="hidden">{t("groups.hidden")}</option>
+          </select>
         </div>
-      </header>
+      </div>
 
-      {error && (
-        <div className={styles.errorCard}>
-          <i className="bx bx-error-circle" />
-          <p>{error}</p>
-        </div>
-      )}
-
-      <div className={styles.tableWrap}>
-        <table className={styles.mainTable}>
-          <thead>
-            <tr>
-              <th>Nhóm chat</th>
-              <th>Người tạo (Creator)</th>
-              <th>Thành viên</th>
-              <th>Trạng thái</th>
-              <th>Ngày tạo</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, idx) => (
-                <tr key={idx} className={styles.skeletonRow}>
-                  <td colSpan={6}>
-                    <div className={styles.skeletonBar} />
-                  </td>
+      <div className={styles.card}>
+        {loading ? (
+          skeletonRows()
+        ) : error ? (
+          <div className={styles.empty}>
+            <i className="bx bx-error-circle" />
+            <p>{error}</p>
+          </div>
+        ) : groups.length === 0 ? (
+          <div className={styles.empty}>
+            <i className="bx bx-group" />
+            <p>{t("common.noData")}</p>
+          </div>
+        ) : (
+          <>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>{t("groups.name")}</th>
+                  <th>{t("groups.creator")}</th>
+                  <th>{t("groups.members")}</th>
+                  <th>{t("common.status")}</th>
+                  <th>{t("common.createdAt")}</th>
+                  <th>{t("common.actions")}</th>
                 </tr>
-              ))
-            ) : groups.length > 0 ? (
-              groups.map((group) => (
-                <tr key={group.id}>
-                  {/* CỘT 1: Nhóm chat */}
-                  <td>
-                    <div className={styles.groupInfoCell}>
-                      <div className={styles.groupAvatar}>
-                        {group.avatar_url ? (
-                          <img src={group.avatar_url} alt={group.name} />
-                        ) : (
-                          <div className={styles.avatarPlaceholder}>
-                            <i className="bx bx-group" />
+              </thead>
+              <tbody>
+                {groups.map((group) => (
+                  <tr key={group.id}>
+                    <td>
+                      <div className={styles.cellUser}>
+                        <Image
+                          src={group.avatar_uri || "/default-avatar.png"}
+                          alt=""
+                          width={36}
+                          height={36}
+                          className={styles.avatar}
+                          unoptimized
+                        />
+                        <div>
+                          <div className={styles.userName}>
+                            {group.name || t("groups.noName")}
+                          </div>
+                          <div className={styles.userEmail}>
+                            ID: {group.id.substring(0, 8)}...
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <div className={styles.userName}>
+                          {group.creator_name || t("groups.system")}
+                        </div>
+                      </div>
+                    </td>
+                    <td className={styles.cellDate}>
+                      <i className="bx bx-user" /> {group.member_count}
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.badge} ${statusBadgeClass(
+                          group.status
+                        )}`}>
+                        {statusLabel(group.status)}
+                      </span>
+                    </td>
+                    <td className={styles.cellDate}>
+                      {formatDate(group.created_at)}
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <div className={styles.actionMenuWrap}>
+                        <button
+                          className={styles.actionsBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId === group.id) {
+                              closeMenu();
+                            } else {
+                              const btn = e.currentTarget as HTMLElement;
+                              const rect = btn.getBoundingClientRect();
+                              const menuH = 190; // 5 item lớn
+                              let top = rect.bottom + 4;
+                              if (top + menuH > window.innerHeight)
+                                top = rect.top - 4 - menuH;
+                              let left = rect.right - 180;
+                              if (left < 8) left = 8;
+                              setMenuStyle({ top, left });
+                              setOpenMenuId(group.id);
+                            }
+                          }}>
+                          <i className="bx bx-dots-vertical-rounded" />
+                        </button>
+                        {openMenuId === group.id && menuStyle && (
+                          <div
+                            className={styles.actionMenu}
+                            style={{
+                              position: "fixed",
+                              top: menuStyle.top,
+                              left: menuStyle.left,
+                              zIndex: 1000,
+                            }}
+                            onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className={styles.actionMenuItem}
+                              onClick={() => {
+                                setDetailTarget(group);
+                                closeMenu();
+                              }}>
+                              <i className="bx bx-show" />{" "}
+                              {t("groups.viewDetail")}
+                            </button>
+
+                            {group.status !== "hidden" ? (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => {
+                                  handleToggleHide(group);
+                                  closeMenu();
+                                }}>
+                                <i className="bx bx-hide" />{" "}
+                                {t("groups.hideGroup")}
+                              </button>
+                            ) : (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => {
+                                  handleToggleHide(group);
+                                  closeMenu();
+                                }}>
+                                <i className="bx bx-show-alt" />{" "}
+                                {t("groups.unhideGroup")}
+                              </button>
+                            )}
+
+                            {group.status !== "archived" && (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => {
+                                  setActionTarget(group);
+                                  setActionType("archive");
+                                  closeMenu();
+                                }}>
+                                <i className="bx bx-archive-in" />{" "}
+                                {t("groups.archiveGroup")}
+                              </button>
+                            )}
+
+                            <button
+                              className={styles.actionMenuItem}
+                              onClick={() => {
+                                setActionTarget(group);
+                                setActionType("warn");
+                                closeMenu();
+                              }}>
+                              <i className="bx bx-error" />{" "}
+                              {t("groups.warnGroup")}
+                            </button>
+
+                            <button
+                              className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
+                              onClick={() => {
+                                setActionTarget(group);
+                                setActionType("delete");
+                                closeMenu();
+                              }}>
+                              <i className="bx bx-trash" />{" "}
+                              {t("groups.deleteGroup")}
+                            </button>
                           </div>
                         )}
                       </div>
-                      <div className={styles.groupMeta}>
-                        <span className={styles.groupName}>
-                          {group.name || "Nhóm chưa đặt tên"}
-                        </span>
-                        <span className={styles.groupId}>
-                          ID: {group.id?.substring(0, 8)}...
-                        </span>
-                      </div>
-                    </div>
-                  </td>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-                  {/* CỘT 2: Người tạo */}
-                  <td>
-                    <div className={styles.creatorCell}>
-                      <span className={styles.creatorName}>
-                        {group.creator_name || "Hệ thống"}
-                      </span>
-                      <span className={styles.creatorId}>
-                        ID: {group.creator_id?.substring(0, 6)}...
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* CỘT 3: Thành viên */}
-                  <td>
-                    <div className={styles.memberCount}>
-                      <i className="bx bx-user" /> {group.members_count ?? 0}
-                    </div>
-                  </td>
-
-                  {/* CỘT 4: Trạng thái */}
-                  <td>
-                    <div className={styles.badgeWrapper}>
-                      <span
-                        className={`${styles.badge} ${getStatusClass(
-                          group.status
-                        )}`}>
-                        {getStatusLabel(group.status)}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* CỘT 5: Ngày tạo */}
-                  <td>
-                    <div className={styles.dateCell}>
-                      {formatDateTime(group.created_at)}
-                    </div>
-                  </td>
-
-                  {/* CỘT 6: Hành động */}
-                  <td>
-                    <div className={styles.actionButtons}>
-                      <button
-                        className={styles.btnView}
-                        onClick={() => setSelectedGroup(group)}
-                        title="Xem chi tiết">
-                        <i className="bx bx-show" />
-                      </button>
-                      <button
-                        className={
-                          group.status === "hidden"
-                            ? styles.btnUnhide
-                            : styles.btnHide
-                        }
-                        onClick={() => handleToggleStatus(group)}
-                        disabled={actionLoading}
-                        title={
-                          group.status === "hidden" ? "Hiện nhóm" : "Ẩn nhóm"
-                        }>
-                        <i
-                          className={
-                            group.status === "hidden"
-                              ? "bx bx-lock-open-alt"
-                              : "bx bx-lock-alt"
-                          }
-                        />
-                      </button>
-                      <button
-                        className={styles.btnArchive}
-                        onClick={() => handleArchiveGroup(group)}
-                        disabled={group.status === "archived" || actionLoading}
-                        title="Lưu trữ nhóm">
-                        <i className="bx bx-archive" />
-                      </button>
-                      <button
-                        className={styles.btnWarn}
-                        onClick={() => openWarnModal(group.id)}
-                        disabled={actionLoading}
-                        title="Cảnh báo vi phạm">
-                        <i className="bx bx-error-circle" />
-                      </button>
-                      <button
-                        className={styles.btnDelete}
-                        onClick={() => openDeleteModal(group.id)}
-                        disabled={actionLoading}
-                        title="Xóa vĩnh viễn">
-                        <i className="bx bx-trash" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className={styles.emptyCell}>
-                  Không tìm thấy nhóm chat nào.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={styles.pagination}>
-        <button
-          disabled={page === 1 || loading}
-          onClick={() => setPage((p) => Math.max(p - 1, 1))}>
-          <i className="bx bx-chevron-left" /> Previous
-        </button>
-        <span className={styles.pageIndicator}>Trang {page}</span>
-        <button
-          disabled={groups.length < pageSize || loading}
-          onClick={() => setPage((p) => p + 1)}>
-          Next <i className="bx bx-chevron-right" />
-        </button>
-      </div>
-
-      {selectedGroup && (
-        <div className={styles.overlay} onClick={() => setSelectedGroup(null)}>
-          <div
-            className={styles.modalDetail}
-            onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>Chi tiết nhóm chat</h3>
-              <button
-                className={styles.modalClose}
-                onClick={() => setSelectedGroup(null)}>
-                <i className="bx bx-x" />
-              </button>
-            </div>
-
-            <div className={styles.modalBodyGrid}>
-              <div className={styles.modalColLeft}>
-                <div className={styles.groupHeaderDetail}>
-                  <div className={styles.groupAvatarLarge}>
-                    {selectedGroup.avatar_url ? (
-                      <img
-                        src={selectedGroup.avatar_url}
-                        alt={selectedGroup.name}
-                      />
-                    ) : (
-                      <i className="bx bx-group" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className={styles.detailTitle}>
-                      {selectedGroup.name || "Nhóm chưa đặt tên"}
-                    </h2>
-                    <p className={styles.detailDesc}>
-                      {selectedGroup.description ||
-                        "Không có mô tả cho nhóm chat này."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className={styles.sectionDivider} />
-
-                <h4 className={styles.sectionSubTitle}>
-                  Thành viên quản trị nhóm
-                </h4>
-                <div className={styles.adminList}>
-                  <div className={styles.adminMemberItem}>
-                    <i className="bx bx-crown" style={{ color: "#ffb300" }} />
-                    <div>
-                      <strong>
-                        {selectedGroup.creator_name || "Hệ thống"}
-                      </strong>{" "}
-                      (Người tạo nhóm)
-                      <div>ID: {selectedGroup.creator_id}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.modalColRight}>
-                <div className={styles.infoCard}>
-                  <h4>
-                    <i className="bx bx-info-circle" /> Thông tin hệ thống
-                  </h4>
-                  <div className={styles.infoRow}>
-                    <span>Nhóm ID:</span>
-                    <code>{selectedGroup.id}</code>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span>Ngày khởi tạo:</span>
-                    <span>{formatDateTime(selectedGroup.created_at)}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span>Trạng thái:</span>
-                    <span
-                      className={`${styles.badge} ${getStatusClass(
-                        selectedGroup.status
-                      )}`}>
-                      {getStatusLabel(selectedGroup.status)}
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button
+                  className={styles.pageBtn}
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}>
+                  <i className="bx bx-chevron-left" /> {t("common.prevPage")}
+                </button>
+                {getPageNumbers().map((p, i) =>
+                  typeof p === "string" ? (
+                    <span key={`e${i}`} className={styles.pageInfo}>
+                      {p}
                     </span>
-                  </div>
-                </div>
-
-                <div className={styles.infoCard}>
-                  <h4>
-                    <i className="bx bx-bar-chart-alt-2" /> Thống kê hoạt động
-                  </h4>
-                  <div className={styles.statsMetricsGrid}>
-                    <div className={styles.metricItem}>
-                      <i
-                        className="bx bx-user"
-                        style={{ color: "var(--color-primary)" }}
-                      />
-                      <div className={styles.metricVal}>
-                        {selectedGroup.members_count ?? 0}
-                      </div>
-                      <div className={styles.metricLabel}>Thành viên</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i
-                        className="bx bx-message-rounded-dots"
-                        style={{ color: "#2db7f5" }}
-                      />
-                      <div className={styles.metricVal}>
-                        {selectedGroup.messages_count ?? 0}
-                      </div>
-                      <div className={styles.metricLabel}>Tin nhắn</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-file" style={{ color: "#722ed1" }} />
-                      <div className={styles.metricVal}>
-                        {selectedGroup.files_count ?? 0}
-                      </div>
-                      <div className={styles.metricLabel}>Tài liệu chia sẻ</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-error" style={{ color: "#ff4d4f" }} />
-                      <div className={styles.metricVal}>
-                        {selectedGroup.reports_count ?? 0}
-                      </div>
-                      <div className={styles.metricLabel}>Báo cáo vi phạm</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.quickActions}>
-                  <button
-                    className={
-                      selectedGroup.status === "hidden"
-                        ? styles.btnActionActive
-                        : styles.btnActionWarning
-                    }
-                    onClick={() => handleToggleStatus(selectedGroup)}
-                    disabled={actionLoading}>
-                    <i
-                      className={
-                        selectedGroup.status === "hidden"
-                          ? "bx bx-lock-open-alt"
-                          : "bx bx-lock-alt"
-                      }
-                    />
-                    {selectedGroup.status === "hidden"
-                      ? "Hiển thị lại nhóm chat"
-                      : "Ẩn nhóm chat này"}
-                  </button>
-                  <button
-                    className={styles.btnActionArchive}
-                    onClick={() => handleArchiveGroup(selectedGroup)}
-                    disabled={
-                      selectedGroup.status === "archived" || actionLoading
-                    }>
-                    <i className="bx bx-archive" />
-                    Lưu trữ nhóm chat
-                  </button>
-                  <div className={styles.actionSplitGrid}>
+                  ) : (
                     <button
-                      className={styles.btnActionWarn}
-                      onClick={() => openWarnModal(selectedGroup.id)}
-                      disabled={actionLoading}>
-                      <i className="bx bx-bell" /> Cảnh cáo
+                      key={p}
+                      className={`${styles.pageBtn} ${
+                        p === page ? styles.pageBtnActive : ""
+                      }`}
+                      onClick={() => setPage(p)}>
+                      {p}
                     </button>
-                    <button
-                      className={styles.btnActionDanger}
-                      onClick={() => openDeleteModal(selectedGroup.id)}
-                      disabled={actionLoading}>
-                      <i className="bx bx-trash" /> Xóa vĩnh viễn
-                    </button>
-                  </div>
-                </div>
+                  )
+                )}
+                <button
+                  className={styles.pageBtn}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}>
+                  {t("common.nextPage")} <i className="bx bx-chevron-right" />
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
-      {warnModalOpen && (
-        <div className={styles.overlay} onClick={() => setWarnModalOpen(false)}>
-          <div
-            className={styles.actionFormModal}
-            onClick={(e) => e.stopPropagation()}>
+      {/* Detail Modal */}
+      {detailTarget && (
+        <div className={styles.overlay} onClick={() => setDetailTarget(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3>Cảnh báo vi phạm nhóm chat</h3>
+              <h2 className={styles.modalTitle}>{t("groups.detailTitle")}</h2>
               <button
                 className={styles.modalClose}
-                onClick={() => setWarnModalOpen(false)}>
+                onClick={() => setDetailTarget(null)}>
                 <i className="bx bx-x" />
               </button>
             </div>
             <div className={styles.modalBody}>
-              <p className={styles.modalDescText}>
-                Nhập lý do gửi cảnh báo vi phạm. Hệ thống sẽ gửi thông báo trực
-                tiếp đến các thành viên trong nhóm chat.
-              </p>
-              <textarea
-                placeholder="Ví dụ: Nhóm chat của bạn chứa nội dung spam, quảng cáo trái phép..."
-                className={styles.modalTextarea}
-                value={warnReason}
-                onChange={(e) => setWarnReason(e.target.value)}
-                rows={4}
-              />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-lg)",
+                  marginBottom: "var(--space-lg)",
+                }}>
+                <Image
+                  src={detailTarget.avatar_uri || "/default-avatar.png"}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className={styles.detailAvatar}
+                  unoptimized
+                />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 18 }}>
+                    {detailTarget.name || t("groups.noName")}
+                  </div>
+                  <div
+                    style={{
+                      color: "var(--color-text-secondary)",
+                      fontSize: 14,
+                    }}>
+                    ID: {detailTarget.id}
+                  </div>
+                </div>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
+                  {t("groups.creator")}
+                </span>
+                <span className={styles.detailValue}>
+                  {detailTarget.creator_name || t("groups.system")}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
+                  {t("groups.members")}
+                </span>
+                <span className={styles.detailValue}>
+                  {detailTarget.member_count}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("common.status")}</span>
+                <span className={styles.detailValue}>
+                  <span
+                    className={`${styles.badge} ${statusBadgeClass(
+                      detailTarget.status
+                    )}`}>
+                    {statusLabel(detailTarget.status)}
+                  </span>
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
+                  {t("common.createdAt")}
+                </span>
+                <span className={styles.detailValue}>
+                  {formatDate(detailTarget.created_at)}
+                </span>
+              </div>
             </div>
             <div className={styles.modalFooter}>
               <button
                 className={styles.btnCancel}
-                onClick={() => setWarnModalOpen(false)}
-                disabled={actionLoading}>
-                Quay lại
-              </button>
-              <button
-                className={styles.btnSubmitWarn}
-                onClick={handleConfirmWarn}
-                disabled={!warnReason.trim() || actionLoading}>
-                {actionLoading ? "Đang gửi..." : "Gửi cảnh báo"}
+                onClick={() => setDetailTarget(null)}>
+                {t("common.close")}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {deleteModalOpen && (
+      {/* Multi-Purpose Action Modal (Warn, Archive, Delete) */}
+      {actionTarget && actionType && (
         <div
           className={styles.overlay}
-          onClick={() => setDeleteModalOpen(false)}>
-          <div
-            className={styles.actionFormModal}
-            onClick={(e) => e.stopPropagation()}>
+          onClick={() => {
+            setActionTarget(null);
+            setActionType("");
+            setActionReason("");
+          }}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3 style={{ color: "var(--color-danger)" }}>
-                ⚠️ Xác nhận xóa vĩnh viễn
-              </h3>
+              <h2 className={styles.modalTitle}>
+                {actionType === "warn"
+                  ? t("groups.warnGroup")
+                  : actionType === "delete"
+                  ? t("groups.deleteGroup")
+                  : t("groups.confirmTitle")}
+              </h2>
               <button
                 className={styles.modalClose}
-                onClick={() => setDeleteModalOpen(false)}>
+                onClick={() => {
+                  setActionTarget(null);
+                  setActionType("");
+                  setActionReason("");
+                }}>
                 <i className="bx bx-x" />
               </button>
             </div>
             <div className={styles.modalBody}>
-              <p className={styles.modalDescText}>
-                Hành động này <strong>không thể khôi phục</strong>. Toàn bộ lịch
-                sử tin nhắn, hình ảnh và thành viên trong nhóm chat này sẽ bị
-                xóa sạch khỏi hệ thống LinkUp.
+              <p
+                style={{
+                  marginBottom: "var(--space-lg)",
+                  color: "var(--color-text-secondary)",
+                  fontSize: 14,
+                }}>
+                {actionType === "warn" && t("groups.confirmWarnMessage")}
+                {actionType === "delete" && t("groups.confirmDeleteMessage")}
+                {actionType === "archive" && t("groups.confirmArchiveMessage")}
+                <br />
+                <strong style={{ color: "var(--color-text)" }}>
+                  {actionTarget.name || actionTarget.id}
+                </strong>
               </p>
+
+              {actionType === "warn" && (
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>
+                    {t("groups.warnReason")}
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.fieldInput}
+                    value={actionReason}
+                    onChange={(e) => setActionReason(e.target.value)}
+                    placeholder={t("groups.warnReasonPlaceholder")}
+                  />
+                </div>
+              )}
             </div>
             <div className={styles.modalFooter}>
               <button
                 className={styles.btnCancel}
-                onClick={() => setDeleteModalOpen(false)}
-                disabled={actionLoading}>
-                Hủy bỏ
+                onClick={() => {
+                  setActionTarget(null);
+                  setActionType("");
+                  setActionReason("");
+                }}>
+                {t("common.cancel")}
               </button>
               <button
-                className={styles.btnConfirmDelete}
-                onClick={handleConfirmDelete}
-                disabled={actionLoading}>
-                {actionLoading ? "Đang xóa..." : "Đồng ý xóa"}
+                className={styles.btnDanger}
+                disabled={
+                  actionLoading ||
+                  (actionType === "warn" && !actionReason.trim())
+                }
+                onClick={executeModalAction}>
+                {actionLoading ? t("common.loading") : t("common.confirm")}
               </button>
             </div>
           </div>
