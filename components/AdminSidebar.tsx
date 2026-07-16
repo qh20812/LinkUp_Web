@@ -47,7 +47,24 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
         ))}
       </ul>
 
-      <ul className={styles.sideMenu}>
+      <div className={styles.separator} />
+
+      <ul className={styles.footerMenu}>
+        <li className={pathname === '/admin/profile' ? styles.active : ''}>
+          <Link href="/admin/profile">
+            <i className="bx bx-user-circle" />
+            <span>{t('nav.profile')}</span>
+          </Link>
+        </li>
+        <li className={pathname === '/admin/settings' ? styles.active : ''}>
+          <Link href="/admin/settings">
+            <i className="bx bx-cog" />
+            <span>{t('nav.settings')}</span>
+          </Link>
+        </li>
+      </ul>
+
+      <ul className={styles.logoutMenu}>
         <li>
           <Link href="/login" className={styles.logout}>
             <i className="bx bx-log-out-circle" />

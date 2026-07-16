@@ -240,6 +240,7 @@ export interface AdminGroupDetailResponse {
 export interface AdminCommunityListItem {
   id: string
   name: string
+  avatar_uri: string
   creator_id: string
   creator_name: string
   member_count: number

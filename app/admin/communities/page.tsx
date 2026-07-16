@@ -362,7 +362,11 @@ export default function CommunitiesPage() {
                     <td>
                       <div className={styles.communityCell}>
                         <div className={styles.avatar}>
-                          <i className="bx bx-group" />
+                          {c.avatar_uri ? (
+                            <img src={c.avatar_uri} alt={c.name} className={styles.avatarImg} />
+                          ) : (
+                            <i className="bx bx-group" />
+                          )}
                         </div>
                         <div>
                           <div className={styles.communityName}>{c.name}</div>
@@ -518,7 +522,11 @@ export default function CommunitiesPage() {
                     <>
                       <div className={styles.detailHeader}>
                         <div className={styles.detailAvatarLarge}>
-                          <i className="bx bx-group" />
+                          {detailData.avatar_uri ? (
+                            <img src={detailData.avatar_uri} alt={detailData.name} className={styles.detailAvatarLargeImg} />
+                          ) : (
+                            <i className="bx bx-group" />
+                          )}
                         </div>
                         <div>
                           <div className={styles.detailName}>{detailData.name}</div>
@@ -577,7 +585,11 @@ export default function CommunitiesPage() {
                           {detailData.members.slice(0, 20).map((m) => (
                             <div key={m.user_id} className={styles.memberItem}>
                               <div className={styles.memberAvatar}>
-                                <i className="bx bx-user" />
+                                {m.avatar_uri ? (
+                                  <img src={m.avatar_uri} alt={m.display_name} className={styles.memberAvatarImg} />
+                                ) : (
+                                  <i className="bx bx-user" />
+                                )}
                               </div>
                               <div className={styles.memberInfo}>
                                 <div className={styles.memberName}>{m.display_name}</div>
