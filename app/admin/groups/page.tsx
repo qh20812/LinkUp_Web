@@ -18,7 +18,6 @@ export default function GroupsPage() {
   const { t, language } = useTranslation();
   const { toast } = useToast();
 
-  // Mở rộng Type inline để khớp dữ liệu thực tế
   const [groups, setGroups] = useState<
     (AdminGroupListItem & { avatar_uri?: string })[]
   >([]);
@@ -27,7 +26,6 @@ export default function GroupsPage() {
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
 
-  // Định nghĩa kiểu dữ liệu chặt chẽ cho statusFilter dựa trên AdminGroupListItem
   const [statusFilter, setStatusFilter] = useState<
     AdminGroupListItem["status"] | ""
   >("");
@@ -42,7 +40,6 @@ export default function GroupsPage() {
     left: number;
   } | null>(null);
 
-  // Modals state (Đã xóa các logic liên quan tới hành động "warn")
   const [detailTarget, setDetailTarget] = useState<
     (AdminGroupListItem & { avatar_uri?: string }) | null
   >(null);
@@ -323,7 +320,7 @@ export default function GroupsPage() {
                             } else {
                               const btn = e.currentTarget as HTMLElement;
                               const rect = btn.getBoundingClientRect();
-                              const menuH = 150; // Giảm bớt chiều cao do bỏ item Cảnh cáo
+                              const menuH = 150; 
                               let top = rect.bottom + 4;
                               if (top + menuH > window.innerHeight)
                                 top = rect.top - 4 - menuH;
