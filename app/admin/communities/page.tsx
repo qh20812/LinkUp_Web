@@ -535,10 +535,19 @@ export default function CommunitiesPage() {
                     <i className="bx bx-history" /> {t('communities.tabLogs')}
                   </button>
                 </div>
+                {detailTab === 'info' && (
+                  <div className={styles.detailCover}>
+                    {detailData.background_uri ? (
+                      <img src={detailData.background_uri} alt="" className={styles.detailCoverImg} />
+                    ) : (
+                      <div className={styles.detailCoverFallback}>{t('communities.noBackground')}</div>
+                    )}
+                  </div>
+                )}
                 <div className={styles.modalBody}>
                   {detailTab === 'info' && (
                     <>
-                      <div className={styles.detailHeader}>
+                      <div className={styles.detailCoverContent}>
                         <div className={styles.detailAvatarLarge}>
                           {detailData.avatar_uri ? (
                             <img src={detailData.avatar_uri} alt={detailData.name} className={styles.detailAvatarLargeImg} />

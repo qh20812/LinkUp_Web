@@ -268,6 +268,7 @@ export interface AdminCommunityDetailResponse {
   name: string
   description: string
   avatar_uri: string
+  background_uri: string
   creator_id: string
   creator_name: string
   privacy: string
