@@ -1,351 +1,583 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useTranslation } from '../../../hooks/useTranslation'
-import { useToast } from '../../../contexts/ToastContext'
-import { getPosts, updatePostStatus, hidePost } from '../../../api/admin'
-import type { AdminPostListItem } from '../../../types'
-import styles from './Posts.module.css'
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { useTranslation } from "../../../hooks/useTranslation";
+import { useToast } from "../../../contexts/ToastContext";
+import { getPosts, updatePostStatus, hidePost } from "../../../api/admin";
+import type {
+  AdminPostListItem,
+  AdminPostListResponse,
+  AdminHidePostInput,
+} from "../../../types";
+import styles from "./Posts.module.css";
 
 export default function PostsPage() {
-  const { t } = useTranslation()
-  const { toast } = useToast()
+  const { t, language } = useTranslation();
+  const { toast } = useToast();
 
-  // State Management
-  const [posts, setPosts] = useState<any[]>([]) // Sử dụng cấu trúc Post đã đồng bộ từ API
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize] = useState(10)
+  const [posts, setPosts] = useState<AdminPostListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Detail Modal & Action States
-  const [selectedPost, setSelectedPost] = useState<any | null>(null)
-  const [reasonModalOpen, setReasonModalOpen] = useState(false)
-  const [hideReason, setHideReason] = useState('')
-  const [postToHide, setPostToHide] = useState<string | null>(null)
-  const [actionLoading, setActionLoading] = useState(false)
+  const [searchInput, setSearchInput] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 500)
-    return () => clearTimeout(timer)
-  }, [search])
+  const [detailTarget, setDetailTarget] = useState<AdminPostListItem | null>(
+    null
+  );
+  const [hideTarget, setHideTarget] = useState<AdminPostListItem | null>(null);
+  const [hideReason, setHideReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch Posts Data
-  const fetchPosts = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await getPosts(page, pageSize, debouncedSearch)
-      // Giả định API trả về đúng schema dạng { posts: [...], total: 100 }
-      setPosts(response.posts || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.error'))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
-    fetchPosts()
-  }, [page, debouncedSearch])
-
-  // Toggle Status (Public <-> Hidden)
-  const handleToggleStatus = async (post: any) => {
-    setActionLoading(true)
-    try {
-      const nextStatus = post.status === 'public' ? 'hidden' : 'public'
-      await updatePostStatus(post.id, nextStatus)
-      toast({ title: t('common.save'), type: 'success' })
-      fetchPosts()
-      if (selectedPost?.id === post.id) {
-        setSelectedPost({ ...selectedPost, status: nextStatus })
+    let cancelled = false;
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res: AdminPostListResponse = await getPosts(
+          page,
+          pageSize,
+          keyword || undefined,
+          statusFilter || undefined
+        );
+        if (!cancelled) {
+          setPosts(res.posts ?? []);
+          setTotal(res.total);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t("common.error"));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err) {
-      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
+    };
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, keyword, statusFilter, pageSize, t, refreshKey]);
 
-  // Handle Hide Post with Reason
-  const openHideReasonModal = (id: string) => {
-    setPostToHide(id)
-    setHideReason('')
-    setReasonModalOpen(true)
-  }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setKeyword(e.target.value);
+      setPage(1);
+    }, 400);
+  };
+
+  const handleStatusFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  const closeMenu = () => {
+    setOpenMenuId(null);
+    setMenuStyle(null);
+  };
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handleClick = () => closeMenu();
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [openMenuId]);
+
+  const handleStatusChange = async (postId: string, newStatus: string) => {
+    setActionLoading(true);
+    try {
+      await updatePostStatus(postId, newStatus);
+      toast({ title: t("posts.statusUpdated"), type: "success" });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : t("common.error"),
+        type: "error",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleConfirmHide = async () => {
-    if (!postToHide || !hideReason.trim()) return
-    setActionLoading(true)
+    if (!hideTarget) return;
+    setActionLoading(true);
     try {
-      await hidePost(postToHide, hideReason)
-      toast({ title: t('common.save'), type: 'success' })
-      setReasonModalOpen(false)
-      fetchPosts()
-      if (selectedPost?.id === postToHide) {
-        setSelectedPost({ ...selectedPost, status: 'hidden' })
-      }
+      const hideInput: AdminHidePostInput = { reason: hideReason };
+      await hidePost(hideTarget.id, hideInput);
+      toast({ title: t("posts.hideSuccess"), type: "success" });
+      setHideTarget(null);
+      setHideReason("");
+      setRefreshKey((k) => k + 1);
     } catch (err) {
-      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+      toast({
+        title: err instanceof Error ? err.message : t("common.error"),
+        type: "error",
+      });
     } finally {
-      setActionLoading(false)
+      setActionLoading(false);
     }
-  }
+  };
 
-  // Format Helper
-  const formatDateTime = (iso: string): string => {
+  const getPageNumbers = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
+    pages.push(1);
+    const left = Math.max(2, page - 1);
+    const right = Math.min(totalPages - 1, page + 1);
+    if (left > 2) pages.push("...");
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < totalPages - 1) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+    return pages;
+  };
+
+  const formatDate = (iso: string): string => {
     try {
-      const d = new Date(iso)
-      return `${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+      return new Date(iso).toLocaleDateString(
+        language === "vi" ? "vi-VN" : "en-US",
+        { day: "2-digit", month: "2-digit", year: "numeric" }
+      );
     } catch {
-      return iso
+      return iso;
     }
-  }
+  };
 
-  const getStatusClass = (status: string) => {
+  const statusBadgeClass = (status: string): string => {
     const map: Record<string, string> = {
-      public: styles.badgePublic,
-      active: styles.badgePublic,
-      private: styles.badgePrivate,
-      hidden: styles.badgeHidden,
-      friend: styles.badgeFriend,
-    }
-    return map[status] ?? ''
-  }
+      active: styles.badgeActive,
+      public: styles.badgeActive,
+      hidden: styles.badgeBanned,
+      pending: styles.badgeSuspended,
+    };
+    return map[status] ?? "";
+  };
+
+  const statusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+      active: t("posts.active"),
+      public: t("posts.active"),
+      hidden: t("posts.hidden"),
+      pending: t("posts.pending"),
+    };
+    return map[status] ?? status;
+  };
+
+  const skeletonRows = () => (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className={styles.skeletonRow}>
+          <div className={styles.skeletonAvatar} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{t('posts.title')}</h1>
-        <div className={styles.searchBar}>
-          <i className="bx bx-search" />
-          <input
-            type="text"
-            placeholder={t('common.search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className={styles.header}>
+        <h1 className={styles.title}>{t("posts.title")}</h1>
+        <div className={styles.toolbar}>
+          <div className={styles.searchWrap}>
+            <i className={`bx bx-search ${styles.searchIcon}`} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={t("posts.searchPlaceholder")}
+              value={searchInput}
+              onChange={handleSearchChange}
+            />
+          </div>
+          <select
+            className={styles.filterSelect}
+            value={statusFilter}
+            onChange={handleStatusFilterChange}>
+            <option value="">{t("posts.allStatuses")}</option>
+            <option value="active">{t("posts.active")}</option>
+            <option value="hidden">{t("posts.hidden")}</option>
+          </select>
         </div>
-      </header>
+      </div>
 
-      {error && (
-        <div className={styles.errorCard}>
-          <i className="bx bx-error-circle" />
-          <p>{error}</p>
-        </div>
-      )}
-
-      {/* Main Table View */}
-      <div className={styles.tableWrap}>
-        <table className={styles.mainTable}>
-          <thead>
-            <tr>
-              <th>Bài viết</th>
-              <th>Tác giả</th>
-              <th>Trạng thái</th>
-              <th>Tương tác</th>
-              <th>Ngày tạo</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, idx) => (
-                <tr key={idx} className={styles.skeletonRow}>
-                  <td colSpan={6}><div className={styles.skeletonBar} /></td>
+      <div className={styles.card}>
+        {loading ? (
+          skeletonRows()
+        ) : error ? (
+          <div className={styles.empty}>
+            <i className="bx bx-error-circle" />
+            <p>{error}</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className={styles.empty}>
+            <i className="bx bx-file-blank" />
+            <p>{t("common.noData")}</p>
+          </div>
+        ) : (
+          <>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>{t("posts.title")}</th>
+                  <th>{t("posts.content")}</th>
+                  <th>{t("common.status")}</th>
+                  <th>{t("posts.interactions")}</th>
+                  <th>{t("common.createdAt")}</th>
+                  <th>{t("common.actions")}</th>
                 </tr>
-              ))
-            ) : posts.length > 0 ? (
-              posts.map((post) => (
-                <tr key={post.id}>
-                  <td className={styles.postTitleCell}>
-                    <span className={styles.postTitle}>{post.title || 'Không có tiêu đề'}</span>
-                    <span className={styles.postSnippet}>{post.content?.substring(0, 60)}...</span>
-                  </td>
-                  <td className={styles.authorCell}>
-                    <span className={styles.userId}>ID: {post.user_id?.substring(0, 8)}...</span>
-                  </td>
-                  <td>
-                    <span className={`${styles.badge} ${getStatusClass(post.status)}`}>
-                      {post.status}
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post.id}>
+                    <td>
+                      <div className={styles.cellUser}>
+                        <Image
+                          src={"/default-avatar.png"}
+                          alt=""
+                          width={36}
+                          height={36}
+                          className={styles.avatar}
+                          unoptimized
+                        />
+                        <div>
+                          <div className={styles.userName}>
+                            {post.title || t("posts.noTitle")}
+                          </div>
+                          <div className={styles.userEmail}>
+                            ID: {post.user_id.substring(0, 8)}...
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div
+                        style={{
+                          maxWidth: "280px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                        {post.content}
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.badge} ${statusBadgeClass(
+                          post.status
+                        )}`}>
+                        {statusLabel(post.status)}
+                      </span>
+                    </td>
+                    <td className={styles.cellDate}>
+                      <i className="bx bx-heart" /> {post.likes_count} &nbsp;
+                      <i className="bx bx-comment" /> {post.comments_count}
+                    </td>
+                    <td className={styles.cellDate}>
+                      {formatDate(post.created_at)}
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <div className={styles.actionMenuWrap}>
+                        <button
+                          className={styles.actionsBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId === post.id) {
+                              closeMenu();
+                            } else {
+                              const btn = e.currentTarget as HTMLElement;
+                              const rect = btn.getBoundingClientRect();
+                              const menuH = 130;
+                              let top = rect.bottom + 4;
+                              if (top + menuH > window.innerHeight)
+                                top = rect.top - 4 - menuH;
+                              let left = rect.right - 180;
+                              if (left < 8) left = 8;
+                              setMenuStyle({ top, left });
+                              setOpenMenuId(post.id);
+                            }
+                          }}>
+                          <i className="bx bx-dots-vertical-rounded" />
+                        </button>
+                        {openMenuId === post.id && menuStyle && (
+                          <div
+                            className={styles.actionMenu}
+                            style={{
+                              position: "fixed",
+                              top: menuStyle.top,
+                              left: menuStyle.left,
+                              zIndex: 1000,
+                            }}
+                            onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className={styles.actionMenuItem}
+                              onClick={() => {
+                                setDetailTarget(post);
+                                closeMenu();
+                              }}>
+                              <i className="bx bx-show" />{" "}
+                              {t("posts.viewDetail")}
+                            </button>
+                            {post.status !== "hidden" ? (
+                              <button
+                                className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
+                                onClick={() => {
+                                  setHideTarget(post);
+                                  closeMenu();
+                                }}>
+                                <i className="bx bx-hide" />{" "}
+                                {t("posts.hidePost")}
+                              </button>
+                            ) : (
+                              <button
+                                className={styles.actionMenuItem}
+                                disabled={actionLoading}
+                                onClick={() => {
+                                  handleStatusChange(post.id, "active");
+                                  closeMenu();
+                                }}>
+                                <i className="bx bx-show-alt" />{" "}
+                                {t("posts.showPost")}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button
+                  className={styles.pageBtn}
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}>
+                  <i className="bx bx-chevron-left" /> {t("common.prevPage")}
+                </button>
+                {getPageNumbers().map((p, i) =>
+                  typeof p === "string" ? (
+                    <span key={`e${i}`} className={styles.pageInfo}>
+                      {p}
                     </span>
-                  </td>
-                  <td>
-                    <div className={styles.interactions}>
-                      <span><i className="bx bx-heart" /> {post.likes_count ?? 0}</span>
-                      <span><i className="bx bx-comment" /> {post.comments_count ?? 0}</span>
-                      <span><i className="bx bx-share" /> {post.shares_count ?? 0}</span>
-                    </div>
-                  </td>
-                  <td className={styles.dateCell}>{formatDateTime(post.created_at)}</td>
-                  <td>
-                    <div className={styles.actionButtons}>
-                      <button className={styles.btnView} onClick={() => setSelectedPost(post)} title="Xem chi tiết">
-                        <i className="bx bx-show" />
-                      </button>
-                      <button 
-                        className={post.status === 'hidden' ? styles.btnUnhide : styles.btnHide} 
-                        onClick={() => post.status === 'hidden' ? handleToggleStatus(post) : openHideReasonModal(post.id)}
-                        disabled={actionLoading}
-                        title={post.status === 'hidden' ? 'Hiện bài đăng' : 'Ẩn bài đăng'}
-                      >
-                        <i className={post.status === 'hidden' ? 'bx bx-lock-open-alt' : 'bx bx-lock-alt'} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className={styles.emptyCell}>Không tìm thấy bài viết nào.</td>
-              </tr>
+                  ) : (
+                    <button
+                      key={p}
+                      className={`${styles.pageBtn} ${
+                        p === page ? styles.pageBtnActive : ""
+                      }`}
+                      onClick={() => setPage(p)}>
+                      {p}
+                    </button>
+                  )
+                )}
+                <button
+                  className={styles.pageBtn}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}>
+                  {t("common.nextPage")} <i className="bx bx-chevron-right" />
+                </button>
+              </div>
             )}
-          </tbody>
-        </table>
+          </>
+        )}
       </div>
 
-      {/* Pagination Controls */}
-      <div className={styles.pagination}>
-        <button disabled={page === 1 || loading} onClick={() => setPage(p => Math.max(p - 1, 1))}>
-          <i className="bx bx-chevron-left" /> Previous
-        </button>
-        <span className={styles.pageIndicator}>Trang {page}</span>
-        <button disabled={posts.length < pageSize || loading} onClick={() => setPage(p => p + 1)}>
-          Next <i className="bx bx-chevron-right" />
-        </button>
-      </div>
-
-      {/* 2-Column Detail Modal */}
-      {selectedPost && (
-        <div className={styles.overlay} onClick={() => setSelectedPost(null)}>
-          <div className={styles.modalDetail} onClick={(e) => e.stopPropagation()}>
+      {detailTarget && (
+        <div className={styles.overlay} onClick={() => setDetailTarget(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3>Chi tiết bài đăng</h3>
-              <button className={styles.modalClose} onClick={() => setSelectedPost(null)}>
+              <h2 className={styles.modalTitle}>{t("posts.detailTitle")}</h2>
+              <button
+                className={styles.modalClose}
+                onClick={() => setDetailTarget(null)}>
                 <i className="bx bx-x" />
               </button>
             </div>
-            
-            <div className={styles.modalBodyGrid}>
-              {/* Left Column: Content Details */}
-              <div className={styles.modalColLeft}>
-                <h2 className={styles.detailTitle}>{selectedPost.title || 'Không có tiêu đề'}</h2>
-                <div className={styles.detailMetadataMobile}>
-                  <span>ID: {selectedPost.id}</span>
-                  <span>Tác giả: {selectedPost.user_id}</span>
-                </div>
-                <p className={styles.detailContent}>{selectedPost.content}</p>
-                
-                {selectedPost.community_id && (
-                  <div className={styles.communityTag}>
-                    <i className="bx bx-world" /> Cộng đồng: {selectedPost.community_id}
-                  </div>
-                )}
+            <div className={styles.modalBody}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>ID</span>
+                <span className={styles.detailValue}>{detailTarget.id}</span>
               </div>
-
-              {/* Right Column: Analytics & Quick Actions */}
-              <div className={styles.modalColRight}>
-                <div className={styles.infoCard}>
-                  <h4><i className="bx bx-info-circle" /> Thông tin hệ thống</h4>
-                  <div className={styles.infoRow}>
-                    <span>Bài đăng ID:</span>
-                    <code>{selectedPost.id}</code>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span>Tác giả ID:</span>
-                    <code>{selectedPost.user_id}</code>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span>Ngày tạo:</span>
-                    <span>{formatDateTime(selectedPost.created_at)}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span>Trạng thái:</span>
-                    <span className={`${styles.badge} ${getStatusClass(selectedPost.status)}`}>
-                      {selectedPost.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className={styles.infoCard}>
-                  <h4><i className="bx bx-bar-chart-alt-2" /> Thống kê tương tác</h4>
-                  <div className={styles.statsMetricsGrid}>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-show-alt" style={{ color: 'var(--color-primary)' }} />
-                      <div className={styles.metricVal}>{selectedPost.views_count ?? 0}</div>
-                      <div className={styles.metricLabel}>Lượt xem</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-heart" style={{ color: '#ff4d4f' }} />
-                      <div className={styles.metricVal}>{selectedPost.likes_count ?? 0}</div>
-                      <div className={styles.metricLabel}>Yêu thích</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-comment" style={{ color: 'var(--color-accent)' }} />
-                      <div className={styles.metricVal}>{selectedPost.comments_count ?? 0}</div>
-                      <div className={styles.metricLabel}>Bình luận</div>
-                    </div>
-                    <div className={styles.metricItem}>
-                      <i className="bx bx-share" style={{ color: '#722ed1' }} />
-                      <div className={styles.metricVal}>{selectedPost.shares_count ?? 0}</div>
-                      <div className={styles.metricLabel}>Chia sẻ</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.actionsPanel}>
-                  <button 
-                    className={selectedPost.status === 'hidden' ? styles.btnActionActive : styles.btnActionDanger}
-                    onClick={() => selectedPost.status === 'hidden' ? handleToggleStatus(selectedPost) : openHideReasonModal(selectedPost.id)}
-                    disabled={actionLoading}
-                  >
-                    <i className={selectedPost.status === 'hidden' ? 'bx bx-lock-open-alt' : 'bx bx-lock-alt'} />
-                    {selectedPost.status === 'hidden' ? 'Công khai bài viết này' : 'Ẩn bài viết hệ thống'}
-                  </button>
-                </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("posts.title")}</span>
+                <span className={styles.detailValue}>
+                  {detailTarget.title || t("posts.noTitle")}
+                </span>
               </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("posts.author")}</span>
+                <span className={styles.detailValue}>
+                  {detailTarget.user_id}
+                </span>
+              </div>
+              <div
+                className={styles.detailRow}
+                style={{
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: "4px",
+                }}>
+                <span className={styles.detailLabel}>{t("posts.content")}</span>
+                <span
+                  className={styles.detailValue}
+                  style={{
+                    textAlign: "left",
+                    marginTop: "4px",
+                    width: "100%",
+                  }}>
+                  {detailTarget.content}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("common.status")}</span>
+                <span className={styles.detailValue}>
+                  <span
+                    className={`${styles.badge} ${statusBadgeClass(
+                      detailTarget.status
+                    )}`}>
+                    {statusLabel(detailTarget.status)}
+                  </span>
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("posts.views")}</span>
+                <span className={styles.detailValue}>
+                  {detailTarget.views_count}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
+                  {t("posts.interactions")}
+                </span>
+                <span className={styles.detailValue}>
+                  <span style={{ marginRight: "12px" }}>
+                    <i className="bx bx-heart" /> {detailTarget.likes_count}
+                  </span>
+                  <span style={{ marginRight: "12px" }}>
+                    <i className="bx bx-comment" />{" "}
+                    {detailTarget.comments_count}
+                  </span>
+                  <span>
+                    <i className="bx bx-share" /> {detailTarget.shares_count}
+                  </span>
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>
+                  {t("common.createdAt")}
+                </span>
+                <span className={styles.detailValue}>
+                  {formatDate(detailTarget.created_at)}
+                </span>
+              </div>
+              {detailTarget.updated_at && (
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>
+                    {t("common.updatedAt")}
+                  </span>
+                  <span className={styles.detailValue}>
+                    {formatDate(detailTarget.updated_at)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.btnCancel}
+                onClick={() => setDetailTarget(null)}>
+                {t("common.close")}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Hide Post Reason Modal */}
-      {reasonModalOpen && (
-        <div className={styles.overlay} onClick={() => setReasonModalOpen(false)}>
-          <div className={styles.reasonModal} onClick={(e) => e.stopPropagation()}>
+      {hideTarget && (
+        <div
+          className={styles.overlay}
+          onClick={() => {
+            setHideTarget(null);
+            setHideReason("");
+          }}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3>Lý do ẩn bài đăng</h3>
-              <button className={styles.modalClose} onClick={() => setReasonModalOpen(false)}>
+              <h2 className={styles.modalTitle}>{t("posts.hidePost")}</h2>
+              <button
+                className={styles.modalClose}
+                onClick={() => {
+                  setHideTarget(null);
+                  setHideReason("");
+                }}>
                 <i className="bx bx-x" />
               </button>
             </div>
             <div className={styles.modalBody}>
-              <textarea
-                placeholder="Nhập lý do ẩn bài viết này (Gửi thông báo tới người dùng)..."
-                className={styles.reasonInput}
-                value={hideReason}
-                onChange={(e) => setHideReason(e.target.value)}
-                rows={4}
-              />
+              <p
+                style={{
+                  marginBottom: "var(--space-lg)",
+                  color: "var(--color-text-secondary)",
+                  fontSize: 14,
+                }}>
+                {t("posts.confirmHideMessage")}{" "}
+                <strong style={{ color: "var(--color-text)" }}>
+                  {hideTarget.user_id}
+                </strong>
+              </p>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>
+                  {t("posts.hideReason")}
+                </label>
+                <input
+                  type="text"
+                  className={styles.fieldInput}
+                  value={hideReason}
+                  onChange={(e) => setHideReason(e.target.value)}
+                  placeholder={t("posts.hideReasonPlaceholder")}
+                />
+              </div>
             </div>
             <div className={styles.modalFooter}>
-              <button className={styles.btnCancel} onClick={() => setReasonModalOpen(false)} disabled={actionLoading}>
-                {t('common.cancel')}
+              <button
+                className={styles.btnCancel}
+                onClick={() => {
+                  setHideTarget(null);
+                  setHideReason("");
+                }}>
+                {t("common.cancel")}
               </button>
-              <button 
-                className={styles.btnSubmit} 
-                onClick={handleConfirmHide}
-                disabled={!hideReason.trim() || actionLoading}
-              >
-                {actionLoading ? t('common.loading') : t('common.save')}
+              <button
+                className={styles.btnDanger}
+                disabled={actionLoading || !hideReason.trim()}
+                onClick={handleConfirmHide}>
+                {actionLoading ? t("common.loading") : t("common.confirm")}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

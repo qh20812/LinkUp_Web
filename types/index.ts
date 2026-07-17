@@ -204,7 +204,7 @@ export interface AdminGroupListItem {
   creator_id?: string
   creator_name: string
   member_count: number
-  status: string
+  status: "active" | "archived" | "hidden"
   created_at: string
 }
 

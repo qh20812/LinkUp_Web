@@ -5,6 +5,7 @@ import type {
   AdminBanUserResponse,
   AdminUserBanInput,
   AdminPostListResponse,
+  AdminHidePostInput,
   AdminReportListResponse,
   AdminReportDetailResponse,
   AdminReportReviewInput,
@@ -20,20 +21,24 @@ import type {
 } from "../types";
 
 // Dashboard
-export const getDashboardStats = (type?: string, startDate?: string, endDate?: string) => {
-  const params = new URLSearchParams()
-  if (type) params.set('type', type)
-  if (startDate) params.set('start_date', startDate)
-  if (endDate) params.set('end_date', endDate)
-  return request<AdminAnalyticsResponse>(`/admin/analytics?${params}`)
-}
+export const getDashboardStats = (
+  type?: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  const params = new URLSearchParams();
+  if (type) params.set("type", type);
+  if (startDate) params.set("start_date", startDate);
+  if (endDate) params.set("end_date", endDate);
+  return request<AdminAnalyticsResponse>(`/admin/analytics?${params}`);
+};
 
 // Users
 export const getUsers = (
   page = 1,
   pageSize = 20,
   search?: string,
-  status?: string
+  status?: "active" | "banned" | "suspended" // <-- SỬA KIỂU DỮ LIỆU CHẶT CHẼ Ở ĐÂY
 ) => {
   const params = new URLSearchParams({
     page: String(page),
@@ -57,19 +62,25 @@ export const banUser = (id: string, input: AdminUserBanInput) =>
   });
 
 // Posts
-export const getPosts = (page = 1, pageSize = 20, search?: string) => {
+export const getPosts = (
+  page = 1,
+  pageSize = 20,
+  search?: string,
+  status?: string
+) => {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
   if (search) params.set("keyword", search);
+  if (status) params.set("status", status);
   return request<AdminPostListResponse>(`/admin/posts?${params}`);
 };
 
-export const hidePost = (id: string, reason: string) =>
+export const hidePost = (id: string, input: AdminHidePostInput) =>
   request<{ message: string }>(`/admin/posts/${id}/hide`, {
     method: "PUT",
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input), // JSON.stringify trực tiếp đối tượng input { reason }
   });
 
 export const updatePostStatus = (id: string, status: string) =>
@@ -120,12 +131,18 @@ export const reviewMedia = (id: string, input: AdminReviewMediaInput) =>
   });
 
 // Groups
-export const getGroups = (page = 1, pageSize = 20, search?: string) => {
+export const getGroups = (
+  page = 1,
+  pageSize = 20,
+  search?: string,
+  status?: string 
+) => {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
   if (search) params.set("keyword", search);
+  if (status) params.set("status", status); 
   return request<AdminGroupListResponse>(`/admin/groups?${params}`);
 };
 
