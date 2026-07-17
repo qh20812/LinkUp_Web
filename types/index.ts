@@ -240,6 +240,7 @@ export interface AdminGroupDetailResponse {
 export interface AdminCommunityListItem {
   id: string
   name: string
+  avatar_uri: string
   creator_id: string
   creator_name: string
   member_count: number
@@ -276,6 +277,25 @@ export interface AdminCommunityDetailResponse {
   members: AdminCommunityMember[]
   created_at: string
   updated_at?: string
+}
+
+// ===== Moderation Logs =====
+export interface AdminModerationLogItem {
+  id: string
+  moderator_id: string
+  moderator_name: string
+  action: string
+  target_type: string
+  target_id: string
+  reason: string
+  created_at: string
+}
+
+export interface AdminModerationLogListResponse {
+  logs: AdminModerationLogItem[]
+  total: number
+  page: number
+  page_size: number
 }
 
 // ===== Shared =====
