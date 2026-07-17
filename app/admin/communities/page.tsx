@@ -186,6 +186,9 @@ export default function CommunitiesPage() {
       hide: t('communities.hideCommunity'),
       unhide: t('communities.unhideCommunity'),
       archive: t('communities.archiveCommunity'),
+      unarchive: t('communities.unarchiveCommunity'),
+      update: t('communities.unarchiveCommunity'),
+      suspend: t('communities.archiveCommunity'),
       warn: t('communities.warnCommunity'),
       delete: t('communities.deleteCommunity'),
     }
@@ -197,6 +200,9 @@ export default function CommunitiesPage() {
       hide: styles.badgeHidden,
       unhide: styles.badgeActive,
       archive: styles.badgeArchived,
+      unarchive: styles.badgeActive,
+      update: styles.badgeActive,
+      suspend: styles.badgeArchived,
       warn: styles.badgeWarning,
       delete: styles.badgeDanger,
     }
