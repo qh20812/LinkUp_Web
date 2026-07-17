@@ -20,6 +20,7 @@ const menuItems = [
   { key: 'media', icon: 'bx bx-image', href: '/admin/media' },
   { key: 'groups', icon: 'bx bx-chat', href: '/admin/groups' },
   { key: 'communities', icon: 'bx bx-world', href: '/admin/communities' },
+  { key: 'ads', icon: 'bx bx-dollar', href: '/admin/ads' },
 ]
 
 export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProps) {

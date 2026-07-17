@@ -40,7 +40,8 @@
     "changePassword": "Change Password",
     "about": "About",
     "policies": "Policies",
-    "adminLogin": "Administrator"
+    "adminLogin": "Administrator",
+    "ads": "Ads"
   },
   "login": {
     "title": "Login",
@@ -173,7 +174,6 @@
   },
   "media": {
     "title": "Media Management",
-    "subtitle": "View and review files flagged by the system or users.",
     "flagged": "Flagged",
     "rejected": "Rejected",
     "approved": "Approved",
@@ -181,6 +181,12 @@
     "reject": "Reject",
     "approveSuccess": "Media approved",
     "rejectSuccess": "Media rejected",
+    "searchByUser": "Search by username",
+    "bulkSelected": "Selected {count} media",
+    "bulkApprove": "Approve all",
+    "bulkReject": "Reject all",
+    "bulkSuccess": "Processed {success}/{total} media",
+    "cleanupConfirm": "Permanently delete all rejected media? This cannot be undone.",
     "cleanupRejected": "Clean up rejected media",
     "cleanupSuccess": "Cleaned up {count} rejected media",
     "empty": "No media to process",
@@ -195,7 +201,9 @@
     "confirmReview": "Confirm",
     "reviewDefaultReason": "Processed by administrator",
     "all": "All",
-    "groupByUser": "Group by user"
+    "groupByUser": "Group by user",
+    "refresh": "Refresh",
+    "totalMedia": "Total {count} media"
   },
   "groups": {
     "title": "Group Management",

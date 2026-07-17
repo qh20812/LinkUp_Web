@@ -40,7 +40,8 @@
     "changePassword": "Đổi mật khẩu",
     "about": "Giới thiệu",
     "policies": "Chính sách",
-    "adminLogin": "Quản trị viên"
+    "adminLogin": "Quản trị viên",
+    "ads": "Quảng cáo"
   },
   "login": {
     "title": "Đăng nhập",
@@ -173,7 +174,6 @@
   },
   "media": {
     "title": "Quản lý media",
-    "subtitle": "Xem và duyệt các file bị gắn cờ bởi hệ thống hoặc người dùng.",
     "flagged": "Bị gắn cờ",
     "rejected": "Bị từ chối",
     "approved": "Đã duyệt",
@@ -181,6 +181,12 @@
     "reject": "Từ chối",
     "approveSuccess": "Đã phê duyệt media",
     "rejectSuccess": "Đã từ chối media",
+    "searchByUser": "Tìm theo tên người dùng",
+    "bulkSelected": "Đã chọn {count} media",
+    "bulkApprove": "Phê duyệt tất cả",
+    "bulkReject": "Từ chối tất cả",
+    "bulkSuccess": "Đã xử lý {success}/{total} media",
+    "cleanupConfirm": "Xác nhận dọn tất cả media bị từ chối? Hành động này không thể hoàn tác.",
     "cleanupRejected": "Dọn media bị từ chối",
     "cleanupSuccess": "Đã dọn {count} media bị từ chối",
     "empty": "Chưa có media nào cần xử lý",
@@ -195,7 +201,9 @@
     "confirmReview": "Xác nhận",
     "reviewDefaultReason": "Đã được xử lý bởi quản trị viên",
     "all": "Tất cả",
-    "groupByUser": "Nhóm theo người dùng"
+    "groupByUser": "Nhóm theo người dùng",
+    "refresh": "Làm mới",
+    "totalMedia": "Tổng {count} media"
   },
   "groups": {
     "title": "Quản lý nhóm chat",
