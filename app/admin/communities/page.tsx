@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getCommunities, getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
+import { getCommunities, getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
 import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem } from '../../../types'
 import styles from './Communities.module.css'
 
@@ -224,6 +224,16 @@ export default function CommunitiesPage() {
     }
   }
 
+  const handleUnarchive = async (id: string) => {
+    try {
+      await unarchiveCommunity(id)
+      toast({ title: t('common.save'), type: 'success' })
+      setRefreshKey(k => k + 1)
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    }
+  }
+
   const handleModerateAction = async () => {
     if (!actionTarget) return
     setActionLoading(true)
@@ -434,13 +444,21 @@ export default function CommunitiesPage() {
                                 : <><i className="bx bx-lock-alt" /> {t('communities.hideCommunity')}</>
                               }
                             </button>
-                            <button
-                              className={styles.actionMenuItem}
-                              disabled={c.status === 'archived'}
-                              onClick={() => openActionModal(c.id, c.name, 'archive')}
-                            >
-                              <i className="bx bx-archive" /> {t('communities.archiveCommunity')}
-                            </button>
+                            {c.status === 'archived' ? (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => handleUnarchive(c.id)}
+                              >
+                                <i className="bx bx-archive-out" /> {t('communities.unarchiveCommunity')}
+                              </button>
+                            ) : (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => openActionModal(c.id, c.name, 'archive')}
+                              >
+                                <i className="bx bx-archive" /> {t('communities.archiveCommunity')}
+                              </button>
+                            )}
                             <button className={styles.actionMenuItem} onClick={() => openActionModal(c.id, c.name, 'warn')}>
                               <i className="bx bx-error-circle" /> {t('communities.warnCommunity')}
                             </button>

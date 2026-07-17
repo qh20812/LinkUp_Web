@@ -248,3 +248,8 @@ export const getCommunityLogs = (id: string, page = 1, pageSize = 20) => {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   return request<AdminModerationLogListResponse>(`/admin/communities/${id}/logs?${params}`);
 };
+
+export const unarchiveCommunity = (id: string) =>
+  request<{ message: string }>(`/admin/communities/${id}/unarchive`, {
+    method: "POST",
+  });
