@@ -287,3 +287,18 @@ export interface AdminWarnInput {
   reason: string
   message: string
 }
+
+export interface AdminMediaGroupItem {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  media: AdminMediaItem[]
+}
+
+export interface AdminMediaGroupedResponse {
+  groups: AdminMediaGroupItem[]
+  total: number
+  page: number
+  page_size: number
+}
