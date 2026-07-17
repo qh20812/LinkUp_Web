@@ -118,6 +118,9 @@ export interface AdminBanUserResponse {
 export interface AdminPostListItem {
   id: string
   user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
   title: string
   content: string
   status: string
@@ -125,6 +128,7 @@ export interface AdminPostListItem {
   likes_count: number
   comments_count: number
   shares_count: number
+  media_uris: string[]
   created_at: string
   updated_at?: string
 }

@@ -142,7 +142,8 @@
     "shares": "Chia sẻ",
     "hideReason": "Lý do ẩn",
     "hideReasonPlaceholder": "Nhập lý do ẩn để gửi thông báo...",
-    "confirmHideMessage": "Xác nhận ẩn bài viết của tác giả:"
+    "confirmHideMessage": "Xác nhận ẩn bài viết của tác giả:",
+    "media": "Ảnh đính kèm"
   },
   "reports": {
     "title": "Quản lý báo cáo",

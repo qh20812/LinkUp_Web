@@ -190,6 +190,7 @@ export default function PostsPage() {
           <div className={styles.skeletonText} />
           <div className={styles.skeletonText} />
           <div className={styles.skeletonText} />
+          <div className={styles.skeletonText} />
         </div>
       ))}
     </>
@@ -239,6 +240,7 @@ export default function PostsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th>{t("posts.author")}</th>
                   <th>{t("posts.title")}</th>
                   <th>{t("posts.content")}</th>
                   <th>{t("common.status")}</th>
@@ -253,32 +255,53 @@ export default function PostsPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={"/default-avatar.png"}
+                          src={post.avatar_uri || "/default-avatar.png"}
                           alt=""
                           width={36}
                           height={36}
                           className={styles.avatar}
                           unoptimized
                         />
-                        <div>
-                          <div className={styles.userName}>
-                            {post.title || t("posts.noTitle")}
-                          </div>
-                          <div className={styles.userEmail}>
-                            ID: {post.user_id.substring(0, 8)}...
-                          </div>
+                        <div className={styles.userName}>
+                          {post.display_name || post.username}
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div
-                        style={{
-                          maxWidth: "280px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}>
-                        {post.content}
+                      <div className={styles.titleCell}>
+                        {post.title || t("posts.noTitle")}
+                      </div>
+                    </td>
+                    <td>
+                      <div className={styles.contentCell}>
+                        {post.content ? (
+                          <>
+                            {post.content}
+                            {post.media_uris?.length > 0 && (
+                              <span className={styles.mediaCount}>
+                                {" "}<i className="bx bx-image" /> {post.media_uris.length}
+                              </span>
+                            )}
+                          </>
+                        ) : post.media_uris?.length > 0 ? (
+                          <div className={styles.mediaPreviewWrap}>
+                            <Image
+                              src={post.media_uris[0]}
+                              alt=""
+                              width={120}
+                              height={80}
+                              className={styles.mediaPreview}
+                              unoptimized
+                            />
+                            {post.media_uris.length > 1 && (
+                              <span className={styles.mediaCount}>
+                                +{post.media_uris.length - 1}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
                       </div>
                     </td>
                     <td>
@@ -430,7 +453,7 @@ export default function PostsPage() {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t("posts.author")}</span>
                 <span className={styles.detailValue}>
-                  {detailTarget.user_id}
+                  {detailTarget.display_name || detailTarget.username}
                 </span>
               </div>
               <div
@@ -451,6 +474,24 @@ export default function PostsPage() {
                   {detailTarget.content}
                 </span>
               </div>
+              {detailTarget.media_uris?.length > 0 && (
+                <div className={styles.mediaRow}>
+                  <span className={styles.detailLabel}>{t("posts.media")}</span>
+                  <div className={styles.mediaGrid}>
+                    {detailTarget.media_uris.map((uri, i) => (
+                      <Image
+                        key={i}
+                        src={uri}
+                        alt=""
+                        width={200}
+                        height={150}
+                        className={styles.mediaItem}
+                        unoptimized
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t("common.status")}</span>
                 <span className={styles.detailValue}>
@@ -543,7 +584,7 @@ export default function PostsPage() {
                 }}>
                 {t("posts.confirmHideMessage")}{" "}
                 <strong style={{ color: "var(--color-text)" }}>
-                  {hideTarget.user_id}
+                  {hideTarget.display_name || hideTarget.username}
                 </strong>
               </p>
               <div className={styles.fieldGroup}>

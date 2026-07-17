@@ -142,7 +142,8 @@
     "shares": "Shares",
     "hideReason": "Hide Reason",
     "hideReasonPlaceholder": "Enter reason to notify author...",
-    "confirmHideMessage": "Confirm hiding post from author:"
+    "confirmHideMessage": "Confirm hiding post from author:",
+    "media": "Attached Media"
   },
   "reports": {
     "title": "Report Management",

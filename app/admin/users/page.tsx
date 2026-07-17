@@ -17,7 +17,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'banned' | 'suspended'>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,7 +68,7 @@ export default function UsersPage() {
   }
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value)
+    setStatusFilter(e.target.value as '' | 'active' | 'banned' | 'suspended')
     setPage(1)
   }
 
