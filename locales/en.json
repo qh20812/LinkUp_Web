@@ -54,7 +54,7 @@
     "error": "Invalid email or password"
   },
   "dashboard": {
-    "title": "Dashboard",
+    "pageName": "Dashboard",
     "totalUsers": "Total Users",
     "totalPosts": "Total Posts",
     "totalReports": "Total Reports",
@@ -289,5 +289,35 @@
     "roleMember": "Member",
     "name": "Community Name",
     "creator": "Creator"
+  },
+  "ads": {
+    "title": "Ad Management",
+    "searchPlaceholder": "Search ads...",
+    "allStatuses": "All statuses",
+    "active": "Active",
+    "paused": "Paused",
+    "completed": "Completed",
+    "partner": "Partner",
+    "budget": "Budget",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "ctr": "CTR",
+    "status": "Status",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "createdAt": "Created at",
+    "actions": "Actions",
+    "viewAnalytics": "View analytics",
+    "changeStatus": "Change status",
+    "deleteAd": "Delete ad",
+    "confirmDelete": "Are you sure?",
+    "confirmDeleteMessage": "This action cannot be undone.",
+    "confirmChangeStatus": "Confirm status change",
+    "changeStatusTo": "Change status to",
+    "analyticsTitle": "Ad Performance",
+    "interactions": "Interactions",
+    "noData": "No ads yet",
+    "deleteSuccess": "Ad deleted successfully",
+    "statusUpdated": "Status updated successfully"
   }
 }

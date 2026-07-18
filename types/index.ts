@@ -328,3 +328,42 @@ export interface AdminMediaGroupedResponse {
   page: number
   page_size: number
 }
+
+// ===== Ads =====
+export interface AdminAdListItem {
+  id: string
+  title: string
+  content: string
+  partner_id: string
+  partner_name: string
+  partner_display_name: string
+  media_id?: string
+  media_uri: string
+  target_url: string
+  status: 'active' | 'paused' | 'completed'
+  budget: number
+  impressions: number
+  clicks: number
+  ctr: number
+  started_at: string
+  expires_at: string
+  created_at: string
+}
+
+export interface AdminAdListResponse {
+  ads: AdminAdListItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdPerformance {
+  ad_id: string
+  title: string
+  status: string
+  budget: number
+  impressions: number
+  clicks: number
+  interactions: number
+  ctr: number
+}
