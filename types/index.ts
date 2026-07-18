@@ -48,6 +48,7 @@ export interface TopEngagedPost {
   views_count: number
   likes_count: number
   comments_count: number
+  has_media: boolean
 }
 
 export interface StatusCount {

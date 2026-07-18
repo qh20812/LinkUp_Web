@@ -530,7 +530,8 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <div className={styles.topListPostTitle}>
-                        {post.title || 'Untitled'}
+                        {post.has_media && <i className="bx bx-image" style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--color-primary)' }} />}
+                        {post.title || t('posts.noTitle')}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
                         {post.username}
