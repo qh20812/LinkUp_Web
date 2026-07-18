@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../contexts/ToastContext'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -35,7 +36,7 @@ export default function LoginForm() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.logo}>
-          <img src="/S-Logo-Rmbg.png" alt="LinkUp" className={styles.logoImg} />
+          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
           <span className={styles.logoText}>LinkUp</span>
         </div>
 

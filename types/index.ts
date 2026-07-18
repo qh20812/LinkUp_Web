@@ -33,14 +33,54 @@ export interface ChartDataPoint {
   count: number
 }
 
+export interface TopActiveUser {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  post_count: number
+}
+
+export interface TopEngagedPost {
+  post_id: string
+  title: string
+  username: string
+  views_count: number
+  likes_count: number
+  comments_count: number
+}
+
+export interface StatusCount {
+  status: string
+  count: number
+}
+
 export interface AdminAnalyticsResponse {
   total_users: number
   total_posts: number
   total_reports: number
+  total_comments: number
+  total_media: number
+  total_groups: number
+  total_communities: number
+  total_active_bans: number
+  pending_reports: number
+  flagged_media_count: number
+  active_users_today: number
+  total_likes: number
+  total_shares: number
   users_change_percent: number
   posts_change_percent: number
   reports_change_percent: number
+  comments_change_percent: number
+  media_change_percent: number
+  groups_change_percent: number
+  communities_change_percent: number
   chart_data?: ChartDataPoint[]
+  top_users?: TopActiveUser[]
+  top_posts?: TopEngagedPost[]
+  user_status_distribution?: StatusCount[]
+  report_status_distribution?: StatusCount[]
   generated_at: string
 }
 
@@ -78,6 +118,9 @@ export interface AdminBanUserResponse {
 export interface AdminPostListItem {
   id: string
   user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
   title: string
   content: string
   status: string
@@ -85,6 +128,7 @@ export interface AdminPostListItem {
   likes_count: number
   comments_count: number
   shares_count: number
+  media_uris: string[]
   created_at: string
   updated_at?: string
 }
@@ -164,7 +208,7 @@ export interface AdminGroupListItem {
   creator_id?: string
   creator_name: string
   member_count: number
-  status: string
+  status: "active" | "archived" | "hidden"
   created_at: string
 }
 
@@ -200,6 +244,7 @@ export interface AdminGroupDetailResponse {
 export interface AdminCommunityListItem {
   id: string
   name: string
+  avatar_uri: string
   creator_id: string
   creator_name: string
   member_count: number
@@ -227,6 +272,7 @@ export interface AdminCommunityDetailResponse {
   name: string
   description: string
   avatar_uri: string
+  background_uri: string
   creator_id: string
   creator_name: string
   privacy: string
@@ -238,6 +284,25 @@ export interface AdminCommunityDetailResponse {
   updated_at?: string
 }
 
+// ===== Moderation Logs =====
+export interface AdminModerationLogItem {
+  id: string
+  moderator_id: string
+  moderator_name: string
+  action: string
+  target_type: string
+  target_id: string
+  reason: string
+  created_at: string
+}
+
+export interface AdminModerationLogListResponse {
+  logs: AdminModerationLogItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 // ===== Shared =====
 export interface AdminModerateInput {
   reason: string
@@ -246,4 +311,19 @@ export interface AdminModerateInput {
 export interface AdminWarnInput {
   reason: string
   message: string
+}
+
+export interface AdminMediaGroupItem {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  media: AdminMediaItem[]
+}
+
+export interface AdminMediaGroupedResponse {
+  groups: AdminMediaGroupItem[]
+  total: number
+  page: number
+  page_size: number
 }

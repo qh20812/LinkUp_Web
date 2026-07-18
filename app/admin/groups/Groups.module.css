@@ -192,9 +192,18 @@
   font-size: 11px;
 }
 
-.badgeActive { background: var(--color-success-light); color: var(--color-success); }
-.badgeBanned { background: var(--color-danger-light); color: var(--color-danger); }
-.badgeSuspended { background: var(--color-warning-light); color: var(--color-warning); }
+.badgeActive {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+.badgeBanned {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+.badgeSuspended {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
 
 /* Skeleton */
 .skeletonRow {
@@ -225,11 +234,21 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.skeletonText:nth-child(2) { width: 15%; }
-.skeletonText:nth-child(3) { width: 22%; }
-.skeletonText:nth-child(4) { width: 10%; }
-.skeletonText:nth-child(5) { width: 8%; }
-.skeletonText:nth-child(6) { width: 8%; }
+.skeletonText:nth-child(2) {
+  width: 15%;
+}
+.skeletonText:nth-child(3) {
+  width: 22%;
+}
+.skeletonText:nth-child(4) {
+  width: 10%;
+}
+.skeletonText:nth-child(5) {
+  width: 8%;
+}
+.skeletonText:nth-child(6) {
+  width: 8%;
+}
 
 /* Pagination */
 .pagination {
@@ -575,18 +594,35 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 @media screen and (max-width: 768px) {

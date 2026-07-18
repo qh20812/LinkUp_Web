@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getUsers, updateUserStatus, banUser } from '../../../api/admin'
@@ -16,12 +17,13 @@ export default function UsersPage() {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'banned' | 'suspended'>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuStyle, setMenuStyle] = useState<{top: number; left: number} | null>(null)
   const [banTarget, setBanTarget] = useState<AdminUserListItem | null>(null)
   const [detailTarget, setDetailTarget] = useState<AdminUserListItem | null>(null)
   const [banReason, setBanReason] = useState('')
@@ -41,7 +43,7 @@ export default function UsersPage() {
       try {
         const res = await getUsers(page, pageSize, keyword || undefined, statusFilter || undefined)
         if (!cancelled) {
-          setUsers(res.users)
+          setUsers(res.users ?? [])
           setTotal(res.total)
         }
       } catch (err) {
@@ -66,13 +68,18 @@ export default function UsersPage() {
   }
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value)
+    setStatusFilter(e.target.value as '' | 'active' | 'banned' | 'suspended')
     setPage(1)
+  }
+
+  const closeMenu = () => {
+    setOpenMenuId(null)
+    setMenuStyle(null)
   }
 
   useEffect(() => {
     if (!openMenuId) return
-    const handleClick = () => setOpenMenuId(null)
+    const handleClick = () => closeMenu()
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
   }, [openMenuId])
@@ -247,10 +254,13 @@ export default function UsersPage() {
                   <tr key={user.id}>
                     <td>
                       <div className={styles.cellUser}>
-                        <img
+                        <Image
                           src={user.avatar_uri || '/default-avatar.png'}
                           alt=""
+                          width={36}
+                          height={36}
                           className={styles.avatar}
+                          unoptimized
                         />
                         <div>
                           <div className={styles.userName}>{user.display_name || user.username}</div>
@@ -269,15 +279,30 @@ export default function UsersPage() {
                       <div className={styles.actionMenuWrap}>
                         <button
                           className={styles.actionsBtn}
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === user.id ? null : user.id) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (openMenuId === user.id) {
+                              closeMenu()
+                            } else {
+                              const btn = e.currentTarget as HTMLElement
+                              const rect = btn.getBoundingClientRect()
+                              const menuH = 130
+                              let top = rect.bottom + 4
+                              if (top + menuH > window.innerHeight) top = rect.top - 4 - menuH
+                              let left = rect.right - 180
+                              if (left < 8) left = 8
+                              setMenuStyle({ top, left })
+                              setOpenMenuId(user.id)
+                            }
+                          }}
                         >
                           <i className="bx bx-dots-vertical-rounded" />
                         </button>
-                        {openMenuId === user.id && (
-                          <div className={styles.actionMenu} onClick={(e) => e.stopPropagation()}>
+                        {openMenuId === user.id && menuStyle && (
+                          <div className={styles.actionMenu} style={{ position: 'fixed', top: menuStyle.top, left: menuStyle.left, zIndex: 1000 }} onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.actionMenuItem}
-                              onClick={() => { setDetailTarget(user); setOpenMenuId(null) }}
+                              onClick={() => { setDetailTarget(user); closeMenu() }}
                             >
                               <i className="bx bx-show" /> {t('users.viewDetail')}
                             </button>
@@ -286,7 +311,7 @@ export default function UsersPage() {
                               disabled={updatingStatus === user.id}
                               onClick={() => {
                                 handleStatusChange(user.id, nextUserStatus(user.status))
-                                setOpenMenuId(null)
+                                closeMenu()
                               }}
                             >
                               <i className="bx bx-shield" /> {updatingStatus === user.id ? t('common.loading') : statusActionLabel(user.status)}
@@ -294,7 +319,7 @@ export default function UsersPage() {
                             {user.status !== 'banned' && (
                               <button
                                 className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
-                                onClick={() => { setBanTarget(user); setOpenMenuId(null) }}
+                                onClick={() => { setBanTarget(user); closeMenu() }}
                               >
                                 <i className="bx bx-block" /> {t('users.banUser')}
                               </button>
@@ -354,10 +379,13 @@ export default function UsersPage() {
             </div>
             <div className={styles.modalBody}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                <img
+                <Image
                   src={detailTarget.avatar_uri || '/default-avatar.png'}
                   alt=""
+                  width={64}
+                  height={64}
                   className={styles.detailAvatar}
+                  unoptimized
                 />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 18 }}>{detailTarget.display_name || detailTarget.username}</div>
