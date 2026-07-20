@@ -303,6 +303,42 @@ export interface AdminModerationLogListResponse {
   page_size: number
 }
 
+// ===== Notifications =====
+export type NotificationType =
+  | 'like' | 'comment' | 'follow' | 'message'
+  | 'friend_request' | 'friend_accepted'
+  | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
+  | 'community_role_changed' | 'community_member_left' | 'community_member_kicked'
+  | 'community_group_chat_added' | 'community_invite_code_used'
+  | 'community_invitation_received' | 'community_invitation_accepted'
+  | 'voice_call'
+
+export interface NotificationItem {
+  id: string
+  sender_id?: string
+  type: NotificationType
+  content: string
+  is_read: boolean
+  created_at: string
+  redirect_post_id?: string
+  redirect_user_id?: string
+  redirect_comment_id?: string
+}
+
+export interface NotificationListResponse {
+  data: NotificationItem[]
+  total: number
+  page: number
+}
+
+export interface NotificationPreferences {
+  like_enabled: boolean
+  comment_enabled: boolean
+  follow_enabled: boolean
+  message_enabled: boolean
+  friend_request_enabled: boolean
+}
+
 // ===== Shared =====
 export interface AdminModerateInput {
   reason: string

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import AdminSidebar from '../../components/AdminSidebar'
 import AdminNavbar from '../../components/AdminNavbar'
+import { NotificationProvider } from '../../contexts/NotificationContext' // Thêm import provider
 import styles from './layout.module.css'
 
 export default function AdminLayout({
@@ -42,20 +43,22 @@ export default function AdminLayout({
   }, [])
 
   return (
-    <div className={styles.layout}>
-      <AdminSidebar collapsed={collapsed} mobileOpen={mobileOpen} />
+    <NotificationProvider>
+      <div className={styles.layout}>
+        <AdminSidebar collapsed={collapsed} mobileOpen={mobileOpen} />
 
-      {mobileOpen && (
-        <div
-          className={styles.overlay}
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+        {mobileOpen && (
+          <div
+            className={styles.overlay}
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
 
-      <div className={`${styles.content}${collapsed ? ` ${styles.contentCollapsed}` : ''}`}>
-        <AdminNavbar onMenuToggle={handleMenuToggle} />
-        <main className={styles.main}>{children}</main>
+        <div className={`${styles.content}${collapsed ? ` ${styles.contentCollapsed}` : ''}`}>
+          <AdminNavbar onMenuToggle={handleMenuToggle} />
+          <main className={styles.main}>{children}</main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   )
 }
