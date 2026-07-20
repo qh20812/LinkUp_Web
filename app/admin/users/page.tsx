@@ -8,6 +8,17 @@ import { getUsers, updateUserStatus, banUser } from '../../../api/admin'
 import type { AdminUserListItem } from '../../../types'
 import styles from './Users.module.css'
 
+function getUserRoleFromToken(): string | null {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role || null
+  } catch {
+    return null
+  }
+}
+
 export default function UsersPage() {
   const { t, language } = useTranslation()
   const { toast } = useToast()
@@ -18,6 +29,8 @@ export default function UsersPage() {
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'banned' | 'suspended'>('')
+  const [userRole] = useState<string | null>(() => getUserRoleFromToken())
+  const canBan = userRole === null || userRole === 'SUPER_ADMIN'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -316,7 +329,7 @@ export default function UsersPage() {
                             >
                               <i className="bx bx-shield" /> {updatingStatus === user.id ? t('common.loading') : statusActionLabel(user.status)}
                             </button>
-                            {user.status !== 'banned' && (
+                            {user.status !== 'banned' && canBan && (
                               <button
                                 className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
                                 onClick={() => { setBanTarget(user); closeMenu() }}

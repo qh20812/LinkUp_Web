@@ -9,6 +9,17 @@ import Pagination from '../../../components/Pagination'
 import Modal from '../../../components/Modal'
 import styles from './Reports.module.css'
 
+function getUserRoleFromToken(): string | null {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role || null
+  } catch {
+    return null
+  }
+}
+
 export default function ReportsPage() {
   const { t, language } = useTranslation()
   const { toast } = useToast()
@@ -20,6 +31,8 @@ export default function ReportsPage() {
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [targetTypeFilter, setTargetTypeFilter] = useState('')
+  const [userRole] = useState<string | null>(() => getUserRoleFromToken())
+  const canMutate = userRole === null || userRole === 'SUPER_ADMIN'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -320,12 +333,14 @@ export default function ReportsPage() {
                             >
                               <i className="bx bx-show" /> {t('users.viewDetail')}
                             </button>
-                            <button
-                              className={styles.actionMenuItem}
-                              onClick={() => { setReviewTarget(report); closeMenu(); setReviewAction('cancel'); setReviewReason(''); setReviewDuration('permanent') }}
-                            >
-                              <i className="bx bx-check-shield" /> {t('reports.reviewReport')}
-                            </button>
+                            {canMutate && (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => { setReviewTarget(report); closeMenu(); setReviewAction('cancel'); setReviewReason(''); setReviewDuration('permanent') }}
+                              >
+                                <i className="bx bx-check-shield" /> {t('reports.reviewReport')}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

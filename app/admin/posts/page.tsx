@@ -12,6 +12,17 @@ import type {
 } from "../../../types";
 import styles from "./Posts.module.css";
 
+function getUserRoleFromToken(): string | null {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role || null
+  } catch {
+    return null
+  }
+}
+
 export default function PostsPage() {
   const { t, language } = useTranslation();
   const { toast } = useToast();
@@ -22,6 +33,8 @@ export default function PostsPage() {
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [userRole] = useState<string | null>(() => getUserRoleFromToken());
+  const canMutate = userRole === null || userRole === 'SUPER_ADMIN';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -300,7 +313,7 @@ export default function PostsPage() {
                             )}
                           </div>
                         ) : (
-                          "—"
+                          t("posts.noContent")
                         )}
                       </div>
                     </td>
@@ -361,7 +374,7 @@ export default function PostsPage() {
                               <i className="bx bx-show" />{" "}
                               {t("posts.viewDetail")}
                             </button>
-                            {post.status !== "hidden" ? (
+                            {canMutate && (post.status !== "hidden" ? (
                               <button
                                 className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
                                 onClick={() => {
@@ -382,7 +395,7 @@ export default function PostsPage() {
                                 <i className="bx bx-show-alt" />{" "}
                                 {t("posts.showPost")}
                               </button>
-                            )}
+                            ))}
                           </div>
                         )}
                       </div>
@@ -456,24 +469,26 @@ export default function PostsPage() {
                   {detailTarget.display_name || detailTarget.username}
                 </span>
               </div>
-              <div
-                className={styles.detailRow}
-                style={{
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: "4px",
-                }}>
-                <span className={styles.detailLabel}>{t("posts.content")}</span>
-                <span
-                  className={styles.detailValue}
+              {detailTarget.content && (
+                <div
+                  className={styles.detailRow}
                   style={{
-                    textAlign: "left",
-                    marginTop: "4px",
-                    width: "100%",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "4px",
                   }}>
-                  {detailTarget.content}
-                </span>
-              </div>
+                  <span className={styles.detailLabel}>{t("posts.content")}</span>
+                  <span
+                    className={styles.detailValue}
+                    style={{
+                      textAlign: "left",
+                      marginTop: "4px",
+                      width: "100%",
+                    }}>
+                    {detailTarget.content}
+                  </span>
+                </div>
+              )}
               {detailTarget.media_uris?.length > 0 && (
                 <div className={styles.mediaRow}>
                   <span className={styles.detailLabel}>{t("posts.media")}</span>
@@ -490,6 +505,12 @@ export default function PostsPage() {
                       />
                     ))}
                   </div>
+                </div>
+              )}
+              {!detailTarget.content && (!detailTarget.media_uris || detailTarget.media_uris.length === 0) && (
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>{t("posts.content")}</span>
+                  <span className={styles.detailValue}>{t("posts.noContent")}</span>
                 </div>
               )}
               <div className={styles.detailRow}>
