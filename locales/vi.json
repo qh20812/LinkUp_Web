@@ -204,7 +204,10 @@
     "all": "Tất cả",
     "groupByUser": "Nhóm theo người dùng",
     "refresh": "Làm mới",
-    "totalMedia": "Tổng {count} media"
+    "totalMedia": "Tổng {count} media",
+    "tabGrouped": "Theo người dùng",
+    "tabFlagged": "Bị gắn cờ",
+    "tabRejected": "Đã từ chối"
   },
   "groups": {
     "title": "Quản lý nhóm chat",

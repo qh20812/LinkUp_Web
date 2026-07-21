@@ -231,12 +231,11 @@ export const cleanupRejectedMedia = () =>
     method: "POST",
   });
 
-export const getMediaGroupedByUser = (page = 1, pageSize = 20, status?: string, keyword?: string) => {
+export const getMediaGroupedByUser = (page = 1, pageSize = 20, keyword?: string) => {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
-  if (status) params.set("status", status);
   if (keyword) params.set("keyword", keyword);
   return request<AdminMediaGroupedResponse>(`/admin/media/grouped?${params}`);
 };

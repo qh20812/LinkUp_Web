@@ -204,7 +204,10 @@
     "all": "All",
     "groupByUser": "Group by user",
     "refresh": "Refresh",
-    "totalMedia": "Total {count} media"
+    "totalMedia": "Total {count} media",
+    "tabGrouped": "By user",
+    "tabFlagged": "Flagged",
+    "tabRejected": "Rejected"
   },
   "groups": {
     "title": "Group Management",
