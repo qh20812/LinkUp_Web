@@ -196,6 +196,7 @@
     "fileType": "File Type",
     "status": "Status",
     "createdAt": "Created At",
+    "uploader": "Uploader",
     "total": "Total {count} items",
     "reviewTitle": "Review Media",
     "reviewHint": "Please enter the processing reason for admin tracking.",
@@ -208,7 +209,10 @@
     "totalMedia": "Total {count} media",
     "tabGrouped": "By user",
     "tabFlagged": "Flagged",
-    "tabRejected": "Rejected"
+    "tabRejected": "Rejected",
+    "loadFailed": "Failed to load media",
+    "prev": "Previous",
+    "next": "Next"
   },
   "groups": {
     "title": "Group Management",

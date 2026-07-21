@@ -196,6 +196,7 @@
     "fileType": "Loại file",
     "status": "Trạng thái",
     "createdAt": "Ngày tạo",
+    "uploader": "Người tải lên",
     "total": "Tổng {count} mục",
     "reviewTitle": "Duyệt media",
     "reviewHint": "Vui lòng nhập lý do xử lý để quản trị viên theo dõi.",
@@ -208,7 +209,10 @@
     "totalMedia": "Tổng {count} media",
     "tabGrouped": "Theo người dùng",
     "tabFlagged": "Bị gắn cờ",
-    "tabRejected": "Đã từ chối"
+    "tabRejected": "Đã từ chối",
+    "loadFailed": "Không thể tải media",
+    "prev": "Trước",
+    "next": "Sau"
   },
   "groups": {
     "title": "Quản lý nhóm chat",

@@ -189,6 +189,8 @@ export interface AdminMediaItem {
   file_size: number
   status: string
   created_at: string
+  display_name?: string
+  username?: string
 }
 
 export interface AdminMediaListResponse {
