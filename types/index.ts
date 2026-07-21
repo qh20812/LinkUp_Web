@@ -78,6 +78,10 @@ export interface AdminAnalyticsResponse {
   groups_change_percent: number
   communities_change_percent: number
   chart_data?: ChartDataPoint[]
+  chart_data_users?: ChartDataPoint[]
+  chart_data_posts?: ChartDataPoint[]
+  chart_data_reports?: ChartDataPoint[]
+  chart_data_comments?: ChartDataPoint[]
   top_users?: TopActiveUser[]
   top_posts?: TopEngagedPost[]
   user_status_distribution?: StatusCount[]
@@ -319,6 +323,8 @@ export type NotificationType =
 export interface NotificationItem {
   id: string
   sender_id?: string
+  sender_name?: string
+  sender_avatar?: string
   type: NotificationType
   content: string
   is_read: boolean
@@ -340,6 +346,8 @@ export interface NotificationPreferences {
   follow_enabled: boolean
   message_enabled: boolean
   friend_request_enabled: boolean
+  community_enabled: boolean
+  voice_call_enabled: boolean
 }
 
 // ===== Shared =====

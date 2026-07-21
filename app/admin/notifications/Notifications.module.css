@@ -120,6 +120,20 @@
   font-size: 20px;
 }
 
+.senderAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.senderName {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-right: var(--space-xs);
+}
+
 .iconLike {
   color: var(--color-danger);
 }

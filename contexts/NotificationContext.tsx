@@ -188,8 +188,16 @@ export function NotificationProvider({
     initData();
     connectWS();
 
+    const pollInterval = setInterval(() => {
+      if (isComponentMounted) {
+        refreshUnreadCount();
+        fetchDropdownNotifications();
+      }
+    }, 30000);
+
     return () => {
       isComponentMounted = false;
+      clearInterval(pollInterval);
       if (wsRef.current) {
         wsRef.current.close();
       }

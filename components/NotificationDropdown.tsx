@@ -15,7 +15,7 @@ interface NotificationDropdownProps {
 export default function NotificationDropdown({
   onClose,
 }: NotificationDropdownProps) {
-  const { notifications, markAsRead, markAllAsRead, unreadCount } =
+  const { notifications, markAsRead, markAllAsRead, unreadCount, loading } =
     useNotification();
   const { t } = useTranslation();
   const router = useRouter();
@@ -35,8 +35,19 @@ export default function NotificationDropdown({
         return "bx bx-group " + styles.iconFriend;
       case "voice_call":
         return "bx bx-phone " + styles.iconCall;
-      default:
+      case "community_join_request":
+      case "community_join_approved":
+      case "community_join_rejected":
+      case "community_role_changed":
+      case "community_member_left":
+      case "community_member_kicked":
+      case "community_group_chat_added":
+      case "community_invite_code_used":
+      case "community_invitation_received":
+      case "community_invitation_accepted":
         return "bx bx-world " + styles.iconCommunity;
+      default:
+        return "bx bx-bell " + styles.iconCommunity;
     }
   };
 
@@ -45,7 +56,7 @@ export default function NotificationDropdown({
     const past = new Date(dateStr);
     const diffMs = now.getTime() - past.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 6000);
+    const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffMins < 1) return t("notifications.justNow");
@@ -84,7 +95,19 @@ export default function NotificationDropdown({
       </div>
 
       <div className={styles.list}>
-        {notifications.length === 0 ? (
+        {loading && notifications.length === 0 ? (
+          <>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={styles.skeletonItem}>
+                <div className={styles.skeletonAvatar} />
+                <div className={styles.skeletonContent}>
+                  <div className={styles.skeletonLine} />
+                  <div className={styles.skeletonLineShort} />
+                </div>
+              </div>
+            ))}
+          </>
+        ) : notifications.length === 0 ? (
           <div className={styles.emptyState}>
             {t("notifications.noNotifications")}
           </div>
@@ -97,10 +120,23 @@ export default function NotificationDropdown({
               }`}
               onClick={() => handleItemClick(item)}>
               <div className={styles.iconWrapper}>
-                <i className={getIconClass(item.type)} />
+                {item.sender_avatar ? (
+                  <img
+                    src={item.sender_avatar}
+                    alt=""
+                    className={styles.senderAvatar}
+                  />
+                ) : (
+                  <i className={getIconClass(item.type)} />
+                )}
               </div>
               <div className={styles.contentWrap}>
-                <p className={styles.content}>{item.content}</p>
+                <p className={styles.content}>
+                  {item.sender_name && (
+                    <strong className={styles.senderName}>{item.sender_name}</strong>
+                  )}
+                  {item.sender_name ? ' ' + item.content : item.content}
+                </p>
                 <span className={styles.time}>
                   {formatTime(item.created_at)}
                 </span>

@@ -1,6 +1,5 @@
 import { request } from "./api";
 import type {
-  NotificationItem,
   NotificationListResponse,
   NotificationPreferences,
 } from "../types";

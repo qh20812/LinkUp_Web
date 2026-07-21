@@ -1,81 +1,91 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useNotification } from "../../../contexts/NotificationContext";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
-import type { NotificationItem, NotificationType } from "../../../types";
+import { useNotification } from "../../../contexts/NotificationContext";
+import {
+  getNotifications,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+} from "../../../api/notifications";
+import type { NotificationItem, NotificationListResponse, NotificationType } from "../../../types";
 import styles from "./Notifications.module.css";
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { refreshUnreadCount } = useNotification();
 
-  // Lấy dữ liệu và các hàm thao tác từ NotificationContext toàn cục
-  const {
-    notifications: allNotifications,
-    markAsRead,
-    markAllAsRead,
-    loading: contextLoading,
-  } = useNotification();
-
-  // State cục bộ cho bộ lọc và phân trang
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [filteredList, setFilteredList] = useState<NotificationItem[]>([]);
+  const pageSize = 20;
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const isMounted = useRef(false);
 
-  // Xử lý lọc dữ liệu khi danh sách tổng hoặc bộ lọc thay đổi
-  useEffect(() => {
-    let list = [...allNotifications];
-    if (filter === "unread") {
-      list = list.filter((n) => !n.is_read);
-    } else if (filter === "read") {
-      list = list.filter((n) => n.is_read);
-    }
-    setFilteredList(list);
-    setPage(1); // Reset về trang 1 khi đổi bộ lọc
-  }, [allNotifications, filter]);
-
-  // Tính toán phân trang dựa trên danh sách đã lọc
-  const total = filteredList.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const startIndex = (page - 1) * pageSize;
-  const paginatedNotifications = filteredList.slice(
-    startIndex,
-    startIndex + pageSize
+  const doFetch = useCallback(
+    async (f: string, p: number): Promise<void> => {
+      setLoading(true);
+      try {
+        const unreadOnly = f === "unread";
+        const res: NotificationListResponse = await getNotifications(p, pageSize, unreadOnly);
+        if (f === "read") {
+          setItems(res.data.filter((n) => n.is_read));
+          setTotal(res.data.filter((n) => n.is_read).length);
+        } else {
+          setItems(res.data);
+          setTotal(res.total);
+        }
+      } catch {
+        toast({ title: t("common.error"), type: "error" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pageSize, t, toast],
   );
 
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    doFetch(filter, page);
+  }, [filter, page, doFetch]);
+
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilter(e.target.value as "all" | "unread" | "read");
+    const next = e.target.value as "all" | "unread" | "read";
+    setFilter(next);
+    setPage(1);
   };
 
   const handleMarkOne = async (id: string) => {
     try {
-      await markAsRead(id);
-      toast({
-        title: t("notifications.markReadSuccess") || "Đã đánh dấu đọc",
-        type: "success",
-      });
-    } catch (err) {
-      toast({
-        title: err instanceof Error ? err.message : t("common.error"),
-        type: "error",
-      });
+      await apiMarkAsRead(id);
+      setItems((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      refreshUnreadCount();
+      toast({ title: t("notifications.markRead"), type: "success" });
+    } catch {
+      toast({ title: t("common.error"), type: "error" });
     }
   };
 
   const handleMarkAll = async () => {
     try {
-      await markAllAsRead();
-      toast({ title: t("notifications.prefSaved"), type: "success" });
-    } catch (err) {
-      toast({
-        title: err instanceof Error ? err.message : t("common.error"),
-        type: "error",
-      });
+      await apiMarkAllAsRead();
+      setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      refreshUnreadCount();
+      toast({ title: t("notifications.markAllRead"), type: "success" });
+    } catch {
+      toast({ title: t("common.error"), type: "error" });
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const getPageNumbers = (): (number | string)[] => {
     const pages: (number | string)[] = [];
@@ -118,23 +128,21 @@ export default function NotificationsPage() {
         return "bx bx-group " + styles.iconFriend;
       case "voice_call":
         return "bx bx-phone " + styles.iconCall;
-      default:
+      case "community_join_request":
+      case "community_join_approved":
+      case "community_join_rejected":
+      case "community_role_changed":
+      case "community_member_left":
+      case "community_member_kicked":
+      case "community_group_chat_added":
+      case "community_invite_code_used":
+      case "community_invitation_received":
+      case "community_invitation_accepted":
         return "bx bx-world " + styles.iconCommunity;
+      default:
+        return "bx bx-bell " + styles.iconCommunity;
     }
   };
-
-  const skeletonRows = () => (
-    <>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className={styles.skeletonRow}>
-          <div className={styles.skeletonIcon} />
-          <div className={styles.skeletonTextMain} />
-          <div className={styles.skeletonTextTime} />
-          <div className={styles.skeletonTextAction} />
-        </div>
-      ))}
-    </>
-  );
 
   return (
     <div className={styles.page}>
@@ -149,7 +157,7 @@ export default function NotificationsPage() {
             <option value="unread">{t("notifications.filterUnread")}</option>
             <option value="read">{t("notifications.filterRead")}</option>
           </select>
-          {filter !== "read" && filteredList.some((n) => !n.is_read) && (
+          {filter !== "read" && items.some((n) => !n.is_read) && (
             <button className={styles.btnMarkAll} onClick={handleMarkAll}>
               <i className="bx bx-check-double" />{" "}
               {t("notifications.markAllRead")}
@@ -159,9 +167,18 @@ export default function NotificationsPage() {
       </div>
 
       <div className={styles.card}>
-        {contextLoading ? (
-          skeletonRows()
-        ) : paginatedNotifications.length === 0 ? (
+        {loading ? (
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={styles.skeletonRow}>
+                <div className={styles.skeletonIcon} />
+                <div className={styles.skeletonTextMain} />
+                <div className={styles.skeletonTextTime} />
+                <div className={styles.skeletonTextAction} />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
           <div className={styles.empty}>
             <i className="bx bx-bell-off" />
             <p>{t("notifications.noNotifications")}</p>
@@ -180,19 +197,32 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedNotifications.map((item) => (
+                {items.map((item) => (
                   <tr
                     key={item.id}
                     className={!item.is_read ? styles.rowUnread : ""}>
                     <td>
                       <div className={styles.iconWrapper}>
-                        <i className={getIconClass(item.type)} />
+                        {item.sender_avatar ? (
+                          <img
+                            src={item.sender_avatar}
+                            alt=""
+                            className={styles.senderAvatar}
+                          />
+                        ) : (
+                          <i className={getIconClass(item.type)} />
+                        )}
                       </div>
                     </td>
                     <td>
                       <div className={styles.cellContent}>
                         <span className={styles.contentMsg}>
-                          {item.content}
+                          {item.sender_name && (
+                            <strong className={styles.senderName}>
+                              {item.sender_name}
+                            </strong>
+                          )}
+                          {item.sender_name ? ' ' + item.content : item.content}
                         </span>
                         {!item.is_read && (
                           <span className={styles.unreadBadge} />
