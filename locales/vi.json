@@ -205,7 +205,10 @@
     "all": "Tất cả",
     "groupByUser": "Nhóm theo người dùng",
     "refresh": "Làm mới",
-    "totalMedia": "Tổng {count} media"
+    "totalMedia": "Tổng {count} media",
+    "tabGrouped": "Theo người dùng",
+    "tabFlagged": "Bị gắn cờ",
+    "tabRejected": "Đã từ chối"
   },
   "groups": {
     "title": "Quản lý nhóm chat",
@@ -320,5 +323,34 @@
     "noData": "Chưa có quảng cáo nào",
     "deleteSuccess": "Xoá quảng cáo thành công",
     "statusUpdated": "Cập nhật trạng thái thành công"
+  },
+  "notifications": {
+    "title": "Trung tâm thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "markRead": "Đánh dấu đã đọc",
+    "viewAll": "Xem tất cả",
+    "noNotifications": "Không có thông báo nào",
+    "filterAll": "Tất cả",
+    "filterUnread": "Chưa đọc",
+    "filterRead": "Đã đọc",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{minutes} phút trước",
+    "hoursAgo": "{hours} giờ trước",
+    "daysAgo": "{days} ngày trước",
+    "preferences": "Cài đặt thông báo",
+    "prefLike": "Thích bài viết",
+    "prefComment": "Bình luận",
+    "prefFollow": "Theo dõi",
+    "prefMessage": "Tin nhắn",
+    "prefFriendRequest": "Kết bạn & Cộng đồng",
+    "prefSaved": "Đã lưu cài đặt thông báo",
+    "newNotification": "Thông báo mới",
+    "typeLabel_like": "thích",
+    "typeLabel_comment": "bình luận",
+    "typeLabel_follow": "theo dõi",
+    "typeLabel_message": "nhắn tin",
+    "typeLabel_friend_request": "kết bạn",
+    "typeLabel_friend_accepted": "đã chấp nhận kết bạn",
+    "typeLabel_voice_call": "cuộc gọi"
   }
 }

@@ -25,30 +25,40 @@
     flex-wrap: wrap;
 }
 
-.filterSelect,
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.tab {
+    padding: var(--space-sm) var(--space-lg);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font: var(--text-body);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab:hover {
+    color: var(--color-text);
+}
+
+.tabActive {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
 .textarea {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-card);
     color: var(--color-text);
     font: var(--text-body);
-}
-
-.filterSelect {
-    height: 40px;
-    padding: 0 var(--space-md);
-    padding-right: 36px;
-    min-width: 160px;
-    outline: none;
-    appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-}
-
-.filterSelect:focus {
-    border-color: var(--color-primary);
 }
 
 .searchWrap {
@@ -129,47 +139,6 @@
     overflow: hidden;
 }
 
-.bulkBar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid var(--color-divider);
-    background: var(--color-bg-secondary);
-    flex-wrap: wrap;
-}
-
-.bulkInfo {
-    font-weight: 600;
-    color: var(--color-text);
-    white-space: nowrap;
-}
-
-.bulkActions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-}
-
-.bulkReasonWrap {
-    flex: 1;
-    min-width: 200px;
-}
-
-.bulkReasonInput {
-    height: 36px;
-    padding: 0 var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-card);
-    color: var(--color-text);
-    font: var(--text-body);
-    width: 100%;
-    box-sizing: border-box;
-}
-
 .tableWrap {
     overflow-x: auto;
 }
@@ -177,22 +146,6 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-}
-
-.checkCol {
-    width: 48px;
-    text-align: center;
-}
-
-.checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--color-primary);
-}
-
-.rowSelected td {
-    background: rgba(64, 224, 208, 0.04);
 }
 
 .table th,

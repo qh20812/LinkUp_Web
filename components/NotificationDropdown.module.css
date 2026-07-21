@@ -1,0 +1,165 @@
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  width: 380px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1100;
+  animation: fadeIn 0.15s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.markAllBtn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.markAllBtn:hover {
+  text-decoration: underline;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+  border-bottom: 1px solid rgba(var(--color-border), 0.5);
+}
+
+.item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.itemUnread {
+  background: rgba(var(--color-primary), 0.03);
+}
+
+.iconWrapper {
+  margin-top: 2px;
+}
+
+.iconWrapper i {
+  font-size: 18px;
+}
+
+.iconLike {
+  color: var(--color-danger);
+}
+.iconComment {
+  color: #00ca72;
+}
+.iconFollow {
+  color: #2196f3;
+}
+.iconMessage {
+  color: #ff9800;
+}
+.iconFriend {
+  color: #9c27b0;
+}
+.iconCall {
+  color: #4caf50;
+}
+.iconCommunity {
+  color: #607d8b;
+}
+
+.contentWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.content {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--color-text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.time {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  position: absolute;
+  right: 16px;
+  top: calc(50% - 4px);
+}
+
+.footer {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  font-size: 13.5px;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.footer:hover {
+  background: var(--color-bg-secondary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
