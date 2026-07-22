@@ -124,6 +124,15 @@
     color: #fff;
 }
 
+.buttonSuccess {
+    background: var(--color-success);
+    color: #fff;
+}
+
+.buttonSuccess:hover {
+    background: #2e7d32;
+}
+
 .buttonPrimary:disabled,
 .buttonSecondary:disabled,
 .buttonDanger:disabled {

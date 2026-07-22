@@ -181,6 +181,7 @@
     "approved": "Approved",
     "approve": "Approve",
     "reject": "Reject",
+    "process": "Process",
     "approveSuccess": "Media approved",
     "rejectSuccess": "Media rejected",
     "searchByUser": "Search by username",
