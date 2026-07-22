@@ -512,28 +512,17 @@ export default function MediaPage() {
                             {t("media.preview")}
                           </button>
                           {activeTab === "flagged" && (
-                            <>
-                              <button
-                                className={styles.buttonPrimary}
-                                onClick={() => {
-                                  setSelectedMedia(item);
-                                  setReviewAction("approve");
-                                  setReviewReason("");
-                                }}
-                              >
-                                {t("media.approve")}
-                              </button>
-                              <button
-                                className={styles.buttonDanger}
-                                onClick={() => {
-                                  setSelectedMedia(item);
-                                  setReviewAction("reject");
-                                  setReviewReason("");
-                                }}
-                              >
-                                {t("media.reject")}
-                              </button>
-                            </>
+                            <button
+                              className={styles.buttonPrimary}
+                              onClick={() => {
+                                setSelectedMedia(item);
+                                setReviewAction("approve");
+                                setReviewReason("");
+                              }}
+                            >
+                              <i className="bx bx-check-shield" />
+                              {t("media.process")}
+                            </button>
                           )}
                         </div>
                       </td>
@@ -661,18 +650,8 @@ export default function MediaPage() {
                       setPreviewMedia(null);
                     }}
                   >
-                    {t("media.approve")}
-                  </button>
-                  <button
-                    className={styles.buttonDanger}
-                    onClick={() => {
-                      setSelectedMedia(previewMedia);
-                      setReviewAction("reject");
-                      setReviewReason("");
-                      setPreviewMedia(null);
-                    }}
-                  >
-                    {t("media.reject")}
+                    <i className="bx bx-check-shield" />
+                    {t("media.process")}
                   </button>
                 </div>
               )}
@@ -749,7 +728,7 @@ export default function MediaPage() {
               {t("common.cancel")}
             </button>
             <button
-              className={styles.buttonPrimary}
+              className={reviewAction === "approve" ? styles.buttonPrimary : styles.buttonDanger}
               onClick={handleReview}
               disabled={submitting}
             >
