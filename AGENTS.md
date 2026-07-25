@@ -18,7 +18,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Action | Command | Notes |
 |--------|---------|-------|
 | Dev server | `npm run dev` | |
-| Build | `npm run build` | standalone output for Docker |
+| Build | `npm run build` | `output: "standalone"` — required for Docker |
 | Start (prod) | `npm run start` | |
 | Lint | `npm run lint` | runs `eslint` directly, not `next lint` |
 
@@ -31,12 +31,10 @@ No test runner (no deps). No CI/CD. No commit hooks.
 - **Styling:** CSS Modules (`*.module.css`). `globals.css` is reset + design tokens only (light + dark mode via `[data-theme="dark"]`). See `DESIGN.md` for the complete design system.
 - **Path alias:** `@/*` → repo root
 - **ESLint:** `eslint.config.mjs` — `eslint-config-next` (core-web-vitals + TypeScript). No `.eslintrc.*`.
-- **Docker:** `Dockerfile` with two-stage build (node:22-alpine). `output: "standalone"` in `next.config.ts`. Pass `NEXT_PUBLIC_API_BASE_URL` as build arg.
 - **API proxy:** `next.config.ts` rewrites `/api/*` → `http://{NEXT_PUBLIC_API_BASE_URL}/api/*` and `/health` → backend health endpoint. Defaults to `localhost:8080` from `.env`.
 - **Icons:** Boxicons CDN (`<link>` in root layout head).
-- **Templates:** `templates/Dashboard-Designs/` — reference UI designs (third-party, separate `.git`).
-- **`PLAN.md`** — implementation roadmap, gitignored. Follow it for new features.
-- **`DESIGN.md`** — design system reference. Use CSS vars from `globals.css`, never hardcode values.
+- **API layer:** `/api/api.ts` provides `request<T>()` — attaches JWT from `localStorage`, prepends `/api`, throws on non-ok.
+- **Token storage:** JWT stored in `localStorage` key `token`. No cookies.
 
 # Layout hierarchy
 
@@ -48,39 +46,46 @@ Root layout (`app/layout.tsx`) provides fonts, Boxicons CDN, `<LanguageProvider>
 | `/login` | `app/login/layout.tsx` | Navbar (public) | Footer |
 | `/admin/*` | `app/admin/layout.tsx` | AdminNavbar + AdminSidebar | **none** |
 
-The public Navbar (Navbar.tsx) and admin chrome (AdminNavbar.tsx + AdminSidebar.tsx) are independent — they share no layout component.
+The public Navbar and admin chrome (AdminNavbar + AdminSidebar) are independent — they share no layout component.
 
-# Current state
+# Implemented pages
 
-| Phase | What | Status |
-|-------|------|--------|
-| 0 | Infra (fonts, icons, API wrapper, i18n, types, Toast, Navbar, Footer) | ✅ Done |
-| 1 | Login page (`/login`) | ✅ Done |
-| 2 | Admin layout (sidebar + navbar + dark mode + lang toggle) | ✅ Done |
-| 3-9 | Admin page content (dashboard, users, posts, etc.) | ⬜ Stubs (title + "Coming soon...") |
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/` (home) | ✅ Done | Health-check landing page |
+| `/login` | ✅ Done | LoginForm with validation, toast errors, redirect to `/admin/dashboard` |
+| `/admin/dashboard` | ✅ Done | recharts (LineChart + PieChart), StatCard, date-range period selector |
+| `/admin/users` | ✅ Done | Table, search, status filter, pagination, ban modal, detail modal |
+| `/admin/posts` | ✅ Done | Table, search, status filter, pagination, hide/reveal/status toggle |
+| `/admin/reports` | ✅ Done | Table, search, status/target-type filters, detail modal, review modal |
+| `/admin/media` | ✅ Done | Tabs (grouped/flagged/rejected), review modal, cleanup-rejected |
+| `/admin/groups` | ✅ Done | Table, search, status filter, hide/unhide/archive/delete actions |
+| `/admin/communities` | ✅ Done | Table, search, status/privacy filters, actions, logs |
+| `/admin/notifications` | ✅ Done | List with read/unread filter, pagination, mark-read, preferences |
+| `/admin/profile` | ⬜ Stub | Coming soon |
+| `/admin/ads` | ⬜ Stub | Coming soon |
 
-**Existing files beyond Phase 0:**
-- `app/admin/layout.tsx` + `layout.module.css` — sidebar/content flex layout, responsive (collapsed/mobile overlay)
-- `components/AdminSidebar.tsx` + `AdminSidebar.module.css` — 7 menu items + logout, collapse/mobile-open
-- `components/AdminNavbar.tsx` + `AdminNavbar.module.css` — menu toggle, search (non-functional, `readOnly`), lang toggle, theme toggle, notifications, profile
-- `app/login/LoginForm.tsx` + `LoginForm.module.css` — email/password form with validation, show/hide password, toast errors, redirect to `/admin/dashboard`
-- `api/admin.ts` — 27 API functions across 7 resource sections
-- `locales/*.json` — ~67 keys each
+**Shared components:** `Modal`, `Pagination`, `StatCard` in `components/` — reuse instead of inlining.
 
-# Workflow notes
+# Translation system
 
-- **Login route is `/login`**, not `/admin/login` — there is no admin login layout subdirectory.
-- **Footer is NOT in root layout.** Include `<Footer>` directly in page/layout components that need it (currently home page + login layout).
-- **Navbar height** is 56px (+1px border). When calculating remaining viewport height (e.g., login container), subtract 57px total.
-- **`utils/` directory exists but is empty.** Intended for future shared helpers.
-- `.env*` is gitignored. `.env` exists locally with `API_BASE_URL=localhost:8080`. Create `.env.local` for secrets.
-- `NEXT_PUBLIC_API_BASE_URL` is the single env var for the backend URL. Used in `next.config.ts` rewrites.
-- `next.config.ts` sets `output: "standalone"` — required for Docker. Remove or conditionalize for `next dev`.
-- Language toggle causes hydration mismatch (server defaults `vi`, client reads `localStorage`). Use `suppressHydrationWarning` on toggle buttons.
-- Theme toggle: reads/writes `data-theme` attribute on `<html>` + localStorage key `theme`.
-- Toast system: `useToast()` hook, 4 types (success/error/warning/info), auto-dismiss 4s.
-- i18n: translations loaded via dynamic `import()` in `LanguageContext`, dot-notation keys via `t()`, locale persisted in localStorage key `language`.
-- Translation keys defined in `locales/*.json` — always add keys to both `vi.json` and `en.json`.
-- `recharts` is already in `dependencies` — ready for dashboard charts.
-- `AdminNavbar` search input has `readOnly` — search functionality is not yet implemented.
-- `CLAUDE.md` delegates to this file via `@AGENTS.md`.
+- **Context:** `contexts/LanguageContext.tsx` — dynamic `import()` of `locales/{lang}.json`
+- **Hook:** `useTranslation()` returns `{ t, language, setLanguage }`
+- **Keys:** dot-notation via `t()`, e.g. `t('users.title')`. Supports `{param}` interpolation.
+- **Locale files have grown to ~300+ keys each** — always add keys to both `vi.json` and `en.json`.
+- **Persisted in** `localStorage` key `language`. Defaults to `vi`.
+- **Hydration mismatch:** server defaults `vi`, client reads `localStorage`. Use `suppressHydrationWarning` on toggle buttons.
+
+# Key conventions
+
+- **Use CSS variables** from `globals.css` — never hardcode colors, spacing, or radii. See `DESIGN.md` for the full token reference.
+- **Footer is NOT in root layout.** Include `<Footer>` directly in page/layout components that need it.
+- **Login route is `/login`**, not `/admin/login`.
+- **Navbar height** is 56px (+1px border). When calculating remaining viewport height, subtract 57px total.
+- **Theme:** reads/writes `data-theme` attribute on `<html>` + `localStorage` key `theme`.
+- **Toast:** `useToast()` hook, 4 types (`success`/`error`/`warning`/`info`), auto-dismiss 4s.
+- **Notifications:** `NotificationContext` manages WebSocket connection (`/api/ws?token=...`), unread count, dropdown list, and preferences. Exponential backoff reconnection.
+- **`next.config.ts` sets `output: "standalone"`** — conditionalize or remove for `next dev`.
+- **`AdminNavbar` search input has `readOnly`** — search not yet implemented there.
+- **`PLAN.md`** — implementation roadmap, gitignored. Follow it for new features.
+- **`CLAUDE.md`** delegates to this file via `@AGENTS.md`.

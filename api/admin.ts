@@ -1,5 +1,7 @@
 import { request } from "./api";
 import type {
+  AdminAdListResponse,
+  AdPerformance,
   AdminAnalyticsResponse,
   AdminUserListResponse,
   AdminBanUserResponse,
@@ -231,12 +233,11 @@ export const cleanupRejectedMedia = () =>
     method: "POST",
   });
 
-export const getMediaGroupedByUser = (page = 1, pageSize = 20, status?: string, keyword?: string) => {
+export const getMediaGroupedByUser = (page = 1, pageSize = 20, keyword?: string) => {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
-  if (status) params.set("status", status);
   if (keyword) params.set("keyword", keyword);
   return request<AdminMediaGroupedResponse>(`/admin/media/grouped?${params}`);
 };
@@ -255,3 +256,34 @@ export const unarchiveCommunity = (id: string) =>
   request<{ message: string }>(`/admin/communities/${id}/unarchive`, {
     method: "POST",
   });
+
+// Ads
+export const getAds = (page = 1, pageSize = 20, keyword?: string, status?: string) => {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (keyword) params.set("keyword", keyword);
+  if (status) params.set("status", status);
+  return request<AdminAdListResponse>(`/admin/ads?${params}`);
+};
+
+export const updateAdStatus = (id: string, status: string) =>
+  request<{ message: string }>(`/admin/ads/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+
+export const deleteAd = (id: string) =>
+  request<{ message: string }>(`/admin/ads/${id}`, {
+    method: "DELETE",
+  });
+
+export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance }> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`/ads-management/${id}/analytics`, { headers })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.message || `HTTP ${res.status}`)
+  }
+  return res.json()
+}

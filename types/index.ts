@@ -48,6 +48,7 @@ export interface TopEngagedPost {
   views_count: number
   likes_count: number
   comments_count: number
+  has_media: boolean
 }
 
 export interface StatusCount {
@@ -77,6 +78,10 @@ export interface AdminAnalyticsResponse {
   groups_change_percent: number
   communities_change_percent: number
   chart_data?: ChartDataPoint[]
+  chart_data_users?: ChartDataPoint[]
+  chart_data_posts?: ChartDataPoint[]
+  chart_data_reports?: ChartDataPoint[]
+  chart_data_comments?: ChartDataPoint[]
   top_users?: TopActiveUser[]
   top_posts?: TopEngagedPost[]
   user_status_distribution?: StatusCount[]
@@ -188,6 +193,8 @@ export interface AdminMediaItem {
   file_size: number
   status: string
   created_at: string
+  display_name?: string
+  username?: string
 }
 
 export interface AdminMediaListResponse {
@@ -303,6 +310,46 @@ export interface AdminModerationLogListResponse {
   page_size: number
 }
 
+// ===== Notifications =====
+export type NotificationType =
+  | 'like' | 'comment' | 'follow' | 'message'
+  | 'friend_request' | 'friend_accepted'
+  | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
+  | 'community_role_changed' | 'community_member_left' | 'community_member_kicked'
+  | 'community_group_chat_added' | 'community_invite_code_used'
+  | 'community_invitation_received' | 'community_invitation_accepted'
+  | 'voice_call'
+
+export interface NotificationItem {
+  id: string
+  sender_id?: string
+  sender_name?: string
+  sender_avatar?: string
+  type: NotificationType
+  content: string
+  is_read: boolean
+  created_at: string
+  redirect_post_id?: string
+  redirect_user_id?: string
+  redirect_comment_id?: string
+}
+
+export interface NotificationListResponse {
+  data: NotificationItem[]
+  total: number
+  page: number
+}
+
+export interface NotificationPreferences {
+  like_enabled: boolean
+  comment_enabled: boolean
+  follow_enabled: boolean
+  message_enabled: boolean
+  friend_request_enabled: boolean
+  community_enabled: boolean
+  voice_call_enabled: boolean
+}
+
 // ===== Shared =====
 export interface AdminModerateInput {
   reason: string
@@ -326,4 +373,43 @@ export interface AdminMediaGroupedResponse {
   total: number
   page: number
   page_size: number
+}
+
+// ===== Ads =====
+export interface AdminAdListItem {
+  id: string
+  title: string
+  content: string
+  partner_id: string
+  partner_name: string
+  partner_display_name: string
+  media_id?: string
+  media_uri: string
+  target_url: string
+  status: 'active' | 'paused' | 'completed'
+  budget: number
+  impressions: number
+  clicks: number
+  ctr: number
+  started_at: string
+  expires_at: string
+  created_at: string
+}
+
+export interface AdminAdListResponse {
+  ads: AdminAdListItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdPerformance {
+  ad_id: string
+  title: string
+  status: string
+  budget: number
+  impressions: number
+  clicks: number
+  interactions: number
+  ctr: number
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import {
@@ -14,91 +14,39 @@ import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
 import styles from "./Media.module.css";
 
-type MediaStatusFilter = "all" | "flagged" | "rejected";
+type TabType = "grouped" | "flagged" | "rejected";
 type ReviewAction = "approve" | "reject";
-type MediaMode = "all" | "flagged" | "rejected" | "grouped";
 
 export default function MediaPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState<TabType>("grouped");
   const [items, setItems] = useState<AdminMediaItem[]>([]);
   const [groups, setGroups] = useState<AdminMediaGroupItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
-  const [mode, setMode] = useState<MediaMode>("grouped");
-  const [statusFilter, setStatusFilter] = useState<MediaStatusFilter>("all");
   const [previewMedia, setPreviewMedia] = useState<AdminMediaItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
-  const [selectedMedia, setSelectedMedia] = useState<AdminMediaItem | null>(
-    null,
-  );
+  const [selectedMedia, setSelectedMedia] = useState<AdminMediaItem | null>(null);
   const [reviewAction, setReviewAction] = useState<ReviewAction>("reject");
   const [reviewReason, setReviewReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cleaning, setCleaning] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
-
+  const [brokenMedia, setBrokenMedia] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkReason, setBulkReason] = useState("");
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
-  const allIds = useMemo(() => {
-    if (mode === "grouped") {
-      return new Set(groups.flatMap((g) => g.media.map((m) => m.id)));
-    }
-    return new Set(items.map((m) => m.id));
-  }, [mode, groups, items]);
-
-  const allSelected = allIds.size > 0 && allIds.size === selectedIds.size;
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(allIds));
-    }
-  };
-
-  const handleBulkReview = async (action: ReviewAction) => {
-    if (selectedIds.size === 0) return;
-    const ids = [...selectedIds];
-    const reason = bulkReason || t("media.reviewDefaultReason");
-    setBulkSubmitting(true);
-    let success = 0;
-    for (const id of ids) {
-      try {
-        await reviewMedia(id, { action, reason });
-        success++;
-      } catch {
-        // continue
-      }
-    }
-    setBulkSubmitting(false);
-    setSelectedIds(new Set());
-    setBulkReason("");
-    toast({
-      title: t("media.bulkSuccess", { success, total: ids.length }),
-      type: success === ids.length ? "success" : "warning",
-    });
-    setRefreshKey((k) => k + 1);
-  };
+  const tabs: { key: TabType; label: string }[] = useMemo(() => [
+    { key: "grouped", label: t("media.tabGrouped") },
+    { key: "flagged", label: t("media.tabFlagged") },
+    { key: "rejected", label: t("media.tabRejected") },
+  ], [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,24 +56,20 @@ export default function MediaPage() {
       setError(null);
 
       try {
-        const normalizedStatus = statusFilter === "all" ? "" : statusFilter;
-
-        if (mode === "grouped") {
-          const res = await getMediaGroupedByUser(page, pageSize, statusFilter, searchKeyword || undefined);
+        if (activeTab === "grouped") {
+          const res = await getMediaGroupedByUser(page, pageSize, searchKeyword || undefined);
           if (!cancelled) {
             setGroups(res.groups ?? []);
             setTotal(res.total ?? 0);
+            setItems([]);
           }
         } else {
-          const res = await getFlaggedMedia(
-            page,
-            pageSize,
-            mode === "all" ? normalizedStatus : mode,
-            searchKeyword || undefined,
-          );
+          const status = activeTab === "flagged" ? "flagged" : "rejected";
+          const res = await getFlaggedMedia(page, pageSize, status, searchKeyword || undefined);
           if (!cancelled) {
             setItems(res.items ?? []);
             setTotal(res.total ?? 0);
+            setGroups([]);
           }
         }
       } catch (err) {
@@ -141,7 +85,7 @@ export default function MediaPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize, mode, statusFilter, searchKeyword, refreshKey, t]);
+  }, [page, pageSize, activeTab, searchKeyword, refreshKey, t]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -183,6 +127,87 @@ export default function MediaPage() {
     item.file_type?.startsWith("image/");
   const isVideo = (item: AdminMediaItem) =>
     item.file_type?.startsWith("video/");
+
+  const handleMediaError = (id: string) => {
+    setBrokenMedia(prev => new Set(prev).add(id));
+  };
+
+  const renderPreview = (item: AdminMediaItem, className?: string) => {
+    if (brokenMedia.has(item.id)) {
+      return (
+        <div className={className || styles.previewError}>
+          <i className="bx bx-image-alt" />
+          <span>{t("media.loadFailed")}</span>
+        </div>
+      );
+    }
+    if (isImage(item)) {
+      return (
+        <img
+          src={item.file_uri}
+          alt=""
+          onError={() => handleMediaError(item.id)}
+          className={styles.previewImage}
+        />
+      );
+    }
+    if (isVideo(item)) {
+      return (
+        <video
+          src={item.file_uri}
+          className={styles.previewVideo}
+          muted
+          playsInline
+          preload="metadata"
+          onError={() => handleMediaError(item.id)}
+        />
+      );
+    }
+    return (
+      <div className={styles.previewPlaceholder}>
+        <i className="bx bx-file" />
+      </div>
+    );
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === items.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map(i => i.id)));
+    }
+  };
+
+  const handleBulkReview = useCallback(async (action: "approve" | "reject") => {
+    if (selectedIds.size === 0) return;
+    setBulkSubmitting(true);
+    const ids = Array.from(selectedIds);
+    let success = 0;
+    for (const id of ids) {
+      try {
+        await reviewMedia(id, { action, reason: t("media.reviewDefaultReason") });
+        success++;
+      } catch {
+        // skip failed
+      }
+    }
+    toast({
+      title: t("media.bulkSuccess", { success, total: ids.length }),
+      type: success === ids.length ? "success" : "warning",
+    });
+    setSelectedIds(new Set());
+    setBulkSubmitting(false);
+    setRefreshKey(k => k + 1);
+  }, [selectedIds, t, toast]);
 
   const resetReview = () => {
     setSelectedMedia(null);
@@ -241,6 +266,14 @@ export default function MediaPage() {
     }
   };
 
+  const handleTabChange = (tab: TabType) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setPage(1);
+    setError(null);
+    resetReview();
+  };
+
   const skeletonRows = () =>
     Array.from({ length: 5 }).map((_, i) => (
       <div key={i} className={styles.skeletonRow}>
@@ -262,41 +295,12 @@ export default function MediaPage() {
         </div>
 
         <div className={styles.toolbar}>
-          <select
-            className={styles.filterSelect}
-            value={mode}
-            onChange={(e) => {
-              setMode(e.target.value as MediaMode);
-              setPage(1);
-              setError(null);
-            }}>
-            <option value="all">{t("media.all")}</option>
-            <option value="flagged">{t("media.flagged")}</option>
-            <option value="rejected">{t("media.rejected")}</option>
-            <option value="grouped">{t("media.groupByUser")}</option>
-          </select>
-
-          {mode === "all" && (
-            <select
-              className={styles.filterSelect}
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as MediaStatusFilter);
-                setPage(1);
-                setError(null);
-              }}>
-              <option value="all">{t("media.all")}</option>
-              <option value="flagged">{t("media.flagged")}</option>
-              <option value="rejected">{t("media.rejected")}</option>
-            </select>
-          )}
-
           <div className={styles.searchWrap}>
             <i className="bx bx-search" />
             <input
               type="text"
               className={styles.searchInput}
-              placeholder={t("media.searchByUser")}
+              placeholder={activeTab === "grouped" ? t("media.searchByUser") : t("common.search")}
               value={searchKeyword}
               onChange={(e) => {
                 setSearchKeyword(e.target.value);
@@ -307,47 +311,20 @@ export default function MediaPage() {
         </div>
       </div>
 
-      <div className={styles.card}>
-        {selectedIds.size > 0 && (
-          <div className={styles.bulkBar}>
-            <span className={styles.bulkInfo}>
-              {t("media.bulkSelected", { count: selectedIds.size })}
-            </span>
-            <div className={styles.bulkActions}>
-              <button
-                className={styles.buttonPrimary}
-                onClick={() => handleBulkReview("approve")}
-                disabled={bulkSubmitting}>
-                <i className="bx bx-check" />
-                {t("media.bulkApprove")}
-              </button>
-              <button
-                className={styles.buttonDanger}
-                onClick={() => handleBulkReview("reject")}
-                disabled={bulkSubmitting}>
-                <i className="bx bx-x" />
-                {t("media.bulkReject")}
-              </button>
-              <button
-                className={styles.buttonSecondary}
-                onClick={() => {
-                  setSelectedIds(new Set());
-                  setBulkReason("");
-                }}>
-                {t("common.cancel")}
-              </button>
-              <div className={styles.bulkReasonWrap}>
-                <input
-                  className={styles.bulkReasonInput}
-                  placeholder={t("media.reasonPlaceholder")}
-                  value={bulkReason}
-                  onChange={(e) => setBulkReason(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+      <div className={styles.tabs}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""}`}
+            onClick={() => handleTabChange(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
+      <div className={styles.card}>
         {loading ? (
           <div className={styles.skeletonWrap}>{skeletonRows()}</div>
         ) : error ? (
@@ -355,7 +332,7 @@ export default function MediaPage() {
             <i className="bx bx-error-circle" />
             <p>{error}</p>
           </div>
-        ) : mode === "grouped" ? (
+        ) : activeTab === "grouped" ? (
           groups.length === 0 ? (
             <div className={styles.empty}>
               <i className="bx bx-image-alt" />
@@ -363,76 +340,38 @@ export default function MediaPage() {
             </div>
           ) : (
             <>
-              {groups.map((group) => (
-                <div key={group.user_id} className={styles.groupCard}>
-                  <div className={styles.groupHeader}>
-                    <div>
-                      <strong>{group.display_name || group.username}</strong>
-                    </div>
-                    <div className={styles.groupMeta}>
-                      {t("media.totalMedia", { count: group.media.length })}
-                    </div>
-                  </div>
-
-                  <div className={styles.tableWrap}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th className={styles.checkCol}>
-                            <input
-                              type="checkbox"
-                              className={styles.checkbox}
-                              checked={allSelected}
-                              onChange={toggleSelectAll}
-                            />
-                          </th>
-                          <th>{t("media.preview")}</th>
-                          <th>{t("media.fileType")}</th>
-                          <th>{t("media.status")}</th>
-                          <th>{t("media.createdAt")}</th>
-                          <th>{t("common.actions")}</th>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>{t("media.preview")}</th>
+                      <th>{t("media.fileType")}</th>
+                      <th>{t("media.status")}</th>
+                      <th>{t("media.createdAt")}</th>
+                      <th>{t("common.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groups.map((group) => (
+                      <React.Fragment key={group.user_id}>
+                        <tr className={styles.groupSeparatorRow}>
+                          <td colSpan={5}>
+                            <strong>{group.display_name || group.username}</strong>
+                            <span className={styles.groupBadge}>
+                              {t("media.totalMedia", { count: group.media.length })}
+                            </span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
                         {group.media.map((item) => (
-                          <tr
-                            key={item.id}
-                            className={
-                              selectedIds.has(item.id) ? styles.rowSelected : ""
-                            }>
-                            <td className={styles.checkCol}>
-                              <input
-                                type="checkbox"
-                                className={styles.checkbox}
-                                checked={selectedIds.has(item.id)}
-                                onChange={() => toggleSelect(item.id)}
-                              />
-                            </td>
+                          <tr key={item.id} className={styles.clickableRow} onClick={() => setPreviewMedia(item)}>
                             <td>
                               <button
                                 type="button"
                                 className={styles.previewButton}
-                                onClick={() => setPreviewMedia(item)}
-                                aria-label={t("media.preview")}>
-                                {isImage(item) ? (
-                                  <img
-                                    src={item.file_uri}
-                                    alt={item.id}
-                                    className={styles.previewImage}
-                                  />
-                                ) : isVideo(item) ? (
-                                  <video
-                                    src={item.file_uri}
-                                    className={styles.previewVideo}
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                  />
-                                ) : (
-                                  <div className={styles.previewPlaceholder}>
-                                    <i className="bx bx-file" />
-                                  </div>
-                                )}
+                                onClick={(e) => { e.stopPropagation(); setPreviewMedia(item); }}
+                                aria-label={t("media.preview")}
+                              >
+                                {renderPreview(item)}
                               </button>
                             </td>
                             <td>
@@ -445,42 +384,30 @@ export default function MediaPage() {
                             </td>
                             <td>
                               <span
-                                className={`${styles.badge} ${getStatusClass(
-                                  item.status,
-                                )}`}>
+                                className={`${styles.badge} ${getStatusClass(item.status)}`}
+                              >
                                 {getStatusLabel(item.status)}
                               </span>
                             </td>
                             <td>{formatDate(item.created_at)}</td>
                             <td>
-                              <div className={styles.actions}>
+                              <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                                 <button
-                                  className={styles.buttonPrimary}
-                                  onClick={() => {
-                                    setSelectedMedia(item);
-                                    setReviewAction("approve");
-                                    setReviewReason("");
-                                  }}>
-                                  {t("media.approve")}
-                                </button>
-                                <button
-                                  className={styles.buttonDanger}
-                                  onClick={() => {
-                                    setSelectedMedia(item);
-                                    setReviewAction("reject");
-                                    setReviewReason("");
-                                  }}>
-                                  {t("media.reject")}
+                                  className={styles.buttonSecondary}
+                                  onClick={() => setPreviewMedia(item)}
+                                >
+                                  <i className="bx bx-show" />
+                                  {t("media.preview")}
                                 </button>
                               </div>
                             </td>
                           </tr>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <div className={styles.footer}>
                 <span className={styles.meta}>
@@ -491,13 +418,6 @@ export default function MediaPage() {
                   totalPages={totalPages}
                   onChange={setPage}
                 />
-                <button
-                  className={styles.buttonDanger}
-                  onClick={handleCleanup}
-                  disabled={cleaning}>
-                  <i className="bx bx-trash" />
-                  {cleaning ? t("common.loading") : t("media.cleanupRejected")}
-                </button>
               </div>
             </>
           )
@@ -508,20 +428,41 @@ export default function MediaPage() {
           </div>
         ) : (
           <>
+            {selectedIds.size > 0 && activeTab === "flagged" && (
+              <div className={styles.bulkBar}>
+                <span className={styles.bulkCount}>
+                  {t("media.bulkSelected", { count: selectedIds.size })}
+                </span>
+                <button
+                  className={styles.buttonPrimary}
+                  onClick={() => handleBulkReview("approve")}
+                  disabled={bulkSubmitting}
+                >
+                  {bulkSubmitting ? t("common.loading") : t("media.bulkApprove")}
+                </button>
+                <button
+                  className={styles.buttonDanger}
+                  onClick={() => handleBulkReview("reject")}
+                  disabled={bulkSubmitting}
+                >
+                  {bulkSubmitting ? t("common.loading") : t("media.bulkReject")}
+                </button>
+              </div>
+            )}
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th className={styles.checkCol}>
-                      <input
-                        type="checkbox"
-                        className={styles.checkbox}
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                      />
-                    </th>
-                    <th>{t("media.preview")}</th>
+                    <th className={styles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th>{t("media.preview")}</th>
                     <th>{t("media.fileType")}</th>
+                    <th>{t("media.uploader")}</th>
                     <th>{t("media.status")}</th>
                     <th>{t("media.createdAt")}</th>
                     <th>{t("common.actions")}</th>
@@ -529,40 +470,17 @@ export default function MediaPage() {
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className={
-                        selectedIds.has(item.id) ? styles.rowSelected : ""
-                      }>
-                      <td className={styles.checkCol}>
+                    <tr key={item.id} className={styles.clickableRow} onClick={() => setPreviewMedia(item)}>
+                      <td className={styles.checkboxCell} onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          className={styles.checkbox}
                           checked={selectedIds.has(item.id)}
                           onChange={() => toggleSelect(item.id)}
                         />
                       </td>
                       <td>
                         <div className={styles.previewCell}>
-                          {isImage(item) ? (
-                            <img
-                              src={item.file_uri}
-                              alt={item.id}
-                              className={styles.previewImage}
-                            />
-                          ) : isVideo(item) ? (
-                            <video
-                              src={item.file_uri}
-                              className={styles.previewVideo}
-                              muted
-                              playsInline
-                              preload="metadata"
-                            />
-                          ) : (
-                            <div className={styles.previewPlaceholder}>
-                              <i className="bx bx-file" />
-                            </div>
-                          )}
+                          {renderPreview(item)}
                         </div>
                       </td>
                       <td>
@@ -574,34 +492,38 @@ export default function MediaPage() {
                         </div>
                       </td>
                       <td>
+                        {item.display_name || item.username || item.user_id || "—"}
+                      </td>
+                      <td>
                         <span
-                          className={`${styles.badge} ${getStatusClass(
-                            item.status,
-                          )}`}>
+                          className={`${styles.badge} ${getStatusClass(item.status)}`}
+                        >
                           {getStatusLabel(item.status)}
                         </span>
                       </td>
                       <td>{formatDate(item.created_at)}</td>
                       <td>
-                        <div className={styles.actions}>
+                        <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                           <button
-                            className={styles.buttonPrimary}
-                            onClick={() => {
-                              setSelectedMedia(item);
-                              setReviewAction("approve");
-                              setReviewReason("");
-                            }}>
-                            {t("media.approve")}
+                            className={styles.buttonSecondary}
+                            onClick={() => setPreviewMedia(item)}
+                          >
+                            <i className="bx bx-show" />
+                            {t("media.preview")}
                           </button>
-                          <button
-                            className={styles.buttonDanger}
-                            onClick={() => {
-                              setSelectedMedia(item);
-                              setReviewAction("reject");
-                              setReviewReason("");
-                            }}>
-                            {t("media.reject")}
-                          </button>
+                          {activeTab === "flagged" && (
+                            <button
+                              className={styles.buttonPrimary}
+                              onClick={() => {
+                                setSelectedMedia(item);
+                                setReviewAction("approve");
+                                setReviewReason("");
+                              }}
+                            >
+                              <i className="bx bx-check-shield" />
+                              {t("media.process")}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -619,13 +541,16 @@ export default function MediaPage() {
                 totalPages={totalPages}
                 onChange={setPage}
               />
-              <button
-                className={styles.buttonDanger}
-                onClick={handleCleanup}
-                disabled={cleaning}>
-                <i className="bx bx-trash" />
-                {cleaning ? t("common.loading") : t("media.cleanupRejected")}
-              </button>
+              {activeTab === "rejected" && (
+                <button
+                  className={styles.buttonDanger}
+                  onClick={handleCleanup}
+                  disabled={cleaning}
+                >
+                  <i className="bx bx-trash" />
+                  {cleaning ? t("common.loading") : t("media.cleanupRejected")}
+                </button>
+              )}
             </div>
           </>
         )}
@@ -634,24 +559,61 @@ export default function MediaPage() {
       <Modal
         open={Boolean(previewMedia)}
         onClose={() => setPreviewMedia(null)}
-        title={t("media.preview")}>
+        title={t("media.preview")}
+      >
         <div className={styles.previewModalContent}>
-          {previewMedia && isImage(previewMedia) ? (
-            <img
-              src={previewMedia.file_uri}
-              alt={previewMedia.id}
-              className={styles.previewModalImage}
-            />
-          ) : previewMedia && isVideo(previewMedia) ? (
-            <video
-              src={previewMedia.file_uri}
-              className={styles.previewModalVideo}
-              controls
-              playsInline
-            />
-          ) : (
-            <div className={styles.previewPlaceholderLarge}>
-              <i className="bx bx-file" />
+          {previewMedia && (
+            previewMedia.id && brokenMedia.has(previewMedia.id) ? (
+              <div className={styles.previewErrorLarge}>
+                <i className="bx bx-image-alt" />
+                <span>{t("media.loadFailed")}</span>
+              </div>
+            ) : isImage(previewMedia) ? (
+              <img
+                src={previewMedia.file_uri}
+                alt=""
+                className={styles.previewModalImage}
+                onError={() => handleMediaError(previewMedia.id)}
+              />
+            ) : isVideo(previewMedia) ? (
+              <video
+                src={previewMedia.file_uri}
+                className={styles.previewModalVideo}
+                controls
+                playsInline
+                onError={() => handleMediaError(previewMedia.id)}
+              />
+            ) : (
+              <div className={styles.previewPlaceholderLarge}>
+                <i className="bx bx-file" />
+              </div>
+            )
+          )}
+
+          {activeTab !== "grouped" && previewMedia && (
+            <div className={styles.previewNav}>
+              <button
+                className={styles.previewNavButton}
+                disabled={items.findIndex(i => i.id === previewMedia.id) <= 0}
+                onClick={() => {
+                  const idx = items.findIndex(i => i.id === previewMedia.id);
+                  if (idx > 0) setPreviewMedia(items[idx - 1]);
+                }}
+              >
+                <i className="bx bx-chevron-left" />
+                {t("media.prev")}
+              </button>
+              <button
+                className={styles.previewNavButton}
+                disabled={items.findIndex(i => i.id === previewMedia.id) >= items.length - 1}
+                onClick={() => {
+                  const idx = items.findIndex(i => i.id === previewMedia.id);
+                  if (idx < items.length - 1) setPreviewMedia(items[idx + 1]);
+                }}
+              >
+                {t("media.next")}
+                <i className="bx bx-chevron-right" />
+              </button>
             </div>
           )}
 
@@ -662,6 +624,10 @@ export default function MediaPage() {
                 <strong>{previewMedia.file_type || "unknown"}</strong>
               </div>
               <div className={styles.previewMetaRow}>
+                <span>{t("media.uploader")}</span>
+                <strong>{previewMedia.display_name || previewMedia.username || previewMedia.user_id}</strong>
+              </div>
+              <div className={styles.previewMetaRow}>
                 <span>{t("media.status")}</span>
                 <strong>{getStatusLabel(previewMedia.status)}</strong>
               </div>
@@ -669,6 +635,26 @@ export default function MediaPage() {
                 <span>{t("media.createdAt")}</span>
                 <strong>{formatDate(previewMedia.created_at)}</strong>
               </div>
+              <div className={styles.previewMetaRow}>
+                <span>{t("media.fileType")}</span>
+                <strong>{(previewMedia.file_size / (1024 * 1024)).toFixed(2)} MB</strong>
+              </div>
+              {activeTab === "flagged" && (
+                <div className={styles.previewModalActions}>
+                  <button
+                    className={styles.buttonPrimary}
+                    onClick={() => {
+                      setSelectedMedia(previewMedia);
+                      setReviewAction("approve");
+                      setReviewReason("");
+                      setPreviewMedia(null);
+                    }}
+                  >
+                    <i className="bx bx-check-shield" />
+                    {t("media.process")}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -677,15 +663,34 @@ export default function MediaPage() {
       <Modal
         open={Boolean(selectedMedia)}
         onClose={resetReview}
-        title={t("media.reviewTitle")}>
+        title={t("media.reviewTitle")}
+      >
         <div className={styles.modalBody}>
+          {selectedMedia && (
+            <div className={styles.reviewPreview}>
+              {renderPreview(selectedMedia, styles.reviewPreviewMedia)}
+              <div className={styles.reviewPreviewMeta}>
+                <strong>{selectedMedia.file_type}</strong>
+                <span>
+                  {t("media.uploader")}: {selectedMedia.display_name || selectedMedia.username || selectedMedia.user_id}
+                </span>
+                <span>
+                  {t("media.createdAt")}: {formatDate(selectedMedia.created_at)}
+                </span>
+                <span>
+                  {t("media.fileType")}: {(selectedMedia.file_size / (1024 * 1024)).toFixed(2)} MB
+                </span>
+              </div>
+            </div>
+          )}
           <p className={styles.modalHint}>{t("media.reviewHint")}</p>
 
           <div className={styles.radioGroup}>
             <label
               className={`${styles.radio} ${
                 reviewAction === "approve" ? styles.radioActive : ""
-              }`}>
+              }`}
+            >
               <input
                 type="radio"
                 name="reviewAction"
@@ -698,7 +703,8 @@ export default function MediaPage() {
             <label
               className={`${styles.radio} ${
                 reviewAction === "reject" ? styles.radioActive : ""
-              }`}>
+              }`}
+            >
               <input
                 type="radio"
                 name="reviewAction"
@@ -722,9 +728,10 @@ export default function MediaPage() {
               {t("common.cancel")}
             </button>
             <button
-              className={styles.buttonPrimary}
+              className={reviewAction === "approve" ? styles.buttonPrimary : styles.buttonDanger}
               onClick={handleReview}
-              disabled={submitting}>
+              disabled={submitting}
+            >
               {submitting ? t("common.loading") : t("media.confirmReview")}
             </button>
           </div>
