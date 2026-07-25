@@ -31,9 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -48,7 +45,7 @@ jobs:
 
       - name: Save image
         run: |
-          docker save linkup-web | gzip > /tmp/web.tar.gz
+          docker save linkup-web | gzip > web.tar.gz
 
       - name: Copy to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -56,9 +53,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: /tmp/web.tar.gz
+          source: web.tar.gz
           target: /tmp/
-          strip_components: 2
 
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -73,10 +69,15 @@ jobs:
             docker load -i /tmp/web.tar.gz
             cd /opt/linkup
             docker compose up -d web
-            echo "Waiting for web..."
-            sleep 5
-            curl -sf -o /dev/null -w '%{http_code}' http://localhost:3000/ || exit 1
-            echo "WEB OK"
+            echo "Waiting for web (up to 60s)..."
+            for i in $(seq 1 20); do
+              if curl -sf -o /dev/null http://localhost:3000/; then
+                echo "WEB OK after ${i}x3s"
+                break
+              fi
+              sleep 3
+            done
+            curl -sf -o /dev/null http://localhost:3000/ || exit 1
 
       - name: Notify Telegram
         if: always()
