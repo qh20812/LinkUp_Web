@@ -116,10 +116,11 @@ export function NotificationProvider({
 
   // Thiết lập kết nối WebSocket và tải dữ liệu ban đầu
   useEffect(() => {
-    let token =
+    const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }
@@ -136,7 +137,7 @@ export function NotificationProvider({
       wsRef.current = ws;
       
       if (process.env.NODE_ENV !== "production") {
-        (window as any).testWS = ws;
+        (window as unknown as Record<string, unknown>).testWS = ws;
       }
 
       ws.onopen = () => {

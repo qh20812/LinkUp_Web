@@ -53,9 +53,11 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   }, [notifOpen]);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setDropdownOpen(false);
     setNotifOpen(false);
     setShowPasswordModal(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [pathname]);
 
   useEffect(() => {
@@ -76,12 +78,6 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [dropdownOpen]);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => {
-    setDropdownOpen(false);
-    setShowPasswordModal(false);
-  }, [pathname]);
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
