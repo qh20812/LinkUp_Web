@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import Image from 'next/image'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getUsers, updateUserStatus, banUser } from '../../../api/admin'
-import type { AdminUserListItem } from '../../../types'
+import { swrFetcher, invalidate } from '../../../api/swr'
+import type { AdminUserListItem, AdminUserListResponse } from '../../../types'
 import styles from './Users.module.css'
 
 function getUserRoleFromToken(): string | null {
@@ -23,16 +25,12 @@ export default function UsersPage() {
   const { t, language } = useTranslation()
   const { toast } = useToast()
 
-  const [users, setUsers] = useState<AdminUserListItem[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'banned' | 'suspended'>('')
   const [userRole] = useState<string | null>(() => getUserRoleFromToken())
   const canBan = userRole === null || userRole === 'SUPER_ADMIN'
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -43,33 +41,19 @@ export default function UsersPage() {
   const [banDuration, setBanDuration] = useState('permanent')
   const [banning, setBanning] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  useEffect(() => {
-    let cancelled = false
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await getUsers(page, pageSize, keyword || undefined, statusFilter || undefined)
-        if (!cancelled) {
-          setUsers(res.users ?? [])
-          setTotal(res.total)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t('common.error'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { cancelled = true }
-  }, [page, keyword, statusFilter, pageSize, t, refreshKey])
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (keyword) params.set('keyword', keyword)
+  if (statusFilter) params.set('status', statusFilter)
+  const swrKey = `/admin/users?${params}`
+
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminUserListResponse>(url))
+
+  const users = res?.users ?? []
+  const total = res?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -102,7 +86,7 @@ export default function UsersPage() {
     try {
       await updateUserStatus(userId, newStatus)
       toast({ title: t('users.statusUpdated'), type: 'success' })
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/users')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
@@ -119,7 +103,7 @@ export default function UsersPage() {
       setBanTarget(null)
       setBanReason('')
       setBanDuration('permanent')
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/users')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {

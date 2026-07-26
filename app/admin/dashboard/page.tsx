@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
+import useSWR from 'swr'
 import Image from 'next/image'
 import {
   ResponsiveContainer,
@@ -17,8 +18,10 @@ import {
 } from 'recharts'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { getDashboardStats } from '../../../api/admin'
+import { swrFetcher } from '../../../api/swr'
 import StatCard from '../../../components/StatCard'
 import type {
+  AdminAnalyticsResponse,
   ChartDataPoint,
   TopActiveUser,
   TopEngagedPost,
@@ -141,61 +144,51 @@ function formatISO(d: Date): string {
 
 export default function DashboardPage() {
   const { t } = useTranslation()
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>('7d')
 
-  useEffect(() => {
-    let cancelled = false
-    const { start, end } = getDateRange(period)
-    const startDate = formatISO(start)
-    const endDate = formatISO(end)
+  const { start, end } = getDateRange(period)
+  const startDate = formatISO(start)
+  const endDate = formatISO(end)
+  const swrKey = `/admin/analytics?start_date=${startDate}&end_date=${endDate}`
 
-    getDashboardStats(undefined, startDate, endDate).then((res) => {
-      if (cancelled) return
-      setData({
-        total_users: res.total_users,
-        total_posts: res.total_posts,
-        total_reports: res.total_reports,
-        total_comments: res.total_comments,
-        total_media: res.total_media,
-        total_groups: res.total_groups,
-        total_communities: res.total_communities,
-        total_likes: res.total_likes,
-        total_shares: res.total_shares,
-        total_active_bans: res.total_active_bans,
-        pending_reports: res.pending_reports,
-        flagged_media_count: res.flagged_media_count,
-        active_users_today: res.active_users_today,
-        users_change_percent: res.users_change_percent,
-        posts_change_percent: res.posts_change_percent,
-        reports_change_percent: res.reports_change_percent,
-        comments_change_percent: res.comments_change_percent,
-        media_change_percent: res.media_change_percent,
-        groups_change_percent: res.groups_change_percent,
-        communities_change_percent: res.communities_change_percent,
-        generated_at: res.generated_at,
-        chartData: mergeChartData(
-          res.chart_data_users,
-          res.chart_data_posts,
-          res.chart_data_reports,
-          res.chart_data_comments,
-        ),
-        top_users: res.top_users,
-        top_posts: res.top_posts,
-        user_status_distribution: res.user_status_distribution,
-        report_status_distribution: res.report_status_distribution,
-      })
-      setLoading(false)
-    }).catch((err) => {
-      if (cancelled) return
-      setError(err instanceof Error ? err.message : t('common.error'))
-      setLoading(false)
-    })
+  const { data: raw, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminAnalyticsResponse>(url))
 
-    return () => { cancelled = true }
-  }, [period, t])
+  const data = useMemo<DashboardData | null>(() => {
+    if (!raw) return null
+    return {
+      total_users: raw.total_users,
+      total_posts: raw.total_posts,
+      total_reports: raw.total_reports,
+      total_comments: raw.total_comments,
+      total_media: raw.total_media,
+      total_groups: raw.total_groups,
+      total_communities: raw.total_communities,
+      total_likes: raw.total_likes,
+      total_shares: raw.total_shares,
+      total_active_bans: raw.total_active_bans,
+      pending_reports: raw.pending_reports,
+      flagged_media_count: raw.flagged_media_count,
+      active_users_today: raw.active_users_today,
+      users_change_percent: raw.users_change_percent,
+      posts_change_percent: raw.posts_change_percent,
+      reports_change_percent: raw.reports_change_percent,
+      comments_change_percent: raw.comments_change_percent,
+      media_change_percent: raw.media_change_percent,
+      groups_change_percent: raw.groups_change_percent,
+      communities_change_percent: raw.communities_change_percent,
+      generated_at: raw.generated_at,
+      chartData: mergeChartData(
+        raw.chart_data_users,
+        raw.chart_data_posts,
+        raw.chart_data_reports,
+        raw.chart_data_comments,
+      ),
+      top_users: raw.top_users,
+      top_posts: raw.top_posts,
+      user_status_distribution: raw.user_status_distribution,
+      report_status_distribution: raw.report_status_distribution,
+    }
+  }, [raw])
 
   const formatDate = (label: unknown): string => {
     if (typeof label !== 'string') return String(label)

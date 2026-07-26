@@ -179,7 +179,7 @@ export function NotificationProvider({
     // Tải song song toàn bộ dữ liệu khởi tạo, sau đó tắt trạng thái loading và kết nối WS
     const initData = async () => {
       setLoading(true);
-      await Promise.all([refreshUnreadCount(), fetchDropdownNotifications()]);
+      await Promise.all([refreshUnreadCount(), fetchDropdownNotifications()]).catch(() => {});
       if (isComponentMounted) {
         setLoading(false);
       }
@@ -190,8 +190,8 @@ export function NotificationProvider({
 
     const pollInterval = setInterval(() => {
       if (isComponentMounted) {
-        refreshUnreadCount();
-        fetchDropdownNotifications();
+        refreshUnreadCount().catch(() => {});
+        fetchDropdownNotifications().catch(() => {});
       }
     }, 30000);
 

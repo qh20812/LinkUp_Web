@@ -3,8 +3,9 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTranslation } from '../hooks/useTranslation'
+import { logout } from '../api/auth'
 import styles from './AdminSidebar.module.css'
 
 interface AdminSidebarProps {
@@ -26,6 +27,14 @@ const menuItems = [
 export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProps) {
   const { t } = useTranslation()
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await logout().catch(() => {})
+    localStorage.removeItem('token')
+    localStorage.removeItem('admin_profile')
+    router.push('/login')
+  }
 
   return (
     <aside className={`${styles.sidebar}${collapsed ? ` ${styles.close}` : ''}${mobileOpen ? ` ${styles.mobileOpen}` : ''}`}>
@@ -67,10 +76,10 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
 
       <ul className={styles.logoutMenu}>
         <li>
-          <Link href="/login" className={styles.logout}>
+          <button className={styles.logout} onClick={handleLogout}>
             <i className="bx bx-log-out-circle" />
             <span>{t('nav.logout')}</span>
-          </Link>
+          </button>
         </li>
       </ul>
     </aside>

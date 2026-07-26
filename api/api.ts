@@ -18,6 +18,11 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   })
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+      localStorage.removeItem('admin_profile')
+      window.location.href = '/login'
+    }
     const error = await res.json().catch(() => ({ message: res.statusText }))
     throw new Error(error.message || `HTTP ${res.status}`)
   }

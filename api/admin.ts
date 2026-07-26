@@ -21,6 +21,7 @@ import type {
   AdminWarnInput,
   AdminMediaGroupedResponse,
   AdminModerationLogListResponse,
+  ViewProfileResponse,
 } from "../types";
 
 // Dashboard
@@ -275,6 +276,9 @@ export const deleteAd = (id: string) =>
   request<{ message: string }>(`/admin/ads/${id}`, {
     method: "DELETE",
   });
+
+export const getAdminProfile = () =>
+  request<ViewProfileResponse>("/profile");
 
 export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance }> => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null

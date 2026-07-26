@@ -89,6 +89,19 @@ export interface AdminAnalyticsResponse {
   generated_at: string
 }
 
+// ===== Profile =====
+export interface ViewProfileResponse {
+  display_name: string
+  phone_number: string
+  date_of_birth?: string
+  avatar_uri: string
+  bio: string
+  is_private_profile: boolean
+  is_private_posts: boolean
+  allow_stranger_friend_request: boolean
+  updated_at?: string
+}
+
 // ===== Users =====
 export interface AdminUserListItem {
   id: string
