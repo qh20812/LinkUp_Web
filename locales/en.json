@@ -133,6 +133,7 @@
     "noContent": "No content",
     "viewDetail": "View Details",
     "hidePost": "Hide Post",
+    "hideComment": "Hide Comment",
     "showPost": "Show Post",
     "statusUpdated": "Status updated successfully",
     "hideSuccess": "Post hidden successfully",

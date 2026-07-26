@@ -102,13 +102,14 @@ export default function ReportsPage() {
     setMenuStyle(null)
   }
 
-  const getAvailableActions = (report: AdminReportListItem): string[] => {
-    switch (report.target_type) {
-      case 'post': return ['cancel', 'hide']
-      case 'user': return ['cancel', 'ban']
-      default: return ['cancel']
-    }
-  }
+   const getAvailableActions = (report: AdminReportListItem): string[] => {
+     switch (report.target_type) {
+       case 'post': return ['cancel', 'hide']
+       case 'user': return ['cancel', 'ban']
+       case 'comment': return ['cancel', 'hide']
+       default: return ['cancel']
+     }
+   }
 
   useEffect(() => {
     if (!openMenuId) return
@@ -459,7 +460,7 @@ export default function ReportsPage() {
                     {t(`reports.action${action.charAt(0).toUpperCase()}${action.slice(1)}`)}
                   </span>
                   <span className={styles.radioDesc}>
-                    {action === 'cancel' ? t('reports.rejected') : action === 'hide' ? t('posts.hidePost') : t('users.banUser')}
+                    {action === 'cancel' ? t('reports.rejected') : action === 'hide' ? (reviewTarget.target_type === 'comment' ? t('posts.hideComment') : t('posts.hidePost')) : t('users.banUser')}
                   </span>
                 </label>
               ))}
