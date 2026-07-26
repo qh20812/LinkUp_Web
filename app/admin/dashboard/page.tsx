@@ -200,15 +200,19 @@ export default function DashboardPage() {
   const formatDate = (label: unknown): string => {
     if (typeof label !== 'string') return String(label)
     try {
-      return new Date(label).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      const d = new Date(label)
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
     } catch {
       return label
     }
   }
 
+  const pad = (n: number) => String(n).padStart(2, '0')
+
   const formatChartDate = (iso: string): string => {
     try {
-      return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })
+      const d = new Date(iso)
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`
     } catch {
       return iso
     }
@@ -217,14 +221,14 @@ export default function DashboardPage() {
   const formatDateTime = (iso: string): string => {
     try {
       const d = new Date(iso)
-      return `${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
     } catch {
       return iso
     }
   }
 
   const periodDateRange = getDateRange(period)
-  const periodDateLabel = `${periodDateRange.start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} – ${periodDateRange.end.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+  const periodDateLabel = `${pad(periodDateRange.start.getDate())}/${pad(periodDateRange.start.getMonth() + 1)} – ${pad(periodDateRange.end.getDate())}/${pad(periodDateRange.end.getMonth() + 1)}/${periodDateRange.end.getFullYear()}`
 
   const rankClass = (i: number): string => {
     if (i === 0) return `${styles.topListRank} ${styles.gold}`
