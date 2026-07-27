@@ -6,9 +6,10 @@ export async function swrFetcher<T = unknown>(url: string): Promise<T> {
 }
 
 export const defaultSWRConfig: SWRConfiguration = {
-  revalidateOnFocus: true,
-  revalidateOnReconnect: true,
-  dedupingInterval: 3000,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  dedupingInterval: 60000,
+  revalidateIfStale: false,
   errorRetryCount: 2,
   shouldRetryOnError: false,
 }
