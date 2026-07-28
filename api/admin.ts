@@ -291,3 +291,12 @@ export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance 
   }
   return res.json()
 }
+
+export const getAdminSettings = () =>
+  request<AdminSettingsResponse>('/admin/settings')
+
+export const updateAdminSettings = (input: AdminSettingsInput) =>
+  request<{ message: string }>('/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })

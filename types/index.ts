@@ -513,3 +513,11 @@ export interface FollowToggleResponse {
   following_count: number
   message: string
 }
+
+export interface AdminSettingsResponse {
+  settings: Record<string, string>
+}
+
+export interface AdminSettingsInput {
+  settings: Record<string, string>
+}
