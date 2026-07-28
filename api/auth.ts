@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { AuthResponse } from '../types'
+import type { AuthResponse, TokenPayload } from '../types'
 
 export const login = (email: string, password: string) =>
   request<AuthResponse>('/auth/login', {
@@ -15,3 +15,25 @@ export const changePassword = (oldPassword: string, newPassword: string) =>
 
 export const logout = () =>
   request<{ message: string }>('/auth/logout', { method: 'POST' })
+
+export function decodeToken(token: string): TokenPayload | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return {
+      user_id: payload.user_id,
+      email: payload.email,
+      role: payload.role,
+      token_type: payload.token_type,
+      token_version: payload.token_version,
+    }
+  } catch {
+    return null
+  }
+}
+
+export function getTokenPayload(): TokenPayload | null {
+  if (typeof window === 'undefined') return null
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  return decodeToken(token)
+}

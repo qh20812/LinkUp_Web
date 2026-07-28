@@ -24,7 +24,8 @@
     "prevPage": "Trang trước",
     "nextPage": "Trang sau",
     "page": "Trang",
-    "updatedAt": "Ngày cập nhật"
+    "updatedAt": "Ngày cập nhật",
+    "retry": "Thử lại"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",
@@ -43,9 +44,57 @@
     "adminLogin": "Quản trị viên",
     "ads": "Quảng cáo"
   },
+  "userNavbar": {
+    "explore": "Khám phá",
+    "following": "Đang theo dõi"
+  },
+  "sidebar": {
+    "home": "Trang chủ",
+    "explore": "Khám phá",
+    "notifications": "Thông báo",
+    "messages": "Tin nhắn",
+    "friends": "Bạn bè",
+    "groups": "Nhóm",
+    "saved": "Đã lưu",
+    "profile": "Hồ sơ",
+    "createPost": "Đăng bài"
+  },
+  "rightSidebar": {
+    "searchPlaceholder": "Tìm kiếm trên LinkUp",
+    "trending": "Xu hướng",
+    "suggestions": "Gợi ý theo dõi",
+    "follow": "Theo dõi",
+    "viewMore": "Xem thêm",
+    "posts": "bài viết",
+    "following": "Đã theo dõi",
+    "followSuccess": "Đã theo dõi thành công",
+    "unfollowSuccess": "Đã hủy theo dõi",
+    "mutual": "bạn chung"
+  },
+  "post": {
+    "like": "Thích",
+    "comment": "Bình luận",
+    "share": "Chia sẻ",
+    "save": "Lưu",
+    "saved": "Đã lưu",
+    "liked": "Đã thích",
+    "viewMore": "Xem thêm",
+    "viewLess": "Thu gọn",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{minutes} phút trước",
+    "hoursAgo": "{hours} giờ trước",
+    "daysAgo": "{days} ngày trước",
+    "follow": "Theo dõi"
+  },
+  "feed": {
+    "empty": "Chưa có bài viết nào.",
+    "emptyFollowing": "Chưa có bài đăng nào từ người bạn theo dõi.",
+    "exploreLink": "Khám phá bài viết",
+    "end": "Đã xem hết bài viết."
+  },
   "login": {
     "title": "Đăng nhập",
-    "subtitle": "Dành cho quản trị viên hệ thống",
+    "subtitle": "Đăng nhập để kết nối với bạn bè",
     "email": "Email",
     "password": "Mật khẩu",
     "emailPlaceholder": "Nhập email",

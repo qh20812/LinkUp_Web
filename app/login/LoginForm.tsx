@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../contexts/ToastContext'
 import { useTranslation } from '../../hooks/useTranslation'
-import { login } from '../../api/auth'
+import { login, decodeToken } from '../../api/auth'
 import styles from './LoginForm.module.css'
 
 export default function LoginForm() {
@@ -24,7 +24,15 @@ export default function LoginForm() {
       const res = await login(email, password)
       localStorage.setItem('token', res.tokens.access_token)
       localStorage.setItem('refresh_token', res.tokens.refresh_token)
-      router.push('/admin/dashboard')
+
+      const payload = decodeToken(res.tokens.access_token)
+      if (payload?.role === 'SUPER_ADMIN' || payload?.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else if (payload?.role === 'PARTNER') {
+        router.push('/partner/dashboard')
+      } else {
+        router.push('/')
+      }
     } catch {
       toast({ type: 'error', title: t('login.error') })
     } finally {

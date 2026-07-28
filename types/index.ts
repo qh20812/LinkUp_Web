@@ -1,4 +1,14 @@
 // ===== Auth =====
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PARTNER' | 'USER'
+
+export interface TokenPayload {
+  user_id: string
+  email: string
+  role: UserRole
+  token_type: string
+  token_version: number
+}
+
 export interface AuthUserResponse {
   id: string
   username: string
@@ -25,6 +35,58 @@ export interface AuthResponse {
   user: AuthUserResponse
   tokens: TokenResponse
   storage?: StorageInfo
+}
+
+// ===== Feed / Posts =====
+export interface EmojiItem {
+  id: string
+  code: string
+  image_uri: string
+}
+
+export interface TrendingHashtag {
+  name: string
+  post_count: number
+}
+
+export interface FeedMedia {
+  id: string
+  user_id: string
+  post_id?: string
+  file_uri: string
+  file_type: string
+  file_size?: number
+  status?: string
+  review_reason?: string
+  created_at?: string
+}
+
+export interface FeedPost {
+  id: string
+  user_id: string
+  community_id?: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  title: string
+  content: string
+  views_count: number
+  likes_count: number
+  comments_count: number
+  shares_count: number
+  status: string
+  created_at: string
+  updated_at?: string
+  media: FeedMedia[]
+  is_liked: boolean
+  is_saved: boolean
+  is_following: boolean
+}
+
+export interface FeedResponse {
+  page_size: number
+  next_cursor: string | null
+  data: FeedPost[]
 }
 
 // ===== Dashboard / Analytics =====
@@ -425,4 +487,29 @@ export interface AdPerformance {
   clicks: number
   interactions: number
   ctr: number
+}
+
+// ===== Follow =====
+export interface FollowSuggestionUser {
+  id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  mutual_count: number
+}
+
+export interface FollowSuggestionsResponse {
+  data: FollowSuggestionUser[]
+  page: number
+  page_size: number
+  total: number
+  has_more: boolean
+}
+
+export interface FollowToggleResponse {
+  action: string
+  is_following: boolean
+  follower_count: number
+  following_count: number
+  message: string
 }
