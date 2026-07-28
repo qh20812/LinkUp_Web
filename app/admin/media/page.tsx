@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import useSWR from 'swr'
+import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import {
   cleanupRejectedMedia,
-  getFlaggedMedia,
-  getMediaGroupedByUser,
   reviewMedia,
 } from "../../../api/admin";
-import type { AdminMediaGroupItem, AdminMediaItem } from "../../../types";
+import type { AdminMediaItem, AdminMediaGroupedResponse, AdminMediaListResponse } from "../../../types";
 import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
 import styles from "./Media.module.css";
@@ -22,16 +22,25 @@ export default function MediaPage() {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<TabType>("grouped");
-  const [items, setItems] = useState<AdminMediaItem[]>([]);
-  const [groups, setGroups] = useState<AdminMediaGroupItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [previewMedia, setPreviewMedia] = useState<AdminMediaItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState("");
+
+  const mediaParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (searchKeyword) mediaParams.set('keyword', searchKeyword)
+  let swrKey: string
+  if (activeTab === 'grouped') {
+    swrKey = `/admin/media/grouped?${mediaParams}`
+  } else {
+    const status = activeTab === 'flagged' ? 'flagged' : 'rejected'
+    mediaParams.set('status', status)
+    swrKey = `/admin/media/flagged?${mediaParams}`
+  }
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminMediaGroupedResponse | AdminMediaListResponse>(url))
+  const groups = activeTab === 'grouped' ? (res as AdminMediaGroupedResponse | undefined)?.groups ?? [] : []
+  const items = activeTab !== 'grouped' ? (res as AdminMediaListResponse | undefined)?.items ?? [] : []
+  const total = res?.total ?? 0
 
   const [selectedMedia, setSelectedMedia] = useState<AdminMediaItem | null>(null);
   const [reviewAction, setReviewAction] = useState<ReviewAction>("reject");
@@ -47,45 +56,6 @@ export default function MediaPage() {
     { key: "flagged", label: t("media.tabFlagged") },
     { key: "rejected", label: t("media.tabRejected") },
   ], [t]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadMedia = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        if (activeTab === "grouped") {
-          const res = await getMediaGroupedByUser(page, pageSize, searchKeyword || undefined);
-          if (!cancelled) {
-            setGroups(res.groups ?? []);
-            setTotal(res.total ?? 0);
-            setItems([]);
-          }
-        } else {
-          const status = activeTab === "flagged" ? "flagged" : "rejected";
-          const res = await getFlaggedMedia(page, pageSize, status, searchKeyword || undefined);
-          if (!cancelled) {
-            setItems(res.items ?? []);
-            setTotal(res.total ?? 0);
-            setGroups([]);
-          }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t("common.error"));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    loadMedia();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, pageSize, activeTab, searchKeyword, refreshKey, t]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -206,7 +176,7 @@ export default function MediaPage() {
     });
     setSelectedIds(new Set());
     setBulkSubmitting(false);
-    setRefreshKey(k => k + 1);
+    invalidate('/admin/media');
   }, [selectedIds, t, toast]);
 
   const resetReview = () => {
@@ -235,7 +205,7 @@ export default function MediaPage() {
       });
 
       resetReview();
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/media');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -255,7 +225,7 @@ export default function MediaPage() {
         title: t("media.cleanupSuccess", { count: res.cleaned }),
         type: "success",
       });
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/media');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -270,7 +240,6 @@ export default function MediaPage() {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setPage(1);
-    setError(null);
     resetReview();
   };
 

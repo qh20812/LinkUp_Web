@@ -2,9 +2,11 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
+import { SWRConfig } from 'swr'
 import AdminSidebar from '../../components/AdminSidebar'
 import AdminNavbar from '../../components/AdminNavbar'
-import { NotificationProvider } from '../../contexts/NotificationContext' // Thêm import provider
+import { NotificationProvider } from '../../contexts/NotificationContext'
+import { defaultSWRConfig } from '../../api/swr'
 import styles from './layout.module.css'
 
 export default function AdminLayout({
@@ -14,6 +16,15 @@ export default function AdminLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar_collapsed')
+    if (saved === 'true') setCollapsed(true)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', String(collapsed))
+  }, [collapsed])
   const pathname = usePathname()
   const prevPathname = useRef(pathname)
 
@@ -43,6 +54,16 @@ export default function AdminLayout({
   }, [])
 
   return (
+    <SWRConfig value={{
+      ...defaultSWRConfig,
+      onError: (err: Error) => {
+        if (err.message?.toLowerCase().includes('401') || err.message?.toLowerCase().includes('token')) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('admin_profile')
+          window.location.href = '/login'
+        }
+      },
+    }}>
     <NotificationProvider>
       <div className={styles.layout}>
         <AdminSidebar collapsed={collapsed} mobileOpen={mobileOpen} />
@@ -60,5 +81,6 @@ export default function AdminLayout({
         </div>
       </div>
     </NotificationProvider>
+    </SWRConfig>
   )
 }

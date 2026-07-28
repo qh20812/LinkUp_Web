@@ -24,7 +24,8 @@
     "prevPage": "Previous",
     "nextPage": "Next",
     "page": "Page",
-    "updatedAt": "Updated At"
+    "updatedAt": "Updated At",
+    "retry": "Retry"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -43,9 +44,57 @@
     "adminLogin": "Administrator",
     "ads": "Ads"
   },
+  "userNavbar": {
+    "explore": "Explore",
+    "following": "Following"
+  },
+  "sidebar": {
+    "home": "Home",
+    "explore": "Explore",
+    "notifications": "Notifications",
+    "messages": "Messages",
+    "friends": "Friends",
+    "groups": "Groups",
+    "saved": "Saved",
+    "profile": "Profile",
+    "createPost": "Create Post"
+  },
+  "rightSidebar": {
+    "searchPlaceholder": "Search LinkUp",
+    "trending": "Trending",
+    "suggestions": "Suggestions",
+    "follow": "Follow",
+    "viewMore": "View More",
+    "posts": "posts",
+    "following": "Following",
+    "followSuccess": "Followed successfully",
+    "unfollowSuccess": "Unfollowed",
+    "mutual": "mutual friends"
+  },
+  "post": {
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "save": "Save",
+    "saved": "Saved",
+    "liked": "Liked",
+    "viewMore": "View More",
+    "viewLess": "Show Less",
+    "justNow": "Just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago",
+    "follow": "Follow"
+  },
+  "feed": {
+    "empty": "No posts yet.",
+    "emptyFollowing": "No posts from people you follow.",
+    "exploreLink": "Explore posts",
+    "end": "You've seen all posts."
+  },
   "login": {
     "title": "Login",
-    "subtitle": "For system administrators",
+    "subtitle": "Log in to connect with friends",
     "email": "Email",
     "password": "Password",
     "emailPlaceholder": "Enter email",
@@ -133,6 +182,7 @@
     "noContent": "No content",
     "viewDetail": "View Details",
     "hidePost": "Hide Post",
+    "hideComment": "Hide Comment",
     "showPost": "Show Post",
     "statusUpdated": "Status updated successfully",
     "hideSuccess": "Post hidden successfully",

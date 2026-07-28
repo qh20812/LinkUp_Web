@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState } from "react";
+import useSWR from 'swr'
+import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import { useNotification } from "../../../contexts/NotificationContext";
 import {
-  getNotifications,
   markAsRead as apiMarkAsRead,
   markAllAsRead as apiMarkAllAsRead,
 } from "../../../api/notifications";
@@ -20,40 +21,16 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const isMounted = useRef(false);
 
-  const doFetch = useCallback(
-    async (f: string, p: number): Promise<void> => {
-      setLoading(true);
-      try {
-        const unreadOnly = f === "unread";
-        const res: NotificationListResponse = await getNotifications(p, pageSize, unreadOnly);
-        if (f === "read") {
-          setItems(res.data.filter((n) => n.is_read));
-          setTotal(res.data.filter((n) => n.is_read).length);
-        } else {
-          setItems(res.data);
-          setTotal(res.total);
-        }
-      } catch {
-        toast({ title: t("common.error"), type: "error" });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [pageSize, t, toast],
-  );
-
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    doFetch(filter, page);
-  }, [filter, page, doFetch]);
+  const notifParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (filter === 'unread') notifParams.set('unread_only', 'true')
+  const swrKey = `/notifications?${notifParams}`
+  const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<NotificationListResponse>(url))
+  let items: NotificationItem[] = []
+  if (res) {
+    items = filter === 'read' ? res.data.filter(n => n.is_read) : res.data
+  }
+  const total = filter === 'read' ? items.length : (res?.total ?? 0)
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value as "all" | "unread" | "read";
@@ -64,10 +41,8 @@ export default function NotificationsPage() {
   const handleMarkOne = async (id: string) => {
     try {
       await apiMarkAsRead(id);
-      setItems((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
       refreshUnreadCount();
+      invalidate('/notifications');
       toast({ title: t("notifications.markRead"), type: "success" });
     } catch {
       toast({ title: t("common.error"), type: "error" });
@@ -77,8 +52,8 @@ export default function NotificationsPage() {
   const handleMarkAll = async () => {
     try {
       await apiMarkAllAsRead();
-      setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
       refreshUnreadCount();
+      invalidate('/notifications');
       toast({ title: t("notifications.markAllRead"), type: "success" });
     } catch {
       toast({ title: t("common.error"), type: "error" });

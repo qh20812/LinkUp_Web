@@ -1,27 +1,24 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import useSWR from 'swr'
+import { swrFetcher, invalidate } from '../../../api/swr'
 import Image from "next/image";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import {
-  getGroups,
   hideGroup,
   unhideGroup,
   archiveGroup,
   deleteGroup,
 } from "../../../api/admin";
-import type { AdminGroupListItem } from "../../../types";
+import type { AdminGroupListItem, AdminGroupListResponse } from "../../../types";
 import styles from "./Groups.module.css";
 
 export default function GroupsPage() {
   const { t, language } = useTranslation();
   const { toast } = useToast();
 
-  const [groups, setGroups] = useState<
-    (AdminGroupListItem & { avatar_uri?: string })[]
-  >([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
@@ -29,9 +26,6 @@ export default function GroupsPage() {
   const [statusFilter, setStatusFilter] = useState<
     AdminGroupListItem["status"] | ""
   >("");
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [searchInput, setSearchInput] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -48,40 +42,17 @@ export default function GroupsPage() {
   );
   const [actionType, setActionType] = useState<"archive" | "delete" | "">("");
   const [actionLoading, setActionLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await getGroups(
-          page,
-          pageSize,
-          keyword || undefined,
-          statusFilter || undefined
-        );
-        if (!cancelled) {
-          setGroups(res.groups ?? []);
-          setTotal(res.total);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t("common.error"));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, keyword, statusFilter, pageSize, t, refreshKey]);
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (keyword) params.set('keyword', keyword)
+  if (statusFilter) params.set('status', statusFilter)
+  const swrKey = `/admin/groups?${params}`
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminGroupListResponse>(url))
+  const items: (AdminGroupListItem & { avatar_uri?: string })[] = res?.groups ?? []
+  const total = res?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -121,7 +92,7 @@ export default function GroupsPage() {
         await hideGroup(group.id, { reason: "Hide" });
       }
       toast({ title: t("groups.statusUpdated"), type: "success" });
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/groups');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -145,7 +116,7 @@ export default function GroupsPage() {
       }
       setActionTarget(null);
       setActionType("");
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/groups');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -247,7 +218,7 @@ export default function GroupsPage() {
             <i className="bx bx-error-circle" />
             <p>{error}</p>
           </div>
-        ) : groups.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className={styles.empty}>
             <i className="bx bx-group" />
             <p>{t("common.noData")}</p>
@@ -266,7 +237,7 @@ export default function GroupsPage() {
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => (
+                {items.map((group) => (
                   <tr key={group.id}>
                     <td>
                       <div className={styles.cellUser}>

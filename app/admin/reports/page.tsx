@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getReports, getReport, reviewReport } from '../../../api/admin'
-import type { AdminReportListItem, AdminReportDetailResponse } from '../../../types'
+import { swrFetcher, invalidate } from '../../../api/swr'
+import type { AdminReportListItem, AdminReportDetailResponse, AdminReportListResponse } from '../../../types'
 import Pagination from '../../../components/Pagination'
 import Modal from '../../../components/Modal'
 import styles from './Reports.module.css'
@@ -24,8 +26,6 @@ export default function ReportsPage() {
   const { t, language } = useTranslation()
   const { toast } = useToast()
 
-  const [reports, setReports] = useState<AdminReportListItem[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
@@ -33,40 +33,21 @@ export default function ReportsPage() {
   const [targetTypeFilter, setTargetTypeFilter] = useState('')
   const [userRole] = useState<string | null>(() => getUserRoleFromToken())
   const canMutate = userRole === null || userRole === 'SUPER_ADMIN'
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const [searchInput, setSearchInput] = useState('')
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  useEffect(() => {
-    let cancelled = false
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const filters: { keyword?: string; status?: string; target_type?: string } = {}
-        if (keyword) filters.keyword = keyword
-        if (statusFilter) filters.status = statusFilter
-        if (targetTypeFilter) filters.target_type = targetTypeFilter
-        const res = await getReports(page, pageSize, filters)
-        if (!cancelled) {
-          setReports(res.reports ?? [])
-          setTotal(res.total)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t('common.error'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { cancelled = true }
-  }, [page, keyword, statusFilter, targetTypeFilter, pageSize, t, refreshKey])
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (keyword) params.set("keyword", keyword)
+  if (statusFilter) params.set("status", statusFilter)
+  if (targetTypeFilter) params.set("target_type", targetTypeFilter)
+  const swrKey = `/admin/reports?${params}`
+
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminReportListResponse>(url))
+
+  const reports = res?.reports ?? []
+  const total = res?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -102,13 +83,14 @@ export default function ReportsPage() {
     setMenuStyle(null)
   }
 
-  const getAvailableActions = (report: AdminReportListItem): string[] => {
-    switch (report.target_type) {
-      case 'post': return ['cancel', 'hide']
-      case 'user': return ['cancel', 'ban']
-      default: return ['cancel']
-    }
-  }
+   const getAvailableActions = (report: AdminReportListItem): string[] => {
+     switch (report.target_type) {
+       case 'post': return ['cancel', 'hide']
+       case 'user': return ['cancel', 'ban']
+       case 'comment': return ['cancel', 'hide']
+       default: return ['cancel']
+     }
+   }
 
   useEffect(() => {
     if (!openMenuId) return
@@ -182,7 +164,7 @@ export default function ReportsPage() {
       })
       toast({ title: t('reports.reviewSuccess'), type: 'success' })
       resetReview()
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/reports')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
@@ -359,10 +341,10 @@ export default function ReportsPage() {
 
       <Modal
         open={!!detailTarget}
-        onClose={() => { setDetailTarget(null); setRefreshKey(k => k + 1) }}
+        onClose={() => { setDetailTarget(null); invalidate('/admin/reports') }}
         title={t('reports.detailTitle')}
         footer={
-          <button className={styles.btnCancel} onClick={() => { setDetailTarget(null); setRefreshKey(k => k + 1) }}>
+          <button className={styles.btnCancel} onClick={() => { setDetailTarget(null); invalidate('/admin/reports') }}>
             {t('common.close')}
           </button>
         }
@@ -459,7 +441,7 @@ export default function ReportsPage() {
                     {t(`reports.action${action.charAt(0).toUpperCase()}${action.slice(1)}`)}
                   </span>
                   <span className={styles.radioDesc}>
-                    {action === 'cancel' ? t('reports.rejected') : action === 'hide' ? t('posts.hidePost') : t('users.banUser')}
+                    {action === 'cancel' ? t('reports.rejected') : action === 'hide' ? (reviewTarget.target_type === 'comment' ? t('posts.hideComment') : t('posts.hidePost')) : t('users.banUser')}
                   </span>
                 </label>
               ))}
