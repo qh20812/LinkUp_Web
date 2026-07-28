@@ -96,6 +96,15 @@ export default function HomePage() {
   const { isAuthenticated, isUser, isAdmin, isSuperAdmin, isPartner } = useAuth()
   const router = useRouter()
 
+  useEffect(() => {
+    if (!mounted) return
+    if (isAdmin || isSuperAdmin) {
+      router.push('/admin/dashboard')
+    } else if (isPartner) {
+      router.push('/partner/dashboard')
+    }
+  }, [mounted, isAdmin, isSuperAdmin, isPartner, router])
+
   if (!mounted) return <LandingPage />
 
   if (!isAuthenticated) {
@@ -103,12 +112,10 @@ export default function HomePage() {
   }
 
   if (isAdmin || isSuperAdmin) {
-    router.push('/admin/dashboard')
     return null
   }
 
   if (isPartner) {
-    router.push('/partner/dashboard')
     return null
   }
 
