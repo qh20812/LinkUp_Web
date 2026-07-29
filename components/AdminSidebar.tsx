@@ -35,6 +35,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
       const token = localStorage.getItem('token')
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]))
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUserRole(payload.role || null)
       }
     } catch { /* ignore */ }

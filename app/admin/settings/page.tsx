@@ -84,6 +84,7 @@ export default function SettingsPage() {
         router.push('/admin/dashboard')
         return
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAuthorized(true)
     } catch {
       router.push('/login')
@@ -101,6 +102,7 @@ export default function SettingsPage() {
       for (const key of [...ALLOWED_KEYS, ...READONLY_KEYS]) {
         mapped[key] = res.settings[key] ?? ''
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormValues(mapped)
       setInitialValues(mapped)
     }
@@ -175,10 +177,7 @@ export default function SettingsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>{t('settings.title')}</h1>
-          <p className={styles.description}>{t('settings.description')}</p>
-        </div>
+        <h1 className={styles.title}>{t('settings.title')}</h1>
       </div>
 
       <div className={styles.tabs}>
