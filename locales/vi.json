@@ -425,6 +425,8 @@
     "password_min_length": "Độ dài mật khẩu tối thiểu",
     "max_login_attempts": "Số lần đăng nhập sai tối đa",
     "default_user_role": "Vai trò mặc định",
+    "roleUser": "Người dùng",
+    "roleAdmin": "Quản trị viên",
     "allow_registration": "Cho phép đăng ký mới",
     "require_email_verify": "Yêu cầu xác thực email",
     "gmail_user": "Gmail SMTP",

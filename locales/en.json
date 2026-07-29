@@ -425,6 +425,8 @@
     "password_min_length": "Minimum Password Length",
     "max_login_attempts": "Max Login Attempts",
     "default_user_role": "Default User Role",
+    "roleUser": "User",
+    "roleAdmin": "Admin",
     "allow_registration": "Allow New Registration",
     "require_email_verify": "Require Email Verification",
     "gmail_user": "Gmail SMTP Username",

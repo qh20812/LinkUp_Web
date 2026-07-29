@@ -97,6 +97,7 @@ export default function SettingsPage() {
   const [initialValues, setInitialValues] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const [roleOpen, setRoleOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -241,6 +242,34 @@ export default function SettingsPage() {
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+              ) : key === 'default_user_role' ? (
+                <div
+                  className={styles.customSelect}
+                  tabIndex={0}
+                  onBlur={() => setRoleOpen(false)}
+                  onClick={() => setRoleOpen(prev => !prev)}
+                >
+                  <div className={styles.customSelectTrigger}>
+                    {value === 'USER' ? t('settings.roleUser') : t('settings.roleAdmin')}
+                    <i className={`bx bx-chevron-down ${roleOpen ? styles.chevronUp : ''}`} />
+                  </div>
+                  {roleOpen && (
+                    <div className={styles.customSelectMenu}>
+                      <div
+                        className={`${styles.customSelectOption} ${value === 'USER' ? styles.selected : ''}`}
+                        onClick={(e) => { e.stopPropagation(); handleChange(key, 'USER'); setRoleOpen(false) }}
+                      >
+                        {t('settings.roleUser')}
+                      </div>
+                      <div
+                        className={`${styles.customSelectOption} ${value === 'ADMIN' ? styles.selected : ''}`}
+                        onClick={(e) => { e.stopPropagation(); handleChange(key, 'ADMIN'); setRoleOpen(false) }}
+                      >
+                        {t('settings.roleAdmin')}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : key === 'site_description' ? (
                 <textarea
                   className={`${styles.textarea} ${isReadonly ? styles.inputReadonly : ''}`}
