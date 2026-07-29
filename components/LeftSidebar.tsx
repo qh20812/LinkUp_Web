@@ -1,11 +1,13 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
 import styles from './LeftSidebar.module.css'
 import { request } from '../api/api'
+import { logout } from '../api/auth'
 import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
 import type { ViewProfileResponse } from '../types'
@@ -36,6 +38,26 @@ export default function LeftSidebar() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { profile } = useProfile()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!dropdownOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [dropdownOpen])
+
+  const handleLogout = async () => {
+    await logout().catch(() => {})
+    localStorage.removeItem('token')
+    localStorage.removeItem('admin_profile')
+    router.push('/login')
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -70,8 +92,8 @@ export default function LeftSidebar() {
         <span>{t('sidebar.createPost')}</span>
       </button>
 
-      <div className={styles.userSection}>
-        <Link href="/profile" className={styles.userInfo}>
+      <div className={styles.userSection} ref={dropdownRef}>
+        <button className={styles.userInfo} onClick={() => setDropdownOpen((prev) => !prev)}>
           <div className={styles.avatar}>
             {profile?.avatar_uri ? (
               <img src={profile.avatar_uri} alt="" />
@@ -85,7 +107,26 @@ export default function LeftSidebar() {
             </span>
             <span className={styles.email}>{user?.email}</span>
           </div>
-        </Link>
+          <i className={`bx bx-chevron-down ${styles.chevron} ${dropdownOpen ? styles.chevronUp : ''}`} />
+        </button>
+
+        {dropdownOpen && (
+          <div className={styles.dropdown}>
+            <Link href="/profile" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+              <i className="bx bx-user-circle" />
+              <span>{t('sidebar.profile')}</span>
+            </Link>
+            <Link href="/settings" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+              <i className="bx bx-cog" />
+              <span>{t('nav.settings')}</span>
+            </Link>
+            <div className={styles.dropdownDivider} />
+            <button className={`${styles.dropdownItem} ${styles.danger}`} onClick={handleLogout}>
+              <i className="bx bx-log-out-circle" />
+              <span>{t('nav.logout')}</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )

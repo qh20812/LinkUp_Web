@@ -92,6 +92,7 @@
 }
 
 .userSection {
+  position: relative;
   border-top: 1px solid var(--color-border);
   padding-top: 12px;
   margin-top: auto;
@@ -101,14 +102,79 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 8px 10px;
+  border: none;
+  background: transparent;
   border-radius: 12px;
-  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   transition: background 0.15s;
 }
 
 .userInfo:hover {
   background: var(--color-bg-secondary);
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 8px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.dropdownItem i {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+}
+
+.dropdownItem:hover {
+  background: var(--color-bg-secondary);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 0;
 }
 
 .avatar {
