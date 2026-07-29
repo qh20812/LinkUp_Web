@@ -421,6 +421,7 @@
     "maintenance_mode": "Chế độ bảo trì",
     "maintenanceModeHint": "Khi bật, chỉ admin mới truy cập được",
     "jwt_expiry_minutes": "JWT hết hạn (phút)",
+    "refresh_token_expiry_days": "Thời hạn Refresh Token (ngày)",
     "password_min_length": "Độ dài mật khẩu tối thiểu",
     "max_login_attempts": "Số lần đăng nhập sai tối đa",
     "default_user_role": "Vai trò mặc định",
@@ -436,6 +437,12 @@
     "unauthorized": "Bạn không có quyền truy cập",
     "saveBtn": "Lưu thay đổi",
     "cancelBtn": "Hủy",
-    "noChanges": "Không có thay đổi"
+    "noChanges": "Không có thay đổi",
+    "validationRequired": "Không được để trống",
+    "validationNumber": "Phải là số",
+    "validationMin": "Phải >= {min}",
+    "validationMax": "Phải <= {max}",
+    "validationEmail": "Email không hợp lệ",
+    "validationBoolean": "Phải là true/false"
   }
 }

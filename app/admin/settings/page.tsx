@@ -14,12 +14,13 @@ const ALLOWED_KEYS = [
   'site_name', 'site_description', 'contact_email',
   'maintenance_mode', 'allow_registration', 'require_email_verify',
   'password_min_length', 'max_login_attempts', 'jwt_expiry_minutes', 'default_user_role',
+  'refresh_token_expiry_days',
 ]
 
 const READONLY_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
 
 const GENERAL_KEYS = ['site_name', 'site_description', 'contact_email', 'maintenance_mode']
-const SECURITY_KEYS = ['password_min_length', 'max_login_attempts', 'jwt_expiry_minutes']
+const SECURITY_KEYS = ['password_min_length', 'max_login_attempts', 'jwt_expiry_minutes', 'refresh_token_expiry_days']
 const REGISTRATION_KEYS = ['allow_registration', 'require_email_verify', 'default_user_role']
 const EMAIL_STORAGE_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
 
@@ -41,25 +42,48 @@ function getKeysForTab(tab: TabKey): string[] {
   }
 }
 
-function validateField(key: string, value: string): string | null {
+function validateField(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  key: string,
+  value: string,
+): string | null {
   switch (key) {
-    case 'password_min_length':
-    case 'max_login_attempts':
+    case 'password_min_length': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 8) return t('settings.validationMin', { min: 8 })
+      if (num > 50) return t('settings.validationMax', { max: 50 })
+      return null
+    }
+    case 'max_login_attempts': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 10) return t('settings.validationMax', { max: 10 })
+      return null
+    }
     case 'jwt_expiry_minutes': {
       const num = parseInt(value, 10)
-      if (isNaN(num)) return 'Phải là số'
-      const min = key === 'password_min_length' ? 6 : 1
-      if (num < min) return `Phải >= ${min}`
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 60) return t('settings.validationMax', { max: 60 })
+      return null
+    }
+    case 'refresh_token_expiry_days': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 30) return t('settings.validationMax', { max: 30 })
       return null
     }
     case 'contact_email':
-      return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Email không hợp lệ'
+      return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : t('settings.validationEmail')
     case 'maintenance_mode':
     case 'allow_registration':
     case 'require_email_verify':
-      return (value === 'true' || value === 'false') ? null : 'Phải là true/false'
+      return (value === 'true' || value === 'false') ? null : t('settings.validationBoolean')
     default:
-      return value.trim() ? null : 'Không được để trống'
+      return value.trim() ? null : t('settings.validationRequired')
   }
 }
 
@@ -120,9 +144,9 @@ export default function SettingsPage() {
     const settingsToSave: Record<string, string> = {}
     for (const key of ALLOWED_KEYS) {
       if (formValues[key] !== initialValues[key]) {
-        const err = validateField(key, formValues[key])
+        const err = validateField(t, key, formValues[key])
         if (err) {
-          toast({ title: `${key}: ${err}`, type: 'error' })
+          toast({ title: `${t(`settings.${key}`)}: ${err}`, type: 'error' })
           return
         }
         settingsToSave[key] = formValues[key]
