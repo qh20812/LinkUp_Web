@@ -21,12 +21,13 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const { t, language, setLanguage } = useTranslation();
   const { toast } = useToast();
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (saved === "light" || saved === "dark") setTheme(saved);
-  }, []);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+      if (saved === "light" || saved === "dark") return saved;
+    }
+    return "light";
+  });
   const [searchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -41,7 +42,15 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const { unreadCount } = useNotification();
 
-  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>({});
+  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("admin_profile");
+        if (cached) return JSON.parse(cached);
+      } catch { /* ignore */ }
+    }
+    return {};
+  });
 
   const { data: profile } = useSWR('/profile', getAdminProfile, {
     revalidateOnFocus: false,
@@ -55,26 +64,23 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
         display_name: profile.display_name,
       };
       localStorage.setItem('admin_profile', JSON.stringify(data));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCachedProfile(data);
     }
   }, [profile?.avatar_uri, profile?.display_name]);
 
-  const [tokenEmail, setTokenEmail] = useState('');
-
-  useEffect(() => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setTokenEmail(payload.email || '');
-      }
-    } catch { /* ignore */ }
-
-    try {
-      const cached = localStorage.getItem('admin_profile');
-      if (cached) setCachedProfile(JSON.parse(cached));
-    } catch { /* ignore */ }
-  }, []);
+  const [tokenEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          return payload.email || "";
+        }
+      } catch { /* ignore */ }
+    }
+    return "";
+  });
 
   // đóng khi nhấn ra vùng ngoài (click outside) cho thông báo
   useEffect(() => {

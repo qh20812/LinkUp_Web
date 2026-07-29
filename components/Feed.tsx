@@ -25,6 +25,18 @@ export default function Feed() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
   const { followedUserIds, followUser: ctxFollowUser } = useFollowContext()
+  const tab = searchParams.get('tab') || 'explore'
+  const [posts, setPosts] = useState<FeedPost[]>([])
+  const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const loadingRef = useRef(false)
+  const cursorRef = useRef<string | null>(null)
+
+  const filter = tab === 'following' ? 'following' : undefined
+
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -50,22 +62,14 @@ export default function Feed() {
     }
     prevFollowedRef.current = new Set(curr)
   }, [followedUserIds])
-  const tab = searchParams.get('tab') || 'explore'
-  const [posts, setPosts] = useState<FeedPost[]>([])
-  const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const loadingRef = useRef(false)
-  const cursorRef = useRef<string | null>(null)
-
-  const filter = tab === 'following' ? 'following' : undefined
 
   useEffect(() => {
     cursorRef.current = null
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPosts([])
     setInitialLoading(true)
     setError(null)
+    setHasMore(true)
   }, [tab])
 
   const fetchNext = useCallback(async () => {
@@ -78,6 +82,7 @@ export default function Feed() {
       const res = await getFeedPosts(cursorRef.current, PAGE_SIZE, filter)
       setPosts((prev) => (isFirst ? res.data : [...prev, ...res.data]))
       cursorRef.current = res.next_cursor
+      setHasMore(res.next_cursor !== null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
@@ -85,7 +90,7 @@ export default function Feed() {
       setInitialLoading(false)
       loadingRef.current = false
     }
-  }, [t, filter])
+  }, [t, filter, setPosts])
 
   useEffect(() => {
     fetchNext()
@@ -248,7 +253,7 @@ export default function Feed() {
         </div>
       )}
 
-      {cursorRef.current === null && posts.length > 0 && (
+      {!hasMore && posts.length > 0 && (
         <div className={styles.endMessage}>
           {t('feed.end') || 'Đã xem hết bài viết.'}
         </div>

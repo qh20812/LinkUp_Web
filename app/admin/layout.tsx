@@ -14,13 +14,13 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar_collapsed') === 'true'
+    }
+    return false
+  })
   const [mobileOpen, setMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('sidebar_collapsed')
-    if (saved === 'true') setCollapsed(true)
-  }, [])
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(collapsed))
