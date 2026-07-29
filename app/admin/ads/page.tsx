@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import useSWR from 'swr'
+import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getAds, updateAdStatus, deleteAd, getAdAnalytics } from '../../../api/admin'
+import { updateAdStatus, deleteAd, getAdAnalytics } from '../../../api/admin'
 import type { AdminAdListItem, AdminAdListResponse, AdPerformance } from '../../../types'
 import styles from './Ads.module.css'
 
@@ -22,15 +24,10 @@ export default function AdsPage() {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const [ads, setAds] = useState<AdminAdListItem[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const [searchInput, setSearchInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -48,32 +45,19 @@ export default function AdsPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (keyword) params.set('keyword', keyword)
+  if (statusFilter) params.set('status', statusFilter)
+  const swrKey = `/admin/ads?${params}`
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminAdListResponse>(url))
+  const items = res?.ads ?? []
+  const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const [userRole] = useState<string | null>(() => getUserRoleFromToken())
   const canDelete = userRole === null || userRole === 'SUPER_ADMIN'
   const canSetActive = userRole === null || userRole === 'SUPER_ADMIN'
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res: AdminAdListResponse = await getAds(page, pageSize, keyword || undefined, statusFilter || undefined)
-        if (!cancelled) {
-          setAds(res.ads ?? [])
-          setTotal(res.total)
-        }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : t('common.error'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { cancelled = true }
-  }, [page, keyword, statusFilter, pageSize, t, refreshKey])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -123,7 +107,7 @@ export default function AdsPage() {
       toast({ title: t('ads.statusUpdated'), type: 'success' })
       setStatusTarget(null)
       setStatusValue('')
-      setRefreshKey((k) => k + 1)
+      invalidate('/admin/ads')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
@@ -138,7 +122,7 @@ export default function AdsPage() {
       await deleteAd(deleteTarget.id)
       toast({ title: t('ads.deleteSuccess'), type: 'success' })
       setDeleteTarget(null)
-      setRefreshKey((k) => k + 1)
+      invalidate('/admin/ads')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
@@ -244,7 +228,7 @@ export default function AdsPage() {
             <i className="bx bx-error-circle" />
             <p>{error}</p>
           </div>
-        ) : ads.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className={styles.empty}>
             <i className="bx bx-dollar-circle" />
             <p>{t('ads.noData')}</p>
@@ -265,7 +249,7 @@ export default function AdsPage() {
                 </tr>
               </thead>
               <tbody>
-                {ads.map((ad, idx) => (
+                {items.map((ad, idx) => (
                   <tr key={ad.id}>
                     <td className={styles.cellDate}>{(page - 1) * pageSize + idx + 1}</td>
                     <td>

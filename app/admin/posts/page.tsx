@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import Image from "next/image";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
 import { getPosts, updatePostStatus, hidePost } from "../../../api/admin";
+import { swrFetcher, invalidate } from "../../../api/swr";
 import type {
   AdminPostListItem,
   AdminPostListResponse,
@@ -27,16 +29,12 @@ export default function PostsPage() {
   const { t, language } = useTranslation();
   const { toast } = useToast();
 
-  const [posts, setPosts] = useState<AdminPostListItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [userRole] = useState<string | null>(() => getUserRoleFromToken());
   const canMutate = userRole === null || userRole === 'SUPER_ADMIN';
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [searchInput, setSearchInput] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -51,40 +49,19 @@ export default function PostsPage() {
   const [hideTarget, setHideTarget] = useState<AdminPostListItem | null>(null);
   const [hideReason, setHideReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res: AdminPostListResponse = await getPosts(
-          page,
-          pageSize,
-          keyword || undefined,
-          statusFilter || undefined
-        );
-        if (!cancelled) {
-          setPosts(res.posts ?? []);
-          setTotal(res.total);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t("common.error"));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, keyword, statusFilter, pageSize, t, refreshKey]);
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (keyword) params.set("keyword", keyword);
+  if (statusFilter) params.set("status", statusFilter);
+  const swrKey = `/admin/posts?${params}`;
+
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminPostListResponse>(url));
+
+  const posts = res?.posts ?? [];
+  const total = res?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -119,7 +96,7 @@ export default function PostsPage() {
     try {
       await updatePostStatus(postId, newStatus);
       toast({ title: t("posts.statusUpdated"), type: "success" });
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/posts');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),
@@ -139,7 +116,7 @@ export default function PostsPage() {
       toast({ title: t("posts.hideSuccess"), type: "success" });
       setHideTarget(null);
       setHideReason("");
-      setRefreshKey((k) => k + 1);
+      invalidate('/admin/posts');
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : t("common.error"),

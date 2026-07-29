@@ -1,25 +1,23 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import useSWR from 'swr'
+import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getCommunities, getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
-import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem } from '../../../types'
+import { getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
+import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem, AdminCommunityListResponse } from '../../../types'
 import styles from './Communities.module.css'
 
 export default function CommunitiesPage() {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const [communities, setCommunities] = useState<AdminCommunityListItem[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [privacyFilter, setPrivacyFilter] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -30,7 +28,6 @@ export default function CommunitiesPage() {
   const [actionReason, setActionReason] = useState('')
   const [warnMessage, setWarnMessage] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const [detailTarget, setDetailTarget] = useState<AdminCommunityListItem | null>(null)
   const [detailData, setDetailData] = useState<AdminCommunityDetailResponse | null>(null)
@@ -39,6 +36,15 @@ export default function CommunitiesPage() {
   const [logsPage, setLogsPage] = useState(1)
   const [logsTotal, setLogsTotal] = useState(0)
   const [logsLoading, setLogsLoading] = useState(false)
+
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (keyword) params.set('keyword', keyword)
+  if (statusFilter) params.set('status', statusFilter)
+  if (privacyFilter) params.set('privacy', privacyFilter)
+  const swrKey = `/admin/communities?${params}`
+  const { data: res, error, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<AdminCommunityListResponse>(url))
+  const items = res?.communities ?? []
+  const total = res?.total ?? 0
 
   const closeMenu = () => {
     setOpenMenuId(null)
@@ -51,29 +57,6 @@ export default function CommunitiesPage() {
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
   }, [openMenuId])
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await getCommunities(page, pageSize, keyword || undefined, statusFilter || undefined, privacyFilter || undefined)
-        if (!cancelled) {
-          setCommunities(res.communities ?? [])
-          setTotal(res.total)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t('common.error'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { cancelled = true }
-  }, [page, keyword, statusFilter, privacyFilter, pageSize, t, refreshKey])
 
   useEffect(() => {
     if (!detailTarget) return
@@ -224,7 +207,7 @@ export default function CommunitiesPage() {
     try {
       await unhideCommunity(id)
       toast({ title: t('common.save'), type: 'success' })
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/communities')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     }
@@ -234,7 +217,7 @@ export default function CommunitiesPage() {
     try {
       await unarchiveCommunity(id)
       toast({ title: t('common.save'), type: 'success' })
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/communities')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     }
@@ -262,7 +245,7 @@ export default function CommunitiesPage() {
       setActionTarget(null)
       setActionReason('')
       setWarnMessage('')
-      setRefreshKey(k => k + 1)
+      invalidate('/admin/communities')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
@@ -353,7 +336,7 @@ export default function CommunitiesPage() {
             <i className="bx bx-error-circle" />
             <p>{error}</p>
           </div>
-        ) : communities.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className={styles.empty}>
             <i className="bx bx-world" />
             <p>{t('common.noData')}</p>
@@ -373,7 +356,7 @@ export default function CommunitiesPage() {
                 </tr>
               </thead>
               <tbody>
-                {communities.map((c) => (
+                {items.map((c) => (
                   <tr key={c.id}>
                     <td>
                       <div className={styles.communityCell}>

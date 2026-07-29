@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 import { useTranslation } from "../hooks/useTranslation";
 import { useToast } from "../contexts/ToastContext";
-import { changePassword } from "../api/auth";
+import { changePassword, logout } from "../api/auth";
+import { getAdminProfile } from "../api/admin";
 import styles from "./AdminNavbar.module.css";
 import { useNotification } from "../contexts/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
@@ -19,13 +21,12 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const { t, language, setLanguage } = useTranslation();
   const { toast } = useToast();
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-      if (saved === "light" || saved === "dark") return saved;
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+    if (saved === "light" || saved === "dark") setTheme(saved);
+  }, []);
   const [searchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -39,6 +40,41 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { unreadCount } = useNotification();
+
+  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>({});
+
+  const { data: profile } = useSWR('/profile', getAdminProfile, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
+
+  useEffect(() => {
+    if (profile?.avatar_uri) {
+      const data = {
+        avatar_uri: profile.avatar_uri,
+        display_name: profile.display_name,
+      };
+      localStorage.setItem('admin_profile', JSON.stringify(data));
+      setCachedProfile(data);
+    }
+  }, [profile?.avatar_uri, profile?.display_name]);
+
+  const [tokenEmail, setTokenEmail] = useState('');
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setTokenEmail(payload.email || '');
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const cached = localStorage.getItem('admin_profile');
+      if (cached) setCachedProfile(JSON.parse(cached));
+    } catch { /* ignore */ }
+  }, []);
 
   // đóng khi nhấn ra vùng ngoài (click outside) cho thông báo
   useEffect(() => {
@@ -82,6 +118,15 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
+  };
+
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout().catch(() => {});
+    localStorage.removeItem('token');
+    localStorage.removeItem('admin_profile');
+    router.push('/login');
   };
 
   const handleSubmitPassword = async () => {
@@ -175,12 +220,17 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
           aria-label="Profile"
           onClick={() => setDropdownOpen(!dropdownOpen)}>
           <Image
-            src="/S-Logo.png"
+            src={profile?.avatar_uri || cachedProfile.avatar_uri || "/S-Logo.png"}
             alt="Profile"
             width={36}
             height={36}
             priority
           />
+          <div className={styles.userInfo}>
+            <span className={styles.userName}>{profile?.display_name || cachedProfile.display_name || "Admin"}</span>
+            <span className={styles.userEmail}>{tokenEmail}</span>
+          </div>
+          <i className={`bx bx-chevron-down ${styles.profileChevron}`} />
         </button>
 
         {dropdownOpen && (
@@ -199,12 +249,12 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
               <span>{t("nav.changePassword")}</span>
             </button>
             <div className={styles.dropdownDivider} />
-            <Link
-              href="/login"
-              className={`${styles.dropdownItem} ${styles.dropdownDanger}`}>
+            <button
+              className={`${styles.dropdownItem} ${styles.dropdownDanger}`}
+              onClick={handleLogout}>
               <i className="bx bx-log-out-circle" />
               <span>{t("nav.logout")}</span>
-            </Link>
+            </button>
           </div>
         )}
       </div>

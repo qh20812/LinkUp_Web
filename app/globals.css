@@ -122,27 +122,27 @@ table {
   --color-primary-hover: #5CE8DA;
   --color-primary-active: #72EDE2;
 
-  --color-secondary: #0A1F44;
-  --color-secondary-hover: #0D2A5A;
-  --color-secondary-active: #0F3570;
+  --color-secondary: #1A1A1A;
+  --color-secondary-hover: #222222;
+  --color-secondary-active: #2A2A2A;
 
-  --color-bg: #0A1F44;
-  --color-bg-secondary: #112D5E;
-  --color-text: #FFFFFF;
-  --color-text-secondary: #B0B0B0;
+  --color-bg: #111111;
+  --color-bg-secondary: #1A1A1A;
+  --color-text: #E5E7EB;
+  --color-text-secondary: #9CA3AF;
 
-  --color-card: #112D5E;
-  --color-border: #1E3A6E;
-  --color-divider: #1A3360;
+  --color-card: #1E1E1E;
+  --color-border: #333333;
+  --color-divider: #2A2A2A;
 
-  --color-success-light: #1B5E20;
-  --color-warning-light: #F57F17;
-  --color-danger-light: #B71C1C;
-  --color-info-light: #0D47A1;
+  --color-success-light: #064E3B;
+  --color-warning-light: #78350F;
+  --color-danger-light: #7F1D1D;
+  --color-info-light: #1E3A5F;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
 }
 
 /* === Focus Ring (Accessibility) === */

@@ -1,6 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '../hooks/useAuth'
+import UserLayout from '../components/UserLayout'
+import Feed from '../components/Feed'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
@@ -8,7 +12,7 @@ interface HealthStatus {
   status: string
 }
 
-export default function LandingPage() {
+function LandingPage() {
   const [health, setHealth] = useState<HealthStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -84,4 +88,37 @@ export default function LandingPage() {
       <Footer />
     </div>
   )
+}
+
+export default function HomePage() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  const { isAuthenticated, isUser, isAdmin, isSuperAdmin, isPartner } = useAuth()
+  const router = useRouter()
+
+  if (!mounted) return <LandingPage />
+
+  if (!isAuthenticated) {
+    return <LandingPage />
+  }
+
+  if (isAdmin || isSuperAdmin) {
+    router.push('/admin/dashboard')
+    return null
+  }
+
+  if (isPartner) {
+    router.push('/partner/dashboard')
+    return null
+  }
+
+  if (isUser) {
+    return (
+      <UserLayout>
+        <Feed />
+      </UserLayout>
+    )
+  }
+
+  return <LandingPage />
 }
