@@ -30,12 +30,13 @@
 
 ### Semantic Colors
 
-| Token | HEX | Light BG | Usage |
-|-------|-----|----------|-------|
-| `--color-success` | `#388E3C` | `#E8F5E9` | Success states |
-| `--color-warning` | `#FBC02D` | `#FFF8E1` | Warning states |
-| `--color-danger` | `#D32F2F` | `#FFEBEE` | Error/danger states |
-| `--color-info` | `#1976D2` | `#E3F2FD` | Informational |
+| Token | HEX | Light BG (Light Mode) | Dark BG (Dark Mode) | Usage |
+|-------|-----|----------------------|---------------------|-------|
+| `--color-success` | `#388E3C` | `--color-success-light`: `#E8F5E9` | `--color-success-light`: `#064E3B` | Success states, active badges |
+| `--color-warning` | `#FBC02D` | `--color-warning-light`: `#FFF8E1` | `--color-warning-light`: `#78350F` | Warning states, suspended badges |
+| `--color-danger` | `#D32F2F` | `--color-danger-light`: `#FFEBEE` | `--color-danger-light`: `#7F1D1D` | Error/danger states, banned badges |
+| `--color-info` | `#1976D2` | `--color-info-light`: `#E3F2FD` | `--color-info-light`: `#1E3A5F` | Informational, reviewed badges |
+| `--color-primary-light` | `rgba(64,224,208,0.12)` | used as-is | `rgba(64,224,208,0.2)` | Hover/focus highlights, active rows |
 
 ### Dark Mode Overrides
 
@@ -44,19 +45,29 @@
   --color-primary: #40E0D0;
   --color-primary-hover: #5CE8DA;
   --color-primary-active: #72EDE2;
+  --color-primary-light: rgba(64, 224, 208, 0.2);
 
-  --color-secondary: #0A1F44;
-  --color-secondary-hover: #0D2A5A;
-  --color-secondary-active: #0F3570;
+  --color-secondary: #1A1A1A;
+  --color-secondary-hover: #222222;
+  --color-secondary-active: #2A2A2A;
 
-  --color-bg: #0A1F44;
-  --color-bg-secondary: #112D5E;
-  --color-text: #FFFFFF;
-  --color-text-secondary: #B0B0B0;
+  --color-bg: #111111;
+  --color-bg-secondary: #1A1A1A;
+  --color-text: #E5E7EB;
+  --color-text-secondary: #9CA3AF;
 
-  --color-card: #112D5E;
-  --color-border: #1E3A6E;
-  --color-divider: #1A3360;
+  --color-card: #1E1E1E;
+  --color-border: #333333;
+  --color-divider: #2A2A2A;
+
+  --color-success-light: #064E3B;
+  --color-warning-light: #78350F;
+  --color-danger-light: #7F1D1D;
+  --color-info-light: #1E3A5F;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
 }
 ```
 
@@ -89,7 +100,7 @@
 
 ### Font Loading
 
-Use `next/font/google` in `app/layout.tsx` — self-hosted, no external requests:
+Use `next/font/google` in `app/layout.tsx` — fonts are self-hosted by Next.js:
 
 ```tsx
 import { Montserrat, Open_Sans } from 'next/font/google'
@@ -107,7 +118,7 @@ const openSans = Open_Sans({
 })
 ```
 
-Apply via `<body className={`${montserrat.variable} ${openSans.variable}`}>`
+Apply via `<html className={`${montserrat.variable} ${openSans.variable}`}>` in `app/layout.tsx` (on `<html>`, not `<body>`).
 
 ---
 
@@ -149,9 +160,9 @@ Apply via `<body className={`${montserrat.variable} ${openSans.variable}`}>`
 
 | Token | Value |
 |-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.3)` |
-| `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.4)` |
-| `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.5)` |
+| `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.4)` |
+| `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.5)` |
+| `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.6)` |
 
 ---
 
@@ -204,52 +215,62 @@ Use native CSS Grid — no framework:
 ### Button
 
 ```css
-.btn {
+.buttonPrimary,
+.buttonSecondary,
+.buttonDanger,
+.buttonSuccess {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
   border: none;
   border-radius: var(--radius-md);
-  font: var(--text-body);
-  font-weight: 600;
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  font: var(--text-body);
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.btn-primary {
+.buttonPrimary {
   background: var(--color-primary);
   color: var(--color-secondary);
 }
-.btn-primary:hover {
+.buttonPrimary:hover {
   background: var(--color-primary-hover);
 }
-.btn-primary:active {
-  background: var(--color-primary-active);
+
+.buttonSecondary {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+.buttonSecondary:hover {
+  background: var(--color-bg-secondary);
+  filter: brightness(0.95);
 }
 
-.btn-secondary {
-  background: var(--color-secondary);
-  color: var(--color-primary);
-}
-.btn-secondary:hover {
-  background: var(--color-secondary-hover);
-}
-
-.btn-accent {
-  background: var(--color-accent);
+.buttonDanger {
+  background: var(--color-danger);
   color: #FFFFFF;
 }
-.btn-accent:hover {
-  background: var(--color-accent-hover);
+.buttonDanger:hover {
+  background: var(--color-danger);
+  filter: brightness(1.1);
+}
+
+.buttonSuccess {
+  background: var(--color-success);
+  color: #FFFFFF;
+}
+.buttonSuccess:hover {
+  background: #2e7d32;
+}
+
+.buttonPrimary:disabled,
+.buttonSecondary:disabled,
+.buttonDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 ```
-
-Sizes:
-- `.btn-sm`: padding `var(--space-xs) var(--space-sm)`
-- `.btn-md`: default
-- `.btn-lg`: padding `var(--space-sm) var(--space-md)`
 
 ### Card
 
@@ -276,16 +297,15 @@ Sizes:
   padding: 0 var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
+  background: var(--color-card);
   color: var(--color-text);
   font: var(--text-body);
-  transition: border-color 0.2s ease;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
 .input:focus {
-  outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(64, 224, 208, 0.2);
 }
 
 .input::placeholder {
@@ -298,31 +318,35 @@ Sizes:
 ```css
 .badge {
   display: inline-flex;
-  align-items: center;
-  padding: var(--space-xs) var(--space-sm);
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   font: var(--text-caption);
   font-weight: 600;
+  font-size: 11px;
 }
 
-.badge-success {
-  background: var(--color-success);
-  color: #FFFFFF;
+.badgeActive {
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
-.badge-warning {
-  background: var(--color-warning);
-  color: var(--color-secondary);
+.badgeBanned,
+.badgeArchived,
+.badgeFlagged {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
-.badge-danger {
-  background: var(--color-danger);
-  color: #FFFFFF;
+.badgeSuspended,
+.badgePending,
+.badgePaused {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
-.badge-info {
-  background: var(--color-info);
-  color: #FFFFFF;
+.badgeReviewed {
+  background: var(--color-info-light);
+  color: var(--color-info);
 }
 ```
 
@@ -341,12 +365,12 @@ Sizes:
 
 ### Button States
 
-| State | Primary | Secondary | Accent |
-|-------|---------|-----------|--------|
-| Default | `--color-primary` | `--color-secondary` | `--color-accent` |
-| Hover | `--color-primary-hover` | `--color-secondary-hover` | `--color-accent-hover` |
-| Active | `--color-primary-active` | `--color-secondary-active` | `--color-accent-active` |
-| Focus | `outline: 2px solid --color-primary` | `outline: 2px solid --color-primary` | `outline: 2px solid --color-primary` |
+| State | `.buttonPrimary` | `.buttonSecondary` | `.buttonDanger` | `.buttonSuccess` |
+|-------|-----------------|-------------------|----------------|-----------------|
+| Default | `--color-primary` bg | `--color-bg-secondary` bg | `--color-danger` bg | `--color-success` bg |
+| Hover | `--color-primary-hover` | filter brightness 0.95 | filter brightness 1.1 | `#2e7d32` |
+| Disabled | opacity 0.6 | opacity 0.6 | opacity 0.6 | opacity 0.6 |
+| Focus | `outline: 2px solid var(--color-primary)` (global `:focus-visible`) | | | |
 
 ---
 
@@ -388,8 +412,15 @@ All tokens are defined in `app/globals.css` and can be used in any component:
 ```css
 /* Colors */
 var(--color-primary)
+var(--color-primary-hover)
+var(--color-primary-active)
+var(--color-primary-light)
 var(--color-secondary)
+var(--color-secondary-hover)
+var(--color-secondary-active)
 var(--color-accent)
+var(--color-accent-hover)
+var(--color-accent-active)
 var(--color-bg)
 var(--color-bg-secondary)
 var(--color-text)
@@ -398,9 +429,13 @@ var(--color-card)
 var(--color-border)
 var(--color-divider)
 var(--color-success)
+var(--color-success-light)
 var(--color-warning)
+var(--color-warning-light)
 var(--color-danger)
+var(--color-danger-light)
 var(--color-info)
+var(--color-info-light)
 
 /* Typography */
 var(--font-family-heading)
@@ -440,12 +475,12 @@ var(--shadow-lg)
 - Use `var(--space-*)` for all spacing
 - Use `var(--radius-*)` for all border-radius
 - Use `var(--text-*)` for font shorthand
-- Import fonts via `next/font/google`, not `<link>` CDN
+- Import fonts via `next/font/google` (self-hosted), icons via Boxicons CDN `<link>` in root layout
 - Use `data-theme="dark"` for dark mode toggle
-- Write mobile-first CSS with `min-width` media queries
 - Use `var(--shadow-*)` for all box-shadows
 - Add `transition` for interactive state changes
 - Use semantic color tokens (`--color-success`, `--color-danger`) for status
+- Use CSS Modules (`*.module.css`) for component styles; `globals.css` is for reset + tokens only
 
 ### Don't
 
@@ -453,7 +488,6 @@ var(--shadow-lg)
 - Don't hardcode `#FFFFFF` or `#000000` — use `var(--color-bg)` / `var(--color-text)`
 - Don't use `!important`
 - Don't use `@import url()` for fonts — use `next/font`
-- Don't create separate CSS files per component — use CSS modules or globals.css
 - Don't use Tailwind classes (removed) with plain CSS
 - Don't skip `:hover` / `:active` states on interactive elements
 - Don't use `outline: none` without providing a focus-visible alternative

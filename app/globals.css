@@ -58,6 +58,7 @@ table {
   --color-primary: #40E0D0;
   --color-primary-hover: #36C9B9;
   --color-primary-active: #2EB3A3;
+  --color-primary-light: rgba(64, 224, 208, 0.12);
 
   --color-secondary: #0A1F44;
   --color-secondary-hover: #0D2A5A;
@@ -121,6 +122,7 @@ table {
   --color-primary: #40E0D0;
   --color-primary-hover: #5CE8DA;
   --color-primary-active: #72EDE2;
+  --color-primary-light: rgba(64, 224, 208, 0.2);
 
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
