@@ -33,8 +33,9 @@ export default function LoginForm() {
       } else {
         router.push('/')
       }
-    } catch {
-      toast({ type: 'error', title: t('login.error') })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('login.error')
+      toast({ type: 'error', title: message })
     } finally {
       setLoading(false)
     }

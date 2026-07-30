@@ -4,6 +4,8 @@
   border-radius: 16px;
   overflow: hidden;
   transition: box-shadow 0.15s;
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
 }
 
 .card:hover {
@@ -183,6 +185,19 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.mediaSkeleton {
+  margin: 12px 16px 0;
+  border-radius: 12px;
+  background: var(--color-bg-secondary);
+  aspect-ratio: 16 / 9;
+  animation: mediaPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mediaPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .actionBar {

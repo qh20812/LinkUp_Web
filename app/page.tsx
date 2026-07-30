@@ -91,16 +91,21 @@ function LandingPage() {
 }
 
 export default function HomePage() {
-  const { isAuthenticated, isUser, isAdmin, isSuperAdmin, isPartner } = useAuth()
+  const { isAuthenticated, isUser, isAdmin, isSuperAdmin, isPartner, initializing } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    if (initializing) return
     if (isAdmin || isSuperAdmin) {
       router.push('/admin/dashboard')
     } else if (isPartner) {
       router.push('/partner/dashboard')
     }
-  }, [isAdmin, isSuperAdmin, isPartner, router])
+  }, [isAdmin, isSuperAdmin, isPartner, router, initializing])
+
+  if (initializing) {
+    return <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }} />
+  }
 
   if (!isAuthenticated) {
     return <LandingPage />

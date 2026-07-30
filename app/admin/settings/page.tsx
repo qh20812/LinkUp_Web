@@ -14,22 +14,19 @@ const ALLOWED_KEYS = [
   'site_name', 'site_description', 'contact_email',
   'maintenance_mode', 'allow_registration', 'require_email_verify',
   'password_min_length', 'max_login_attempts', 'jwt_expiry_minutes', 'default_user_role',
+  'refresh_token_expiry_days',
 ]
 
-const READONLY_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
-
 const GENERAL_KEYS = ['site_name', 'site_description', 'contact_email', 'maintenance_mode']
-const SECURITY_KEYS = ['password_min_length', 'max_login_attempts', 'jwt_expiry_minutes']
+const SECURITY_KEYS = ['password_min_length', 'max_login_attempts', 'jwt_expiry_minutes', 'refresh_token_expiry_days']
 const REGISTRATION_KEYS = ['allow_registration', 'require_email_verify', 'default_user_role']
-const EMAIL_STORAGE_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
 
-type TabKey = 'general' | 'security' | 'registration' | 'emailStorage'
+type TabKey = 'general' | 'security' | 'registration'
 
 const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'general', labelKey: 'settings.tabGeneral' },
   { key: 'security', labelKey: 'settings.tabSecurity' },
   { key: 'registration', labelKey: 'settings.tabRegistration' },
-  { key: 'emailStorage', labelKey: 'settings.tabEmailStorage' },
 ]
 
 function getKeysForTab(tab: TabKey): string[] {
@@ -37,29 +34,51 @@ function getKeysForTab(tab: TabKey): string[] {
     case 'general': return GENERAL_KEYS
     case 'security': return SECURITY_KEYS
     case 'registration': return REGISTRATION_KEYS
-    case 'emailStorage': return EMAIL_STORAGE_KEYS
   }
 }
 
-function validateField(key: string, value: string): string | null {
+function validateField(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  key: string,
+  value: string,
+): string | null {
   switch (key) {
-    case 'password_min_length':
-    case 'max_login_attempts':
+    case 'password_min_length': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 8) return t('settings.validationMin', { min: 8 })
+      if (num > 50) return t('settings.validationMax', { max: 50 })
+      return null
+    }
+    case 'max_login_attempts': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 10) return t('settings.validationMax', { max: 10 })
+      return null
+    }
     case 'jwt_expiry_minutes': {
       const num = parseInt(value, 10)
-      if (isNaN(num)) return 'Phải là số'
-      const min = key === 'password_min_length' ? 6 : 1
-      if (num < min) return `Phải >= ${min}`
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 60) return t('settings.validationMax', { max: 60 })
+      return null
+    }
+    case 'refresh_token_expiry_days': {
+      const num = parseInt(value, 10)
+      if (isNaN(num)) return t('settings.validationNumber')
+      if (num < 1) return t('settings.validationMin', { min: 1 })
+      if (num > 30) return t('settings.validationMax', { max: 30 })
       return null
     }
     case 'contact_email':
-      return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Email không hợp lệ'
+      return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : t('settings.validationEmail')
     case 'maintenance_mode':
     case 'allow_registration':
     case 'require_email_verify':
-      return (value === 'true' || value === 'false') ? null : 'Phải là true/false'
+      return (value === 'true' || value === 'false') ? null : t('settings.validationBoolean')
     default:
-      return value.trim() ? null : 'Không được để trống'
+      return value.trim() ? null : t('settings.validationRequired')
   }
 }
 
@@ -73,6 +92,7 @@ export default function SettingsPage() {
   const [initialValues, setInitialValues] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const [roleOpen, setRoleOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -99,7 +119,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (res?.settings) {
       const mapped: Record<string, string> = {}
-      for (const key of [...ALLOWED_KEYS, ...READONLY_KEYS]) {
+      for (const key of ALLOWED_KEYS) {
         mapped[key] = res.settings[key] ?? ''
       }
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -120,9 +140,9 @@ export default function SettingsPage() {
     const settingsToSave: Record<string, string> = {}
     for (const key of ALLOWED_KEYS) {
       if (formValues[key] !== initialValues[key]) {
-        const err = validateField(key, formValues[key])
+        const err = validateField(t, key, formValues[key])
         if (err) {
-          toast({ title: `${key}: ${err}`, type: 'error' })
+          toast({ title: `${t(`settings.${key}`)}: ${err}`, type: 'error' })
           return
         }
         settingsToSave[key] = formValues[key]
@@ -194,13 +214,11 @@ export default function SettingsPage() {
 
       <div className={styles.card}>
         {tabKeys.map(key => {
-          const isReadonly = READONLY_KEYS.includes(key)
           const value = formValues[key] ?? ''
-          const labelKey = `settings.${key.replace('readonly_', '')}`
           return (
             <div key={key} className={styles.formGroup}>
               <label className={styles.label}>
-                {t(labelKey)}
+                {t(`settings.${key}`)}
                 {key === 'maintenance_mode' && value === 'true' && (
                   <span className={styles.warningBadge}>⚠️ {t('settings.maintenanceModeHint')}</span>
                 )}
@@ -211,53 +229,75 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={value === 'true'}
                     onChange={e => handleChange(key, e.target.checked ? 'true' : 'false')}
-                    disabled={isReadonly}
                   />
                   <span className={styles.toggleTrack}>
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+              ) : key === 'default_user_role' ? (
+                <div
+                  className={styles.customSelect}
+                  tabIndex={0}
+                  onBlur={() => setRoleOpen(false)}
+                  onClick={() => setRoleOpen(prev => !prev)}
+                >
+                  <div className={styles.customSelectTrigger}>
+                    {value === 'USER' ? t('settings.roleUser') : t('settings.roleAdmin')}
+                    <i className={`bx bx-chevron-down ${roleOpen ? styles.chevronUp : ''}`} />
+                  </div>
+                  {roleOpen && (
+                    <div className={styles.customSelectMenu}>
+                      <div
+                        className={`${styles.customSelectOption} ${value === 'USER' ? styles.selected : ''}`}
+                        onClick={(e) => { e.stopPropagation(); handleChange(key, 'USER'); setRoleOpen(false) }}
+                      >
+                        {t('settings.roleUser')}
+                      </div>
+                      <div
+                        className={`${styles.customSelectOption} ${value === 'ADMIN' ? styles.selected : ''}`}
+                        onClick={(e) => { e.stopPropagation(); handleChange(key, 'ADMIN'); setRoleOpen(false) }}
+                      >
+                        {t('settings.roleAdmin')}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : key === 'site_description' ? (
                 <textarea
-                  className={`${styles.textarea} ${isReadonly ? styles.inputReadonly : ''}`}
+                  className={styles.textarea}
                   value={value}
                   onChange={e => handleChange(key, e.target.value)}
-                  readOnly={isReadonly}
                   rows={3}
                 />
               ) : (
                 <input
                   type={key === 'contact_email' ? 'email' : 'text'}
-                  className={`${styles.input} ${isReadonly ? styles.inputReadonly : ''}`}
+                  className={styles.input}
                   value={value}
                   onChange={e => handleChange(key, e.target.value)}
-                  readOnly={isReadonly}
                 />
               )}
-              {isReadonly && <span className={styles.readonlyTag}>{t('settings.readOnlyHint')}</span>}
             </div>
           )
         })}
       </div>
 
-      {activeTab !== 'emailStorage' && (
-        <div className={styles.footer}>
-          <button
-            className={styles.btnSave}
-            onClick={handleSave}
-            disabled={saving || !dirty || !hasDirtyFieldsInTab}
-          >
-            {saving ? t('common.loading') : t('settings.saveBtn')}
-          </button>
-          <button
-            className={styles.btnCancel}
-            onClick={handleCancel}
-            disabled={saving || !dirty}
-          >
-            {t('settings.cancelBtn')}
-          </button>
-        </div>
-      )}
+      <div className={styles.footer}>
+        <button
+          className={styles.btnSave}
+          onClick={handleSave}
+          disabled={saving || !dirty || !hasDirtyFieldsInTab}
+        >
+          {saving ? t('common.loading') : t('settings.saveBtn')}
+        </button>
+        <button
+          className={styles.btnCancel}
+          onClick={handleCancel}
+          disabled={saving || !dirty}
+        >
+          {t('settings.cancelBtn')}
+        </button>
+      </div>
     </div>
   )
 }

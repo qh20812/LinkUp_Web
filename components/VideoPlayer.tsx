@@ -6,7 +6,7 @@ const HIDE_DELAY = 2500
 
 export default function VideoPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [showControls, setShowControls] = useState(true)

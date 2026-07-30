@@ -21,7 +21,10 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     if (res.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('token')
       localStorage.removeItem('admin_profile')
-      window.location.href = '/login'
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+        return Promise.reject(new Error('Unauthorized'))
+      }
     }
     const error = await res.json().catch(() => ({ message: res.statusText }))
     throw new Error(error.message || `HTTP ${res.status}`)

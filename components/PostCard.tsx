@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './PostCard.module.css'
@@ -64,6 +64,35 @@ function MediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate
       ))}
     </div>
   )
+}
+
+function LazyMediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate: () => void }) {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          obs.disconnect()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  if (media.length === 0) return null
+
+  if (!visible) {
+    return <div ref={ref} className={styles.mediaSkeleton} />
+  }
+
+  return <MediaGrid media={media} onNavigate={onNavigate} />
 }
 
 export default function PostCard({ post, onLike, onSave, onComment, onShare, onFollow }: PostCardProps) {
@@ -131,7 +160,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         )}
       </div>
 
-      {post.media.length > 0 && <MediaGrid media={post.media} onNavigate={navigateToPost} />}
+      <LazyMediaGrid media={post.media} onNavigate={navigateToPost} />
 
       <div className={styles.actionBar}>
         <button

@@ -12,12 +12,21 @@ export interface UseAuthResult {
   isSuperAdmin: boolean
   isPartner: boolean
   isUser: boolean
+  initializing: boolean
 }
 
 export function useAuth(): UseAuthResult {
-  const [payload, setPayload] = useState<TokenPayload | null>(() => getTokenPayload())
+  const [payload, setPayload] = useState<TokenPayload | null>(() => {
+    if (typeof window !== 'undefined') {
+      return getTokenPayload()
+    }
+    return null
+  })
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
+    queueMicrotask(() => setInitializing(false))
+
     const handleStorage = () => setPayload(getTokenPayload())
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
@@ -34,5 +43,6 @@ export function useAuth(): UseAuthResult {
     isSuperAdmin: role === 'SUPER_ADMIN',
     isPartner: role === 'PARTNER',
     isUser: role === 'USER',
+    initializing,
   }
 }
