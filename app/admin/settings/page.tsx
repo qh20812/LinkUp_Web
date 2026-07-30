@@ -17,20 +17,16 @@ const ALLOWED_KEYS = [
   'refresh_token_expiry_days',
 ]
 
-const READONLY_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
-
 const GENERAL_KEYS = ['site_name', 'site_description', 'contact_email', 'maintenance_mode']
 const SECURITY_KEYS = ['password_min_length', 'max_login_attempts', 'jwt_expiry_minutes', 'refresh_token_expiry_days']
 const REGISTRATION_KEYS = ['allow_registration', 'require_email_verify', 'default_user_role']
-const EMAIL_STORAGE_KEYS = ['readonly_gmail_user', 'readonly_cloudinary_cloud_name', 'readonly_storage_quota']
 
-type TabKey = 'general' | 'security' | 'registration' | 'emailStorage'
+type TabKey = 'general' | 'security' | 'registration'
 
 const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'general', labelKey: 'settings.tabGeneral' },
   { key: 'security', labelKey: 'settings.tabSecurity' },
   { key: 'registration', labelKey: 'settings.tabRegistration' },
-  { key: 'emailStorage', labelKey: 'settings.tabEmailStorage' },
 ]
 
 function getKeysForTab(tab: TabKey): string[] {
@@ -38,7 +34,6 @@ function getKeysForTab(tab: TabKey): string[] {
     case 'general': return GENERAL_KEYS
     case 'security': return SECURITY_KEYS
     case 'registration': return REGISTRATION_KEYS
-    case 'emailStorage': return EMAIL_STORAGE_KEYS
   }
 }
 
@@ -124,7 +119,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (res?.settings) {
       const mapped: Record<string, string> = {}
-      for (const key of [...ALLOWED_KEYS, ...READONLY_KEYS]) {
+      for (const key of ALLOWED_KEYS) {
         mapped[key] = res.settings[key] ?? ''
       }
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -219,13 +214,11 @@ export default function SettingsPage() {
 
       <div className={styles.card}>
         {tabKeys.map(key => {
-          const isReadonly = READONLY_KEYS.includes(key)
           const value = formValues[key] ?? ''
-          const labelKey = `settings.${key.replace('readonly_', '')}`
           return (
             <div key={key} className={styles.formGroup}>
               <label className={styles.label}>
-                {t(labelKey)}
+                {t(`settings.${key}`)}
                 {key === 'maintenance_mode' && value === 'true' && (
                   <span className={styles.warningBadge}>⚠️ {t('settings.maintenanceModeHint')}</span>
                 )}
@@ -236,7 +229,6 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={value === 'true'}
                     onChange={e => handleChange(key, e.target.checked ? 'true' : 'false')}
-                    disabled={isReadonly}
                   />
                   <span className={styles.toggleTrack}>
                     <span className={styles.toggleThumb} />
@@ -272,45 +264,40 @@ export default function SettingsPage() {
                 </div>
               ) : key === 'site_description' ? (
                 <textarea
-                  className={`${styles.textarea} ${isReadonly ? styles.inputReadonly : ''}`}
+                  className={styles.textarea}
                   value={value}
                   onChange={e => handleChange(key, e.target.value)}
-                  readOnly={isReadonly}
                   rows={3}
                 />
               ) : (
                 <input
                   type={key === 'contact_email' ? 'email' : 'text'}
-                  className={`${styles.input} ${isReadonly ? styles.inputReadonly : ''}`}
+                  className={styles.input}
                   value={value}
                   onChange={e => handleChange(key, e.target.value)}
-                  readOnly={isReadonly}
                 />
               )}
-              {isReadonly && <span className={styles.readonlyTag}>{t('settings.readOnlyHint')}</span>}
             </div>
           )
         })}
       </div>
 
-      {activeTab !== 'emailStorage' && (
-        <div className={styles.footer}>
-          <button
-            className={styles.btnSave}
-            onClick={handleSave}
-            disabled={saving || !dirty || !hasDirtyFieldsInTab}
-          >
-            {saving ? t('common.loading') : t('settings.saveBtn')}
-          </button>
-          <button
-            className={styles.btnCancel}
-            onClick={handleCancel}
-            disabled={saving || !dirty}
-          >
-            {t('settings.cancelBtn')}
-          </button>
-        </div>
-      )}
+      <div className={styles.footer}>
+        <button
+          className={styles.btnSave}
+          onClick={handleSave}
+          disabled={saving || !dirty || !hasDirtyFieldsInTab}
+        >
+          {saving ? t('common.loading') : t('settings.saveBtn')}
+        </button>
+        <button
+          className={styles.btnCancel}
+          onClick={handleCancel}
+          disabled={saving || !dirty}
+        >
+          {t('settings.cancelBtn')}
+        </button>
+      </div>
     </div>
   )
 }
