@@ -23,9 +23,11 @@ export default function RightSidebar() {
   const [query, setQuery] = useState('')
   const [trending, setTrending] = useState<TrendingHashtag[]>([])
   const [trendingReady, setTrendingReady] = useState(false)
+  const [trendingError, setTrendingError] = useState(false)
 
   const [suggestions, setSuggestions] = useState<FollowSuggestionUser[]>([])
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
+  const [suggestionsError, setSuggestionsError] = useState(false)
   const [suggestionsPage, setSuggestionsPage] = useState(1)
   const [suggestionsHasMore, setSuggestionsHasMore] = useState(false)
   const { followUser, unfollowUser, isFollowed } = useFollowContext()
@@ -33,18 +35,18 @@ export default function RightSidebar() {
   useEffect(() => {
     getTrendingHashtags()
       .then((res) => setTrending(res.data))
-      .catch(() => setTrending([]))
+      .catch(() => setTrendingError(true))
       .finally(() => setTrendingReady(true))
   }, [])
 
   useEffect(() => {
     getFollowSuggestions(1)
       .then((res) => {
-        setSuggestions(res.data)
+        setSuggestions(res.data ?? [])
         setSuggestionsPage(res.page)
         setSuggestionsHasMore(res.has_more)
       })
-      .catch(() => {})
+      .catch(() => setSuggestionsError(true))
       .finally(() => setSuggestionsLoading(false))
   }, [])
 
@@ -72,7 +74,7 @@ export default function RightSidebar() {
       const res = await getFollowSuggestions(nextPage)
       setSuggestions((prev) => {
         const existing = new Set(prev.map(u => u.id))
-        const newItems = res.data.filter(u => !existing.has(u.id))
+        const newItems = (res.data ?? []).filter(u => !existing.has(u.id))
         return [...prev, ...newItems]
       })
       setSuggestionsPage(res.page)
@@ -103,76 +105,92 @@ export default function RightSidebar() {
         </form>
       </div>
 
-      {trendingReady && trending.length > 0 && (
+      {trendingReady && (
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>{t('rightSidebar.trending')}</h3>
-          <ul className={styles.list}>
-            {trending.map((item) => (
-              <li key={item.name}>
-                <button
-                  className={styles.listItem}
-                  onClick={() => router.push(`/search?q=${item.name}`)}
-                >
-                  <span className={styles.hashTag}>#{item.name}</span>
-                  <span className={styles.meta}>{formatCount(item.post_count)} {t('rightSidebar.posts')}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button className={styles.viewMore}>{t('rightSidebar.viewMore')}</button>
+          {trendingError ? (
+            <p className={styles.statusText}>{t('common.error')}</p>
+          ) : trending.length === 0 ? (
+            <p className={styles.statusText}>{t('rightSidebar.noTrending')}</p>
+          ) : (
+            <>
+              <ul className={styles.list}>
+                {trending.map((item) => (
+                  <li key={item.name}>
+                    <button
+                      className={styles.listItem}
+                      onClick={() => router.push(`/search?q=${item.name}`)}
+                    >
+                      <span className={styles.hashTag}>#{item.name}</span>
+                      <span className={styles.meta}>{formatCount(item.post_count)} {t('rightSidebar.posts')}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button className={styles.viewMore}>{t('rightSidebar.viewMore')}</button>
+            </>
+          )}
         </section>
       )}
 
-      {!suggestionsLoading && suggestions.length > 0 && (
+      {!suggestionsLoading && (
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>{t('rightSidebar.suggestions')}</h3>
-          <ul className={styles.list}>
-            {suggestions.map((user) => {
-              const followed = isFollowed(user.id)
-              return (
-                <li key={user.id}>
-                  <div className={styles.suggestionItem}>
-                    <div className={styles.suggestionAvatar}>
-                      {user.avatar_uri ? (
-                        <img src={user.avatar_uri} alt="" className={styles.avatarImg} />
-                      ) : (
-                        <i className="bx bxs-user" />
-                      )}
-                    </div>
-                    <div className={styles.suggestionMeta}>
-                      <span className={styles.suggestionName}>
-                        {user.display_name || user.username}
-                      </span>
-                      {user.mutual_count > 0 && (
-                        <span className={styles.meta}>
-                          {user.mutual_count} {t('rightSidebar.mutual')}
-                        </span>
-                      )}
-                    </div>
-                    {followed ? (
-                      <button
-                        className={styles.followingBtn}
-                        onClick={() => handleUnfollow(user.id)}
-                      >
-                        {t('rightSidebar.following')}
-                      </button>
-                    ) : (
-                      <button
-                        className={styles.followBtn}
-                        onClick={() => handleFollow(user.id)}
-                      >
-                        {t('rightSidebar.follow')}
-                      </button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-          {suggestionsHasMore && (
-            <button className={styles.viewMore} onClick={handleViewMore}>
-              {t('rightSidebar.viewMore')}
-            </button>
+          {suggestionsError ? (
+            <p className={styles.statusText}>{t('common.error')}</p>
+          ) : suggestions.length === 0 ? (
+            <p className={styles.statusText}>{t('rightSidebar.noSuggestions')}</p>
+          ) : (
+            <>
+              <ul className={styles.list}>
+                {suggestions.map((user) => {
+                  const followed = isFollowed(user.id)
+                  return (
+                    <li key={user.id}>
+                      <div className={styles.suggestionItem}>
+                        <div className={styles.suggestionAvatar}>
+                          {user.avatar_uri ? (
+                            <img src={user.avatar_uri} alt="" className={styles.avatarImg} />
+                          ) : (
+                            <i className="bx bxs-user" />
+                          )}
+                        </div>
+                        <div className={styles.suggestionMeta}>
+                          <span className={styles.suggestionName}>
+                            {user.display_name || user.username}
+                          </span>
+                          {user.mutual_count > 0 && (
+                            <span className={styles.meta}>
+                              {user.mutual_count} {t('rightSidebar.mutual')}
+                            </span>
+                          )}
+                        </div>
+                        {followed ? (
+                          <button
+                            className={styles.followingBtn}
+                            onClick={() => handleUnfollow(user.id)}
+                          >
+                            {t('rightSidebar.following')}
+                          </button>
+                        ) : (
+                          <button
+                            className={styles.followBtn}
+                            onClick={() => handleFollow(user.id)}
+                          >
+                            {t('rightSidebar.follow')}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+              {suggestionsHasMore && (
+                <button className={styles.viewMore} onClick={handleViewMore}>
+                  {t('rightSidebar.viewMore')}
+                </button>
+              )}
+            </>
           )}
         </section>
       )}

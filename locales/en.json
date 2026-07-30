@@ -69,7 +69,9 @@
     "following": "Following",
     "followSuccess": "Followed successfully",
     "unfollowSuccess": "Unfollowed",
-    "mutual": "mutual friends"
+    "mutual": "mutual friends",
+    "noTrending": "No trending yet",
+    "noSuggestions": "No suggestions yet"
   },
   "post": {
     "like": "Like",

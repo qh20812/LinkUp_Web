@@ -211,3 +211,10 @@
 .followingBtn:hover {
   opacity: 0.85;
 }
+
+.statusText {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 8px 4px;
+  margin: 0;
+}

@@ -69,7 +69,9 @@
     "following": "Đã theo dõi",
     "followSuccess": "Đã theo dõi thành công",
     "unfollowSuccess": "Đã hủy theo dõi",
-    "mutual": "bạn chung"
+    "mutual": "bạn chung",
+    "noTrending": "Chưa có xu hướng nào",
+    "noSuggestions": "Chưa có gợi ý nào"
   },
   "post": {
     "like": "Thích",
