@@ -37,6 +37,11 @@ export interface AuthResponse {
   storage?: StorageInfo
 }
 
+export type RegisterResponse = Omit<AuthResponse, 'tokens'> & {
+  tokens?: TokenResponse
+  verify_email?: boolean
+}
+
 // ===== Feed / Posts =====
 export interface EmojiItem {
   id: string

@@ -91,6 +91,11 @@
   color: var(--color-text-secondary);
 }
 
+.fieldError {
+  font: var(--text-caption);
+  color: var(--color-danger);
+}
+
 .passwordWrapper {
   position: relative;
   display: flex;

@@ -22,6 +22,8 @@ import type {
   AdminMediaGroupedResponse,
   AdminModerationLogListResponse,
   ViewProfileResponse,
+  AdminSettingsResponse,
+  AdminSettingsInput,
 } from "../types";
 
 // Dashboard

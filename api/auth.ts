@@ -1,10 +1,16 @@
 import { request } from './api'
-import type { AuthResponse, TokenPayload } from '../types'
+import type { AuthResponse, RegisterResponse, TokenPayload } from '../types'
 
 export const login = (email: string, password: string) =>
   request<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+  })
+
+export const register = (displayName: string, email: string, password: string) =>
+  request<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ display_name: displayName, email, password }),
   })
 
 export const changePassword = (oldPassword: string, newPassword: string) =>

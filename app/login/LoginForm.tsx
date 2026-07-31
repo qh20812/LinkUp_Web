@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../contexts/ToastContext'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -93,6 +94,13 @@ export default function LoginForm() {
             {loading ? '...' : t('login.submit')}
           </button>
         </form>
+
+        <p className={styles.footer}>
+          {t('login.noAccount')}{' '}
+          <Link href="/register" className={styles.footerLink}>
+            {t('login.registerLink')}
+          </Link>
+        </p>
       </div>
     </div>
   )
