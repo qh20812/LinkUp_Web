@@ -82,7 +82,7 @@ export default function RegisterForm() {
 
       if (res.verify_email) {
         toast({ type: 'success', title: t('register.verifyEmailMessage') })
-        router.push('/login')
+        router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`)
         return
       }
 

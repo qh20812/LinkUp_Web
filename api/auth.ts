@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { AuthResponse, RegisterResponse, TokenPayload } from '../types'
+import type { AuthResponse, RegisterResponse, VerifyEmailResponse, ResendVerificationResponse, TokenPayload } from '../types'
 
 export const login = (email: string, password: string) =>
   request<AuthResponse>('/auth/login', {
@@ -11,6 +11,18 @@ export const register = (displayName: string, email: string, password: string) =
   request<RegisterResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({ display_name: displayName, email, password }),
+  })
+
+export const verifyEmail = (token: string) =>
+  request<VerifyEmailResponse>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+
+export const resendVerification = (email: string) =>
+  request<ResendVerificationResponse>('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
   })
 
 export const changePassword = (oldPassword: string, newPassword: string) =>

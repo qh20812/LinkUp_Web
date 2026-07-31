@@ -42,6 +42,18 @@ export type RegisterResponse = Omit<AuthResponse, 'tokens'> & {
   verify_email?: boolean
 }
 
+export interface VerifyEmailResponse {
+  message: string
+  verified: boolean
+  access_token?: string
+  refresh_token?: string
+  role?: string
+}
+
+export interface ResendVerificationResponse {
+  message: string
+}
+
 // ===== Feed / Posts =====
 export interface EmojiItem {
   id: string

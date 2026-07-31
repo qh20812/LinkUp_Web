@@ -134,6 +134,24 @@
     "confirmRequired": "Vui lòng xác nhận mật khẩu",
     "confirmMismatch": "Mật khẩu xác nhận không khớp"
   },
+  "verifyEmail": {
+    "title": "Xác thực email",
+    "pendingTitle": "Kiểm tra hộp thư của bạn",
+    "pendingMessage": "Chúng tôi đã gửi link xác thực đến {email}. Vui lòng nhấn nút trong email để xác thực tài khoản. Link có hiệu lực trong 1 giờ.",
+    "resendHint": "Không nhận được email?",
+    "resend": "Gửi lại email xác thực",
+    "resendCooldown": "Có thể gửi lại sau {seconds} giây",
+    "resendSuccess": "Đã gửi email xác thực. Vui lòng kiểm tra hộp thư.",
+    "verifying": "Đang xác thực email của bạn...",
+    "successTitle": "Xác thực email thành công!",
+    "successMessage": "Tài khoản của bạn đã được xác thực. Đang chuyển đến LinkUp...",
+    "continue": "Tiếp tục đến LinkUp",
+    "errorTitle": "Xác thực thất bại",
+    "goToLogin": "Đi đến đăng nhập",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Nhập email của bạn",
+    "invalidToken": "Thiếu token xác thực"
+  },
   "dashboard": {
     "pageName": "Bảng điều khiển",
     "totalUsers": "Tổng người dùng",
