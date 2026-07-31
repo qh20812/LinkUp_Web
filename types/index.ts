@@ -54,6 +54,19 @@ export interface ResendVerificationResponse {
   message: string
 }
 
+export interface ForgotPasswordResponse {
+  message: string
+}
+
+export interface VerifyResetTokenResponse {
+  message: string
+  valid: boolean
+}
+
+export interface ResetPasswordResponse {
+  message: string
+}
+
 // ===== Feed / Posts =====
 export interface EmojiItem {
   id: string

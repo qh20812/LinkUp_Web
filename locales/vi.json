@@ -104,7 +104,8 @@
     "submit": "Đăng nhập",
     "error": "Email hoặc mật khẩu không đúng",
     "noAccount": "Chưa có tài khoản?",
-    "registerLink": "Đăng ký"
+    "registerLink": "Đăng ký",
+    "forgotPassword": "Quên mật khẩu?"
   },
   "register": {
     "title": "Đăng ký",
@@ -151,6 +152,42 @@
     "emailLabel": "Email",
     "emailPlaceholder": "Nhập email của bạn",
     "invalidToken": "Thiếu token xác thực"
+  },
+  "forgotPassword": {
+    "title": "Quên mật khẩu",
+    "subtitle": "Nhập email của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu",
+    "email": "Email",
+    "emailPlaceholder": "Nhập email của bạn",
+    "submit": "Gửi link đặt lại mật khẩu",
+    "sentTitle": "Kiểm tra hộp thư của bạn",
+    "sentMessage": "Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến {email}. Link có hiệu lực trong 10 phút.",
+    "error": "Không thể gửi link đặt lại mật khẩu",
+    "backToLogin": "Quay lại đăng nhập",
+    "emailRequired": "Email không được để trống",
+    "emailInvalid": "Định dạng email không hợp lệ"
+  },
+  "resetPassword": {
+    "title": "Đặt mật khẩu mới",
+    "subtitle": "Nhập mật khẩu mới cho tài khoản của bạn",
+    "password": "Mật khẩu mới",
+    "passwordPlaceholder": "Nhập mật khẩu mới",
+    "confirmPassword": "Xác nhận mật khẩu mới",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu mới",
+    "submit": "Đặt lại mật khẩu",
+    "verifying": "Đang kiểm tra link đặt lại mật khẩu...",
+    "invalidTitle": "Link không hợp lệ hoặc đã hết hạn",
+    "invalidMessage": "Link đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu link mới.",
+    "requestNewLink": "Yêu cầu link mới",
+    "successTitle": "Đặt lại mật khẩu thành công!",
+    "successMessage": "Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập với mật khẩu mới.",
+    "goToLogin": "Đi đến đăng nhập",
+    "error": "Không thể đặt lại mật khẩu",
+    "passwordRequired": "Mật khẩu không được để trống",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
+    "passwordTooLong": "Mật khẩu không được vượt quá 50 ký tự",
+    "passwordComplexity": "Mật khẩu phải chứa chữ in hoa, chữ thường, số và ký tự đặc biệt",
+    "confirmRequired": "Vui lòng xác nhận mật khẩu",
+    "confirmMismatch": "Mật khẩu xác nhận không khớp"
   },
   "dashboard": {
     "pageName": "Bảng điều khiển",

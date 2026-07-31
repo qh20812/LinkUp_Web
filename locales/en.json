@@ -104,7 +104,8 @@
     "submit": "Login",
     "error": "Invalid email or password",
     "noAccount": "Don't have an account?",
-    "registerLink": "Register"
+    "registerLink": "Register",
+    "forgotPassword": "Forgot password?"
   },
   "register": {
     "title": "Register",
@@ -151,6 +152,42 @@
     "emailLabel": "Email",
     "emailPlaceholder": "Enter your email",
     "invalidToken": "Missing verification token"
+  },
+  "forgotPassword": {
+    "title": "Forgot Password",
+    "subtitle": "Enter your email and we'll send you a password reset link",
+    "email": "Email",
+    "emailPlaceholder": "Enter your email",
+    "submit": "Send reset link",
+    "sentTitle": "Check your inbox",
+    "sentMessage": "If the email exists, we've sent a password reset link to {email}. The link expires in 10 minutes.",
+    "error": "Failed to send password reset link",
+    "backToLogin": "Back to login",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email format"
+  },
+  "resetPassword": {
+    "title": "Set a New Password",
+    "subtitle": "Enter a new password for your account",
+    "password": "New Password",
+    "passwordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm New Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "submit": "Reset Password",
+    "verifying": "Checking your reset link...",
+    "invalidTitle": "Link is invalid or expired",
+    "invalidMessage": "This password reset link is invalid, expired, or has already been used. Please request a new link.",
+    "requestNewLink": "Request a new link",
+    "successTitle": "Password reset successful!",
+    "successMessage": "Your password has been updated. Please log in with your new password.",
+    "goToLogin": "Go to login",
+    "error": "Failed to reset password",
+    "passwordRequired": "Password is required",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordTooLong": "Password must not exceed 50 characters",
+    "passwordComplexity": "Password must contain uppercase, lowercase, number and special character",
+    "confirmRequired": "Please confirm your password",
+    "confirmMismatch": "Passwords do not match"
   },
   "dashboard": {
     "pageName": "Dashboard",

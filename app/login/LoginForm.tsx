@@ -95,6 +95,10 @@ export default function LoginForm() {
           </button>
         </form>
 
+        <Link href="/forgot-password" className={styles.forgotLink}>
+          {t('login.forgotPassword')}
+        </Link>
+
         <p className={styles.footer}>
           {t('login.noAccount')}{' '}
           <Link href="/register" className={styles.footerLink}>
