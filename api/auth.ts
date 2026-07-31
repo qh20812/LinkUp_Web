@@ -1,10 +1,46 @@
 import { request } from './api'
-import type { AuthResponse, TokenPayload } from '../types'
+import type { AuthResponse, RegisterResponse, VerifyEmailResponse, ResendVerificationResponse, ForgotPasswordResponse, VerifyResetTokenResponse, ResetPasswordResponse, TokenPayload } from '../types'
 
 export const login = (email: string, password: string) =>
   request<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+  })
+
+export const register = (displayName: string, email: string, password: string) =>
+  request<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ display_name: displayName, email, password }),
+  })
+
+export const verifyEmail = (token: string) =>
+  request<VerifyEmailResponse>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+
+export const resendVerification = (email: string) =>
+  request<ResendVerificationResponse>('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+
+export const forgotPassword = (email: string) =>
+  request<ForgotPasswordResponse>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+
+export const verifyResetToken = (token: string) =>
+  request<VerifyResetTokenResponse>('/auth/verify-reset-token', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+
+export const resetPassword = (token: string, newPassword: string) =>
+  request<ResetPasswordResponse>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
   })
 
 export const changePassword = (oldPassword: string, newPassword: string) =>

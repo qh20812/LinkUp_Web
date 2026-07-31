@@ -37,6 +37,36 @@ export interface AuthResponse {
   storage?: StorageInfo
 }
 
+export type RegisterResponse = Omit<AuthResponse, 'tokens'> & {
+  tokens?: TokenResponse
+  verify_email?: boolean
+}
+
+export interface VerifyEmailResponse {
+  message: string
+  verified: boolean
+  access_token?: string
+  refresh_token?: string
+  role?: string
+}
+
+export interface ResendVerificationResponse {
+  message: string
+}
+
+export interface ForgotPasswordResponse {
+  message: string
+}
+
+export interface VerifyResetTokenResponse {
+  message: string
+  valid: boolean
+}
+
+export interface ResetPasswordResponse {
+  message: string
+}
+
 // ===== Feed / Posts =====
 export interface EmojiItem {
   id: string
