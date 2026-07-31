@@ -189,6 +189,16 @@
     "confirmRequired": "Please confirm your password",
     "confirmMismatch": "Passwords do not match"
   },
+  "changePassword": {
+    "pageDescription": "Manage your account security",
+    "oldPasswordPlaceholder": "Enter current password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "oldPasswordRequired": "Current password is required",
+    "sameAsOld": "New password must be different from the current password",
+    "submit": "Change Password",
+    "error": "Failed to change password"
+  },
   "dashboard": {
     "pageName": "Dashboard",
     "totalUsers": "Total Users",
@@ -501,6 +511,7 @@
     "tabGeneral": "General",
     "tabSecurity": "Security & Auth",
     "tabRegistration": "Registration",
+    "tabChangePassword": "Change Password",
     "tabEmailStorage": "Email & Storage",
     "site_name": "Site Name",
     "site_description": "Site Description",

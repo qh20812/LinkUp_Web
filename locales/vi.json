@@ -189,6 +189,16 @@
     "confirmRequired": "Vui lòng xác nhận mật khẩu",
     "confirmMismatch": "Mật khẩu xác nhận không khớp"
   },
+  "changePassword": {
+    "pageDescription": "Quản lý bảo mật tài khoản của bạn",
+    "oldPasswordPlaceholder": "Nhập mật khẩu hiện tại",
+    "newPasswordPlaceholder": "Nhập mật khẩu mới",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
+    "oldPasswordRequired": "Mật khẩu hiện tại không được để trống",
+    "sameAsOld": "Mật khẩu mới phải khác mật khẩu cũ",
+    "submit": "Đổi mật khẩu",
+    "error": "Đổi mật khẩu thất bại"
+  },
   "dashboard": {
     "pageName": "Bảng điều khiển",
     "totalUsers": "Tổng người dùng",
@@ -501,6 +511,7 @@
     "tabGeneral": "Chung",
     "tabSecurity": "Bảo mật & Xác thực",
     "tabRegistration": "Đăng ký",
+    "tabChangePassword": "Đổi mật khẩu",
     "tabEmailStorage": "Email & Lưu trữ",
     "site_name": "Tên hệ thống",
     "site_description": "Mô tả",
