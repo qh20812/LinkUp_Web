@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
+import { getTokenPayload } from '../api/auth'
 import VideoPlayer from './VideoPlayer'
 import type { FeedPost } from '../types'
 
@@ -99,6 +100,12 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const { t } = useTranslation()
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentUserId(getTokenPayload()?.user_id ?? null)
+  }, [])
   const needsTruncation = post.content.length > CONTENT_TRUNCATE_LENGTH
   const displayContent = needsTruncation && !expanded
     ? post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
@@ -120,7 +127,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
           <div className={styles.authorMeta}>
             <span className={styles.displayName}>
               <span className={styles.displayNameText}>{post.display_name}</span>
-              {!post.is_following && (
+              {!post.is_following && post.user_id !== currentUserId && (
                 <button
                   className={styles.followBadge}
                   onClick={(e) => {

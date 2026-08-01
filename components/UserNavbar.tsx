@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { Suspense, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './UserNavbar.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 
-export default function UserNavbar() {
+function UserNavbarContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -47,5 +47,13 @@ export default function UserNavbar() {
         </Link>
       </div>
     </nav>
+  )
+}
+
+export default function UserNavbar() {
+  return (
+    <Suspense fallback={null}>
+      <UserNavbarContent />
+    </Suspense>
   )
 }

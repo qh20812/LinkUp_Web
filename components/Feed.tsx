@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import type { FeedPost, EmojiItem } from '../types'
 import PostCard from './PostCard'
+import PostComposer from './PostComposer'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 
@@ -22,6 +23,14 @@ async function ensureLikeEmojiId(): Promise<string | undefined> {
 }
 
 export default function Feed() {
+  return (
+    <Suspense fallback={null}>
+      <FeedContent />
+    </Suspense>
+  )
+}
+
+function FeedContent() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
   const { followedUserIds, followUser: ctxFollowUser } = useFollowContext()
@@ -234,6 +243,7 @@ export default function Feed() {
 
   return (
     <div className={styles.container}>
+      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
       {posts.map((post) => (
         <PostCard
           key={post.id}

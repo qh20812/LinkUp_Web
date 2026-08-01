@@ -119,6 +119,19 @@ export interface FeedResponse {
   data: FeedPost[]
 }
 
+export type PostStatus = 'public' | 'friend' | 'private' | 'hidden'
+
+export interface CreatePostInput {
+  title: string
+  content: string
+  status: PostStatus
+  files?: File[]
+}
+
+export interface CreatePostResponse {
+  data: FeedPost
+}
+
 // ===== Dashboard / Analytics =====
 export interface ChartDataPoint {
   date: string

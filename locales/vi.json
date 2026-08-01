@@ -94,6 +94,24 @@
     "exploreLink": "Khám phá bài viết",
     "end": "Đã xem hết bài viết."
   },
+  "composer": {
+    "placeholder": "Bạn đang nghĩ gì thế?",
+    "titlePlaceholder": "Tiêu đề bài viết...",
+    "contentPlaceholder": "Chia sẻ điều gì đó với mọi người...",
+    "post": "Đăng bài",
+    "cancel": "Hủy",
+    "media": "Ảnh/video",
+    "charCount": "{count}/{max}",
+    "privacy": {
+      "public": "Công khai",
+      "friend": "Bạn bè",
+      "private": "Riêng tư"
+    },
+    "errorTitleLength": "Tiêu đề phải từ 5 đến 150 ký tự",
+    "errorContentRequired": "Vui lòng nhập nội dung bài viết",
+    "errorMaxLength": "Nội dung không được vượt quá 5000 ký tự",
+    "success": "Đăng bài thành công!"
+  },
   "login": {
     "title": "Đăng nhập",
     "subtitle": "Đăng nhập để kết nối với bạn bè",

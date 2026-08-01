@@ -94,6 +94,24 @@
     "exploreLink": "Explore posts",
     "end": "You've seen all posts."
   },
+  "composer": {
+    "placeholder": "What's on your mind?",
+    "titlePlaceholder": "Post title...",
+    "contentPlaceholder": "Share something with everyone...",
+    "post": "Post",
+    "cancel": "Cancel",
+    "media": "Photo/Video",
+    "charCount": "{count}/{max}",
+    "privacy": {
+      "public": "Public",
+      "friend": "Friends",
+      "private": "Private"
+    },
+    "errorTitleLength": "Title must be between 5 and 150 characters",
+    "errorContentRequired": "Please enter some content",
+    "errorMaxLength": "Content cannot exceed 5000 characters",
+    "success": "Post published successfully!"
+  },
   "login": {
     "title": "Login",
     "subtitle": "Log in to connect with friends",
