@@ -9,6 +9,13 @@ export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: stri
   return request<FeedResponse>(`/posts?${params.toString()}`)
 }
 
+export const getSavedPosts = (cursor: string | null, pageSize = 10) => {
+  const params = new URLSearchParams()
+  params.set('page_size', String(pageSize))
+  if (cursor) params.set('cursor', cursor)
+  return request<FeedResponse>(`/posts/saved?${params.toString()}`)
+}
+
 export const getTrendingHashtags = () =>
   request<{ data: TrendingHashtag[] }>('/trending')
 

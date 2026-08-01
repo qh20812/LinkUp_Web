@@ -94,6 +94,13 @@
     "exploreLink": "Explore posts",
     "end": "You've seen all posts."
   },
+  "saved": {
+    "title": "Saved Posts",
+    "subtitle": "Posts you've saved to your bookmarks",
+    "empty": "You haven't saved any posts yet.",
+    "emptyDesc": "Tap the bookmark icon on a post to save it and find it here.",
+    "end": "You've seen all saved posts."
+  },
   "composer": {
     "placeholder": "What's on your mind?",
     "titlePlaceholder": "Post title...",
