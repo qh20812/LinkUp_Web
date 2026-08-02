@@ -94,6 +94,26 @@
     "exploreLink": "Khám phá bài viết",
     "end": "Đã xem hết bài viết."
   },
+  "postDetail": {
+    "comments": "Bình luận",
+    "viewCount": "{count} lượt xem",
+    "commentCount": "{count} bình luận",
+    "loadMore": "Xem thêm bình luận",
+    "noComments": "Chưa có bình luận nào.",
+    "commentPlaceholder": "Viết bình luận...",
+    "commentButton": "Đăng bình luận",
+    "reply": "Trả lời",
+    "replyingTo": "Đang trả lời @{username}",
+    "cancelReply": "Hủy trả lời",
+    "sharePlaceholder": "Viết mô tả (tùy chọn)...",
+    "shareButton": "Chia sẻ",
+    "cancel": "Hủy",
+    "delete": "Xóa bài viết",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa bài viết này?",
+    "deleted": "Đã xóa bài viết",
+    "shared": "Chia sẻ bài viết thành công!",
+    "commentPosted": "Đăng bình luận thành công!"
+  },
   "saved": {
     "title": "Bài viết đã lưu",
     "subtitle": "Danh sách bài viết bạn đã lưu vào mục Bookmark",

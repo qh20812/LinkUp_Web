@@ -41,6 +41,7 @@ interface PostCardProps {
   onComment?: (postId: string) => void
   onShare?: (postId: string) => void
   onFollow?: (userId: string) => void
+  onOpenDetail?: (postId: string) => void
 }
 
 function isVideo(fileType: string): boolean {
@@ -96,7 +97,7 @@ function LazyMediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavi
   return <MediaGrid media={media} onNavigate={onNavigate} />
 }
 
-export default function PostCard({ post, onLike, onSave, onComment, onShare, onFollow }: PostCardProps) {
+export default function PostCard({ post, onLike, onSave, onComment, onShare, onFollow, onOpenDetail }: PostCardProps) {
   const { t } = useTranslation()
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
@@ -111,7 +112,13 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
     ? post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
     : post.content
 
-  const navigateToPost = () => router.push(`/posts/${post.id}`)
+  const navigateToPost = () => {
+    if (onOpenDetail) {
+      onOpenDetail(post.id)
+      return
+    }
+    router.push(`/posts/${post.id}`)
+  }
 
   return (
     <article className={styles.card}>

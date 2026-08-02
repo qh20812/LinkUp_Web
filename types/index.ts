@@ -132,6 +132,32 @@ export interface CreatePostResponse {
   data: FeedPost
 }
 
+export interface CommentItem {
+  id: string
+  user_id: string
+  post_id: string
+  parent_id?: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  content: string
+  status: string
+  created_at: string
+  updated_at?: string
+}
+
+export interface CommentListResponse {
+  page: number
+  page_size: number
+  total: number
+  data: CommentItem[]
+}
+
+export interface CreateCommentResponse {
+  message: string
+  data: CommentItem[]
+}
+
 // ===== Dashboard / Analytics =====
 export interface ChartDataPoint {
   date: string

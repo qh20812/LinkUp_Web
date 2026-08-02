@@ -1,5 +1,14 @@
 import { request } from './api'
-import type { FeedResponse, EmojiItem, TrendingHashtag, CreatePostInput, CreatePostResponse } from '../types'
+import type {
+  FeedPost,
+  FeedResponse,
+  EmojiItem,
+  TrendingHashtag,
+  CreatePostInput,
+  CreatePostResponse,
+  CommentListResponse,
+  CreateCommentResponse,
+} from '../types'
 
 export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: string) => {
   const params = new URLSearchParams()
@@ -8,6 +17,33 @@ export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: stri
   if (filter) params.set('filter', filter)
   return request<FeedResponse>(`/posts?${params.toString()}`)
 }
+
+export const getPostDetail = (postId: string) =>
+  request<{ data: FeedPost }>(`/posts/${postId}`)
+
+export const getComments = (postId: string, page = 1, pageSize = 10) => {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('page_size', String(pageSize))
+  return request<CommentListResponse>(`/posts/${postId}/comments?${params.toString()}`)
+}
+
+export const createComment = (postId: string, content: string, parentId?: string) =>
+  request<CreateCommentResponse>(`/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content, ...(parentId ? { parent_id: parentId } : {}) }),
+  })
+
+export const sharePost = (postId: string, content?: string) =>
+  request<{ message: string }>(`/posts/${postId}/share`, {
+    method: 'POST',
+    body: JSON.stringify({ content: content ?? '' }),
+  })
+
+export const deletePost = (postId: string) =>
+  request<{ message: string }>(`/posts/${postId}`, {
+    method: 'DELETE',
+  })
 
 export const getSavedPosts = (cursor: string | null, pageSize = 10) => {
   const params = new URLSearchParams()
