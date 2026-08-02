@@ -94,6 +94,13 @@
     "exploreLink": "Khám phá bài viết",
     "end": "Đã xem hết bài viết."
   },
+  "saved": {
+    "title": "Bài viết đã lưu",
+    "subtitle": "Danh sách bài viết bạn đã lưu vào mục Bookmark",
+    "empty": "Bạn chưa lưu bài viết nào.",
+    "emptyDesc": "Nhấn biểu tượng dấu trang trên bài viết để lưu lại và xem chúng ở đây.",
+    "end": "Đã xem hết bài viết đã lưu."
+  },
   "composer": {
     "placeholder": "Bạn đang nghĩ gì thế?",
     "titlePlaceholder": "Tiêu đề bài viết...",
