@@ -63,6 +63,53 @@ function isVideo(fileType: string): boolean {
   return fileType.startsWith('video/')
 }
 
+interface CommentNode {
+  comment: CommentItem
+  replies: CommentNode[]
+}
+
+function buildCommentTree(comments: CommentItem[]): CommentNode[] {
+  const byId = new Map<string, CommentItem>(comments.map((c) => [c.id, c]))
+
+  const rootOf = (id: string): string => {
+    const visited = new Set<string>()
+    let currentId = id
+    while (currentId && byId.has(currentId) && !visited.has(currentId)) {
+      visited.add(currentId)
+      const parentId = byId.get(currentId)!.parent_id
+      if (!parentId || !byId.has(parentId)) return currentId
+      currentId = parentId
+    }
+    return currentId
+  }
+
+  const nodes = new Map<string, CommentNode>()
+  for (const c of comments) nodes.set(c.id, { comment: c, replies: [] })
+
+  const roots: CommentNode[] = []
+  for (const c of comments) {
+    const node = nodes.get(c.id)!
+    const rootId = c.parent_id ? rootOf(c.id) : c.id
+    if (rootId !== c.id) {
+      nodes.get(rootId)!.replies.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+
+  roots.sort(
+    (a, b) => new Date(b.comment.created_at).getTime() - new Date(a.comment.created_at).getTime(),
+  )
+
+  for (const root of roots) {
+    root.replies.sort(
+      (a, b) => new Date(a.comment.created_at).getTime() - new Date(b.comment.created_at).getTime(),
+    )
+  }
+
+  return roots
+}
+
 interface PostDetailModalProps {
   post: FeedPost
   open: boolean
@@ -243,6 +290,48 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
   const isOwner = currentUserId !== null && current.user_id === currentUserId
 
+  const commentTree = buildCommentTree(comments)
+
+  const renderComment = (node: CommentNode): React.ReactNode => (
+    <div key={node.comment.id} className={styles.commentItem}>
+      <div className={styles.commentHead}>
+        <div className={styles.commentAvatar}>
+          {node.comment.avatar_uri ? (
+            <img src={node.comment.avatar_uri} alt="" />
+          ) : (
+            <i className="bx bxs-user" />
+          )}
+        </div>
+        <span className={styles.commentAuthor}>{node.comment.display_name}</span>
+        <span className={styles.commentTime}>{formatRelativeTime(node.comment.created_at, t)}</span>
+      </div>
+      <p className={styles.commentContent}>
+        {node.comment.parent_id && (() => {
+          const parentComment = comments.find((x) => x.id === node.comment.parent_id)
+          return parentComment ? (
+            <span className={styles.mention}>@{parentComment.display_name}</span>
+          ) : null
+        })()}
+        {node.comment.content}
+      </p>
+      <div className={styles.commentActions}>
+        <button
+          type="button"
+          className={styles.replyBtn}
+          onClick={() => {
+            setReplyingTo((cur) => (cur?.id === node.comment.id ? null : node.comment))
+            commentInputRef.current?.focus()
+          }}
+        >
+          {t('postDetail.reply')}
+        </button>
+      </div>
+      {node.replies.length > 0 && (
+        <div className={styles.commentReplies}>{node.replies.map(renderComment)}</div>
+      )}
+    </div>
+  )
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -387,34 +476,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                 {comments.length === 0 && !commentsLoading && (
                   <div className={styles.noComments}>{t('postDetail.noComments')}</div>
                 )}
-                {comments.map((c) => (
-                  <div key={c.id} className={styles.commentItem}>
-                    <div className={styles.commentHead}>
-                      <div className={styles.commentAvatar}>
-                        {c.avatar_uri ? (
-                          <img src={c.avatar_uri} alt="" />
-                        ) : (
-                          <i className="bx bxs-user" />
-                        )}
-                      </div>
-                      <span className={styles.commentAuthor}>{c.display_name}</span>
-                      <span className={styles.commentTime}>{formatRelativeTime(c.created_at, t)}</span>
-                    </div>
-                    <p className={styles.commentContent}>{c.content}</p>
-                    <div className={styles.commentActions}>
-                      <button
-                        type="button"
-                        className={styles.replyBtn}
-                        onClick={() => {
-                          setReplyingTo((cur) => (cur?.id === c.id ? null : c))
-                          commentInputRef.current?.focus()
-                        }}
-                      >
-                        {t('postDetail.reply')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                {commentTree.map(renderComment)}
                 {comments.length > 0 && comments.length < commentTotal && (
                   <div className={styles.loadMoreWrap}>
                     <button type="button" className={styles.loadMoreBtn} onClick={loadMoreComments}>

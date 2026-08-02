@@ -346,6 +346,13 @@
   border-bottom: none;
 }
 
+.commentReplies {
+  margin-left: 36px;
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--color-divider);
+  margin-top: var(--space-xs);
+}
+
 .commentHead {
   display: flex;
   align-items: center;
@@ -394,6 +401,12 @@
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.mention {
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-right: 6px;
 }
 
 .commentActions {
