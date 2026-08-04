@@ -8,6 +8,7 @@ import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import type { FeedPost, EmojiItem } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
+import PostDetailModal from './PostDetailModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 
@@ -40,6 +41,7 @@ function FeedContent() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -166,11 +168,11 @@ function FeedContent() {
   }
 
   const handleComment = (postId: string) => {
-    window.location.href = `/posts/${postId}`
+    setSelectedPostId(postId)
   }
 
   const handleShare = (postId: string) => {
-    window.location.href = `/posts/${postId}`
+    setSelectedPostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -241,6 +243,8 @@ function FeedContent() {
     )
   }
 
+  const detailPost = selectedPostId ? posts.find((p) => p.id === selectedPostId) ?? null : null
+
   return (
     <div className={styles.container}>
       <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
@@ -253,6 +257,7 @@ function FeedContent() {
           onComment={handleComment}
           onShare={handleShare}
           onFollow={handleFollow}
+          onOpenDetail={setSelectedPostId}
         />
       ))}
 
@@ -270,6 +275,17 @@ function FeedContent() {
       )}
 
       <div ref={sentinelRef} className={styles.sentinel} />
+
+      {detailPost && (
+        <PostDetailModal
+          key={detailPost.id}
+          post={detailPost}
+          open
+          onClose={() => setSelectedPostId(null)}
+          onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
+          onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+        />
+      )}
     </div>
   )
 }
