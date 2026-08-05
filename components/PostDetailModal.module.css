@@ -59,6 +59,16 @@
   aspect-ratio: 16 / 10;
 }
 
+.mediaPane > .mediaItem:only-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.mediaPane > .mediaItem:only-child video {
+  object-fit: contain !important;
+}
+
 .contentPane {
   flex: 1 1 50%;
   min-width: 0;
