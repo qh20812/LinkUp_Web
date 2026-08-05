@@ -91,7 +91,11 @@ export default function FriendsPage() {
     try {
       const res = await getFriendSuggestions(page, INFINITE_SCROLL_SIZE)
       suggestionsPageRef.current = res.page
-      setSuggestions((prev) => (page === 1 ? res.data : [...prev, ...res.data]))
+      setSuggestions((prev) => {
+        const list = page === 1 ? res.data : [...prev, ...res.data]
+        const seen = new Set<string>()
+        return list.filter((u) => (seen.has(u.user_id) ? false : (seen.add(u.user_id), true)))
+      })
       setSuggestionsHasMore(res.has_more)
     } catch (err) {
       setSuggestionsError(err instanceof Error ? err.message : t('common.error'))
@@ -111,7 +115,11 @@ export default function FriendsPage() {
     try {
       const res = await getFriends(page, INFINITE_SCROLL_SIZE)
       friendsPageRef.current = res.page
-      setFriends((prev) => (page === 1 ? res.data : [...prev, ...res.data]))
+      setFriends((prev) => {
+        const list = page === 1 ? res.data : [...prev, ...res.data]
+        const seen = new Set<string>()
+        return list.filter((u) => (seen.has(u.user_id) ? false : (seen.add(u.user_id), true)))
+      })
       setFriendsHasMore(res.has_more)
     } catch (err) {
       setFriendsError(err instanceof Error ? err.message : t('common.error'))
@@ -357,6 +365,14 @@ export default function FriendsPage() {
                 {user.mutual_count > 0 && (
                   <span className={styles.cardSub}>{t('friends.mutual', { count: user.mutual_count })}</span>
                 )}
+                {user.mutual_names && user.mutual_names.length > 0 && (
+                  <span className={styles.cardMutual}>
+                    {t('friends.mutualWith', { names: user.mutual_names.join(', ') })}
+                    {user.mutual_count > user.mutual_names.length && (
+                      <>{' '}{t('friends.mutualMore', { count: user.mutual_count - user.mutual_names.length })}</>
+                    )}
+                  </span>
+                )}
               </div>
               {user._friendStatus === 'sent' ? (
                 <button className={`${styles.primaryBtn} ${styles.btnDisabled}`} disabled>
@@ -448,10 +464,6 @@ export default function FriendsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{t('friends.title')}</h1>
-      </header>
-
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${mainTab === 'requests' ? styles.tabActive : ''}`}

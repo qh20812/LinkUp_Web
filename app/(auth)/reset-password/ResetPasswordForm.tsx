@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useToast } from '../../contexts/ToastContext'
-import { useTranslation } from '../../hooks/useTranslation'
-import { verifyResetToken, resetPassword } from '../../api/auth'
+import { useToast } from '../../../contexts/ToastContext'
+import { useTranslation } from '../../../hooks/useTranslation'
+import { verifyResetToken, resetPassword } from '../../../api/auth'
+import AuthCard from '../../../components/auth/AuthCard'
 import styles from './ResetPasswordForm.module.css'
 
 type Status = 'verifying' | 'form' | 'invalid' | 'success' | 'error'
@@ -97,12 +98,11 @@ export default function ResetPasswordForm({ initialToken }: ResetPasswordFormPro
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.logo}>
-          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-          <span className={styles.logoText}>LinkUp</span>
-        </div>
+    <AuthCard cardClassName={styles.centered}>
+      <div className={styles.logo}>
+        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+        <span className={styles.logoText}>LinkUp</span>
+      </div>
 
         {status === 'verifying' && (
           <>
@@ -215,7 +215,6 @@ export default function ResetPasswordForm({ initialToken }: ResetPasswordFormPro
             </Link>
           </>
         )}
-      </div>
-    </div>
+    </AuthCard>
   )
 }

@@ -4,9 +4,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useToast } from '../../contexts/ToastContext'
-import { useTranslation } from '../../hooks/useTranslation'
-import { verifyEmail, resendVerification } from '../../api/auth'
+import { useToast } from '../../../contexts/ToastContext'
+import { useTranslation } from '../../../hooks/useTranslation'
+import { verifyEmail, resendVerification } from '../../../api/auth'
+import { getPostAuthPath } from '../../../utils/auth'
+import type { UserRole } from '../../../types'
+import AuthCard from '../../../components/auth/AuthCard'
 import styles from './VerifyEmail.module.css'
 
 type Status = 'verifying' | 'pending' | 'success' | 'error'
@@ -28,13 +31,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
   const router = useRouter()
 
   const redirectByRole = (role?: string) => {
-    if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
-      router.push('/admin/dashboard')
-    } else if (role === 'PARTNER') {
-      router.push('/partner/dashboard')
-    } else {
-      router.push('/')
-    }
+    router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
   }
 
   useEffect(() => {
@@ -77,13 +74,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
         setStatus('success')
         const role = res.role
         setTimeout(() => {
-          if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
-            router.push('/admin/dashboard')
-          } else if (role === 'PARTNER') {
-            router.push('/partner/dashboard')
-          } else {
-            router.push('/')
-          }
+          router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
         }, 3000)
       } catch (err) {
         if (cancelled) return
@@ -119,12 +110,11 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.logo}>
-          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-          <span className={styles.logoText}>LinkUp</span>
-        </div>
+    <AuthCard cardClassName={styles.centered}>
+      <div className={styles.logo}>
+        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+        <span className={styles.logoText}>LinkUp</span>
+      </div>
 
         {status === 'verifying' && (
           <>
@@ -230,7 +220,6 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
             </Link>
           </>
         )}
-      </div>
-    </div>
+    </AuthCard>
   )
 }

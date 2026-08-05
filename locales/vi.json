@@ -41,6 +41,7 @@
     "changePassword": "Đổi mật khẩu",
     "about": "Giới thiệu",
     "policies": "Chính sách",
+    "login": "Đăng nhập",
     "adminLogin": "Quản trị viên",
     "ads": "Quảng cáo"
   },
@@ -129,6 +130,8 @@
     "tabSuggestions": "Gợi ý",
     "tabList": "Bạn bè",
     "mutual": "{count} bạn chung",
+    "mutualWith": "Chung với: {names}",
+    "mutualMore": "+{count} người khác",
     "addFriend": "Thêm bạn",
     "sent": "Đã gửi",
     "accept": "Chấp nhận",
@@ -167,6 +170,10 @@
     "errorMaxLength": "Nội dung không được vượt quá 5000 ký tự",
     "success": "Đăng bài thành công!"
   },
+  "brand": {
+    "headline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
+    "tagline": "Cộng đồng xã hội cho mọi người"
+  },
   "login": {
     "title": "Đăng nhập",
     "subtitle": "Đăng nhập để kết nối với bạn bè",
@@ -179,6 +186,11 @@
     "noAccount": "Chưa có tài khoản?",
     "registerLink": "Đăng ký",
     "forgotPassword": "Quên mật khẩu?"
+  },
+  "landing": {
+    "tagline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
+    "ctaStart": "Bắt đầu",
+    "ctaLogin": "Đăng nhập"
   },
   "register": {
     "title": "Đăng ký",

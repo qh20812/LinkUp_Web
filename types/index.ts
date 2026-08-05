@@ -612,6 +612,7 @@ export interface FriendSuggestionUser {
   display_name: string
   avatar_uri: string
   mutual_count: number
+  mutual_names?: string[]
   _friendStatus?: 'sent'
 }
 

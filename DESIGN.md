@@ -6,9 +6,9 @@
 
 | Token | HEX | Usage |
 |-------|-----|-------|
-| `--color-primary` | `#40E0D0` (Turquoise) | Logo, CTA buttons, primary icons |
-| `--color-primary-hover` | `#36C9B9` | Primary button hover |
-| `--color-primary-active` | `#2EB3A3` | Primary button active/click |
+| `--color-primary` | `#12A5A1` (Turquoise) | Logo, links, active states, primary icons; CTA outline/light pills |
+| `--color-primary-hover` | `#0C918D` | Primary hover |
+| `--color-primary-active` | `#0A7D79` | Primary active/click |
 | `--color-secondary` | `#0A1F44` (Navy) | Header, footer, dark backgrounds |
 | `--color-secondary-hover` | `#0D2A5A` | Secondary button hover |
 | `--color-secondary-active` | `#0F3570` | Secondary button active |
@@ -36,16 +36,16 @@
 | `--color-warning` | `#FBC02D` | `--color-warning-light`: `#FFF8E1` | `--color-warning-light`: `#78350F` | Warning states, suspended badges |
 | `--color-danger` | `#D32F2F` | `--color-danger-light`: `#FFEBEE` | `--color-danger-light`: `#7F1D1D` | Error/danger states, banned badges |
 | `--color-info` | `#1976D2` | `--color-info-light`: `#E3F2FD` | `--color-info-light`: `#1E3A5F` | Informational, reviewed badges |
-| `--color-primary-light` | `rgba(64,224,208,0.12)` | used as-is | `rgba(64,224,208,0.2)` | Hover/focus highlights, active rows |
+| `--color-primary-light` | `rgba(18,165,161,0.12)` | used as-is | `rgba(63,191,186,0.22)` | Hover/focus highlights, active rows |
 
 ### Dark Mode Overrides
 
 ```css
 [data-theme="dark"] {
-  --color-primary: #40E0D0;
-  --color-primary-hover: #5CE8DA;
-  --color-primary-active: #72EDE2;
-  --color-primary-light: rgba(64, 224, 208, 0.2);
+  --color-primary: #3FBFBA;
+  --color-primary-hover: #2BB0AC;
+  --color-primary-active: #1FA3A0;
+  --color-primary-light: rgba(63, 191, 186, 0.22);
 
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
@@ -152,17 +152,17 @@ Apply via `<html className={`${montserrat.variable} ${openSans.variable}`}>` in 
 
 | Token | Value |
 |-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.05)` |
-| `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.07)` |
-| `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.1)` |
+| `--shadow-sm` | `0 1px 3px rgba(0, 0, 0, 0.08)` |
+| `--shadow-md` | `0 4px 12px rgba(0, 0, 0, 0.1)` |
+| `--shadow-lg` | `0 12px 28px rgba(0, 0, 0, 0.15)` |
 
 ### Dark Mode
 
 | Token | Value |
 |-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.4)` |
-| `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.5)` |
-| `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.6)` |
+| `--shadow-sm` | `0 1px 3px rgba(0, 0, 0, 0.45)` |
+| `--shadow-md` | `0 4px 12px rgba(0, 0, 0, 0.55)` |
+| `--shadow-lg` | `0 12px 28px rgba(0, 0, 0, 0.65)` |
 
 ---
 
@@ -231,11 +231,11 @@ Use native CSS Grid — no framework:
 }
 
 .buttonPrimary {
-  background: var(--color-primary);
-  color: var(--color-secondary);
+  background: var(--color-secondary);
+  color: #FFFFFF;
 }
 .buttonPrimary:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-secondary-hover);
 }
 
 .buttonSecondary {
@@ -367,8 +367,8 @@ Use native CSS Grid — no framework:
 
 | State | `.buttonPrimary` | `.buttonSecondary` | `.buttonDanger` | `.buttonSuccess` |
 |-------|-----------------|-------------------|----------------|-----------------|
-| Default | `--color-primary` bg | `--color-bg-secondary` bg | `--color-danger` bg | `--color-success` bg |
-| Hover | `--color-primary-hover` | filter brightness 0.95 | filter brightness 1.1 | `#2e7d32` |
+| Default | `--color-secondary` bg | `--color-bg-secondary` bg | `--color-danger` bg | `--color-success` bg |
+| Hover | `--color-secondary-hover` | filter brightness 0.95 | filter brightness 1.1 | `#2e7d32` |
 | Disabled | opacity 0.6 | opacity 0.6 | opacity 0.6 | opacity 0.6 |
 | Focus | `outline: 2px solid var(--color-primary)` (global `:focus-visible`) | | | |
 
@@ -472,6 +472,7 @@ var(--shadow-lg)
 ### Do
 
 - Always use CSS variables from DESIGN.md — never hardcode colors/sizes
+- **Solid CTA buttons use `--color-secondary` (navy) + white text** for high contrast; `--color-primary` is reserved for links, active/inactive states, pill/outline buttons, and borders — not large filled buttons
 - Use `var(--space-*)` for all spacing
 - Use `var(--radius-*)` for all border-radius
 - Use `var(--text-*)` for font shorthand

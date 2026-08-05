@@ -39,13 +39,6 @@ export default function Navbar() {
           </Link>
 
           <div className={`${styles.links}${menuOpen ? ` ${styles.linksOpen}` : ''}`}>
-            <Link href="/about" className={styles.link}>
-              {t('nav.about')}
-            </Link>
-            <Link href="/policies" className={styles.link}>
-              {t('nav.policies')}
-            </Link>
-
             <div className={styles.mobileControls}>
               <div className={styles.toggleGroup} suppressHydrationWarning>
                 <button
@@ -95,7 +88,7 @@ export default function Navbar() {
 
           <Link href="/login" className={styles.adminBtn}>
             <i className="bx bx-user" />
-            {t('nav.adminLogin')}
+            {t('nav.login')}
           </Link>
 
           <button

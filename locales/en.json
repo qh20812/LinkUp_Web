@@ -41,6 +41,7 @@
     "changePassword": "Change Password",
     "about": "About",
     "policies": "Policies",
+    "login": "Log in",
     "adminLogin": "Administrator",
     "ads": "Ads"
   },
@@ -129,6 +130,8 @@
     "tabSuggestions": "Suggestions",
     "tabList": "Friends",
     "mutual": "{count} mutual friends",
+    "mutualWith": "Mutual with: {names}",
+    "mutualMore": "+{count} more",
     "addFriend": "Add friend",
     "sent": "Sent",
     "accept": "Accept",
@@ -167,6 +170,10 @@
     "errorMaxLength": "Content cannot exceed 5000 characters",
     "success": "Post published successfully!"
   },
+  "brand": {
+    "headline": "Connect with friends, share moments",
+    "tagline": "The social community for everyone"
+  },
   "login": {
     "title": "Login",
     "subtitle": "Log in to connect with friends",
@@ -179,6 +186,11 @@
     "noAccount": "Don't have an account?",
     "registerLink": "Register",
     "forgotPassword": "Forgot password?"
+  },
+  "landing": {
+    "tagline": "Connect with friends, share moments",
+    "ctaStart": "Get started",
+    "ctaLogin": "Log in"
   },
   "register": {
     "title": "Register",

@@ -91,7 +91,11 @@ function FeedContent() {
     const isFirst = cursorRef.current === null
     try {
       const res = await getFeedPosts(cursorRef.current, PAGE_SIZE, filter)
-      setPosts((prev) => (isFirst ? res.data : [...prev, ...res.data]))
+      setPosts((prev) => {
+        const list = isFirst ? res.data : [...prev, ...res.data]
+        const seen = new Set<string>()
+        return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+      })
       cursorRef.current = res.next_cursor
       setHasMore(res.next_cursor !== null)
     } catch (err) {
