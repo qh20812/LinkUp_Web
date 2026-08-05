@@ -157,6 +157,9 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           return {
             ...c,
             ...res.data,
+            avatar_uri: res.data.avatar_uri || c.avatar_uri,
+            display_name: res.data.display_name || c.display_name,
+            username: res.data.username || c.username,
             is_liked: c.is_liked,
             is_saved: c.is_saved,
             is_following: c.is_following,
@@ -288,6 +291,8 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
   if (!open || !current) return null
 
+  const hasMedia = current.media.length > 0
+
   const isOwner = currentUserId !== null && current.user_id === currentUserId
 
   const commentTree = buildCommentTree(comments)
@@ -336,13 +341,9 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.grid}>
-          <div className={styles.mediaPane}>
-            {current.media.length === 0 ? (
-              <div className={styles.noMedia}>
-                <i className="bx bxs-file-image" />
-              </div>
-            ) : (
-              current.media.map((m) =>
+          {hasMedia && (
+            <div className={styles.mediaPane}>
+              {current.media.map((m) =>
                 isVideo(m.file_type) ? (
                   <div key={m.id} className={`${styles.mediaItem} ${styles.videoWrap}`}>
                     <VideoPlayer src={m.file_uri} />
@@ -352,11 +353,11 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                     <img src={m.file_uri} alt="" />
                   </div>
                 ),
-              )
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
-          <div className={styles.contentPane}>
+          <div className={`${styles.contentPane}${hasMedia ? ` ${styles.contentPaneSplit}` : ''}`}>
             <div className={styles.header}>
               <Link href={`/profile/${current.user_id}`} className={styles.author}>
                 <div className={styles.avatar}>
