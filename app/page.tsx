@@ -1,90 +1,41 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
+import { getPostAuthPath } from '../utils/auth'
 import UserLayout from '../components/UserLayout'
 import Feed from '../components/Feed'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
-interface HealthStatus {
-  status: string
-}
+import styles from './Landing.module.css'
 
 function LandingPage() {
-  const [health, setHealth] = useState<HealthStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const res = await fetch('/health')
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-        const data = await res.json()
-        setHealth(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Connection failed')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchHealth()
-  }, [])
+  const { t } = useTranslation()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div className={styles.wrap}>
       <Navbar />
-      <div style={{ flex: 1, padding: 'var(--space-xl)', maxWidth: '480px' }}>
-        <h1
-          style={{
-            font: 'var(--text-h1)',
-            color: 'var(--color-text)',
-            marginBottom: 'var(--space-lg)',
-          }}
-        >
-          LinkUp Admin
-        </h1>
-
-        <div
-          style={{
-            background: 'var(--color-card)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-lg)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <h2
-            style={{
-              font: 'var(--text-h2)',
-              color: 'var(--color-text)',
-              marginBottom: 'var(--space-md)',
-            }}
-          >
-            Backend Status
-          </h2>
-          {loading && (
-            <p style={{ color: 'var(--color-text-secondary)' }}>
-              <i className="bx bx-loader-circle" /> Connecting to server...
-            </p>
-          )}
-          {error && (
-            <p style={{ color: 'var(--color-danger)' }}>
-              <i className="bx bx-x-circle" /> Error: {error}
-            </p>
-          )}
-          {health && (
-            <p style={{ color: 'var(--color-success)' }}>
-              <i className="bx bx-check-circle" /> Server status:{' '}
-              <strong>{health.status}</strong>
-            </p>
-          )}
+      <main className={styles.hero}>
+        <div className={styles.heroInner}>
+          <div className={styles.logo}>
+            <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+            <span className={styles.brand}>LinkUp</span>
+          </div>
+          <h1 className={styles.tagline}>{t('landing.tagline')}</h1>
+          <div className={styles.actions}>
+            <Link href="/register" className={styles.btnPrimary}>
+              {t('landing.ctaStart')}
+            </Link>
+            <Link href="/login" className={styles.btnSecondary}>
+              {t('landing.ctaLogin')}
+            </Link>
+          </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   )
@@ -96,11 +47,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (initializing) return
-    if (isAdmin || isSuperAdmin) {
-      router.push('/admin/dashboard')
-    } else if (isPartner) {
-      router.push('/partner/dashboard')
-    }
+    const role = isSuperAdmin || isAdmin ? 'ADMIN' : isPartner ? 'PARTNER' : null
+    if (role) router.push(getPostAuthPath(role))
   }, [isAdmin, isSuperAdmin, isPartner, router, initializing])
 
   if (initializing) {

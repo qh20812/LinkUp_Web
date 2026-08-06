@@ -41,6 +41,7 @@
     "changePassword": "Đổi mật khẩu",
     "about": "Giới thiệu",
     "policies": "Chính sách",
+    "login": "Đăng nhập",
     "adminLogin": "Quản trị viên",
     "ads": "Quảng cáo"
   },
@@ -121,6 +122,36 @@
     "emptyDesc": "Nhấn biểu tượng dấu trang trên bài viết để lưu lại và xem chúng ở đây.",
     "end": "Đã xem hết bài viết đã lưu."
   },
+  "friends": {
+    "title": "Bạn bè",
+    "tabRequests": "Lời mời kết bạn",
+    "tabReceived": "Đã nhận",
+    "tabSent": "Đã gửi",
+    "tabSuggestions": "Gợi ý",
+    "tabList": "Bạn bè",
+    "mutual": "{count} bạn chung",
+    "mutualWith": "Chung với: {names}",
+    "mutualMore": "+{count} người khác",
+    "addFriend": "Thêm bạn",
+    "sent": "Đã gửi",
+    "accept": "Chấp nhận",
+    "reject": "Từ chối",
+    "unfriend": "Hủy kết bạn",
+    "revoke": "Thu hồi",
+    "acceptDone": "Đã chấp nhận lời mời kết bạn",
+    "rejectDone": "Đã từ chối lời mời kết bạn",
+    "revokeDone": "Đã thu hồi lời mời kết bạn",
+    "addDone": "Đã gửi lời mời kết bạn",
+    "unfriendDone": "Đã hủy kết bạn",
+    "unfriendTitle": "Xác nhận hủy kết bạn",
+    "unfriendMessage": "Bạn sẽ không còn là bạn bè với người này nữa.",
+    "unfriendConfirm": "Xác nhận hủy",
+    "emptyReceived": "Không có lời mời kết bạn nào.",
+    "emptySent": "Bạn chưa gửi lời mời kết bạn nào.",
+    "emptySuggestions": "Không có gợi ý kết bạn nào.",
+    "emptyList": "Bạn chưa có bạn bè.",
+    "end": "Đã xem hết."
+  },
   "composer": {
     "placeholder": "Bạn đang nghĩ gì thế?",
     "titlePlaceholder": "Tiêu đề bài viết...",
@@ -139,6 +170,10 @@
     "errorMaxLength": "Nội dung không được vượt quá 5000 ký tự",
     "success": "Đăng bài thành công!"
   },
+  "brand": {
+    "headline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
+    "tagline": "Cộng đồng xã hội cho mọi người"
+  },
   "login": {
     "title": "Đăng nhập",
     "subtitle": "Đăng nhập để kết nối với bạn bè",
@@ -151,6 +186,11 @@
     "noAccount": "Chưa có tài khoản?",
     "registerLink": "Đăng ký",
     "forgotPassword": "Quên mật khẩu?"
+  },
+  "landing": {
+    "tagline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
+    "ctaStart": "Bắt đầu",
+    "ctaLogin": "Đăng nhập"
   },
   "register": {
     "title": "Đăng ký",

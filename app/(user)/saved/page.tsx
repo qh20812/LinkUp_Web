@@ -45,7 +45,11 @@ export default function SavedPage() {
     const isFirst = cursorRef.current === null
     try {
       const res = await getSavedPosts(cursorRef.current, PAGE_SIZE)
-      setPosts((prev) => (isFirst ? res.data : [...prev, ...res.data]))
+      setPosts((prev) => {
+        const list = isFirst ? res.data : [...prev, ...res.data]
+        const seen = new Set<string>()
+        return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+      })
       cursorRef.current = res.next_cursor
       setHasMore(res.next_cursor !== null)
     } catch (err) {
@@ -152,11 +156,6 @@ export default function SavedPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{t('saved.title')}</h1>
-        <p className={styles.subtitle}>{t('saved.subtitle')}</p>
-      </header>
-
       <div className={styles.container}>
         {initialLoading && (
           <>

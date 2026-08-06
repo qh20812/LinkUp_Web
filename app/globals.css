@@ -55,10 +55,10 @@ table {
 /* === Design Tokens (Light Mode - Default) === */
 :root {
   /* Brand Colors */
-  --color-primary: #40E0D0;
-  --color-primary-hover: #36C9B9;
-  --color-primary-active: #2EB3A3;
-  --color-primary-light: rgba(64, 224, 208, 0.12);
+  --color-primary: #12A5A1;
+  --color-primary-hover: #0C918D;
+  --color-primary-active: #0A7D79;
+  --color-primary-light: rgba(18, 165, 161, 0.12);
 
   --color-secondary: #0A1F44;
   --color-secondary-hover: #0D2A5A;
@@ -70,7 +70,9 @@ table {
 
   /* Neutral Colors */
   --color-bg: #FFFFFF;
+  --color-bg-primary: #FFFFFF;
   --color-bg-secondary: #F5F5F5;
+  --color-bg-hover: #ECECEC;
   --color-text: #000000;
   --color-text-secondary: #666666;
   --color-card: #FFFFFF;
@@ -112,24 +114,26 @@ table {
   --radius-circle: 50%;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.15);
 }
 
 /* === Dark Mode === */
 [data-theme="dark"] {
-  --color-primary: #40E0D0;
-  --color-primary-hover: #5CE8DA;
-  --color-primary-active: #72EDE2;
-  --color-primary-light: rgba(64, 224, 208, 0.2);
+  --color-primary: #3FBFBA;
+  --color-primary-hover: #2BB0AC;
+  --color-primary-active: #1FA3A0;
+  --color-primary-light: rgba(63, 191, 186, 0.22);
 
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
   --color-secondary-active: #2A2A2A;
 
   --color-bg: #111111;
+  --color-bg-primary: #111111;
   --color-bg-secondary: #1A1A1A;
+  --color-bg-hover: #242424;
   --color-text: #E5E7EB;
   --color-text-secondary: #9CA3AF;
 
@@ -142,9 +146,9 @@ table {
   --color-danger-light: #7F1D1D;
   --color-info-light: #1E3A5F;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
 }
 
 /* === Focus Ring (Accessibility) === */

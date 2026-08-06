@@ -4,9 +4,12 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useToast } from '../../contexts/ToastContext'
-import { useTranslation } from '../../hooks/useTranslation'
-import { register, decodeToken } from '../../api/auth'
+import { useToast } from '../../../contexts/ToastContext'
+import { useTranslation } from '../../../hooks/useTranslation'
+import { register, decodeToken } from '../../../api/auth'
+import { getPostAuthPath } from '../../../utils/auth'
+import AuthCard from '../../../components/auth/AuthCard'
+import AuthSplit from '../../../components/auth/AuthSplit'
 import styles from './RegisterForm.module.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -92,13 +95,7 @@ export default function RegisterForm() {
       }
 
       const payload = res.tokens ? decodeToken(res.tokens.access_token) : null
-      if (payload?.role === 'SUPER_ADMIN' || payload?.role === 'ADMIN') {
-        router.push('/admin/dashboard')
-      } else if (payload?.role === 'PARTNER') {
-        router.push('/partner/dashboard')
-      } else {
-        router.push('/')
-      }
+      router.push(getPostAuthPath(payload?.role))
     } catch (err) {
       const message = err instanceof Error ? err.message : t('register.error')
       toast({ type: 'error', title: message })
@@ -108,12 +105,12 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
+    <AuthSplit>
+      <AuthCard>
         <div className={styles.logo}>
-          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-          <span className={styles.logoText}>LinkUp</span>
-        </div>
+        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+        <span className={styles.logoText}>LinkUp</span>
+      </div>
 
         <h1 className={styles.title}>{t('register.title')}</h1>
         <p className={styles.subtitle}>{t('register.subtitle')}</p>
@@ -208,7 +205,7 @@ export default function RegisterForm() {
             {t('register.loginLink')}
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthSplit>
   )
 }

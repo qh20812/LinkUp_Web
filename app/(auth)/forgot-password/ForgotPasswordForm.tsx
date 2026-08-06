@@ -3,9 +3,10 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useToast } from '../../contexts/ToastContext'
-import { useTranslation } from '../../hooks/useTranslation'
-import { forgotPassword } from '../../api/auth'
+import { useToast } from '../../../contexts/ToastContext'
+import { useTranslation } from '../../../hooks/useTranslation'
+import { forgotPassword } from '../../../api/auth'
+import AuthCard from '../../../components/auth/AuthCard'
 import styles from './ForgotPasswordForm.module.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -45,12 +46,11 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.logo}>
-          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-          <span className={styles.logoText}>LinkUp</span>
-        </div>
+    <AuthCard cardClassName={styles.centered}>
+      <div className={styles.logo}>
+        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+        <span className={styles.logoText}>LinkUp</span>
+      </div>
 
         {sent ? (
           <>
@@ -96,7 +96,6 @@ export default function ForgotPasswordForm() {
             </Link>
           </>
         )}
-      </div>
-    </div>
+    </AuthCard>
   )
 }

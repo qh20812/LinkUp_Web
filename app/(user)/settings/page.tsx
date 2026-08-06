@@ -40,11 +40,6 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>{t('nav.settings')}</h1>
-        <p className={styles.subtitle}>{t('userSettings.subtitle')}</p>
-      </div>
-
       <div className={styles.tabs}>
         {TABS.map(tab => (
           <button
