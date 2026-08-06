@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { register, decodeToken } from '../../../api/auth'
+import { clearSWRCache } from '../../../api/swr'
 import { getPostAuthPath } from '../../../utils/auth'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
@@ -92,6 +93,7 @@ export default function RegisterForm() {
       if (res.tokens) {
         localStorage.setItem('token', res.tokens.access_token)
         localStorage.setItem('refresh_token', res.tokens.refresh_token)
+        clearSWRCache()
       }
 
       const payload = res.tokens ? decodeToken(res.tokens.access_token) : null

@@ -6,6 +6,7 @@ import { useToast } from '../../../contexts/ToastContext'
   import { useTranslation } from '../../../hooks/useTranslation'
   import { deactivateAccount } from '../../../api/settings'
   import { clearSession } from '../../../api/api'
+  import { clearSWRCache } from '../../../api/swr'
   import styles from './Settings.module.css'
 
 export default function DeactivateAccount() {
@@ -34,6 +35,7 @@ export default function DeactivateAccount() {
       const res = await deactivateAccount(password)
       toast({ type: 'success', title: res.message || t('userSettings.deactivateSuccess') })
       clearSession()
+      clearSWRCache()
       router.push('/login')
     } catch (err) {
       toast({ type: 'error', title: err instanceof Error ? err.message : t('userSettings.saveError') })

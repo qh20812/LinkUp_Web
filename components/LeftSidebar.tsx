@@ -8,6 +8,7 @@ import useSWR from 'swr'
 import styles from './LeftSidebar.module.css'
   import { request, clearSession } from '../api/api'
   import { logout } from '../api/auth'
+  import { clearSWRCache } from '../api/swr'
 import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
 import type { ViewProfileResponse } from '../types'
@@ -55,6 +56,7 @@ export default function LeftSidebar() {
   const handleLogout = async () => {
     await logout().catch(() => {})
     clearSession()
+    clearSWRCache()
     router.push('/login')
   }
 

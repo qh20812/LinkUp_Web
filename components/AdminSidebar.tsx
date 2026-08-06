@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
   import { useTranslation } from '../hooks/useTranslation'
   import { logout } from '../api/auth'
   import { clearSession } from '../api/api'
+  import { clearSWRCache } from '../api/swr'
   import styles from './AdminSidebar.module.css'
 
 interface AdminSidebarProps {
@@ -45,6 +46,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   const handleLogout = async () => {
     await logout().catch(() => {})
     clearSession()
+    clearSWRCache()
     router.push('/login')
   }
 

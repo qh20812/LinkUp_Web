@@ -16,15 +16,13 @@ export interface UseAuthResult {
 }
 
 export function useAuth(): UseAuthResult {
-  const [payload, setPayload] = useState<TokenPayload | null>(() => {
-    if (typeof window !== 'undefined') {
-      return getTokenPayload()
-    }
-    return null
-  })
+  const [payload, setPayload] = useState<TokenPayload | null>(null)
   const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
+    // localStorage is read after mount so server and client first renders match.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPayload(getTokenPayload())
     queueMicrotask(() => setInitializing(false))
 
     const handleStorage = () => setPayload(getTokenPayload())

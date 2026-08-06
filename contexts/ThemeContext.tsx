@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import type { ThemeMode } from "../types";
 
@@ -17,22 +18,25 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function getInitialTheme(): ThemeMode {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("theme") as ThemeMode | null;
-    if (saved === "light" || saved === "dark") return saved;
-    const applied = document.documentElement.getAttribute("data-theme");
-    if (applied === "dark") return "dark";
-  }
-  return "light";
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>(getInitialTheme);
+  const [theme, setThemeState] = useState<ThemeMode>("light");
+  const persisted = useRef(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") as ThemeMode | null;
+    if (saved === "light" || saved === "dark") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setThemeState(saved);
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+    if (persisted.current) {
+      localStorage.setItem("theme", theme);
+    } else {
+      persisted.current = true;
+    }
   }, [theme]);
 
   const setTheme = useCallback((mode: ThemeMode) => setThemeState(mode), []);

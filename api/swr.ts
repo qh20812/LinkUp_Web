@@ -22,3 +22,9 @@ export function invalidate(prefix: string) {
     { revalidate: true },
   )
 }
+
+// Purges every cached entry (no refetch). Call on auth transitions so one
+// account's data never leaks into another account's session.
+export function clearSWRCache() {
+  return mutate(() => true, undefined, { revalidate: false })
+}

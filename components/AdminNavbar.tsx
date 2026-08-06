@@ -11,7 +11,8 @@ import { useToast } from "../contexts/ToastContext";
   import { changePassword, logout } from "../api/auth";
   import { getAdminProfile } from "../api/admin";
   import { clearSession } from "../api/api";
-import styles from "./AdminNavbar.module.css";
+  import { clearSWRCache } from "../api/swr";
+  import styles from "./AdminNavbar.module.css";
 import { useNotification } from "../contexts/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
 
@@ -38,15 +39,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const { unreadCount } = useNotification();
 
-  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("admin_profile");
-        if (cached) return JSON.parse(cached);
-      } catch { /* ignore */ }
-    }
-    return {};
-  });
+  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>({});
 
   const { data: profile } = useSWR('/profile', getAdminProfile, {
     revalidateOnFocus: false,
@@ -65,18 +58,18 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     }
   }, [profile?.avatar_uri, profile?.display_name]);
 
-  const [tokenEmail] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          return payload.email || "";
-        }
-      } catch { /* ignore */ }
-    }
-    return "";
-  });
+  const [tokenEmail, setTokenEmail] = useState("");
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTokenEmail(payload.email || "");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // đóng khi nhấn ra vùng ngoài (click outside) cho thông báo
   useEffect(() => {
@@ -117,6 +110,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const handleLogout = async () => {
     await logout().catch(() => {});
     clearSession();
+    clearSWRCache();
     router.push('/login');
   };
 
