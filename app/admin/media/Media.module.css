@@ -106,12 +106,12 @@
 }
 
 .buttonPrimary {
-    background: var(--color-primary);
-    color: var(--color-secondary);
+    background: var(--color-secondary);
+    color: #fff;
 }
 
 .buttonPrimary:hover {
-    background: var(--color-primary-hover);
+    background: var(--color-secondary-hover);
 }
 
 .buttonSecondary {
@@ -387,7 +387,7 @@
 
 .radioActive {
     border-color: var(--color-primary);
-    background: rgba(64, 224, 208, 0.08);
+    background: var(--color-primary-light);
 }
 
 .textarea {
@@ -603,7 +603,7 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    background: var(--color-primary);
+    background: var(--color-secondary);
     color: #fff;
     font-size: 13px;
     font-weight: 600;

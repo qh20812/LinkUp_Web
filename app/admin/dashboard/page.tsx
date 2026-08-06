@@ -345,27 +345,27 @@ export default function DashboardPage() {
                     type="monotone"
                     dataKey="users"
                     name={t('dashboard.usersTrend')}
-                    stroke="#40E0D0"
+                    stroke="var(--color-primary)"
                     strokeWidth={2}
-                    dot={{ fill: '#40E0D0', r: 3 }}
+                    dot={{ fill: 'var(--color-primary)', r: 3 }}
                     activeDot={{ r: 5 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="posts"
                     name={t('dashboard.postsTrend')}
-                    stroke="#FF6F00"
+                    stroke="var(--color-accent)"
                     strokeWidth={2}
-                    dot={{ fill: '#FF6F00', r: 3 }}
+                    dot={{ fill: 'var(--color-accent)', r: 3 }}
                     activeDot={{ r: 5 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="reports"
                     name={t('dashboard.reportsTrend')}
-                    stroke="#D32F2F"
+                    stroke="var(--color-danger)"
                     strokeWidth={2}
-                    dot={{ fill: '#D32F2F', r: 3 }}
+                    dot={{ fill: 'var(--color-danger)', r: 3 }}
                     activeDot={{ r: 5 }}
                   />
                   <Line
