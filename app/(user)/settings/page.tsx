@@ -5,12 +5,22 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import ChangePasswordForm from './ChangePasswordForm'
+import PrivacyForm from './PrivacyForm'
+import StorageInfo from './StorageInfo'
+import EmailChangeForm from './EmailChangeForm'
+import SessionsManager from './SessionsManager'
+import DeactivateAccount from './DeactivateAccount'
 import styles from './Settings.module.css'
 
-type TabKey = 'password'
+type TabKey = 'password' | 'privacy' | 'storage' | 'email' | 'sessions' | 'deactivate'
 
 const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'password', labelKey: 'settings.tabChangePassword' },
+  { key: 'privacy', labelKey: 'userSettings.tabPrivacy' },
+  { key: 'storage', labelKey: 'userSettings.tabStorage' },
+  { key: 'email', labelKey: 'userSettings.tabEmail' },
+  { key: 'sessions', labelKey: 'userSettings.tabSessions' },
+  { key: 'deactivate', labelKey: 'userSettings.tabDeactivate' },
 ]
 
 export default function SettingsPage() {
@@ -32,7 +42,7 @@ export default function SettingsPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{t('nav.settings')}</h1>
-        <p className={styles.subtitle}>{t('changePassword.pageDescription')}</p>
+        <p className={styles.subtitle}>{t('userSettings.subtitle')}</p>
       </div>
 
       <div className={styles.tabs}>
@@ -51,6 +61,41 @@ export default function SettingsPage() {
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>{t('nav.changePassword')}</h2>
           <ChangePasswordForm />
+        </div>
+      )}
+
+      {activeTab === 'privacy' && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>{t('userSettings.tabPrivacy')}</h2>
+          <PrivacyForm />
+        </div>
+      )}
+
+      {activeTab === 'storage' && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>{t('userSettings.tabStorage')}</h2>
+          <StorageInfo />
+        </div>
+      )}
+
+      {activeTab === 'email' && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>{t('userSettings.tabEmail')}</h2>
+          <EmailChangeForm />
+        </div>
+      )}
+
+      {activeTab === 'sessions' && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>{t('userSettings.tabSessions')}</h2>
+          <SessionsManager />
+        </div>
+      )}
+
+      {activeTab === 'deactivate' && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>{t('userSettings.tabDeactivate')}</h2>
+          <DeactivateAccount />
         </div>
       )}
     </div>
