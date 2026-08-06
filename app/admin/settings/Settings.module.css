@@ -223,12 +223,12 @@
 }
 
 .btnSave {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: #fff;
 }
 
 .btnSave:hover:not(:disabled) {
-  background: var(--color-secondary-hover);
+  background: var(--color-primary-hover);
 }
 
 .btnSave:disabled {

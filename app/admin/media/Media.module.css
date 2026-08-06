@@ -106,12 +106,12 @@
 }
 
 .buttonPrimary {
-    background: var(--color-secondary);
+    background: var(--color-primary);
     color: #fff;
 }
 
 .buttonPrimary:hover {
-    background: var(--color-secondary-hover);
+    background: var(--color-primary-hover);
 }
 
 .buttonSecondary {
@@ -603,7 +603,7 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    background: var(--color-secondary);
+    background: var(--color-primary);
     color: #fff;
     font-size: 13px;
     font-weight: 600;
