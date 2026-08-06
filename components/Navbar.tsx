@@ -1,33 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTranslation } from '../hooks/useTranslation'
+import { useTheme } from '../hooks/useTheme'
 import styles from './Navbar.module.css'
 
 export default function Navbar() {
   const { t, language, setLanguage } = useTranslation()
+  const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
-      if (saved === 'light' || saved === 'dark') return saved
-    }
-    return 'light'
-  })
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    document.documentElement.setAttribute('data-theme', next)
-    localStorage.setItem('theme', next)
-  }
 
   return (
     <nav className={styles.nav}>

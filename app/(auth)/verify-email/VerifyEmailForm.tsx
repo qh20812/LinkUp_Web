@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { verifyEmail, resendVerification } from '../../../api/auth'
-import { verifyEmailChange } from '../../../api/settings'
 import { getPostAuthPath } from '../../../utils/auth'
 import type { UserRole } from '../../../types'
 import AuthCard from '../../../components/auth/AuthCard'
@@ -18,10 +17,9 @@ type Status = 'verifying' | 'pending' | 'success' | 'error'
 interface VerifyEmailFormProps {
   initialToken: string | null
   initialEmail: string | null
-  initialType: string | null
 }
 
-export default function VerifyEmailForm({ initialToken, initialEmail, initialType }: VerifyEmailFormProps) {
+export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEmailFormProps) {
   const [status, setStatus] = useState<Status>(initialToken ? 'verifying' : 'pending')
   const [message, setMessage] = useState('')
   const [email, setEmail] = useState(initialEmail ?? '')
@@ -31,8 +29,6 @@ export default function VerifyEmailForm({ initialToken, initialEmail, initialTyp
   const { toast } = useToast()
   const { t } = useTranslation()
   const router = useRouter()
-
-  const isChangeEmail = initialType === 'change_email'
 
   const redirectByRole = (role?: string) => {
     router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
@@ -62,19 +58,6 @@ export default function VerifyEmailForm({ initialToken, initialEmail, initialTyp
     let cancelled = false
     const run = async () => {
       try {
-        if (isChangeEmail) {
-          const res = await verifyEmailChange(initialToken)
-          if (cancelled) return
-          setStatus('success')
-          setMessage(res.message || t('userSettings.reloadNote'))
-          setTimeout(() => {
-            localStorage.removeItem('token')
-            localStorage.removeItem('admin_profile')
-            router.push('/login')
-          }, 3000)
-          return
-        }
-
         const res = await verifyEmail(initialToken)
         if (cancelled) return
         if (!res.verified) {
@@ -104,7 +87,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail, initialTyp
     return () => {
       cancelled = true
     }
-  }, [initialToken, router, isChangeEmail, t])
+  }, [initialToken, router, t])
 
   const handleResend = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -189,11 +172,9 @@ export default function VerifyEmailForm({ initialToken, initialEmail, initialTyp
             <div className={styles.iconWrap}>
               <i className={`bx bx-check-circle ${styles.iconSuccess}`} />
             </div>
-            <h1 className={styles.title}>
-              {isChangeEmail ? t('userSettings.emailChangedTitle') : t('verifyEmail.successTitle')}
-            </h1>
+            <h1 className={styles.title}>{t('verifyEmail.successTitle')}</h1>
             <p className={styles.message}>{message || t('verifyEmail.successMessage')}</p>
-            <button type="button" className={styles.button} onClick={() => (isChangeEmail ? router.push('/login') : redirectByRole())}>
+            <button type="button" className={styles.button} onClick={() => redirectByRole()}>
               {t('verifyEmail.continue')}
             </button>
           </>

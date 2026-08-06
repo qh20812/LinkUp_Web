@@ -1,8 +1,10 @@
 import { request } from './api'
 import type {
+  AppearanceSettingsResponse,
   MessageResponse,
   PrivacySettingsResponse,
   SessionsResponse,
+  UpdateAppearanceInput,
   UpdatePrivacyInput,
   UserStorageInfo,
 } from '../types'
@@ -19,16 +21,13 @@ export const updatePrivacy = (input: UpdatePrivacyInput) =>
 export const getStorage = () =>
   request<UserStorageInfo>('/settings/storage')
 
-export const requestEmailChange = (newEmail: string, password: string) =>
-  request<MessageResponse>('/settings/email/request', {
-    method: 'POST',
-    body: JSON.stringify({ new_email: newEmail, password }),
-  })
+export const getAppearance = () =>
+  request<AppearanceSettingsResponse>('/settings/appearance')
 
-export const verifyEmailChange = (token: string) =>
-  request<MessageResponse>('/settings/email/verify', {
-    method: 'POST',
-    body: JSON.stringify({ token }),
+export const updateAppearance = (input: UpdateAppearanceInput) =>
+  request<AppearanceSettingsResponse>('/settings/appearance', {
+    method: 'PUT',
+    body: JSON.stringify(input),
   })
 
 export const getSessions = () =>

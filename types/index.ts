@@ -602,6 +602,20 @@ export interface UpdatePrivacyInput {
   allow_stranger_messages?: boolean
 }
 
+export type ThemeMode = 'light' | 'dark'
+
+export type LanguageCode = 'vi' | 'en'
+
+export interface AppearanceSettingsResponse {
+  theme: ThemeMode
+  language: LanguageCode
+}
+
+export interface UpdateAppearanceInput {
+  theme?: ThemeMode
+  language?: LanguageCode
+}
+
 export interface UserStorageInfo {
   quota_bytes: number
   used_bytes: number

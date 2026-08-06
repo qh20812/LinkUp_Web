@@ -4,8 +4,8 @@ import VerifyEmailForm from './VerifyEmailForm'
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string; email?: string; type?: string }>
+  searchParams: Promise<{ token?: string; email?: string }>
 }) {
   const params = await searchParams
-  return <VerifyEmailForm initialToken={params.token ?? null} initialEmail={params.email ?? null} initialType={params.type ?? null} />
+  return <VerifyEmailForm initialToken={params.token ?? null} initialEmail={params.email ?? null} />
 }

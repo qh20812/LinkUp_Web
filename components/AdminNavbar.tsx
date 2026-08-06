@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useTranslation } from "../hooks/useTranslation";
+import { useTheme } from "../hooks/useTheme";
 import { useToast } from "../contexts/ToastContext";
 import { changePassword, logout } from "../api/auth";
 import { getAdminProfile } from "../api/admin";
@@ -19,15 +20,9 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const { t, language, setLanguage } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-      if (saved === "light" || saved === "dark") return saved;
-    }
-    return "light";
-  });
   const [searchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -103,11 +98,6 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   }, [pathname]);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
     if (!dropdownOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (
@@ -120,11 +110,6 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [dropdownOpen]);
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-  };
 
   const router = useRouter();
 
