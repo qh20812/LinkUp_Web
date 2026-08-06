@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useTranslation } from '../hooks/useTranslation'
-import { logout } from '../api/auth'
-import styles from './AdminSidebar.module.css'
+  import { useTranslation } from '../hooks/useTranslation'
+  import { logout } from '../api/auth'
+  import { clearSession } from '../api/api'
+  import styles from './AdminSidebar.module.css'
 
 interface AdminSidebarProps {
   collapsed: boolean
@@ -43,8 +44,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
 
   const handleLogout = async () => {
     await logout().catch(() => {})
-    localStorage.removeItem('token')
-    localStorage.removeItem('admin_profile')
+    clearSession()
     router.push('/login')
   }
 

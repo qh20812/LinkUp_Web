@@ -3,9 +3,10 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
-import { useTranslation } from '../../../hooks/useTranslation'
-import { deactivateAccount } from '../../../api/settings'
-import styles from './Settings.module.css'
+  import { useTranslation } from '../../../hooks/useTranslation'
+  import { deactivateAccount } from '../../../api/settings'
+  import { clearSession } from '../../../api/api'
+  import styles from './Settings.module.css'
 
 export default function DeactivateAccount() {
   const { t } = useTranslation()
@@ -32,8 +33,7 @@ export default function DeactivateAccount() {
     try {
       const res = await deactivateAccount(password)
       toast({ type: 'success', title: res.message || t('userSettings.deactivateSuccess') })
-      localStorage.removeItem('token')
-      localStorage.removeItem('admin_profile')
+      clearSession()
       router.push('/login')
     } catch (err) {
       toast({ type: 'error', title: err instanceof Error ? err.message : t('userSettings.saveError') })

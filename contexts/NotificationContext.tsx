@@ -116,10 +116,7 @@ export function NotificationProvider({
 
   // Thiết lập kết nối WebSocket và tải dữ liệu ban đầu
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-    if (!token) {
+    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
@@ -128,11 +125,19 @@ export function NotificationProvider({
     let isComponentMounted = true;
 
     function connectWS() {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      if (!token) {
+        wsRef.current = null;
+        return;
+      }
+
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
 
       const ws = new WebSocket(
-        `${protocol}//${host}/api/ws?token=${encodeURIComponent(token!)}`
+        `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`
       );
       wsRef.current = ws;
       

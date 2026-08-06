@@ -6,8 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
 import styles from './LeftSidebar.module.css'
-import { request } from '../api/api'
-import { logout } from '../api/auth'
+  import { request, clearSession } from '../api/api'
+  import { logout } from '../api/auth'
 import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
 import type { ViewProfileResponse } from '../types'
@@ -54,8 +54,7 @@ export default function LeftSidebar() {
 
   const handleLogout = async () => {
     await logout().catch(() => {})
-    localStorage.removeItem('token')
-    localStorage.removeItem('admin_profile')
+    clearSession()
     router.push('/login')
   }
 

@@ -8,8 +8,9 @@ import useSWR from "swr";
 import { useTranslation } from "../hooks/useTranslation";
 import { useTheme } from "../hooks/useTheme";
 import { useToast } from "../contexts/ToastContext";
-import { changePassword, logout } from "../api/auth";
-import { getAdminProfile } from "../api/admin";
+  import { changePassword, logout } from "../api/auth";
+  import { getAdminProfile } from "../api/admin";
+  import { clearSession } from "../api/api";
 import styles from "./AdminNavbar.module.css";
 import { useNotification } from "../contexts/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
@@ -115,8 +116,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
 
   const handleLogout = async () => {
     await logout().catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('admin_profile');
+    clearSession();
     router.push('/login');
   };
 
