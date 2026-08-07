@@ -7,6 +7,7 @@ import styles from './Saved.module.css'
 import { getSavedPosts, reactPost, savePost, getEmojis } from '../../../api/posts'
 import type { FeedPost, EmojiItem } from '../../../types'
 import PostCard from '../../../components/PostCard'
+import PostDetailModal from '../../../components/PostDetailModal'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useFollowContext } from '../../../contexts/FollowContext'
@@ -33,6 +34,7 @@ export default function SavedPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -125,11 +127,11 @@ export default function SavedPage() {
   }
 
   const handleComment = (postId: string) => {
-    router.push(`/posts/${postId}`)
+    setSelectedPostId(postId)
   }
 
   const handleShare = (postId: string) => {
-    router.push(`/posts/${postId}`)
+    setSelectedPostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -153,6 +155,8 @@ export default function SavedPage() {
     router.push('/login')
     return <div className={styles.page} />
   }
+
+  const detailPost = selectedPostId ? posts.find((p) => p.id === selectedPostId) ?? null : null
 
   return (
     <div className={styles.page}>
@@ -206,6 +210,7 @@ export default function SavedPage() {
             onComment={handleComment}
             onShare={handleShare}
             onFollow={handleFollow}
+            onOpenDetail={setSelectedPostId}
           />
         ))}
 
@@ -223,6 +228,23 @@ export default function SavedPage() {
         )}
 
         <div ref={sentinelRef} className={styles.sentinel} />
+
+        {detailPost && (
+          <PostDetailModal
+            key={detailPost.id}
+            post={detailPost}
+            open
+            onClose={() => setSelectedPostId(null)}
+            onUpdated={(updated) =>
+              setPosts((prev) =>
+                updated.is_saved
+                  ? prev.map((p) => (p.id === updated.id ? updated : p))
+                  : prev.filter((p) => p.id !== updated.id),
+              )
+            }
+            onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+          />
+        )}
       </div>
     </div>
   )
