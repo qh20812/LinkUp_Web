@@ -11,6 +11,7 @@ import PostDetailModal from '../../../components/PostDetailModal'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useFollowContext } from '../../../contexts/FollowContext'
+import { useToast } from '../../../contexts/ToastContext'
 
 const PAGE_SIZE = 10
 
@@ -25,6 +26,7 @@ async function ensureLikeEmojiId(): Promise<string | undefined> {
 
 export default function SavedPage() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const router = useRouter()
   const { isAuthenticated, initializing } = useAuth()
   const { followUser: ctxFollowUser } = useFollowContext()
@@ -119,10 +121,11 @@ export default function SavedPage() {
       if (res.action === 'removed') {
         setPosts((prev) => prev.filter((p) => p.id !== postId))
       }
-    } catch {
+    } catch (e) {
       setPosts((prev) =>
         prev.map((p) => (p.id === postId ? { ...p, is_saved: true } : p)),
       )
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     }
   }
 

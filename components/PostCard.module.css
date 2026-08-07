@@ -243,9 +243,14 @@
   font-size: 18px;
 }
 
-.actionBtn:hover {
+.actionBtn:hover:not(:disabled) {
   background: var(--color-bg-secondary);
   color: var(--color-text);
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .actionBtn:last-child {
