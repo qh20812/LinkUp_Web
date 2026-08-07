@@ -138,6 +138,7 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
+  width: 100%;
 }
 
 .grid1 {
@@ -164,7 +165,6 @@
 .grid4 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
   gap: 2px;
 }
 
@@ -183,17 +183,24 @@
 .mediaEl {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  object-fit: contain;
   display: block;
 }
 
 .grid1 .mediaItem {
   aspect-ratio: auto;
   background: transparent;
+  max-width: 100%;
 }
 
 .grid1 .mediaEl {
   height: auto;
+  object-fit: contain;
+}
+
+.grid1 video {
+  max-height: none;
 }
 
 .mediaSkeleton {

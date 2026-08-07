@@ -162,7 +162,7 @@ export default function VideoPlayer({ src }: { src: string }) {
         loop
         autoPlay
         onPlay={() => setPlaying(true)}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
         onClick={togglePlay}
       />
 

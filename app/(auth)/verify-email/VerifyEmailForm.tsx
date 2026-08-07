@@ -11,6 +11,7 @@ import { clearSWRCache } from '../../../api/swr'
 import { getPostAuthPath } from '../../../utils/auth'
 import type { UserRole } from '../../../types'
 import AuthCard from '../../../components/auth/AuthCard'
+import AuthSplit from '../../../components/auth/AuthSplit'
 import styles from './VerifyEmail.module.css'
 
 type Status = 'verifying' | 'pending' | 'success' | 'error'
@@ -32,7 +33,11 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
   const router = useRouter()
 
   const redirectByRole = (role?: string) => {
-    router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
+    if ((role as UserRole | undefined) === 'USER') {
+      router.push('/onboarding')
+    } else {
+      router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
+    }
   }
 
   useEffect(() => {
@@ -78,7 +83,11 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
         setStatus('success')
         const role = res.role
         setTimeout(() => {
-          router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
+          if ((role as UserRole | undefined) === 'USER') {
+            router.push('/onboarding')
+          } else {
+            router.push(getPostAuthPath((role as UserRole | undefined) ?? null))
+          }
         }, 3000)
       } catch (err) {
         if (cancelled) return
@@ -114,11 +123,12 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
   }
 
   return (
-    <AuthCard cardClassName={styles.centered}>
-      <div className={styles.logo}>
-        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-        <span className={styles.logoText}>LinkUp</span>
-      </div>
+    <AuthSplit>
+      <AuthCard>
+        <div className={styles.logo}>
+          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
+          <span className={styles.logoText}>LinkUp</span>
+        </div>
 
         {status === 'verifying' && (
           <>
@@ -224,6 +234,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
             </Link>
           </>
         )}
-    </AuthCard>
+      </AuthCard>
+    </AuthSplit>
   )
 }

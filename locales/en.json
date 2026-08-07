@@ -220,6 +220,26 @@
     "confirmRequired": "Please confirm your password",
     "confirmMismatch": "Passwords do not match"
   },
+  "onboarding": {
+    "title": "Complete Your Profile",
+    "subtitle": "Add a profile picture and tell us about yourself",
+    "avatarLabel": "Profile Picture",
+    "avatarHint": "Add a photo so people can recognize you",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove photo",
+    "bioLabel": "About you",
+    "bioPlaceholder": "Write something about yourself...",
+    "bioMaxLength": "characters remaining",
+    "step1Title": "Profile Picture",
+    "step2Title": "About You",
+    "skip": "Skip",
+    "next": "Next",
+    "complete": "Complete",
+    "uploadError": "Failed to upload photo",
+    "updateError": "Failed to update profile",
+    "fileTooLarge": "File too large. Maximum 10MB",
+    "invalidFileType": "Only image files are accepted"
+  },
   "verifyEmail": {
     "title": "Verify Your Email",
     "pendingTitle": "Check your inbox",

@@ -6,9 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { register, decodeToken } from '../../../api/auth'
+import { register } from '../../../api/auth'
 import { clearSWRCache } from '../../../api/swr'
-import { getPostAuthPath } from '../../../utils/auth'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
 import styles from './RegisterForm.module.css'
@@ -96,8 +95,7 @@ export default function RegisterForm() {
         clearSWRCache()
       }
 
-      const payload = res.tokens ? decodeToken(res.tokens.access_token) : null
-      router.push(getPostAuthPath(payload?.role))
+      router.push('/onboarding')
     } catch (err) {
       const message = err instanceof Error ? err.message : t('register.error')
       toast({ type: 'error', title: message })

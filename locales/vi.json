@@ -220,6 +220,26 @@
     "confirmRequired": "Vui lòng xác nhận mật khẩu",
     "confirmMismatch": "Mật khẩu xác nhận không khớp"
   },
+  "onboarding": {
+    "title": "Hoàn thiện hồ sơ",
+    "subtitle": "Thêm ảnh đại diện và giới thiệu bản thân",
+    "avatarLabel": "Ảnh đại diện",
+    "avatarHint": "Chọn ảnh đại diện để mọi người nhận ra bạn",
+    "changePhoto": "Thay đổi ảnh",
+    "removePhoto": "Xóa ảnh",
+    "bioLabel": "Giới thiệu bản thân",
+    "bioPlaceholder": "Viết vài điều về bản thân...",
+    "bioMaxLength": "ký tự còn lại",
+    "step1Title": "Ảnh đại diện",
+    "step2Title": "Giới thiệu",
+    "skip": "Bỏ qua",
+    "next": "Tiếp tục",
+    "complete": "Hoàn tất",
+    "uploadError": "Tải ảnh lên thất bại",
+    "updateError": "Cập nhật hồ sơ thất bại",
+    "fileTooLarge": "Kích thước file quá lớn. Tối đa 10MB",
+    "invalidFileType": "Chỉ chấp nhận file ảnh"
+  },
   "verifyEmail": {
     "title": "Xác thực email",
     "pendingTitle": "Kiểm tra hộp thư của bạn",
@@ -532,7 +552,7 @@
     "creator": "Người tạo"
   },
   "ads": {
-    "title": "Quản lý Quảng cáo",
+    "title": "Quảng cáo",
     "searchPlaceholder": "Tìm kiếm quảng cáo...",
     "allStatuses": "Tất cả trạng thái",
     "active": "Đang chạy",
