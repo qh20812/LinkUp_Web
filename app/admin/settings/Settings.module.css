@@ -224,7 +224,7 @@
 
 .btnSave {
   background: var(--color-primary);
-  color: var(--color-secondary);
+  color: #fff;
 }
 
 .btnSave:hover:not(:disabled) {

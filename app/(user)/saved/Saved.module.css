@@ -97,7 +97,7 @@
   padding: 10px 24px;
   border: none;
   border-radius: var(--radius-pill);
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: #fff;
   font-size: 14px;
   font-weight: 600;

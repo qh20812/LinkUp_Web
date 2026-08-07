@@ -110,7 +110,7 @@
   margin-top: var(--space-sm);
   border: none;
   border-radius: var(--radius-md);
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: #ffffff;
   font: var(--text-body);
   font-weight: 600;
@@ -119,11 +119,11 @@
 }
 
 .button:hover {
-  background: var(--color-secondary-hover);
+  background: var(--color-primary-hover);
 }
 
 .button:active {
-  background: var(--color-secondary-active);
+  background: var(--color-primary-active);
 }
 
 .button:disabled {

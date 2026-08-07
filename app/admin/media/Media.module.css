@@ -107,7 +107,7 @@
 
 .buttonPrimary {
     background: var(--color-primary);
-    color: var(--color-secondary);
+    color: #fff;
 }
 
 .buttonPrimary:hover {
@@ -387,7 +387,7 @@
 
 .radioActive {
     border-color: var(--color-primary);
-    background: rgba(64, 224, 208, 0.08);
+    background: var(--color-primary-light);
 }
 
 .textarea {

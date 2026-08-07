@@ -1,6 +1,58 @@
 const API_BASE = '/api'
 
-export async function request<T>(path: string, options?: RequestInit): Promise<T> {
+const REFRESH_PATH = '/auth/refresh'
+const LOGIN_PATH = '/auth/login'
+
+let refreshPromise: Promise<boolean> | null = null
+
+export function clearSession(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('admin_profile')
+}
+
+async function refreshTokens(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) return false
+
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}${REFRESH_PATH}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+      if (!res.ok) return false
+
+      const data = await res.json()
+      if (!data.access_token) return false
+
+      localStorage.setItem('token', data.access_token)
+      if (data.refresh_token) {
+        localStorage.setItem('refresh_token', data.refresh_token)
+      }
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
+function redirectToLogin(): void {
+  if (window.location.pathname.startsWith('/login')) return
+  window.location.href = '/login'
+}
+
+async function doFetch(path: string, options?: RequestInit): Promise<Response> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
   const headers: Record<string, string> = {
@@ -12,19 +64,30 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  return fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   })
+}
+
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  let res = await doFetch(path, options)
+
+  if (res.status === 401 && typeof window !== 'undefined') {
+    const skipRefresh = path === REFRESH_PATH || path === LOGIN_PATH
+    if (!skipRefresh) {
+      const refreshed = await refreshTokens()
+      if (refreshed) {
+        res = await doFetch(path, options)
+      }
+    }
+  }
 
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('token')
-      localStorage.removeItem('admin_profile')
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
-        return Promise.reject(new Error('Unauthorized'))
-      }
+      clearSession()
+      redirectToLogin()
+      return Promise.reject(new Error('Unauthorized'))
     }
     const error = await res.json().catch(() => ({ message: res.statusText }))
     throw new Error(error.message || `HTTP ${res.status}`)

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { register } from '../../../api/auth'
+import { clearSWRCache } from '../../../api/swr'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
 import styles from './RegisterForm.module.css'
@@ -91,6 +92,7 @@ export default function RegisterForm() {
       if (res.tokens) {
         localStorage.setItem('token', res.tokens.access_token)
         localStorage.setItem('refresh_token', res.tokens.refresh_token)
+        clearSWRCache()
       }
 
       router.push('/onboarding')

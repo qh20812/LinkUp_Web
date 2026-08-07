@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { verifyEmail, resendVerification } from '../../../api/auth'
+import { clearSWRCache } from '../../../api/swr'
 import { getPostAuthPath } from '../../../utils/auth'
 import type { UserRole } from '../../../types'
 import AuthCard from '../../../components/auth/AuthCard'
@@ -76,6 +77,9 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
         if (res.refresh_token) {
           localStorage.setItem('refresh_token', res.refresh_token)
         }
+        if (res.access_token) {
+          clearSWRCache()
+        }
         setStatus('success')
         const role = res.role
         setTimeout(() => {
@@ -96,7 +100,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
     return () => {
       cancelled = true
     }
-  }, [initialToken, router])
+  }, [initialToken, router, t])
 
   const handleResend = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -183,7 +187,7 @@ export default function VerifyEmailForm({ initialToken, initialEmail }: VerifyEm
               <i className={`bx bx-check-circle ${styles.iconSuccess}`} />
             </div>
             <h1 className={styles.title}>{t('verifyEmail.successTitle')}</h1>
-            <p className={styles.message}>{t('verifyEmail.successMessage')}</p>
+            <p className={styles.message}>{message || t('verifyEmail.successMessage')}</p>
             <button type="button" className={styles.button} onClick={() => redirectByRole()}>
               {t('verifyEmail.continue')}
             </button>

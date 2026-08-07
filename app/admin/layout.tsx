@@ -5,8 +5,9 @@ import { usePathname } from 'next/navigation'
 import { SWRConfig } from 'swr'
 import AdminSidebar from '../../components/AdminSidebar'
 import AdminNavbar from '../../components/AdminNavbar'
-import { NotificationProvider } from '../../contexts/NotificationContext'
-import { defaultSWRConfig } from '../../api/swr'
+  import { NotificationProvider } from '../../contexts/NotificationContext'
+  import { defaultSWRConfig, clearSWRCache } from '../../api/swr'
+  import { clearSession } from '../../api/api'
 import styles from './layout.module.css'
 
 export default function AdminLayout({
@@ -14,13 +15,15 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sidebar_collapsed') === 'true'
-    }
-    return false
-  })
+  const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem('sidebar_collapsed') === 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsed(true)
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(collapsed))
@@ -58,8 +61,8 @@ export default function AdminLayout({
       ...defaultSWRConfig,
       onError: (err: Error) => {
         if (err.message?.toLowerCase().includes('401') || err.message?.toLowerCase().includes('token')) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('admin_profile')
+          clearSession()
+          clearSWRCache()
           window.location.href = '/login'
         }
       },

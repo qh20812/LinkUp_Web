@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useTheme } from '../../hooks/useTheme'
 import styles from './AuthLayout.module.css'
 
 export default function AuthLayout({
@@ -14,22 +15,7 @@ export default function AuthLayout({
   showFooter?: boolean
 }) {
   const { language, setLanguage } = useTranslation()
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
-      if (saved === 'light' || saved === 'dark') return saved
-    }
-    return 'light'
-  })
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <div className={styles.shell}>

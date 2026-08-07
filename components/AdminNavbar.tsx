@@ -6,10 +6,13 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useTranslation } from "../hooks/useTranslation";
+import { useTheme } from "../hooks/useTheme";
 import { useToast } from "../contexts/ToastContext";
-import { changePassword, logout } from "../api/auth";
-import { getAdminProfile } from "../api/admin";
-import styles from "./AdminNavbar.module.css";
+  import { changePassword, logout } from "../api/auth";
+  import { getAdminProfile } from "../api/admin";
+  import { clearSession } from "../api/api";
+  import { clearSWRCache } from "../api/swr";
+  import styles from "./AdminNavbar.module.css";
 import { useNotification } from "../contexts/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
 
@@ -19,15 +22,9 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const { t, language, setLanguage } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-      if (saved === "light" || saved === "dark") return saved;
-    }
-    return "light";
-  });
   const [searchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -42,15 +39,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const { unreadCount } = useNotification();
 
-  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("admin_profile");
-        if (cached) return JSON.parse(cached);
-      } catch { /* ignore */ }
-    }
-    return {};
-  });
+  const [cachedProfile, setCachedProfile] = useState<Record<string, string>>({});
 
   const { data: profile } = useSWR('/profile', getAdminProfile, {
     revalidateOnFocus: false,
@@ -69,18 +58,18 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     }
   }, [profile?.avatar_uri, profile?.display_name]);
 
-  const [tokenEmail] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          return payload.email || "";
-        }
-      } catch { /* ignore */ }
-    }
-    return "";
-  });
+  const [tokenEmail, setTokenEmail] = useState("");
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTokenEmail(payload.email || "");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // đóng khi nhấn ra vùng ngoài (click outside) cho thông báo
   useEffect(() => {
@@ -103,11 +92,6 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   }, [pathname]);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
     if (!dropdownOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (
@@ -121,17 +105,12 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
     return () => document.removeEventListener("click", handleClick);
   }, [dropdownOpen]);
 
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-  };
-
   const router = useRouter();
 
   const handleLogout = async () => {
     await logout().catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('admin_profile');
+    clearSession();
+    clearSWRCache();
     router.push('/login');
   };
 

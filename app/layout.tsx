@@ -1,6 +1,7 @@
 import React from 'react'
 import { Montserrat, Open_Sans } from 'next/font/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
+import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import './globals.css'
 
@@ -36,7 +37,9 @@ export default function RootLayout({
       </head>
       <body>
         <LanguageProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ThemeProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </ThemeProvider>
         </LanguageProvider>
       </body>
     </html>
