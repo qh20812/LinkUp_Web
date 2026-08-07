@@ -72,8 +72,8 @@ export default function CommunitiesPage() {
           setDetailData(res)
           setDetailTab('info')
         }
-      } catch {
-        if (!cancelled) toast({ title: t('common.error'), type: 'error' })
+      } catch (err) {
+        if (!cancelled) toast({ title: err instanceof Error ? err.message : t('communities.detailLoadError'), type: 'error' })
       }
     }
     fetchDetail()
@@ -91,8 +91,8 @@ export default function CommunitiesPage() {
           setLogs(res.logs ?? [])
           setLogsTotal(res.total)
         }
-      } catch {
-        if (!cancelled) toast({ title: t('common.error'), type: 'error' })
+      } catch (err) {
+        if (!cancelled) toast({ title: err instanceof Error ? err.message : t('communities.logsLoadError'), type: 'error' })
       } finally {
         if (!cancelled) setLogsLoading(false)
       }
@@ -206,7 +206,7 @@ export default function CommunitiesPage() {
   const handleUnhide = async (id: string) => {
     try {
       await unhideCommunity(id)
-      toast({ title: t('common.save'), type: 'success' })
+      toast({ title: t('communities.unhideSuccess'), type: 'success' })
       invalidate('/admin/communities')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
@@ -216,7 +216,7 @@ export default function CommunitiesPage() {
   const handleUnarchive = async (id: string) => {
     try {
       await unarchiveCommunity(id)
-      toast({ title: t('common.save'), type: 'success' })
+      toast({ title: t('communities.unarchiveSuccess'), type: 'success' })
       invalidate('/admin/communities')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
@@ -241,7 +241,13 @@ export default function CommunitiesPage() {
           await deleteCommunity(actionTarget.id, { reason: actionReason })
           break
       }
-      toast({ title: t('common.save'), type: 'success' })
+      const successKey: Record<string, string> = {
+        hide: 'communities.hideSuccess',
+        archive: 'communities.archiveSuccess',
+        warn: 'communities.warnSuccess',
+        delete: 'communities.deleteSuccess',
+      }
+      toast({ title: t(successKey[actionTarget.type] ?? 'communities.hideSuccess'), type: 'success' })
       setActionTarget(null)
       setActionReason('')
       setWarnMessage('')

@@ -117,7 +117,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const handleSubmitPassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) return;
     if (newPassword !== confirmPassword) {
-      toast({ title: t("common.error"), type: "error" });
+      toast({ title: t("common.passwordMismatch"), type: "error" });
       return;
     }
     setChangingPassword(true);
