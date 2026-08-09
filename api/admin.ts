@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { request, extractErrorMessage } from "./api";
 import type {
   AdminAdListResponse,
   AdPerformance,
@@ -288,8 +288,7 @@ export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance 
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(`/ads-management/${id}/analytics`, { headers })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }))
-    throw new Error(err.message || `HTTP ${res.status}`)
+    throw new Error(await extractErrorMessage(res))
   }
   return res.json()
 }

@@ -185,7 +185,12 @@
     "error": "Invalid email or password",
     "noAccount": "Don't have an account?",
     "registerLink": "Register",
-    "forgotPassword": "Forgot password?"
+    "forgotPassword": "Forgot password?",
+    "or": "or",
+    "google": {
+      "error": "Google login failed",
+      "text": "continue_with"
+    }
   },
   "landing": {
     "tagline": "Connect with friends, share moments",
@@ -206,6 +211,7 @@
     "submit": "Register",
     "error": "Registration failed",
     "verifyEmailMessage": "Account created! Please check your email to verify your account.",
+    "or": "or",
     "haveAccount": "Already have an account?",
     "loginLink": "Login",
     "displayNameRequired": "Display name is required",

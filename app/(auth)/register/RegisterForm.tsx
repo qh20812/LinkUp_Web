@@ -10,6 +10,7 @@ import { register } from '../../../api/auth'
 import { clearSWRCache } from '../../../api/swr'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
+import GoogleAuthButton from '../../../components/auth/GoogleAuthButton'
 import styles from './RegisterForm.module.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -114,6 +115,12 @@ export default function RegisterForm() {
 
         <h1 className={styles.title}>{t('register.title')}</h1>
         <p className={styles.subtitle}>{t('register.subtitle')}</p>
+
+        <GoogleAuthButton />
+
+        <div className={styles.divider}>
+          <span>{t('register.or')}</span>
+        </div>
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           <div className={styles.field}>

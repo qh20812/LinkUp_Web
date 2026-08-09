@@ -13,6 +13,12 @@ export const register = (displayName: string, email: string, password: string) =
     body: JSON.stringify({ display_name: displayName, email, password }),
   })
 
+export const googleLogin = (idToken: string) =>
+  request<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken }),
+  })
+
 export const verifyEmail = (token: string) =>
   request<VerifyEmailResponse>('/auth/verify-email', {
     method: 'POST',

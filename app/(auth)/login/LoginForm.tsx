@@ -11,6 +11,7 @@ import { clearSWRCache } from '../../../api/swr'
 import { getPostAuthPath } from '../../../utils/auth'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
+import GoogleAuthButton from '../../../components/auth/GoogleAuthButton'
 import styles from './LoginForm.module.css'
 
 export default function LoginForm() {
@@ -92,6 +93,12 @@ export default function LoginForm() {
               {loading ? '...' : t('login.submit')}
             </button>
           </form>
+
+          <div className={styles.divider}>
+            <span>{t('login.or')}</span>
+          </div>
+
+          <GoogleAuthButton />
 
           <Link href="/forgot-password" className={styles.forgotLink}>
             {t('login.forgotPassword')}

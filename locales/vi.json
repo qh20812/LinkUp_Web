@@ -185,7 +185,12 @@
     "error": "Email hoặc mật khẩu không đúng",
     "noAccount": "Chưa có tài khoản?",
     "registerLink": "Đăng ký",
-    "forgotPassword": "Quên mật khẩu?"
+    "forgotPassword": "Quên mật khẩu?",
+    "or": "hoặc",
+    "google": {
+      "error": "Đăng nhập bằng Google thất bại",
+      "text": "continue_with"
+    }
   },
   "landing": {
     "tagline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
@@ -206,6 +211,7 @@
     "submit": "Đăng ký",
     "error": "Đăng ký thất bại",
     "verifyEmailMessage": "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
+    "or": "hoặc",
     "haveAccount": "Đã có tài khoản?",
     "loginLink": "Đăng nhập",
     "displayNameRequired": "Tên hiển thị không được để trống",

@@ -5,6 +5,13 @@ const LOGIN_PATH = '/auth/login'
 
 let refreshPromise: Promise<boolean> | null = null
 
+export async function extractErrorMessage(res: Response): Promise<string> {
+  const body = await res.json().catch(() => null)
+  if (body && typeof body.error === 'string' && body.error) return body.error
+  if (body && typeof body.message === 'string' && body.message) return body.message
+  return `HTTP ${res.status}`
+}
+
 export function clearSession(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem('token')
@@ -89,8 +96,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
       redirectToLogin()
       return Promise.reject(new Error('Unauthorized'))
     }
-    const error = await res.json().catch(() => ({ message: res.statusText }))
-    throw new Error(error.message || `HTTP ${res.status}`)
+    throw new Error(await extractErrorMessage(res))
   }
 
   return res.json()

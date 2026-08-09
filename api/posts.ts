@@ -1,4 +1,4 @@
-import { request } from './api'
+import { request, extractErrorMessage } from './api'
 import type {
   FeedPost,
   FeedResponse,
@@ -84,8 +84,7 @@ export const createPost = ({ title, content, status, files = [] }: CreatePostInp
     body: formData,
   }).then(async (res) => {
     if (!res.ok) {
-      const data = await res.json().catch(() => null)
-      throw new Error(data?.error || `HTTP ${res.status}`)
+      throw new Error(await extractErrorMessage(res))
     }
     return (await res.json()) as CreatePostResponse
   })

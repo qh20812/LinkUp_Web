@@ -134,6 +134,27 @@
   cursor: not-allowed;
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.divider span {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-transform: lowercase;
+}
+
 .footer {
   margin-top: var(--space-lg);
   font: var(--text-caption);

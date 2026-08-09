@@ -1,4 +1,4 @@
-import { request } from './api'
+import { request, extractErrorMessage } from './api'
 import type { ViewProfileResponse } from '../types'
 
 export const getMyProfile = () =>
@@ -26,8 +26,7 @@ export const uploadAvatar = (file: File) => {
     body: formData,
   }).then(async (res) => {
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(error.error || `HTTP ${res.status}`)
+      throw new Error(await extractErrorMessage(res))
     }
     return res.json()
   })

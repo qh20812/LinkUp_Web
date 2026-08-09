@@ -1,5 +1,6 @@
 import React from 'react'
 import { Montserrat, Open_Sans } from 'next/font/google'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
@@ -36,11 +37,13 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <LanguageProvider>
-          <ThemeProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </ThemeProvider>
-        </LanguageProvider>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''}>
+          <LanguageProvider>
+            <ThemeProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </ThemeProvider>
+          </LanguageProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   )
