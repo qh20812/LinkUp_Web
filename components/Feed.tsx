@@ -11,6 +11,7 @@ import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
+import { useToast } from '../contexts/ToastContext'
 
 const PAGE_SIZE = 10
 
@@ -33,6 +34,7 @@ export default function Feed() {
 
 function FeedContent() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const searchParams = useSearchParams()
   const { followedUserIds, followUser: ctxFollowUser } = useFollowContext()
   const tab = searchParams.get('tab') || 'explore'
@@ -162,12 +164,13 @@ function FeedContent() {
 
     try {
       await savePost(postId)
-    } catch {
+    } catch (e) {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId ? { ...p, is_saved: !p.is_saved } : p,
         ),
       )
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     }
   }
 

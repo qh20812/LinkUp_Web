@@ -44,8 +44,8 @@ export default function NotificationsPage() {
       refreshUnreadCount();
       invalidate('/notifications');
       toast({ title: t("notifications.markRead"), type: "success" });
-    } catch {
-      toast({ title: t("common.error"), type: "error" });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t("notifications.markReadError"), type: "error" });
     }
   };
 
@@ -55,8 +55,8 @@ export default function NotificationsPage() {
       refreshUnreadCount();
       invalidate('/notifications');
       toast({ title: t("notifications.markAllRead"), type: "success" });
-    } catch {
-      toast({ title: t("common.error"), type: "error" });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t("notifications.markAllReadError"), type: "error" });
     }
   };
 

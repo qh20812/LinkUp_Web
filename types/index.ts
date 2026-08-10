@@ -110,6 +110,7 @@ export interface FeedPost {
   media: FeedMedia[]
   is_liked: boolean
   is_saved: boolean
+  is_shared: boolean
   is_following: boolean
 }
 

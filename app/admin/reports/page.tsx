@@ -306,8 +306,8 @@ export default function ReportsPage() {
                                 try {
                                   const detail = await getReport(report.id)
                                   setDetailTarget(detail)
-                                } catch {
-                                  toast({ title: t('common.error'), type: 'error' })
+                                } catch (err) {
+                                  toast({ title: err instanceof Error ? err.message : t('reports.detailLoadError'), type: 'error' })
                                 } finally {
                                   setDetailLoading(false)
                                 }

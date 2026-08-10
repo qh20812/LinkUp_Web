@@ -135,6 +135,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [sharing, setSharing] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [mediaIndex, setMediaIndex] = useState(0)
   const commentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -143,6 +144,8 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMediaIndex(0)
     getComments(post.id, 1, COMMENT_PAGE_SIZE)
       .then((res) => {
         setComments(res.data)
@@ -162,6 +165,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
             username: res.data.username || c.username,
             is_liked: c.is_liked,
             is_saved: c.is_saved,
+            is_shared: c.is_shared,
             is_following: c.is_following,
           }
         })
@@ -226,9 +230,10 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     onUpdated?.(next)
     try {
       await savePost(current.id)
-    } catch {
+    } catch (e) {
       setCurrent(prev)
       onUpdated?.(prev)
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     }
   }
 
@@ -259,7 +264,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     setSharing(true)
     try {
       await sharePost(current.id, shareText.trim())
-      const next = { ...current, shares_count: current.shares_count + 1 }
+      const next = { ...current, shares_count: current.shares_count + 1, is_shared: true }
       setCurrent(next)
       onUpdated?.(next)
       setShareOpen(false)
@@ -343,16 +348,44 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
         <div className={styles.grid}>
           {hasMedia && (
             <div className={styles.mediaPane}>
-              {current.media.map((m) =>
-                isVideo(m.file_type) ? (
-                  <div key={m.id} className={`${styles.mediaItem} ${styles.videoWrap}`}>
-                    <VideoPlayer src={m.file_uri} />
-                  </div>
-                ) : (
-                  <div key={m.id} className={styles.mediaItem}>
-                    <img src={m.file_uri} alt="" />
-                  </div>
-                ),
+              <div className={styles.mediaStage}>
+                {(() => {
+                  const mediaCount = current.media.length
+                  const safeIndex = Math.min(mediaIndex, mediaCount - 1)
+                  const m = current.media[safeIndex]
+                  return isVideo(m.file_type) ? (
+                    <div key={m.id} className={`${styles.mediaItem} ${styles.videoWrap}`}>
+                      <VideoPlayer src={m.file_uri} />
+                    </div>
+                  ) : (
+                    <div key={m.id} className={styles.mediaItem}>
+                      <img src={m.file_uri} alt="" />
+                    </div>
+                  )
+                })()}
+              </div>
+              {current.media.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className={`${styles.navBtn} ${styles.navPrev}`}
+                    onClick={() => setMediaIndex((i) => (i - 1 + current.media.length) % current.media.length)}
+                    aria-label="Previous media"
+                  >
+                    <i className="bx bx-chevron-left" />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.navBtn} ${styles.navNext}`}
+                    onClick={() => setMediaIndex((i) => (i + 1) % current.media.length)}
+                    aria-label="Next media"
+                  >
+                    <i className="bx bx-chevron-right" />
+                  </button>
+                  <span className={styles.mediaCounter}>
+                    {Math.min(mediaIndex, current.media.length - 1) + 1} / {current.media.length}
+                  </span>
+                </>
               )}
             </div>
           )}
@@ -434,6 +467,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                 type="button"
                 className={styles.actionBtn}
                 onClick={() => setShareOpen((v) => !v)}
+                disabled={isOwner || current.is_shared}
               >
                 <i className="bx bx-share-alt" />
                 <span>{formatCount(current.shares_count)}</span>
@@ -443,6 +477,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                 type="button"
                 className={`${styles.actionBtn} ${current.is_saved ? styles.saved : ''}`}
                 onClick={handleSave}
+                disabled={isOwner}
               >
                 <i className={`bx ${current.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
               </button>

@@ -54,8 +54,8 @@ export default function RightSidebar() {
     try {
       await followUser(userId)
       toast({ title: t('rightSidebar.followSuccess'), type: 'success' })
-    } catch {
-      toast({ title: t('common.error'), type: 'error' })
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('rightSidebar.followError'), type: 'error' })
     }
   }
 
@@ -63,8 +63,8 @@ export default function RightSidebar() {
     try {
       await unfollowUser(userId)
       toast({ title: t('rightSidebar.unfollowSuccess'), type: 'success' })
-    } catch {
-      toast({ title: t('common.error'), type: 'error' })
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('rightSidebar.unfollowError'), type: 'error' })
     }
   }
 
@@ -79,8 +79,8 @@ export default function RightSidebar() {
       })
       setSuggestionsPage(res.page)
       setSuggestionsHasMore(res.has_more)
-    } catch {
-      toast({ title: t('common.error'), type: 'error' })
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('rightSidebar.loadError'), type: 'error' })
     }
   }
 

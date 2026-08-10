@@ -208,6 +208,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             onShare?.(post.id)
           }}
           aria-label={t('post.share')}
+          disabled={post.user_id === currentUserId}
         >
           <i className="bx bx-share-alt" />
           <span>{formatCount(post.shares_count)}</span>
@@ -220,6 +221,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             onSave?.(post.id)
           }}
           aria-label={t('post.save')}
+          disabled={post.user_id === currentUserId}
         >
           <i className={`bx ${post.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
         </button>
