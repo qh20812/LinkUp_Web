@@ -4,6 +4,9 @@ import type { ViewProfileResponse } from '../types'
 export const getMyProfile = () =>
   request<{ data: ViewProfileResponse }>('/profile')
 
+export const getProfileByUserID = (userID: string) =>
+  request<ViewProfileResponse>(`/profile/${userID}`)
+
 export const updateProfile = (input: {
   display_name?: string
   avatar_uri?: string

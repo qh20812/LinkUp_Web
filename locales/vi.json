@@ -718,5 +718,11 @@
     "confirmTitle": "Vô hiệu hóa tài khoản?",
     "confirmText": "Thao tác này sẽ tạm khóa tài khoản của bạn. Bạn sẽ không xuất hiện trong tìm kiếm và không thể đăng nhập cho đến khi kích hoạt lại.",
     "deactivateSuccess": "Đã vô hiệu hóa tài khoản"
+  },
+  "profile": {
+    "follow": "Theo dõi",
+    "unfollow": "Hủy theo dõi",
+    "followers": "người theo dõi",
+    "following": "đang theo dõi"
   }
 }

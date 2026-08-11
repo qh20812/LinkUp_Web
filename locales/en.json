@@ -718,5 +718,11 @@
     "confirmTitle": "Deactivate account?",
     "confirmText": "This temporarily disables your account. You will not appear in search or be able to log in until you reactivate.",
     "deactivateSuccess": "Account deactivated"
+  },
+  "profile": {
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followers": "followers",
+    "following": "following"
   }
 }

@@ -74,7 +74,11 @@ export default function NotificationDropdown({
 
   const handleItemClick = async (item: NotificationItem) => {
     if (!item.is_read) {
-      await markAsRead(item.id);
+      try {
+        await markAsRead(item.id);
+      } catch {
+        /* ignore */
+      }
     }
     onClose();
 
@@ -82,6 +86,8 @@ export default function NotificationDropdown({
       router.push("/admin/posts");
     } else if (item.redirect_user_id) {
       router.push("/admin/users");
+    } else {
+      router.push("/admin/notifications");
     }
   };
 

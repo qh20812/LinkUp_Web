@@ -8,6 +8,7 @@ import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAuth } from '../../../hooks/useAuth'
 import { useNotification } from '../../../contexts/NotificationContext'
+import { notificationHref } from '../../../utils/notificationNavigate'
 import type {
   NotificationItem,
   NotificationListResponse,
@@ -74,6 +75,8 @@ export default function NotificationsPage() {
       }
       invalidate('/notifications')
     }
+    const href = notificationHref(item)
+    if (href) router.push(href)
   }
 
   const handleMarkAll = async () => {
