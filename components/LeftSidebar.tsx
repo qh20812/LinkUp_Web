@@ -12,6 +12,7 @@ import styles from './LeftSidebar.module.css'
   import { clearSWRCache } from '../api/swr'
 import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
+import { useNotification } from '../contexts/NotificationContext'
 import type { ViewProfileResponse } from '../types'
 
 const NAV_ITEMS = [
@@ -40,6 +41,7 @@ export default function LeftSidebar() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { profile } = useProfile()
+  const { unreadCount } = useNotification()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -82,6 +84,11 @@ export default function LeftSidebar() {
           >
             <i className={`bx ${item.icon}`} />
             <span>{t(`sidebar.${item.key}`)}</span>
+            {item.key === 'notifications' && unreadCount > 0 && (
+              <span className={styles.navBadge}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

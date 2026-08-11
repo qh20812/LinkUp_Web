@@ -17,6 +17,7 @@ import {
   getPreferences,
   updatePreferences as apiUpdatePreferences,
 } from "../api/notifications";
+import { invalidate } from "../api/swr";
 
 interface NotificationContextType {
   unreadCount: number;
@@ -103,11 +104,21 @@ export function NotificationProvider({
   };
 
   const updatePreferences = async (prefs: Partial<NotificationPreferences>) => {
-    if (preferences) {
-      setPreferences({ ...preferences, ...prefs });
-    }
+    setPreferences((prev) => ({
+      ...(prev ?? {
+        like_enabled: true,
+        comment_enabled: true,
+        follow_enabled: true,
+        message_enabled: true,
+        friend_request_enabled: true,
+        community_enabled: true,
+        voice_call_enabled: true,
+      }),
+      ...prefs,
+    }));
     try {
       await apiUpdatePreferences(prefs);
+      await loadPreferences();
     } catch (err) {
       console.error("Failed to update preferences:", err);
       loadPreferences();
@@ -158,6 +169,8 @@ export function NotificationProvider({
             const newNotif: NotificationItem = message.data;
             setNotifications((prev) => [newNotif, ...prev.slice(0, 4)]);
             setUnreadCount((prev) => prev + 1);
+            invalidate("/notifications");
+            fetchDropdownNotifications();
           }
         } catch (err) {
           console.error("Error parsing WS message:", err);

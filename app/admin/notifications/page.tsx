@@ -23,8 +23,8 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const notifParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (filter === 'unread') notifParams.set('unread_only', 'true')
+  const notifParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (filter === 'unread') notifParams.set('unreadOnly', 'true')
   const swrKey = `/notifications?${notifParams}`
   const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<NotificationListResponse>(url))
   let items: NotificationItem[] = []
@@ -95,6 +95,8 @@ export default function NotificationsPage() {
         return "bx bx-heart " + styles.iconLike;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
+      case "share":
+        return "bx bx-share-alt " + styles.iconLike;
       case "follow":
         return "bx bx-user-plus " + styles.iconFollow;
       case "message":

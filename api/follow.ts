@@ -8,3 +8,6 @@ export const followUser = (userId: string) =>
   request<FollowToggleResponse>(`/follow/${userId}`, {
     method: 'POST',
   })
+
+export const getFollowStats = (userId: string) =>
+  request<{ follower_count: number; following_count: number; is_following?: boolean }>(`/follow/stats/${userId}`)

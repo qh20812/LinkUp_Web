@@ -457,7 +457,7 @@ export interface AdminModerationLogListResponse {
 
 // ===== Notifications =====
 export type NotificationType =
-  | 'like' | 'comment' | 'follow' | 'message'
+  | 'like' | 'comment' | 'follow' | 'message' | 'share'
   | 'friend_request' | 'friend_accepted'
   | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
   | 'community_role_changed' | 'community_member_left' | 'community_member_kicked'

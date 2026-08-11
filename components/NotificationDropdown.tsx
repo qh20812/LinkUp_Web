@@ -27,6 +27,8 @@ export default function NotificationDropdown({
         return "bx bx-heart " + styles.iconLike;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
+      case "share":
+        return "bx bx-share-alt " + styles.iconLike;
       case "follow":
         return "bx bx-user-plus " + styles.iconFollow;
       case "message":
@@ -73,7 +75,11 @@ export default function NotificationDropdown({
 
   const handleItemClick = async (item: NotificationItem) => {
     if (!item.is_read) {
-      await markAsRead(item.id);
+      try {
+        await markAsRead(item.id);
+      } catch {
+        /* ignore */
+      }
     }
     onClose();
 
@@ -81,6 +87,8 @@ export default function NotificationDropdown({
       router.push("/admin/posts");
     } else if (item.redirect_user_id) {
       router.push("/admin/users");
+    } else {
+      router.push("/admin/notifications");
     }
   };
 
