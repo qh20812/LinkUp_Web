@@ -17,6 +17,7 @@ function UserNavbarContent() {
     '/friends': 'friends.title',
     '/saved': 'saved.title',
     '/settings': 'nav.settings',
+    '/notifications': 'notifications.title',
   }[pathname]
   const isDetail = !showTabs && !pageTitleKey
   const [query, setQuery] = useState('')

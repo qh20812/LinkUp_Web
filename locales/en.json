@@ -621,6 +621,7 @@
     "prefFollow": "Follows",
     "prefMessage": "Messages",
     "prefFriendRequest": "Friend Requests & Communities",
+    "prefVoiceCall": "Voice calls",
     "prefSaved": "Notification preferences saved",
     "newNotification": "New notification",
     "typeLabel_like": "liked",
