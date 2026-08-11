@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import ExternalImage from './ExternalImage'
 import styles from './PostDetailModal.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
@@ -307,7 +308,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
       <div className={styles.commentHead}>
         <div className={styles.commentAvatar}>
           {node.comment.avatar_uri ? (
-            <img src={node.comment.avatar_uri} alt="" />
+            <ExternalImage src={node.comment.avatar_uri} alt="" />
           ) : (
             <i className="bx bxs-user" />
           )}
@@ -359,7 +360,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                     </div>
                   ) : (
                     <div key={m.id} className={styles.mediaItem}>
-                      <img src={m.file_uri} alt="" />
+                      <ExternalImage src={m.file_uri} alt="" />
                     </div>
                   )
                 })()}
@@ -395,7 +396,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
               <Link href={`/profile/${current.user_id}`} className={styles.author}>
                 <div className={styles.avatar}>
                   {current.avatar_uri ? (
-                    <img src={current.avatar_uri} alt="" className={styles.avatarImg} />
+                    <ExternalImage src={current.avatar_uri} alt="" className={styles.avatarImg} />
                   ) : (
                     <i className="bx bxs-user" />
                   )}

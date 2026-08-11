@@ -91,10 +91,9 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   }
 
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== 'undefined') {
+    if (res.status === 401 && typeof window !== 'undefined' && path !== LOGIN_PATH) {
       clearSession()
       redirectToLogin()
-      return Promise.reject(new Error('Unauthorized'))
     }
     throw new Error(await extractErrorMessage(res))
   }

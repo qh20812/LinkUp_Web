@@ -191,6 +191,10 @@
     "registerLink": "Register",
     "forgotPassword": "Forgot password?",
     "or": "or",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email format",
+    "passwordRequired": "Password is required",
+    "passwordTooShort": "Password must be at least 6 characters",
     "google": {
       "error": "Google login failed",
       "text": "continue_with"

@@ -12,6 +12,7 @@ import {
 import type { AdminMediaItem, AdminMediaGroupedResponse, AdminMediaListResponse } from "../../../types";
 import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
+import ExternalImage from '../../../components/ExternalImage'
 import styles from "./Media.module.css";
 
 type TabType = "grouped" | "flagged" | "rejected";
@@ -113,7 +114,7 @@ export default function MediaPage() {
     }
     if (isImage(item)) {
       return (
-        <img
+        <ExternalImage
           src={item.file_uri}
           alt=""
           onError={() => handleMediaError(item.id)}
@@ -538,7 +539,7 @@ export default function MediaPage() {
                 <span>{t("media.loadFailed")}</span>
               </div>
             ) : isImage(previewMedia) ? (
-              <img
+              <ExternalImage
                 src={previewMedia.file_uri}
                 alt=""
                 className={styles.previewModalImage}

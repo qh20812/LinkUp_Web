@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import ExternalImage from '../../../components/ExternalImage'
 import styles from './Friends.module.css'
 import {
   getFriends,
@@ -296,7 +297,7 @@ export default function FriendsPage() {
         {items.map((item) => (
           <div key={item.id} className={styles.card}>
             <div className={styles.cardAvatar}>
-              {item.avatar_uri ? <img src={item.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+              {item.avatar_uri ? <ExternalImage src={item.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
             </div>
             <span className={styles.cardName}>{item.display_name}</span>
             {subTab === 'received' ? (
@@ -358,7 +359,7 @@ export default function FriendsPage() {
           {suggestions.map((user) => (
             <div key={user.user_id} className={styles.card}>
               <div className={styles.cardAvatar}>
-                {user.avatar_uri ? <img src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
               </div>
               <div className={styles.cardMeta}>
                 <span className={styles.cardName}>{user.display_name}</span>
@@ -436,7 +437,7 @@ export default function FriendsPage() {
           {friends.map((user) => (
             <div key={user.user_id} className={styles.card}>
               <div className={styles.cardAvatar}>
-                {user.avatar_uri ? <img src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
               </div>
               <span className={styles.cardName}>{user.display_name}</span>
               <div className={styles.cardActions}>
@@ -531,7 +532,7 @@ export default function FriendsPage() {
         <div className={styles.confirmBody}>
           <div className={styles.confirmAvatar}>
             {unfriendTarget?.avatar_uri ? (
-              <img src={unfriendTarget.avatar_uri} alt="" />
+              <ExternalImage src={unfriendTarget.avatar_uri} alt="" />
             ) : (
               <i className="bx bxs-user" />
             )}

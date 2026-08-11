@@ -11,6 +11,7 @@ import {
   markAllAsRead as apiMarkAllAsRead,
 } from "../../../api/notifications";
 import type { NotificationItem, NotificationListResponse, NotificationType } from "../../../types";
+import ExternalImage from '../../../components/ExternalImage'
 import styles from "./Notifications.module.css";
 
 export default function NotificationsPage() {
@@ -179,7 +180,7 @@ export default function NotificationsPage() {
                     <td>
                       <div className={styles.iconWrapper}>
                         {item.sender_avatar ? (
-                          <img
+                          <ExternalImage
                             src={item.sender_avatar}
                             alt=""
                             className={styles.senderAvatar}

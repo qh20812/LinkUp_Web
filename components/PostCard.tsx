@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ExternalImage from './ExternalImage'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
@@ -60,7 +61,7 @@ function MediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate
           {isVideo(m.file_type) ? (
             <VideoPlayer src={m.file_uri} />
           ) : (
-            <img src={m.file_uri} alt="" className={styles.mediaEl} loading="lazy" />
+            <ExternalImage src={m.file_uri} alt="" className={styles.mediaEl} loading="lazy" />
           )}
         </div>
       ))}
@@ -126,7 +127,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         <Link href={`/profile/${post.user_id}`} className={styles.author} onClick={(e) => e.stopPropagation()}>
           <div className={styles.avatar}>
             {post.avatar_uri ? (
-              <img src={post.avatar_uri} alt="" className={styles.avatarImg} />
+              <ExternalImage src={post.avatar_uri} alt="" className={styles.avatarImg} />
             ) : (
               <i className="bx bxs-user" />
             )}

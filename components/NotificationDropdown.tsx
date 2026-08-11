@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useNotification } from "../contexts/NotificationContext";
 import { useTranslation } from "../hooks/useTranslation";
 import type { NotificationItem, NotificationType } from "../types";
+import ExternalImage from "./ExternalImage";
 import styles from "./NotificationDropdown.module.css";
 
 interface NotificationDropdownProps {
@@ -121,7 +122,7 @@ export default function NotificationDropdown({
               onClick={() => handleItemClick(item)}>
               <div className={styles.iconWrapper}>
                 {item.sender_avatar ? (
-                  <img
+                  <ExternalImage
                     src={item.sender_avatar}
                     alt=""
                     className={styles.senderAvatar}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import useSWR from 'swr'
+import ExternalImage from './ExternalImage'
 import styles from './PostComposer.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
@@ -147,7 +148,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
         <button type="button" className={styles.idle} onClick={() => setExpanded(true)}>
           <div className={styles.avatar}>
             {profile?.avatar_uri ? (
-              <img src={profile.avatar_uri} alt="" className={styles.avatarImg} />
+              <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatarImg} />
             ) : (
               <i className="bx bxs-user" />
             )}
@@ -162,7 +163,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
           <div className={styles.expandedHeader}>
             <div className={styles.avatar}>
               {profile?.avatar_uri ? (
-                <img src={profile.avatar_uri} alt="" className={styles.avatarImg} />
+                <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatarImg} />
               ) : (
                 <i className="bx bxs-user" />
               )}
@@ -199,7 +200,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
                       <i className={`bx bx-play-circle ${styles.playIcon}`} />
                     </>
                   ) : (
-                    <img src={m.url} alt="" className={styles.mediaEl} />
+                    <ExternalImage src={m.url} alt="" className={styles.mediaEl} />
                   )}
                   <button
                     type="button"

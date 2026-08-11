@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
+import ExternalImage from './ExternalImage'
 import styles from './LeftSidebar.module.css'
   import { request, clearSession } from '../api/api'
   import { logout } from '../api/auth'
@@ -97,7 +98,7 @@ export default function LeftSidebar() {
         <button className={styles.userInfo} onClick={() => setDropdownOpen((prev) => !prev)}>
           <div className={styles.avatar}>
             {profile?.avatar_uri ? (
-              <img src={profile.avatar_uri} alt="" />
+              <ExternalImage src={profile.avatar_uri} alt="" />
             ) : (
               <i className="bx bxs-user" />
             )}

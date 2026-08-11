@@ -176,7 +176,7 @@
   },
   "brand": {
     "headline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
-    "tagline": "Cộng đồng xã hội cho mọi người"
+    "tagline": "Mạng xã hội cho mọi người"
   },
   "login": {
     "title": "Đăng nhập",
@@ -191,6 +191,10 @@
     "registerLink": "Đăng ký",
     "forgotPassword": "Quên mật khẩu?",
     "or": "hoặc",
+    "emailRequired": "Email không được để trống",
+    "emailInvalid": "Định dạng email không hợp lệ",
+    "passwordRequired": "Mật khẩu không được để trống",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
     "google": {
       "error": "Đăng nhập bằng Google thất bại",
       "text": "continue_with"

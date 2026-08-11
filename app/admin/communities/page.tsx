@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
 import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem, AdminCommunityListResponse } from '../../../types'
+import ExternalImage from '../../../components/ExternalImage'
 import styles from './Communities.module.css'
 
 export default function CommunitiesPage() {
@@ -46,17 +47,17 @@ export default function CommunitiesPage() {
   const items = res?.communities ?? []
   const total = res?.total ?? 0
 
-  const closeMenu = () => {
+  const closeMenu = useCallback(() => {
     setOpenMenuId(null)
     setMenuStyle(null)
-  }
+  }, [])
 
   useEffect(() => {
     if (!openMenuId) return
     const handleClick = () => closeMenu()
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
-  }, [openMenuId])
+  }, [openMenuId, closeMenu])
 
   useEffect(() => {
     if (!detailTarget) return
@@ -78,7 +79,7 @@ export default function CommunitiesPage() {
     }
     fetchDetail()
     return () => { cancelled = true }
-  }, [detailTarget?.id, t, toast])
+  }, [detailTarget, t, toast, closeMenu])
 
   useEffect(() => {
     if (!detailTarget || detailTab !== 'logs') return
@@ -99,7 +100,7 @@ export default function CommunitiesPage() {
     }
     fetchLogs()
     return () => { cancelled = true }
-  }, [detailTarget?.id, detailTab, logsPage, t, toast])
+  }, [detailTarget, detailTab, logsPage, t, toast])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -368,7 +369,7 @@ export default function CommunitiesPage() {
                       <div className={styles.communityCell}>
                         <div className={styles.avatar}>
                           {c.avatar_uri ? (
-                            <img src={c.avatar_uri} alt={c.name} className={styles.avatarImg} />
+                            <ExternalImage src={c.avatar_uri} alt={c.name} className={styles.avatarImg} />
                           ) : (
                             <i className="bx bx-group" />
                           )}
@@ -533,7 +534,7 @@ export default function CommunitiesPage() {
                 {detailTab === 'info' && (
                   <div className={styles.detailCover}>
                     {detailData.background_uri ? (
-                      <img src={detailData.background_uri} alt="" className={styles.detailCoverImg} />
+                      <ExternalImage src={detailData.background_uri} alt="" className={styles.detailCoverImg} />
                     ) : (
                       <div className={styles.detailCoverFallback}>{t('communities.noBackground')}</div>
                     )}
@@ -545,7 +546,7 @@ export default function CommunitiesPage() {
                       <div className={styles.detailCoverContent}>
                         <div className={styles.detailAvatarLarge}>
                           {detailData.avatar_uri ? (
-                            <img src={detailData.avatar_uri} alt={detailData.name} className={styles.detailAvatarLargeImg} />
+                            <ExternalImage src={detailData.avatar_uri} alt={detailData.name} className={styles.detailAvatarLargeImg} />
                           ) : (
                             <i className="bx bx-group" />
                           )}
@@ -608,7 +609,7 @@ export default function CommunitiesPage() {
                             <div key={m.user_id} className={styles.memberItem}>
                               <div className={styles.memberAvatar}>
                                 {m.avatar_uri ? (
-                                  <img src={m.avatar_uri} alt={m.display_name} className={styles.memberAvatarImg} />
+                                  <ExternalImage src={m.avatar_uri} alt={m.display_name} className={styles.memberAvatarImg} />
                                 ) : (
                                   <i className="bx bx-user" />
                                 )}

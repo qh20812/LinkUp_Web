@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import ExternalImage from './ExternalImage'
 import styles from './RightSidebar.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
@@ -150,7 +151,7 @@ export default function RightSidebar() {
                       <div className={styles.suggestionItem}>
                         <div className={styles.suggestionAvatar}>
                           {user.avatar_uri ? (
-                            <img src={user.avatar_uri} alt="" className={styles.avatarImg} />
+                            <ExternalImage src={user.avatar_uri} alt="" className={styles.avatarImg} />
                           ) : (
                             <i className="bx bxs-user" />
                           )}

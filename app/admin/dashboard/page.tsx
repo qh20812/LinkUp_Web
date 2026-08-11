@@ -17,7 +17,6 @@ import {
   Cell,
 } from 'recharts'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { getDashboardStats } from '../../../api/admin'
 import { swrFetcher } from '../../../api/swr'
 import StatCard from '../../../components/StatCard'
 import type {
