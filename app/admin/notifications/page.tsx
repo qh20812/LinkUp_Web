@@ -94,6 +94,8 @@ export default function NotificationsPage() {
         return "bx bx-heart " + styles.iconLike;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
+      case "share":
+        return "bx bx-share-alt " + styles.iconLike;
       case "follow":
         return "bx bx-user-plus " + styles.iconFollow;
       case "message":
