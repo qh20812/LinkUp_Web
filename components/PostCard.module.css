@@ -274,3 +274,31 @@
   background: var(--color-bg-secondary);
   color: var(--color-primary);
 }
+
+@media (max-width: 576px) {
+  .header {
+    padding: 12px 12px 0;
+  }
+
+  .body {
+    padding: 8px 12px 0;
+  }
+
+  .mediaGrid {
+    margin: 10px 12px 0;
+  }
+
+  .actionBar {
+    padding: 4px 4px;
+  }
+
+  .actionBtn {
+    padding: 6px 8px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .actionBtn i {
+    font-size: 16px;
+  }
+}

@@ -98,3 +98,17 @@
   font-size: 0.85rem;
   background: var(--color-card);
 }
+
+@media (max-width: 576px) {
+  .header {
+    padding: 0 var(--space-md);
+  }
+
+  .toggleGroup {
+    display: none;
+  }
+
+  .footer {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

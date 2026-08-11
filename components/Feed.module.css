@@ -135,3 +135,18 @@
 .sentinel {
   height: 1px;
 }
+
+@media (max-width: 576px) {
+  .container {
+    padding: 12px;
+  }
+
+  .skelMedia {
+    height: clamp(120px, 30vw, 200px);
+  }
+
+  .errorBox,
+  .empty {
+    padding: 48px 12px;
+  }
+}

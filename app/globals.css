@@ -10,6 +10,8 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  min-width: 320px;
+  overflow-x: hidden;
 }
 
 body {

@@ -126,3 +126,31 @@
 .backBtn:hover {
   background: var(--color-primary-hover);
 }
+
+@media (max-width: 576px) {
+  .page {
+    padding: var(--space-md);
+  }
+
+  .card {
+    padding: var(--space-lg);
+  }
+
+  .avatarWrap {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatarWrap i {
+    font-size: 40px;
+  }
+
+  .stats {
+    gap: var(--space-md);
+  }
+
+  .actionBtn {
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+}

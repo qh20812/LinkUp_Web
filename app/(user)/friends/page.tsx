@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import ExternalImage from '../../../components/ExternalImage'
 import styles from './Friends.module.css'
 import {
@@ -30,14 +31,28 @@ const INFINITE_SCROLL_SIZE = 20
 
 const MAX_REQUESTS = 100
 
+const VALID_MAIN_TABS: MainTab[] = ['requests', 'suggestions', 'list']
+const VALID_SUB_TABS: SubTab[] = ['received', 'sent']
+
 export default function FriendsPage() {
+  return (
+    <Suspense fallback={<div className={styles.page} />}>
+      <FriendsContent />
+    </Suspense>
+  )
+}
+
+function FriendsContent() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { isAuthenticated, initializing } = useAuth()
 
-  const [mainTab, setMainTab] = useState<MainTab>('requests')
-  const [subTab, setSubTab] = useState<SubTab>('received')
+  const rawMain = searchParams.get('mainTab')
+  const rawSub = searchParams.get('subTab')
+  const mainTab: MainTab = VALID_MAIN_TABS.includes(rawMain as MainTab) ? (rawMain as MainTab) : 'requests'
+  const subTab: SubTab = VALID_SUB_TABS.includes(rawSub as SubTab) ? (rawSub as SubTab) : 'received'
 
   const [received, setReceived] = useState<FriendRequestItem[]>([])
   const [sent, setSent] = useState<FriendRequestItem[]>([])
@@ -466,45 +481,45 @@ export default function FriendsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.tabs}>
-        <button
+        <Link
+          href="/friends"
           className={`${styles.tab} ${mainTab === 'requests' ? styles.tabActive : ''}`}
-          onClick={() => setMainTab('requests')}
         >
           <i className="bx bxs-user-detail" />
           {t('friends.tabRequests')}
           {received.length > 0 && <span className={styles.badge}>{Math.min(received.length, MAX_REQUESTS)}</span>}
-        </button>
-        <button
+        </Link>
+        <Link
+          href="/friends?mainTab=suggestions"
           className={`${styles.tab} ${mainTab === 'suggestions' ? styles.tabActive : ''}`}
-          onClick={() => setMainTab('suggestions')}
         >
           <i className="bx bxs-user-plus" />
           {t('friends.tabSuggestions')}
-        </button>
-        <button
+        </Link>
+        <Link
+          href="/friends?mainTab=list"
           className={`${styles.tab} ${mainTab === 'list' ? styles.tabActive : ''}`}
-          onClick={() => setMainTab('list')}
         >
           <i className="bx bxs-group" />
           {t('friends.tabList')}
-        </button>
+        </Link>
       </div>
 
       {mainTab === 'requests' && (
         <>
           <div className={styles.subTabs}>
-            <button
+            <Link
+              href="/friends"
               className={`${styles.subTab} ${subTab === 'received' ? styles.subTabActive : ''}`}
-              onClick={() => setSubTab('received')}
             >
               {t('friends.tabReceived')}
-            </button>
-            <button
+            </Link>
+            <Link
+              href="/friends?mainTab=requests&subTab=sent"
               className={`${styles.subTab} ${subTab === 'sent' ? styles.subTabActive : ''}`}
-              onClick={() => setSubTab('sent')}
             >
               {t('friends.tabSent')}
-            </button>
+            </Link>
           </div>
           {renderRequests()}
         </>

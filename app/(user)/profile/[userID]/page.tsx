@@ -8,6 +8,7 @@ import { getFollowStats, followUser } from '../../../../api/follow'
 import { getTokenPayload } from '../../../../api/auth'
 import { useTranslation } from '../../../../hooks/useTranslation'
 import type { ViewProfileResponse } from '../../../../types'
+import ExternalImage from '../../../../components/ExternalImage'
 import styles from './ProfilePage.module.css'
 
 interface FollowStats {
@@ -117,7 +118,7 @@ function ProfileView({ userID }: { userID: string }) {
       <div className={styles.card}>
         <div className={styles.avatarWrap}>
           {profile.avatar_uri ? (
-            <img src={profile.avatar_uri} alt="" className={styles.avatar} />
+            <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatar} />
           ) : (
             <i className="bx bxs-user" />
           )}

@@ -9,6 +9,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useAuth } from '../../../hooks/useAuth'
 import { useNotification } from '../../../contexts/NotificationContext'
 import { notificationHref } from '../../../utils/notificationNavigate'
+import ExternalImage from '../../../components/ExternalImage'
 import type {
   NotificationItem,
   NotificationListResponse,
@@ -243,7 +244,7 @@ export default function NotificationsPage() {
               onClick={() => handleItemClick(item)}>
               <div className={styles.iconWrapper}>
                 {item.sender_avatar ? (
-                  <img src={item.sender_avatar} alt="" className={styles.avatar} />
+                  <ExternalImage src={item.sender_avatar} alt="" className={styles.avatar} />
                 ) : (
                   <i className={getIconClass(item.type)} />
                 )}

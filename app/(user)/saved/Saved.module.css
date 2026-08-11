@@ -167,3 +167,23 @@
 .sentinel {
   height: 1px;
 }
+
+@media (max-width: 576px) {
+  .page {
+    padding: 16px 0 32px;
+  }
+
+  .container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .skelMedia {
+    height: clamp(120px, 30vw, 200px);
+  }
+
+  .errorBox,
+  .empty {
+    padding: 48px 12px;
+  }
+}

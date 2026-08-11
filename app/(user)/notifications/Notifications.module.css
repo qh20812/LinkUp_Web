@@ -408,3 +408,28 @@
     opacity: 0.8;
   }
 }
+
+@media (max-width: 576px) {
+  .page {
+    padding: 16px 0 32px;
+  }
+
+  .header {
+    padding: 0 12px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .item {
+    padding: 12px;
+  }
+
+  .body {
+    font-size: 13px;
+  }
+}
