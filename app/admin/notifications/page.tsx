@@ -22,8 +22,8 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const notifParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (filter === 'unread') notifParams.set('unread_only', 'true')
+  const notifParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (filter === 'unread') notifParams.set('unreadOnly', 'true')
   const swrKey = `/notifications?${notifParams}`
   const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<NotificationListResponse>(url))
   let items: NotificationItem[] = []
