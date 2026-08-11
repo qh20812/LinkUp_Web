@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { usePathname } from 'next/navigation'
 import { SWRConfig } from 'swr'
 import LeftSidebar from './LeftSidebar'
 import UserNavbar from './UserNavbar'
@@ -11,11 +12,14 @@ import { defaultSWRConfig } from '../api/swr'
 import styles from './UserLayout.module.css'
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isMessages = pathname === '/messages'
+
   return (
     <SWRConfig value={defaultSWRConfig}>
       <NotificationProvider>
         <FollowedUserIdsProvider>
-        <div className={styles.layout}>
+        <div className={`${styles.layout} ${isMessages ? styles.layoutNoRight : ''}`}>
           <div className={styles.left}>
             <LeftSidebar />
           </div>
@@ -23,9 +27,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             <UserNavbar />
             {children}
           </div>
-          <div className={styles.right}>
-            <RightSidebar />
-          </div>
+          {!isMessages && (
+            <div className={styles.right}>
+              <RightSidebar />
+            </div>
+          )}
         </div>
         </FollowedUserIdsProvider>
       </NotificationProvider>

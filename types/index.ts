@@ -694,3 +694,86 @@ export interface FriendActionResponse {
   status: string
   message: string
 }
+
+// ===== Chat / Messages =====
+export interface ChatMessage {
+  id: string
+  chat_id: string
+  sender_id: string
+  content: string
+  emoji_id?: string | null
+  media_id?: string | null
+  reply_to_message_id?: string | null
+  is_anonymized: boolean
+  anonymous_name?: string | null
+  created_at: string
+}
+
+export interface ChatPartner {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+}
+
+export interface ChatConversation {
+  chat_id: string
+  partner: ChatPartner
+  last_message?: ChatMessage | null
+  updated_at: string
+}
+
+export interface ChatListResponse {
+  data: ChatConversation[]
+}
+
+export interface CreateDirectChatResponse {
+  chat_id: string
+  message?: string
+}
+
+// ===== Chat WebSocket payloads =====
+export interface WsChatJoinPayload {
+  chat_id: string
+}
+
+export interface WsSendMessagePayload {
+  chat_id: string
+  content: string
+  emoji_id?: string | null
+  media_id?: string | null
+  reply_to_message_id?: string | null
+}
+
+export interface WsTypingPayload {
+  chat_id: string
+  user_id?: string
+  is_typing?: boolean
+}
+
+export interface WsDeleteMessagePayload {
+  chat_id: string
+  message_id: string
+  mode: 'all' | 'one'
+}
+
+export interface WsSearchMessagePayload {
+  chat_id: string
+  keyword: string
+}
+
+export interface WsMessageDeletedPayload {
+  chat_id: string
+  message_id: string
+  deleted_by: string
+  mode: string
+}
+
+export interface WsSearchResultPayload {
+  chat_id: string
+  keyword: string
+  messages: ChatMessage[]
+}
+
+export interface WsErrorPayload {
+  message: string
+}

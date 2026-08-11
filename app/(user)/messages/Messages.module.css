@@ -1,0 +1,88 @@
+.page {
+  height: calc(100vh - 57px);
+  min-height: 0;
+  display: flex;
+}
+
+.layout {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+}
+
+.listPane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.windowPane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.ghostBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghostBtn:hover {
+  background: var(--color-bg-secondary);
+}
+
+.dangerBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerBtn:hover {
+  opacity: 0.9;
+}
+
+.modalText {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .page {
+    height: calc(100vh - 57px);
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .listPane {
+    display: none;
+  }
+}
