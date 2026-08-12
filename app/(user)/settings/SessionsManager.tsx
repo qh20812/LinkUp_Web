@@ -120,9 +120,6 @@ export default function SessionsManager() {
                 )}
               </div>
               <div className={styles.sessionMeta}>
-                {t('userSettings.ipLabel')}: {session.ip_address || '—'}
-              </div>
-              <div className={styles.sessionMeta}>
                 {t('userSettings.lastActiveLabel')}: {formatDateTime(session.last_active_at)}
               </div>
               <div className={styles.sessionMeta}>

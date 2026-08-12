@@ -163,17 +163,24 @@ export function NotificationProvider({
 
       ws.onmessage = (event) => {
         if (!isComponentMounted) return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === "notification") {
-            const newNotif: NotificationItem = message.data;
-            setNotifications((prev) => [newNotif, ...prev.slice(0, 4)]);
-            setUnreadCount((prev) => prev + 1);
-            invalidate("/notifications");
-            fetchDropdownNotifications();
+        // Server batches multiple queued messages into one frame
+        // separated by '\n'. Parse each chunk independently.
+        const parts = String(event.data).split("\n");
+        for (const part of parts) {
+          const data = part.trim();
+          if (!data) continue;
+          try {
+            const message = JSON.parse(data);
+            if (message.type === "notification") {
+              const newNotif: NotificationItem = message.data;
+              setNotifications((prev) => [newNotif, ...prev.slice(0, 4)]);
+              setUnreadCount((prev) => prev + 1);
+              invalidate("/notifications");
+              fetchDropdownNotifications();
+            }
+          } catch (err) {
+            console.error("Error parsing WS message:", err);
           }
-        } catch (err) {
-          console.error("Error parsing WS message:", err);
         }
       };
 
