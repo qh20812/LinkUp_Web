@@ -76,7 +76,12 @@
     "loadError": "Tải gợi ý thất bại",
     "mutual": "bạn chung",
     "noTrending": "Chưa có xu hướng nào",
-    "noSuggestions": "Chưa có gợi ý nào"
+    "noSuggestions": "Chưa có gợi ý nào",
+    "searchViewAll": "Xem tất cả kết quả",
+    "searchNoResults": "Không tìm thấy kết quả",
+    "searchPeople": "Mọi người",
+    "searchPosts": "Bài viết",
+    "searchHashtags": "Hashtags"
   },
   "post": {
     "like": "Thích",

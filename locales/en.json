@@ -76,7 +76,12 @@
     "loadError": "Failed to load suggestions",
     "mutual": "mutual friends",
     "noTrending": "No trending yet",
-    "noSuggestions": "No suggestions yet"
+    "noSuggestions": "No suggestions yet",
+    "searchViewAll": "See all results",
+    "searchNoResults": "No results found",
+    "searchPeople": "People",
+    "searchPosts": "Posts",
+    "searchHashtags": "Hashtags"
   },
   "post": {
     "like": "Like",

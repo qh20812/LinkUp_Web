@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import ExternalImage from './ExternalImage'
 import styles from './RightSidebar.module.css'
@@ -8,14 +8,18 @@ import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
 import { getTrendingHashtags } from '../api/posts'
 import { getFollowSuggestions } from '../api/follow'
+import { search } from '../api/search'
 import { useFollowContext } from '../contexts/FollowContext'
-import type { TrendingHashtag, FollowSuggestionUser } from '../types'
+import type { TrendingHashtag, FollowSuggestionUser, SearchResponse } from '../types'
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
   return String(n)
 }
+
+const MIN_CHARS = 2
+const DEBOUNCE_MS = 300
 
 export default function RightSidebar() {
   const { t } = useTranslation()
@@ -32,6 +36,13 @@ export default function RightSidebar() {
   const [suggestionsPage, setSuggestionsPage] = useState(1)
   const [suggestionsHasMore, setSuggestionsHasMore] = useState(false)
   const { followUser, unfollowUser, isFollowed } = useFollowContext()
+
+  const [searchResults, setSearchResults] = useState<SearchResponse | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const seqRef = useRef(0)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     getTrendingHashtags()
@@ -50,6 +61,48 @@ export default function RightSidebar() {
       .catch(() => setSuggestionsError(true))
       .finally(() => setSuggestionsLoading(false))
   }, [])
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    const trimmed = query.trim()
+    if (trimmed.length < MIN_CHARS) return
+    timerRef.current = setTimeout(async () => {
+      setSearching(true)
+      setDropdownOpen(true)
+      const seq = ++seqRef.current
+      try {
+        const res = await search(trimmed, 'all')
+        if (seq !== seqRef.current) return
+        setSearchResults(res)
+        setDropdownOpen(true)
+      } catch {
+        if (seq !== seqRef.current) return
+        setSearchResults(null)
+      } finally {
+        if (seq === seqRef.current) setSearching(false)
+      }
+    }, DEBOUNCE_MS)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [query])
 
   const handleFollow = async (userId: string) => {
     try {
@@ -85,25 +138,156 @@ export default function RightSidebar() {
     }
   }
 
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    if (value.trim().length < MIN_CHARS) {
+      setSearching(false)
+      setSearchResults(null)
+      setDropdownOpen(false)
+    }
+  }
+
   const handleSearch = (e: FormEvent) => {
     e.preventDefault()
     const q = query.trim()
-    if (q) router.push(`/search?q=${encodeURIComponent(q)}`)
+    if (q) {
+      setDropdownOpen(false)
+      router.push(`/search?q=${encodeURIComponent(q)}`)
+    }
   }
+
+  const handleSearchFocus = () => {
+    const trimmed = query.trim()
+    if (trimmed.length >= MIN_CHARS && searchResults) {
+      setDropdownOpen(true)
+    }
+  }
+
+  const hasResults =
+    searchResults &&
+    ((searchResults.users && searchResults.users.length > 0) ||
+      (searchResults.posts && searchResults.posts.length > 0) ||
+      (searchResults.hashtags && searchResults.hashtags.length > 0))
+
+  const showDropdown = dropdownOpen && (searching || hasResults || (searchResults && !hasResults))
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.searchWrapper}>
+      <div className={styles.searchWrapper} ref={wrapperRef}>
         <form className={styles.searchBox} onSubmit={handleSearch}>
           <i className="bx bx-search" />
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onFocus={handleSearchFocus}
             placeholder={t('rightSidebar.searchPlaceholder')}
             className={styles.searchInput}
           />
+          {searching && <i className={`bx bx-loader-alt ${styles.spinner}`} />}
         </form>
+
+        {showDropdown && (
+          <div className={styles.dropdown}>
+            {searching && !searchResults && (
+              <div className={styles.dropdownEmpty}>{t('common.loading')}</div>
+            )}
+
+            {!searching && searchResults && !hasResults && (
+              <div className={styles.dropdownEmpty}>{t('rightSidebar.searchNoResults')}</div>
+            )}
+
+            {searchResults?.users && searchResults.users.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.dropdownLabel}>{t('rightSidebar.searchPeople')}</div>
+                {searchResults.users.map((user) => (
+                  <button
+                    key={user.id}
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      router.push(`/profile/${user.id}`)
+                    }}
+                  >
+                    <div className={styles.dropdownAvatar}>
+                      {user.avatar_uri ? (
+                        <ExternalImage src={user.avatar_uri} alt="" className={styles.dropdownAvatarImg} />
+                      ) : (
+                        <i className="bx bxs-user" />
+                      )}
+                    </div>
+                    <div className={styles.dropdownItemMeta}>
+                      <span className={styles.dropdownItemName}>{user.display_name || user.username}</span>
+                      {user.display_name && user.username && (
+                        <span className={styles.dropdownItemSub}>@{user.username}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {searchResults?.posts && searchResults.posts.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.dropdownLabel}>{t('rightSidebar.searchPosts')}</div>
+                {searchResults.posts.map((post) => (
+                  <button
+                    key={post.id}
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      router.push(`/posts/${post.id}`)
+                    }}
+                  >
+                    <div className={styles.dropdownPostIcon}>
+                      <i className="bx bx-file" />
+                    </div>
+                    <div className={styles.dropdownItemMeta}>
+                      <span className={styles.dropdownItemName}>{post.title}</span>
+                      <span className={styles.dropdownItemSub}>@{post.username}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {searchResults?.hashtags && searchResults.hashtags.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.dropdownLabel}>{t('rightSidebar.searchHashtags')}</div>
+                {searchResults.hashtags.map((tag) => (
+                  <button
+                    key={tag.name}
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      router.push(`/search?q=%23${encodeURIComponent(tag.name)}`)
+                    }}
+                  >
+                    <div className={styles.dropdownHashtagIcon}>
+                      <i className="bx bx-hash" />
+                    </div>
+                    <div className={styles.dropdownItemMeta}>
+                      <span className={styles.dropdownItemName}>#{tag.name}</span>
+                      <span className={styles.dropdownItemSub}>{formatCount(tag.post_count)} {t('rightSidebar.posts')}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {searchResults && (searchResults.users || searchResults.posts || searchResults.hashtags) && (
+              <button
+                className={styles.dropdownViewAll}
+                onClick={() => {
+                  setDropdownOpen(false)
+                  router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+                }}
+              >
+                {t('rightSidebar.searchViewAll')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {trendingReady && (
