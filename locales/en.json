@@ -1105,7 +1105,6 @@
     "revokeSuccess": "Session revoked",
     "revokeAllSuccess": "All other sessions revoked",
     "deviceLabel": "Device",
-    "ipLabel": "IP address",
     "createdAtLabel": "Signed in",
     "lastActiveLabel": "Last active",
     "expiresLabel": "Expires",

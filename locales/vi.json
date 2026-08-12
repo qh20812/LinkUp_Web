@@ -1098,7 +1098,6 @@
     "revokeSuccess": "Đã thu hồi phiên đăng nhập",
     "revokeAllSuccess": "Đã thu hồi tất cả phiên khác",
     "deviceLabel": "Thiết bị",
-    "ipLabel": "Địa chỉ IP",
     "createdAtLabel": "Đăng nhập lúc",
     "lastActiveLabel": "Hoạt động gần nhất",
     "expiresLabel": "Hết hạn",
