@@ -62,21 +62,28 @@ export function useChatSocket(): ChatSocket {
     }
 
     ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data)
-        if (!message || typeof message.type !== 'string') return
-        const set = handlersRef.current.get(message.type)
-        if (set) {
-          for (const handler of set) {
-            try {
-              handler(message.payload)
-            } catch (err) {
-              console.error('Chat WS handler error:', err)
+      // Server batches multiple queued messages into one frame
+      // separated by '\n'. Parse each chunk independently.
+      const parts = String(event.data).split('\n')
+      for (const part of parts) {
+        const data = part.trim()
+        if (!data) continue
+        try {
+          const message = JSON.parse(data)
+          if (!message || typeof message.type !== 'string') continue
+          const set = handlersRef.current.get(message.type)
+          if (set) {
+            for (const handler of set) {
+              try {
+                handler(message.payload)
+              } catch (err) {
+                console.error('Chat WS handler error:', err)
+              }
             }
           }
+        } catch (err) {
+          console.error('Error parsing chat WS message:', err)
         }
-      } catch (err) {
-        console.error('Error parsing chat WS message:', err)
       }
     }
 
