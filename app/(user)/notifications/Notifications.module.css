@@ -6,16 +6,9 @@
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 16px 16px;
   width: 100%;
-}
-
-.title {
-  font: var(--text-h2);
-  font-family: var(--font-family-heading);
-  color: var(--color-text);
-  margin: 0;
 }
 
 .markAllBtn {
@@ -178,11 +171,36 @@
   top: calc(50% - 4px);
 }
 
+.markReadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-circle);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  align-self: center;
+}
+
+.markReadBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 .iconLike {
   color: var(--color-danger);
 }
 .iconComment {
   color: #00ca72;
+}
+.iconShare {
+  color: #2196f3;
 }
 .iconFollow {
   color: #2196f3;
@@ -211,7 +229,7 @@
 }
 
 .empty i {
-  font-size: 2.2rem;
+  font-size: 3rem;
   display: block;
   margin-bottom: var(--space-md);
   color: var(--color-text-secondary);

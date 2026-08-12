@@ -80,6 +80,17 @@ export default function NotificationsPage() {
     if (href) router.push(href)
   }
 
+  const handleMarkRead = async (e: React.MouseEvent, item: NotificationItem) => {
+    e.stopPropagation()
+    if (item.is_read) return
+    try {
+      await markAsRead(item.id)
+      invalidate('/notifications')
+    } catch {
+      /* context already reverts on error */
+    }
+  }
+
   const handleMarkAll = async () => {
     try {
       await markAllAsRead()
@@ -148,7 +159,7 @@ export default function NotificationsPage() {
       case 'comment':
         return 'bx bx-message-dots ' + styles.iconComment
       case 'share':
-        return 'bx bx-share-alt ' + styles.iconLike
+        return 'bx bx-share-alt ' + styles.iconShare
       case 'follow':
         return 'bx bx-user-plus ' + styles.iconFollow
       case 'message':
@@ -195,7 +206,6 @@ export default function NotificationsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{t('notifications.title')}</h1>
         {unreadCount > 0 && (
           <button className={styles.markAllBtn} onClick={handleMarkAll}>
             <i className="bx bx-check-double" />
@@ -211,7 +221,7 @@ export default function NotificationsPage() {
             className={`${styles.tab} ${filter === f ? styles.tabActive : ''}`}
             onClick={() => handleFilterChange(f)}>
             {f === 'all' && <i className="bx bx-bell" />}
-            {f === 'unread' && <i className="bx bx-bell" />}
+            {f === 'unread' && <i className="bx bx-notification" />}
             {f === 'read' && <i className="bx bx-check-double" />}
             {t(`notifications.filter${f.charAt(0).toUpperCase()}${f.slice(1)}`)}
           </button>
@@ -258,7 +268,14 @@ export default function NotificationsPage() {
                 </p>
                 <span className={styles.time}>{formatTime(item.created_at)}</span>
               </div>
-              {!item.is_read && <span className={styles.unreadDot} />}
+              {!item.is_read && (
+                <button
+                  className={styles.markReadBtn}
+                  onClick={(e) => handleMarkRead(e, item)}
+                  title={t('notifications.markRead')}>
+                  <i className="bx bx-check" />
+                </button>
+              )}
             </div>
           ))
         )}
