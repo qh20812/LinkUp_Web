@@ -87,9 +87,16 @@ export function useChatRoom({
     if (msg.chat_id === activeChatIdRef.current) {
       const pending = pendingIdsRef.current
       if (pending.length > 0 && msg.sender_id === myUserIdRef.current) {
+        const tempID = pending[0]
         pendingIdsRef.current = pending.slice(1)
+        setMessages((prev) =>
+          sortByCreatedAt(
+            dedupeByID([...prev.filter((m) => m.id !== tempID), msg]),
+          ),
+        )
+      } else {
+        setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, msg])))
       }
-      setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, msg])))
     }
     onNewMessageRef.current?.(msg)
   }, [])
