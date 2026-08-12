@@ -69,7 +69,16 @@ export default function MessagesPage() {
   const [selectionInitialized, setSelectionInitialized] = useState(false)
   if (!selectionInitialized && !loadingChats && conversations.length > 0) {
     setSelectionInitialized(true)
-    setActiveChatId(conversations[0].chat_id)
+    const params =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : null
+    const queryChat = params?.get('chat_id') ?? null
+    const target =
+      queryChat && conversations.some((c) => c.chat_id === queryChat)
+        ? queryChat
+        : conversations[0].chat_id
+    setActiveChatId(target)
   }
 
   if (initializing) {
