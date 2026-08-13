@@ -13,6 +13,7 @@ interface ChatWindowProps {
   conversation: ChatConversation | null
   myUserId: string
   room: ChatRoom
+  isEncrypted?: boolean
   onDeleteChat?: () => void
 }
 
@@ -24,6 +25,7 @@ export default function ChatWindow({
   conversation,
   myUserId,
   room,
+  isEncrypted = false,
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
@@ -98,6 +100,12 @@ export default function ChatWindow({
           <span className={styles.name}>
             {conversation.partner.display_name || t('chat.unknown')}
           </span>
+          {isEncrypted && (
+            <span className={styles.e2eBadge} title={t('chat.e2eTitle')}>
+              <i className="bx bxs-lock-alt" />
+              {t('chat.e2eBadge')}
+            </span>
+          )}
         </div>
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
@@ -184,6 +192,10 @@ export default function ChatWindow({
                   <div className={styles.bubble}>
                     {msg.deleted ? (
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
+                    ) : msg.decrypt_failed ? (
+                      <span className={styles.deletedText}>
+                        <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                      </span>
                     ) : (
                       <span className={styles.msgText}>{msg.content}</span>
                     )}

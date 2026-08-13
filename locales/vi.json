@@ -706,6 +706,10 @@
     "deleteForAll": "Xóa cho mọi người",
     "messageDeleted": "Tin nhắn đã bị xóa",
     "mediaMessage": "[Tin nhắn đa phương tiện]",
+    "encryptedPreview": "🔒 Tin nhắn đã mã hóa",
+    "e2eBadge": "E2E",
+    "e2eTitle": "Tin nhắn được mã hóa đầu cuối, chỉ người gửi và người nhận đọc được",
+    "undecryptable": "Không thể giải mã tin nhắn",
     "newChat": "Hội thoại mới"
   },
   "errors": {

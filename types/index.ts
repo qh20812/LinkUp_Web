@@ -706,6 +706,8 @@ export interface ChatMessage {
   reply_to_message_id?: string | null
   is_anonymized: boolean
   anonymous_name?: string | null
+  e2e_version?: number
+  decrypt_failed?: boolean
   deleted?: boolean
   created_at: string
 }
@@ -720,6 +722,7 @@ export interface ChatConversation {
   chat_id: string
   partner: ChatPartner
   last_message?: ChatMessage | null
+  is_encrypted?: boolean
   updated_at: string
 }
 
@@ -743,6 +746,7 @@ export interface WsSendMessagePayload {
   emoji_id?: string | null
   media_id?: string | null
   reply_to_message_id?: string | null
+  e2e_version?: number
 }
 
 export interface WsTypingPayload {
