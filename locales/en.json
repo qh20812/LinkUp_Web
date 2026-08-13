@@ -704,6 +704,7 @@
     "deleteConfirm": "How do you want to delete this message?",
     "deleteForMe": "Delete for me",
     "deleteForAll": "Delete for everyone",
+    "messageDeleted": "Message deleted",
     "mediaMessage": "[Multimedia message]",
     "newChat": "New conversation"
   },

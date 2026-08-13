@@ -704,6 +704,7 @@
     "deleteConfirm": "Bạn muốn xóa tin nhắn này như thế nào?",
     "deleteForMe": "Xóa với tôi",
     "deleteForAll": "Xóa cho mọi người",
+    "messageDeleted": "Tin nhắn đã bị xóa",
     "mediaMessage": "[Tin nhắn đa phương tiện]",
     "newChat": "Hội thoại mới"
   },

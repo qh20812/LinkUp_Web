@@ -706,6 +706,7 @@ export interface ChatMessage {
   reply_to_message_id?: string | null
   is_anonymized: boolean
   anonymous_name?: string | null
+  deleted?: boolean
   created_at: string
 }
 
@@ -753,7 +754,7 @@ export interface WsTypingPayload {
 export interface WsDeleteMessagePayload {
   chat_id: string
   message_id: string
-  mode: 'all' | 'one'
+  mode: 'all' | 'me'
 }
 
 export interface WsSearchMessagePayload {

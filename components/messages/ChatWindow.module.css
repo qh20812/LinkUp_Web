@@ -173,6 +173,12 @@
   overflow-wrap: break-word;
 }
 
+.deletedText {
+  font-size: 0.85rem;
+  font-style: italic;
+  opacity: 0.6;
+}
+
 .msgTime {
   font-size: 0.6875rem;
   opacity: 0.75;

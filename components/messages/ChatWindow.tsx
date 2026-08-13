@@ -73,7 +73,7 @@ export default function ChatWindow({
     )
   }
 
-  const confirmDelete = (mode: 'all' | 'one') => {
+  const confirmDelete = (mode: 'all' | 'me') => {
     if (deleteTarget) {
       room.deleteMessage(deleteTarget.message.id, mode)
     }
@@ -182,16 +182,22 @@ export default function ChatWindow({
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
                   <div className={styles.bubble}>
-                    <span className={styles.msgText}>{msg.content}</span>
+                    {msg.deleted ? (
+                      <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
+                    ) : (
+                      <span className={styles.msgText}>{msg.content}</span>
+                    )}
                     <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                   </div>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => setDeleteTarget({ message: msg })}
-                    aria-label={t('chat.delete')}
-                  >
-                    <i className="bx bx-trash" />
-                  </button>
+                  {!msg.deleted && (
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => setDeleteTarget({ message: msg })}
+                      aria-label={t('chat.delete')}
+                    >
+                      <i className="bx bx-trash" />
+                    </button>
+                  )}
                 </div>
               </Fragment>
             )
@@ -220,7 +226,7 @@ export default function ChatWindow({
       >
         <p className={styles.deleteText}>{t('chat.deleteConfirm')}</p>
         <div className={styles.deleteActions}>
-          <button className={styles.ghostBtn} onClick={() => confirmDelete('one')}>
+          <button className={styles.ghostBtn} onClick={() => confirmDelete('me')}>
             <i className="bx bx-trash" />
             {t('chat.deleteForMe')}
           </button>

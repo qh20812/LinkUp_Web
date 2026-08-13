@@ -21,7 +21,7 @@ export interface ChatRoom {
   clearSearch: () => void
   sendMessage: (content: string) => void
   sendTyping: (isTyping: boolean) => void
-  deleteMessage: (messageId: string, mode: 'all' | 'one') => void
+  deleteMessage: (messageId: string, mode: 'all' | 'me') => void
   searchMessages: (keyword: string) => void
 }
 
@@ -116,9 +116,15 @@ export function useChatRoom({
       mode?: string
     }
     if (!data || data.chat_id !== activeChatIdRef.current || !data.message_id) return
-    setMessages((prev) => prev.filter((m) => m.id !== data.message_id))
+    setMessages((prev) =>
+      prev.map((m) => (m.id === data.message_id ? { ...m, deleted: true, content: '' } : m)),
+    )
     setSearchResults((prev) =>
-      prev ? prev.filter((m) => m.id !== data.message_id) : prev,
+      prev
+        ? prev.map((m) =>
+            m.id === data.message_id ? { ...m, deleted: true, content: '' } : m,
+          )
+        : prev,
     )
   }, [])
 
@@ -216,7 +222,7 @@ export function useChatRoom({
   )
 
   const deleteMessage = useCallback(
-    (messageId: string, mode: 'all' | 'one') => {
+    (messageId: string, mode: 'all' | 'me') => {
       const chatID = activeChatIdRef.current
       if (!chatID || socket.status !== 'open') return
       socket.send('message:delete', { chat_id: chatID, message_id: messageId, mode })
