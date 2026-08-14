@@ -23,6 +23,10 @@ function UserNavbarContent() {
   const [query, setQuery] = useState('')
 
   const handleBack = () => {
+    if (pathname === '/search') {
+      router.push('/')
+      return
+    }
     if (window.history.length > 1) {
       router.back()
     } else {

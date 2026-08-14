@@ -1124,5 +1124,16 @@
     "unfollow": "Unfollow",
     "followers": "followers",
     "following": "following"
+  },
+  "search": {
+    "title": "Results for \"{keyword}\"",
+    "noResults": "No results found for",
+    "tabAll": "All",
+    "tabUsers": "People",
+    "tabPosts": "Posts",
+    "tabHashtags": "Hashtags",
+    "peopleSection": "People ({count})",
+    "postsSection": "Posts ({count})",
+    "hashtagsSection": "Hashtags ({count})"
   }
 }

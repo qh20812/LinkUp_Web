@@ -1117,5 +1117,16 @@
     "unfollow": "Hủy theo dõi",
     "followers": "người theo dõi",
     "following": "đang theo dõi"
+  },
+  "search": {
+    "title": "Kết quả cho \"{keyword}\"",
+    "noResults": "Không tìm thấy kết quả phù hợp cho từ khóa",
+    "tabAll": "Tất cả",
+    "tabUsers": "Mọi người",
+    "tabPosts": "Bài viết",
+    "tabHashtags": "Hashtags",
+    "peopleSection": "Mọi người ({count})",
+    "postsSection": "Bài viết ({count})",
+    "hashtagsSection": "Hashtags ({count})"
   }
 }
