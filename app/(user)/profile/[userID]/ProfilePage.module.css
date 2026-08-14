@@ -1,7 +1,6 @@
 .page {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: var(--space-lg);
+  width: 100%;
+  padding: var(--space-lg) var(--space-md);
 }
 
 .card {
@@ -53,6 +52,18 @@
   margin: 0;
   color: var(--color-text-secondary);
   font: var(--text-caption);
+}
+
+.privateLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+  font-weight: 500;
 }
 
 .stats {
@@ -148,9 +159,126 @@
   background: var(--color-primary-hover);
 }
 
+/* Skeleton Loading */
+.skeletonAvatar {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-circle);
+  background: var(--color-bg-secondary);
+  animation: shimmer 1.5s infinite;
+}
+
+.skeletonCardBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: var(--space-sm);
+}
+
+.skeletonLine {
+  height: 16px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+}
+
+.skeletonLineWide {
+  width: 60%;
+}
+
+.skeletonLineMedium {
+  width: 40%;
+}
+
+.skeletonLineShort {
+  width: 25%;
+}
+
+@keyframes shimmer {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* Posts Section */
+.postsSection {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 100%;
+  width: 100%;
+  margin-top: var(--space-lg);
+}
+
+.postsSectionTitle {
+  font: var(--text-body);
+  font-weight: 600;
+  padding: var(--space-lg);
+  margin: 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.postsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.postItem {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.postItem:last-child {
+  border-bottom: none;
+}
+
+/* Loading & Empty States */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: var(--space-xs) solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-circle);
+  animation: spin 0.8s linear infinite;
+  margin-bottom: var(--space-sm);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--space-sm);
+}
+
+.emptyText {
+  font: var(--text-body);
+}
+
 @media (max-width: 576px) {
   .page {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
   }
 
   .card {
@@ -166,6 +294,11 @@
     font-size: 40px;
   }
 
+  .skeletonAvatar {
+    width: 80px;
+    height: 80px;
+  }
+
   .stats {
     gap: var(--space-md);
   }
@@ -178,5 +311,9 @@
   .actions {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .postItem {
+    padding: var(--space-sm) var(--space-md);
   }
 }

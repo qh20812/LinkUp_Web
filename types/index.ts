@@ -600,6 +600,21 @@ export interface FollowToggleResponse {
   message: string
 }
 
+export interface FollowListItem {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+}
+
+export interface FollowListResponse {
+  data: FollowListItem[]
+  page: number
+  page_size: number
+  total: number
+  has_more: boolean
+}
+
 export interface AdminSettingsResponse {
   settings: Record<string, string>
 }

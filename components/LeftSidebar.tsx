@@ -65,6 +65,7 @@ export default function LeftSidebar() {
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
+    if (href === '/profile') return pathname === '/profile'
     return pathname.startsWith(href)
   }
 
