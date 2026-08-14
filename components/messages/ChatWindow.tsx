@@ -13,6 +13,7 @@ interface ChatWindowProps {
   conversation: ChatConversation | null
   myUserId: string
   room: ChatRoom
+  isEncrypted?: boolean
   onDeleteChat?: () => void
 }
 
@@ -24,6 +25,7 @@ export default function ChatWindow({
   conversation,
   myUserId,
   room,
+  isEncrypted = false,
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
@@ -73,7 +75,7 @@ export default function ChatWindow({
     )
   }
 
-  const confirmDelete = (mode: 'all' | 'one') => {
+  const confirmDelete = (mode: 'all' | 'me') => {
     if (deleteTarget) {
       room.deleteMessage(deleteTarget.message.id, mode)
     }
@@ -98,6 +100,12 @@ export default function ChatWindow({
           <span className={styles.name}>
             {conversation.partner.display_name || t('chat.unknown')}
           </span>
+          {isEncrypted && (
+            <span className={styles.e2eBadge} title={t('chat.e2eTitle')}>
+              <i className="bx bxs-lock-alt" />
+              {t('chat.e2eBadge')}
+            </span>
+          )}
         </div>
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
@@ -182,16 +190,26 @@ export default function ChatWindow({
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
                   <div className={styles.bubble}>
-                    <span className={styles.msgText}>{msg.content}</span>
+                    {msg.deleted ? (
+                      <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
+                    ) : msg.decrypt_failed ? (
+                      <span className={styles.deletedText}>
+                        <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                      </span>
+                    ) : (
+                      <span className={styles.msgText}>{msg.content}</span>
+                    )}
                     <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                   </div>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => setDeleteTarget({ message: msg })}
-                    aria-label={t('chat.delete')}
-                  >
-                    <i className="bx bx-trash" />
-                  </button>
+                  {!msg.deleted && (
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => setDeleteTarget({ message: msg })}
+                      aria-label={t('chat.delete')}
+                    >
+                      <i className="bx bx-trash" />
+                    </button>
+                  )}
                 </div>
               </Fragment>
             )
@@ -220,7 +238,7 @@ export default function ChatWindow({
       >
         <p className={styles.deleteText}>{t('chat.deleteConfirm')}</p>
         <div className={styles.deleteActions}>
-          <button className={styles.ghostBtn} onClick={() => confirmDelete('one')}>
+          <button className={styles.ghostBtn} onClick={() => confirmDelete('me')}>
             <i className="bx bx-trash" />
             {t('chat.deleteForMe')}
           </button>

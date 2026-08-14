@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from '../Modal'
 import ExternalImage from '../ExternalImage'
-import { searchUsers } from '../../api/chats'
+import { searchFriends } from '../../api/chats'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './UserPickerModal.module.css'
 
@@ -60,7 +60,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
     timerRef.current = setTimeout(async () => {
       const seq = ++seqRef.current
       try {
-        const res = await searchUsers(trimmed)
+        const res = await searchFriends(trimmed)
         if (seq !== seqRef.current) return
         setResults(res.users ?? [])
         setError(null)
@@ -77,7 +77,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
   }, [keyword, t])
 
   const keywordLen = keyword.trim().length
-  const emptyHint = keywordLen === 0 ? t('chat.typeToSearch') : keywordLen < MIN_CHARS ? t('chat.keywordTooShort') : t('chat.noResults')
+  const emptyHint = keywordLen === 0 ? t('chat.typeToSearchFriends') : keywordLen < MIN_CHARS ? t('chat.keywordTooShort') : t('chat.noResults')
 
   return (
     <Modal open={open} onClose={onClose} title={t('chat.newMessage')}>
@@ -87,7 +87,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
           autoFocus
           value={keyword}
           onChange={(e) => handleKeywordChange(e.target.value)}
-          placeholder={t('chat.searchUsers')}
+          placeholder={t('chat.searchFriends')}
         />
       </div>
       <div className={styles.results}>

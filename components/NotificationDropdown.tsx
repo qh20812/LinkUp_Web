@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../contexts/NotificationContext";
 import { useTranslation } from "../hooks/useTranslation";
-import type { NotificationItem, NotificationType } from "../types";
+import type { NotificationGroup, NotificationType } from "../types";
 import ExternalImage from "./ExternalImage";
 import styles from "./NotificationDropdown.module.css";
 
@@ -73,10 +73,10 @@ export default function NotificationDropdown({
     return t("notifications.daysAgo").replace("{days}", String(diffDays));
   };
 
-  const handleItemClick = async (item: NotificationItem) => {
+  const handleItemClick = async (item: NotificationGroup) => {
     if (!item.is_read) {
       try {
-        await markAsRead(item.id);
+        await markAsRead(item);
       } catch {
         /* ignore */
       }
@@ -123,7 +123,7 @@ export default function NotificationDropdown({
         ) : (
           notifications.map((item) => (
             <div
-              key={item.id}
+              key={item.key}
               className={`${styles.item} ${
                 !item.is_read ? styles.itemUnread : ""
               }`}
@@ -150,6 +150,9 @@ export default function NotificationDropdown({
                   {formatTime(item.created_at)}
                 </span>
               </div>
+              {item.count > 1 && (
+                <span className={styles.countBadge}>+{item.count}</span>
+              )}
               {!item.is_read && <span className={styles.unreadDot} />}
             </div>
           ))

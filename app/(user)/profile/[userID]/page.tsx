@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { getProfileByUserID } from '../../../../api/profile'
 import { getFollowStats, followUser } from '../../../../api/follow'
+import { startDirectChat, createChatInvite } from '../../../../api/chats'
 import { getTokenPayload } from '../../../../api/auth'
 import { useTranslation } from '../../../../hooks/useTranslation'
 import type { ViewProfileResponse } from '../../../../types'
@@ -26,12 +27,15 @@ export default function ProfilePage() {
 
 function ProfileView({ userID }: { userID: string }) {
   const { t } = useTranslation()
+  const router = useRouter()
   const [profile, setProfile] = useState<ViewProfileResponse | null>(null)
   const [stats, setStats] = useState<FollowStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [following, setFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [messageBusy, setMessageBusy] = useState(false)
+  const [inviteSent, setInviteSent] = useState(false)
   const [currentUserID, setCurrentUserID] = useState<string | null>(null)
 
   useEffect(() => {
@@ -93,6 +97,25 @@ function ProfileView({ userID }: { userID: string }) {
     }
   }
 
+  const handleMessage = async () => {
+    if (!userID || messageBusy || inviteSent) return
+    setMessageBusy(true)
+    try {
+      const res = await startDirectChat(userID)
+      if ('needInvite' in res) {
+        // Người lạ chưa cho phép nhắn tin → gửi lời mời chat, chờ chấp nhận.
+        await createChatInvite(userID)
+        setInviteSent(true)
+        return
+      }
+      router.push(`/messages?chat_id=${res.chatId}`)
+    } catch {
+      /* giữ nguyên trạng thái nút */
+    } finally {
+      setMessageBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className={styles.center}>
@@ -143,15 +166,34 @@ function ProfileView({ userID }: { userID: string }) {
             {t('nav.settings')}
           </Link>
         ) : currentUserID ? (
-          <button
-            type="button"
-            className={`${styles.actionBtn} ${following ? styles.actionBtnSecondary : ''}`}
-            onClick={handleFollow}
-            disabled={followBusy}
-          >
-            {following ? <i className="bx bx-user-check" /> : <i className="bx bx-user-plus" />}
-            {following ? t('profile.unfollow') : t('profile.follow')}
-          </button>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${
+                inviteSent || messageBusy ? styles.actionBtnDisabled : ''
+              }`}
+              onClick={handleMessage}
+              disabled={messageBusy || inviteSent}
+            >
+              {inviteSent ? (
+                <i className="bx bx-time-five" />
+              ) : (
+                <i className="bx bx-message-rounded" />
+              )}
+              {inviteSent ? t('profile.inviteSent') : t('profile.message')}
+            </button>
+            <button
+              type="button"
+className={`${styles.actionBtn} ${styles.actionBtnSecondary} ${
+                following ? styles.actionBtnActive : ''
+              }`}
+              onClick={handleFollow}
+              disabled={followBusy}
+            >
+              {following ? <i className="bx bx-user-check" /> : <i className="bx bx-user-plus" />}
+              {following ? t('profile.unfollow') : t('profile.follow')}
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

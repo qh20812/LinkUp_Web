@@ -479,6 +479,22 @@ export interface NotificationItem {
   redirect_comment_id?: string
 }
 
+export interface NotificationGroup {
+  key: string
+  ids: string[]
+  count: number
+  is_read: boolean
+  sender_id?: string
+  sender_name?: string
+  sender_avatar?: string
+  type: NotificationType
+  content: string
+  created_at: string
+  redirect_post_id?: string
+  redirect_user_id?: string
+  redirect_comment_id?: string
+}
+
 export interface NotificationListResponse {
   data: NotificationItem[]
   total: number
@@ -706,6 +722,9 @@ export interface ChatMessage {
   reply_to_message_id?: string | null
   is_anonymized: boolean
   anonymous_name?: string | null
+  e2e_version?: number
+  decrypt_failed?: boolean
+  deleted?: boolean
   created_at: string
 }
 
@@ -719,6 +738,7 @@ export interface ChatConversation {
   chat_id: string
   partner: ChatPartner
   last_message?: ChatMessage | null
+  is_encrypted?: boolean
   updated_at: string
 }
 
@@ -729,6 +749,20 @@ export interface ChatListResponse {
 export interface CreateDirectChatResponse {
   chat_id: string
   message?: string
+}
+
+export interface ChatInviteItem {
+  invite_id: string
+  requester_id: string
+  requester_name?: string
+  requester_avatar?: string
+  created_at: string
+}
+
+export interface ChatInviteResponse {
+  invite_id: string
+  chat_id?: string
+  message: string
 }
 
 // ===== Search =====
@@ -770,6 +804,7 @@ export interface WsSendMessagePayload {
   emoji_id?: string | null
   media_id?: string | null
   reply_to_message_id?: string | null
+  e2e_version?: number
 }
 
 export interface WsTypingPayload {
@@ -781,7 +816,7 @@ export interface WsTypingPayload {
 export interface WsDeleteMessagePayload {
   chat_id: string
   message_id: string
-  mode: 'all' | 'one'
+  mode: 'all' | 'me'
 }
 
 export interface WsSearchMessagePayload {

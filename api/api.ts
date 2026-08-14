@@ -131,3 +131,26 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
 
   return res.json()
 }
+
+// rawRequest giống request nhưng trả về Response (không throw khi 4xx/5xx),
+// giúp caller xử lý các trạng thái đặc biệt như 404 (e.g. chưa có khóa E2E).
+export async function rawRequest(path: string, options?: RequestInit): Promise<Response> {
+  let res = await doFetch(path, options)
+
+  if (res.status === 401 && typeof window !== 'undefined') {
+    const skipRefresh = path === REFRESH_PATH || path === LOGIN_PATH
+    if (!skipRefresh) {
+      const refreshed = await refreshTokens()
+      if (refreshed) {
+        res = await doFetch(path, options)
+      }
+    }
+  }
+
+  if (res.status === 401 && typeof window !== 'undefined' && path !== LOGIN_PATH) {
+    clearSession()
+    redirectToLogin()
+  }
+
+  return res
+}

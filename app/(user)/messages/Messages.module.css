@@ -2,11 +2,113 @@
   height: calc(100vh - 57px);
   min-height: 0;
   display: flex;
+  flex-direction: column;
+}
+
+.inviteBanner {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.inviteHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  padding-bottom: var(--space-sm);
+}
+
+.inviteHeader i {
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.inviteList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.inviteItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.inviteAvatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-circle);
+  background: var(--color-bg-secondary);
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.inviteAvatar i {
+  font-size: 18px;
+}
+
+.inviteName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.inviteActions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.inviteAcceptBtn,
+.inviteDeclineBtn {
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inviteAcceptBtn {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.inviteAcceptBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.inviteDeclineBtn {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.inviteDeclineBtn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+
+.inviteAcceptBtn:disabled,
+.inviteDeclineBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .layout {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
 }

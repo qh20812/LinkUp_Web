@@ -107,7 +107,9 @@ export default function ConversationList({
               <span className={styles.preview}>
                 {conv.last_message
                   ? `${conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}${
-                      conv.last_message.content || t('chat.mediaMessage')
+                      conv.is_encrypted && !conv.last_message.content
+                        ? t('chat.encryptedPreview')
+                        : conv.last_message.content || t('chat.mediaMessage')
                     }`
                   : t('chat.newChat')}
               </span>

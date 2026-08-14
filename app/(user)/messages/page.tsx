@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '../../../components/Modal'
+import ExternalImage from '../../../components/ExternalImage'
 import ConversationList from '../../../components/messages/ConversationList'
 import UserPickerModal, {
   type UserSearchItem,
@@ -10,11 +11,14 @@ import UserPickerModal, {
 import ChatWindow from '../../../components/messages/ChatWindow'
 import { useChatSocket } from '../../../hooks/useChatSocket'
 import { useChatRoom } from '../../../hooks/useChatRoom'
+import { useChatE2E } from '../../../hooks/useChatE2E'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { listChats, createDirectChat, deleteChat } from '../../../api/chats'
-import type { ChatConversation } from '../../../types'
+import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite } from '../../../api/chats'
+import { getChatKey as getStoredChatKey } from '../../../utils/idb'
+import { decryptMessage } from '../../../utils/e2ee'
+import type { ChatConversation, ChatInviteItem } from '../../../types'
 import styles from './Messages.module.css'
 
 export default function MessagesPage() {
@@ -28,19 +32,60 @@ export default function MessagesPage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ChatConversation | null>(null)
+  const [invites, setInvites] = useState<ChatInviteItem[]>([])
+  const [respondingInvite, setRespondingInvite] = useState<string | null>(null)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
 
+  const activeConversation =
+    conversations.find((c) => c.chat_id === activeChatId) ?? null
+
+  const encryption = useChatE2E({
+    chatId: activeChatId,
+    partnerUserId: activeConversation?.partner.user_id ?? null,
+    myUserId,
+  })
+
+  // Giải mã preview tin nhắn cuối của các hội thoại E2E. Nếu máy chưa có khóa
+  // (chưa mở hội thoại lần nào) thì đánh dấu rỗng để UI hiện placeholder khóa.
+  const hydrateConversations = useCallback(
+    async (list: ChatConversation[]): Promise<ChatConversation[]> => {
+      return Promise.all(
+        list.map(async (conv) => {
+          if (
+            !conv.is_encrypted ||
+            !conv.last_message ||
+            !conv.last_message.content
+          ) {
+            return conv
+          }
+          const key = await getStoredChatKey(conv.chat_id)
+          if (!key) {
+            return { ...conv, last_message: { ...conv.last_message, content: '' } }
+          }
+          try {
+            const plain = await decryptMessage(key, conv.last_message.content)
+            return { ...conv, last_message: { ...conv.last_message, content: plain } }
+          } catch {
+            return { ...conv, last_message: { ...conv.last_message, content: '' } }
+          }
+        }),
+      )
+    },
+    [],
+  )
+
   const refreshList = useCallback(async () => {
     try {
       const res = await listChats()
-      setConversations(res.data)
+      const hydrated = await hydrateConversations(res.data)
+      setConversations(hydrated)
     } catch {
       /* keep current list on background refresh */
     }
-  }, [])
+  }, [hydrateConversations])
 
   const onNewMessage = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
@@ -49,13 +94,20 @@ export default function MessagesPage() {
     }, 600)
   }, [refreshList])
 
-  const room = useChatRoom({ chatId: activeChatId, myUserId, socket, onNewMessage })
+  const room = useChatRoom({
+    chatId: activeChatId,
+    myUserId,
+    socket,
+    encryption,
+    onNewMessage,
+  })
 
   useEffect(() => {
     let cancelled = false
     listChats()
-      .then((res) => {
-        if (!cancelled) setConversations(res.data)
+      .then((res) => hydrateConversations(res.data))
+      .then((hydrated) => {
+        if (!cancelled) setConversations(hydrated)
       })
       .catch(() => {})
       .finally(() => {
@@ -64,7 +116,42 @@ export default function MessagesPage() {
     return () => {
       cancelled = true
     }
+  }, [hydrateConversations])
+
+  useEffect(() => {
+    let cancelled = false
+    listChatInvites()
+      .then((res) => {
+        if (!cancelled) setInvites(res.data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [])
+
+  const handleRespondInvite = async (invite: ChatInviteItem, accept: boolean) => {
+    if (respondingInvite) return
+    setRespondingInvite(invite.invite_id)
+    try {
+      const res = await respondChatInvite(invite.invite_id, accept)
+      setInvites((prev) => prev.filter((i) => i.invite_id !== invite.invite_id))
+      if (accept) {
+        await refreshList()
+        if (res.chat_id) setActiveChatId(res.chat_id)
+        toast({ type: 'success', title: t('chat.inviteAccepted') })
+      } else {
+        toast({ type: 'info', title: t('chat.inviteDeclined') })
+      }
+    } catch (err) {
+      toast({
+        type: 'error',
+        title: err instanceof Error ? err.message : t('common.error'),
+      })
+    } finally {
+      setRespondingInvite(null)
+    }
+  }
 
   const [selectionInitialized, setSelectionInitialized] = useState(false)
   if (!selectionInitialized && !loadingChats && conversations.length > 0) {
@@ -89,9 +176,6 @@ export default function MessagesPage() {
     router.push('/login')
     return <div className={styles.page} />
   }
-
-  const activeConversation =
-    conversations.find((c) => c.chat_id === activeChatId) ?? null
 
   const handlePickUser = async (user: UserSearchItem) => {
     setPickerOpen(false)
@@ -128,6 +212,52 @@ export default function MessagesPage() {
 
   return (
     <div className={styles.page}>
+      {invites.length > 0 && (
+        <div className={styles.inviteBanner}>
+          <div className={styles.inviteHeader}>
+            <i className="bx bx-envelope-open" />
+            <span>{t('chat.inviteTitle')}</span>
+          </div>
+          <div className={styles.inviteList}>
+            {invites.map((invite) => (
+              <div key={invite.invite_id} className={styles.inviteItem}>
+                {invite.requester_avatar ? (
+                  <ExternalImage
+                    src={invite.requester_avatar}
+                    alt=""
+                    className={styles.inviteAvatar}
+                  />
+                ) : (
+                  <div className={styles.inviteAvatar}>
+                    <i className="bx bx-user" />
+                  </div>
+                )}
+                <span className={styles.inviteName}>
+                  {invite.requester_name ?? 'User'}
+                </span>
+                <div className={styles.inviteActions}>
+                  <button
+                    type="button"
+                    className={styles.inviteAcceptBtn}
+                    disabled={respondingInvite !== null}
+                    onClick={() => handleRespondInvite(invite, true)}
+                  >
+                    {t('chat.inviteAccept')}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.inviteDeclineBtn}
+                    disabled={respondingInvite !== null}
+                    onClick={() => handleRespondInvite(invite, false)}
+                  >
+                    {t('chat.inviteDecline')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className={styles.layout}>
         <div className={styles.listPane}>
           <ConversationList
@@ -144,6 +274,7 @@ export default function MessagesPage() {
             conversation={activeConversation}
             myUserId={myUserId}
             room={room}
+            isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
             onDeleteChat={
               activeConversation ? () => setDeleteTarget(activeConversation) : undefined
             }

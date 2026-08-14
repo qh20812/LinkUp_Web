@@ -9,9 +9,10 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useAuth } from '../../../hooks/useAuth'
 import { useNotification } from '../../../contexts/NotificationContext'
 import { notificationHref } from '../../../utils/notificationNavigate'
+import { groupNotifications } from '../../../utils/groupNotifications'
 import ExternalImage from '../../../components/ExternalImage'
 import type {
-  NotificationItem,
+  NotificationGroup,
   NotificationListResponse,
   NotificationPreferences,
   NotificationType,
@@ -55,11 +56,16 @@ export default function NotificationsPage() {
     (url: string) => swrFetcher<NotificationListResponse>(url),
   )
 
-  let items: NotificationItem[] = []
+  let items: NotificationGroup[] = []
   if (res) {
-    items = filter === 'read' ? res.data.filter((n) => n.is_read) : res.data
+    const source =
+      filter === 'read' ? res.data.filter((n) => n.is_read) : res.data
+    items = groupNotifications(source)
   }
-  const total = filter === 'read' ? items.length : (res?.total ?? 0)
+  const total =
+    filter === 'read'
+      ? (res?.data.filter((n) => n.is_read).length ?? 0)
+      : (res?.total ?? 0)
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const handleFilterChange = (next: Filter) => {
@@ -67,10 +73,10 @@ export default function NotificationsPage() {
     setPage(1)
   }
 
-  const handleItemClick = async (item: NotificationItem) => {
+  const handleItemClick = async (item: NotificationGroup) => {
     if (!item.is_read) {
       try {
-        await markAsRead(item.id)
+        await markAsRead(item)
       } catch {
         /* context already reverts on error */
       }
@@ -78,17 +84,6 @@ export default function NotificationsPage() {
     }
     const href = notificationHref(item)
     if (href) router.push(href)
-  }
-
-  const handleMarkRead = async (e: React.MouseEvent, item: NotificationItem) => {
-    e.stopPropagation()
-    if (item.is_read) return
-    try {
-      await markAsRead(item.id)
-      invalidate('/notifications')
-    } catch {
-      /* context already reverts on error */
-    }
   }
 
   const handleMarkAll = async () => {
@@ -159,7 +154,7 @@ export default function NotificationsPage() {
       case 'comment':
         return 'bx bx-message-dots ' + styles.iconComment
       case 'share':
-        return 'bx bx-share-alt ' + styles.iconShare
+        return 'bx bx-share-alt ' + styles.iconLike
       case 'follow':
         return 'bx bx-user-plus ' + styles.iconFollow
       case 'message':
@@ -206,6 +201,7 @@ export default function NotificationsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
+        <h1 className={styles.title}>{t('notifications.title')}</h1>
         {unreadCount > 0 && (
           <button className={styles.markAllBtn} onClick={handleMarkAll}>
             <i className="bx bx-check-double" />
@@ -221,7 +217,7 @@ export default function NotificationsPage() {
             className={`${styles.tab} ${filter === f ? styles.tabActive : ''}`}
             onClick={() => handleFilterChange(f)}>
             {f === 'all' && <i className="bx bx-bell" />}
-            {f === 'unread' && <i className="bx bx-notification" />}
+            {f === 'unread' && <i className="bx bx-bell" />}
             {f === 'read' && <i className="bx bx-check-double" />}
             {t(`notifications.filter${f.charAt(0).toUpperCase()}${f.slice(1)}`)}
           </button>
@@ -249,7 +245,7 @@ export default function NotificationsPage() {
         ) : (
           items.map((item) => (
             <div
-              key={item.id}
+              key={item.key}
               className={`${styles.item} ${!item.is_read ? styles.itemUnread : ''}`}
               onClick={() => handleItemClick(item)}>
               <div className={styles.iconWrapper}>
@@ -268,14 +264,10 @@ export default function NotificationsPage() {
                 </p>
                 <span className={styles.time}>{formatTime(item.created_at)}</span>
               </div>
-              {!item.is_read && (
-                <button
-                  className={styles.markReadBtn}
-                  onClick={(e) => handleMarkRead(e, item)}
-                  title={t('notifications.markRead')}>
-                  <i className="bx bx-check" />
-                </button>
+              {item.count > 1 && (
+                <span className={styles.countBadge}>+{item.count}</span>
               )}
+              {!item.is_read && <span className={styles.unreadDot} />}
             </div>
           ))
         )}
