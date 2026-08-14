@@ -8,7 +8,11 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import type { NotificationItem, NotificationPreferences } from "../types";
+import type {
+  NotificationItem,
+  NotificationGroup,
+  NotificationPreferences,
+} from "../types";
 import {
   getUnreadCount,
   getNotifications,
@@ -18,15 +22,16 @@ import {
   updatePreferences as apiUpdatePreferences,
 } from "../api/notifications";
 import { invalidate } from "../api/swr";
+import { groupNotifications, mergeNotification } from "../utils/groupNotifications";
 
 interface NotificationContextType {
   unreadCount: number;
-  notifications: NotificationItem[];
+  notifications: NotificationGroup[];
   loading: boolean;
   preferences: NotificationPreferences | null;
   refreshUnreadCount: () => Promise<void>;
   fetchDropdownNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (group: NotificationGroup) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreferences: (prefs: Partial<NotificationPreferences>) => Promise<void>;
@@ -42,7 +47,7 @@ export function NotificationProvider({
   children: React.ReactNode;
 }) {
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] =
     useState<NotificationPreferences | null>(null);
@@ -63,7 +68,7 @@ export function NotificationProvider({
   const fetchDropdownNotifications = useCallback(async () => {
     try {
       const res = await getNotifications(1, 5, false);
-      setNotifications(res.data);
+      setNotifications(groupNotifications(res.data));
     } catch (err) {
       console.error("Failed to fetch notifications dropdown:", err);
     }
@@ -78,17 +83,18 @@ export function NotificationProvider({
     }
   }, []);
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = async (group: NotificationGroup) => {
     // Cập nhật UI trước cho mượt (Optimistic Update)
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      prev.map((n) => (n.key === group.key ? { ...n, is_read: true } : n))
     );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
     try {
-      await apiMarkAsRead(id);
+      await Promise.all(group.ids.map((id) => apiMarkAsRead(id)));
+      refreshUnreadCount();
     } catch (err) {
       console.error("Failed to mark as read:", err);
       refreshUnreadCount();
+      fetchDropdownNotifications();
     }
   };
 
@@ -173,10 +179,9 @@ export function NotificationProvider({
             const message = JSON.parse(data);
             if (message.type === "notification") {
               const newNotif: NotificationItem = message.data;
-              setNotifications((prev) => [newNotif, ...prev.slice(0, 4)]);
+              setNotifications((prev) => mergeNotification(newNotif, prev));
               setUnreadCount((prev) => prev + 1);
               invalidate("/notifications");
-              fetchDropdownNotifications();
             }
           } catch (err) {
             console.error("Error parsing WS message:", err);

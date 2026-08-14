@@ -1,6 +1,13 @@
-import type { NotificationItem } from '../types'
+import type { NotificationType } from '../types'
 
-export function notificationHref(item: NotificationItem): string | null {
+interface NotificationTarget {
+  type: NotificationType
+  redirect_post_id?: string
+  redirect_user_id?: string
+  redirect_comment_id?: string
+}
+
+export function notificationHref(item: NotificationTarget): string | null {
   switch (item.type) {
     case 'like':
     case 'comment':

@@ -479,6 +479,22 @@ export interface NotificationItem {
   redirect_comment_id?: string
 }
 
+export interface NotificationGroup {
+  key: string
+  ids: string[]
+  count: number
+  is_read: boolean
+  sender_id?: string
+  sender_name?: string
+  sender_avatar?: string
+  type: NotificationType
+  content: string
+  created_at: string
+  redirect_post_id?: string
+  redirect_user_id?: string
+  redirect_comment_id?: string
+}
+
 export interface NotificationListResponse {
   data: NotificationItem[]
   total: number
