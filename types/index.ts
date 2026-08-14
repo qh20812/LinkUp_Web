@@ -751,6 +751,20 @@ export interface CreateDirectChatResponse {
   message?: string
 }
 
+export interface ChatInviteItem {
+  invite_id: string
+  requester_id: string
+  requester_name?: string
+  requester_avatar?: string
+  created_at: string
+}
+
+export interface ChatInviteResponse {
+  invite_id: string
+  chat_id?: string
+  message: string
+}
+
 // ===== Chat WebSocket payloads =====
 export interface WsChatJoinPayload {
   chat_id: string

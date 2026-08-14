@@ -95,6 +95,27 @@
   background: var(--color-bg-hover);
 }
 
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.actionBtnDisabled {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.actionBtnDisabled:hover {
+  background: var(--color-bg-secondary);
+}
+
+.actionBtnActive {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
 .center {
   min-height: 60vh;
   display: flex;
@@ -152,5 +173,10 @@
   .actionBtn {
     padding: 8px 20px;
     font-size: 14px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
