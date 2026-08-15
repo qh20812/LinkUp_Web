@@ -1139,6 +1139,7 @@
     "followers": "followers",
     "following": "following",
     "myPosts": "My Posts",
+    "userPosts": "Posts by {name}",
     "editProfile": "Edit",
     "editDisplayName": "Display Name",
     "editBio": "Bio",
@@ -1159,7 +1160,22 @@
     "privatePosts": "Hide posts",
     "privatePostsHint": "Only followers can see your posts",
     "allowStrangerFriend": "Allow friend requests from strangers",
-    "allowStrangerFriendHint": "Anyone can send you a friend request"
+    "allowStrangerFriendHint": "Anyone can send you a friend request",
+    "changeCover": "Change Cover Photo",
+    "joinedDate": "Joined {month}/{year}",
+    "postsCount": "posts",
+    "tabPosts": "Posts",
+    "tabMedia": "Media",
+    "tabSaved": "Saved",
+    "noSavedPosts": "No saved posts yet",
+    "mutualFriends": "{count} mutual friends",
+    "pinPost": "Pin to top",
+    "unpinPost": "Unpin",
+    "pinnedLabel": "Pinned",
+    "noMedia": "No photos or videos yet",
+    "errorPrivate": "This profile is private",
+    "errorNotFound": "User not found",
+    "errorNetwork": "Network error. Please try again."
   },
   "search": {
     "title": "Results for \"{keyword}\"",
@@ -1171,5 +1187,16 @@
     "peopleSection": "People ({count})",
     "postsSection": "Posts ({count})",
     "hashtagsSection": "Hashtags ({count})"
+  },
+  "story": {
+    "viewStory": "View story",
+    "viewAvatar": "View photo",
+    "changeAvatar": "Change photo",
+    "yourStory": "Your Story",
+    "addStory": "Add Story",
+    "replyPlaceholder": "Reply...",
+    "noStory": "No stories yet",
+    "stories": "Stories",
+    "viewers": "{count} viewers"
   }
 }

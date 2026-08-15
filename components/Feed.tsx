@@ -5,10 +5,13 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
-import type { FeedPost, EmojiItem } from '../types'
+import { getFeedStories } from '../api/stories'
+import { getTokenPayload } from '../api/auth'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
+import StoryBar from './story/StoryBar'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 import { useToast } from '../contexts/ToastContext'
@@ -44,11 +47,21 @@ function FeedContent() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [stories, setStories] = useState<StoryFeedItem[]>([])
+  const [viewerStories, setViewerStories] = useState<StoryItem[] | null>(null)
+  const [viewerIndex, setViewerIndex] = useState(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
+  const currentUserId = getTokenPayload()?.user_id
 
   const filter = tab === 'following' ? 'following' : undefined
+
+  useEffect(() => {
+    getFeedStories()
+      .then((res) => setStories(Array.isArray(res) ? res : []))
+      .catch(() => {})
+  }, [])
 
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
@@ -255,6 +268,16 @@ function FeedContent() {
   return (
     <div className={styles.container}>
       <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+      <StoryBar
+        stories={stories}
+        currentUserId={currentUserId}
+        onSelectStory={(userId) => {
+          const userStories = stories.find((item) => item.user.id === userId)
+          if (userStories) setViewerStories(userStories.stories)
+          setViewerIndex(0)
+        }}
+        onCreateStory={() => { /* TODO: open create story modal */ }}
+      />
       {posts.map((post) => (
         <PostCard
           key={post.id}

@@ -175,6 +175,12 @@ export default function NotificationsPage() {
       case 'community_invitation_received':
       case 'community_invitation_accepted':
         return 'bx bx-world ' + styles.iconCommunity
+      case 'media_approved':
+        return 'bx bx-check-circle ' + styles.iconFollow
+      case 'media_rejected':
+        return 'bx bx-x-circle ' + styles.iconCall
+      case 'media_flagged':
+        return 'bx bx-error ' + styles.iconComment
       default:
         return 'bx bx-bell ' + styles.iconCommunity
     }

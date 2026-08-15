@@ -1,0 +1,79 @@
+.postsSection {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 100%;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.postsSectionTitle {
+  font: var(--text-body);
+  font-weight: 600;
+  padding: var(--space-lg);
+  margin: 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.postsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.postItem {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.postItem:last-child {
+  border-bottom: none;
+}
+
+/* Loading & Empty States */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: var(--space-xs) solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-circle);
+  animation: spin 0.8s linear infinite;
+  margin-bottom: var(--space-sm);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--space-sm);
+}
+
+.emptyText {
+  font: var(--text-body);
+}
+
+@media (max-width: 576px) {
+  .postItem {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

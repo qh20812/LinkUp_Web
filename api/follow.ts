@@ -21,3 +21,8 @@ export const getFollowers = (userId: string, page = 1, pageSize = 20) =>
 
 export const getFollowing = (userId: string, page = 1, pageSize = 20) =>
   request<FollowListResponse>(`/follow/${userId}/following?page=${page}&page_size=${pageSize}`)
+
+export const getMutualFriends = (userId: string) =>
+  request<{ data: Array<{ user_id: string; username: string; display_name: string; avatar_uri: string }>; total: number }>(
+    `/follow/${userId}/mutual`,
+  )

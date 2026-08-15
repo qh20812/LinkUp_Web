@@ -1,0 +1,178 @@
+.tabsContainer {
+  width: 100%;
+}
+
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--text-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.tab:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.tabActive {
+  color: var(--color-primary);
+}
+
+.tabActive::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+.tabContent {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+}
+
+.postItem {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.postItem:last-child {
+  border-bottom: none;
+}
+
+/* Loading & Empty States */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: var(--space-xs) solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-circle);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--space-sm);
+}
+
+.emptyText {
+  font: var(--text-body);
+}
+
+.pinnedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-xs);
+  font: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-pill);
+}
+
+.pinnedBadge i {
+  font-size: 14px;
+}
+
+.pinBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-xs);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pinBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.pinBtnActive {
+  color: var(--color-primary);
+}
+
+.pinBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loadMoreBtn {
+  display: block;
+  margin: var(--space-lg) auto;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card);
+  color: var(--color-text);
+  font: var(--text-body);
+  cursor: pointer;
+}
+
+.loadMoreBtn:hover {
+  background: var(--color-bg-secondary);
+}
+
+@media (max-width: 576px) {
+  .tab {
+    padding: var(--space-sm) var(--space-xs);
+    font-size: 13px;
+  }
+
+  .postItem {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

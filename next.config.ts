@@ -24,10 +24,6 @@ const nextConfig: NextConfig = {
         destination: `http://${backendUrl}/api/:path*`,
       },
       {
-        source: "/ads-management/:path*",
-        destination: `http://${backendUrl}/ads-management/:path*`,
-      },
-      {
         source: "/health",
         destination: `http://${backendUrl}/health`,
       },

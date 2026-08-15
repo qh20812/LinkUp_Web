@@ -91,6 +91,23 @@ export interface FeedMedia {
   created_at?: string
 }
 
+export interface MediaItem {
+  id: string
+  post_id: string
+  file_uri: string
+  file_type: string
+  file_size?: number
+  created_at: string
+}
+
+export interface UserMediaResponse {
+  data: MediaItem[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
 export interface FeedPost {
   id: string
   user_id: string
@@ -112,6 +129,8 @@ export interface FeedPost {
   is_saved: boolean
   is_shared: boolean
   is_following: boolean
+  is_pinned: boolean
+  pinned_at?: string
 }
 
 export interface FeedResponse {
@@ -227,6 +246,10 @@ export interface ViewProfileResponse {
   phone_number: string
   date_of_birth?: string
   avatar_uri: string
+  cover_uri: string
+  username: string
+  post_count: number
+  created_at: string
   bio: string
   is_private_profile: boolean
   is_private_posts: boolean
@@ -464,6 +487,7 @@ export type NotificationType =
   | 'community_group_chat_added' | 'community_invite_code_used'
   | 'community_invitation_received' | 'community_invitation_accepted'
   | 'voice_call'
+  | 'media_approved' | 'media_rejected' | 'media_flagged'
 
 export interface NotificationItem {
   id: string
@@ -854,4 +878,27 @@ export interface WsSearchResultPayload {
 
 export interface WsErrorPayload {
   message: string
+}
+
+// ===== Stories =====
+export interface StoryItem {
+  id: string
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  media_uri: string
+  media_type: 'image' | 'video'
+  caption: string
+  created_at: string
+  expires_at?: string
+  has_viewed: boolean
+}
+
+export interface StoryFeedItem {
+  user: {
+    id: string
+    display_name: string
+    avatar_uri: string
+  }
+  stories: StoryItem[]
 }

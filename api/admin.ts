@@ -286,7 +286,7 @@ export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`/ads-management/${id}/analytics`, { headers })
+  const res = await fetch(`/api/ads-management/${id}/analytics`, { headers })
   if (!res.ok) {
     throw new Error(await extractErrorMessage(res))
   }

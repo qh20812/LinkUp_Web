@@ -10,6 +10,7 @@ export const getProfileByUserID = (userID: string) =>
 export const updateProfile = (input: {
   display_name?: string
   avatar_uri?: string
+  cover_uri?: string
   bio?: string
   is_private_profile?: boolean
   is_private_posts?: boolean
@@ -21,6 +22,24 @@ export const updateProfile = (input: {
   })
 
 export const uploadAvatar = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return fetch('/api/media/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: formData,
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(await extractErrorMessage(res))
+    }
+    return res.json()
+  })
+}
+
+export const uploadCover = (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
 

@@ -8,6 +8,7 @@ import type {
   CreatePostResponse,
   CommentListResponse,
   CreateCommentResponse,
+  UserMediaResponse,
 } from '../types'
 
 export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: string) => {
@@ -95,4 +96,21 @@ export const createPost = ({ title, content, status, files = [] }: CreatePostInp
     }
     return (await res.json()) as CreatePostResponse
   })
+}
+
+export const pinPost = (postId: string) =>
+  request<{ message: string }>(`/posts/${postId}/pin`, {
+    method: 'POST',
+  })
+
+export const unpinPost = (postId: string) =>
+  request<{ message: string }>(`/posts/${postId}/pin`, {
+    method: 'DELETE',
+  })
+
+export const getUserMedia = (userID: string, page = 1, pageSize = 20) => {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('page_size', String(pageSize))
+  return request<UserMediaResponse>(`/posts/user/${userID}/media?${params.toString()}`)
 }

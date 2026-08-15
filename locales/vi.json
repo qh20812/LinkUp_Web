@@ -1131,6 +1131,7 @@
     "followers": "người theo dõi",
     "following": "đang theo dõi",
     "myPosts": "Bài viết của tôi",
+    "userPosts": "Bài viết của {name}",
     "editProfile": "Chỉnh sửa",
     "editDisplayName": "Tên hiển thị",
     "editBio": "Giới thiệu",
@@ -1151,7 +1152,22 @@
     "privatePosts": "Ẩn bài viết",
     "privatePostsHint": "Chỉ người theo dõi mới xem được bài viết của bạn",
     "allowStrangerFriend": "Cho phép kết bạn từ người lạ",
-    "allowStrangerFriendHint": "Ai cũng có thể gửi lời mời kết bạn cho bạn"
+    "allowStrangerFriendHint": "Ai cũng có thể gửi lời mời kết bạn cho bạn",
+    "changeCover": "Thay đổi ảnh bìa",
+    "joinedDate": "Tham gia {month}/{year}",
+    "postsCount": "bài viết",
+    "tabPosts": "Bài viết",
+    "tabMedia": "Media",
+    "tabSaved": "Đã lưu",
+    "noSavedPosts": "Chưa có bài viết nào được lưu",
+    "mutualFriends": "{count} bạn chung",
+    "pinPost": "Ghim lên đầu",
+    "unpinPost": "Bỏ ghim",
+    "pinnedLabel": "Đã ghim",
+    "noMedia": "Chưa có ảnh hoặc video nào",
+    "errorPrivate": "Hồ sơ này là riêng tư",
+    "errorNotFound": "Không tìm thấy người dùng",
+    "errorNetwork": "Lỗi mạng. Vui lòng thử lại."
   },
   "search": {
     "title": "Kết quả cho \"{keyword}\"",
@@ -1163,5 +1179,16 @@
     "peopleSection": "Mọi người ({count})",
     "postsSection": "Bài viết ({count})",
     "hashtagsSection": "Hashtags ({count})"
+  },
+  "story": {
+    "viewStory": "Xem tin",
+    "viewAvatar": "Xem ảnh",
+    "changeAvatar": "Đổi ảnh",
+    "yourStory": "Tin của bạn",
+    "addStory": "Thêm tin",
+    "replyPlaceholder": "Trả lời...",
+    "noStory": "Chưa có tin nào",
+    "stories": "Tin",
+    "viewers": "{count} người xem"
   }
 }

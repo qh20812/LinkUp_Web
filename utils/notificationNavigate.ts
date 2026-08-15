@@ -24,6 +24,11 @@ export function notificationHref(item: NotificationTarget): string | null {
       if (item.redirect_comment_id) return `/messages?chat_id=${item.redirect_comment_id}`
       if (item.redirect_post_id) return `/posts/${item.redirect_post_id}`
       return '/messages'
+    case 'media_approved':
+    case 'media_rejected':
+    case 'media_flagged':
+      if (item.redirect_post_id) return `/posts/${item.redirect_post_id}`
+      return '/'
     default:
       return null
   }

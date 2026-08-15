@@ -1,0 +1,41 @@
+.ring {
+  padding: 3px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #833AB4, #FD1D1D, #FCAF45);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringViewed {
+  background: var(--color-border);
+}
+
+.ringInner {
+  padding: 2px;
+  background: var(--color-card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.noRing {
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+}
