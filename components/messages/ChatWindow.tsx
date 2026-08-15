@@ -370,6 +370,51 @@ function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
   return <EmojiImage emoji={emoji} className={styles.emojiMsg} />
 }
 
+const SINGLE_URL_RE = /^https?:\/\/\S+$/i
+
+function isSingleImageUrl(text: string): boolean {
+  const trimmed = text.trim()
+  if (!SINGLE_URL_RE.test(trimmed)) return false
+  try {
+    const u = new URL(trimmed)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function imageExtension(contentType: string): string {
+  switch (contentType.split(';')[0].trim()) {
+    case 'image/jpeg':
+      return '.jpg'
+    case 'image/gif':
+      return '.gif'
+    case 'image/webp':
+      return '.webp'
+    case 'image/png':
+    default:
+      return '.png'
+  }
+}
+
+function normalizePastedFile(file: File): File {
+  if (file.name && /\.[a-z0-9]+$/i.test(file.name)) return file
+  return new File([file], `pasted-image${imageExtension(file.type)}`, { type: file.type })
+}
+
+async function fetchRemoteImage(url: string): Promise<File | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    if (!res.ok) return null
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.startsWith('image/')) return null
+    const blob = await res.blob()
+    return new File([blob], `image${imageExtension(contentType)}`, { type: contentType })
+  } catch {
+    return null
+  }
+}
+
 interface ComposerProps {
   room: ChatRoom
 }
@@ -435,9 +480,43 @@ function Composer({ room }: ComposerProps) {
     sendTyping(false)
   }
 
-  const send = (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
+  const sendFile = async (file: File, caption: string): Promise<boolean> => {
+    if (uploading) return false
+    setUploading(true)
+    try {
+      const res = await uploadMedia(file)
+      room.sendMessage(caption, {
+        mediaId: res.data.id,
+        mediaUri: res.data.file_uri,
+        mediaType: res.data.file_type,
+      })
+      return true
+    } catch {
+      toast({ type: 'error', title: t('chat.uploadFailed') })
+      return false
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
     if (!value.trim() && !opts?.emojiId && !opts?.mediaId) return
-    room.sendMessage(value, opts)
+    const text = value
+
+    // Toàn bộ tin là một URL duy nhất → thử tải ảnh về rồi gửi dạng media.
+    if (!opts && isSingleImageUrl(text)) {
+      const file = await fetchRemoteImage(text)
+      if (file) {
+        resetComposer()
+        const ok = await sendFile(file, '')
+        if (ok) return
+        // Upload ảnh thất bại → fallback gửi URL dạng text để không mất tin nhắn.
+        room.sendMessage(text)
+        return
+      }
+    }
+
+    room.sendMessage(text, opts)
     resetComposer()
   }
 
@@ -445,19 +524,26 @@ function Composer({ room }: ComposerProps) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || uploading) return
-    setUploading(true)
-    try {
-      const res = await uploadMedia(file)
-      send({
-        mediaId: res.data.id,
-        mediaUri: res.data.file_uri,
-        mediaType: res.data.file_type,
-      })
-    } catch {
-      toast({ type: 'error', title: t('chat.uploadFailed') })
-    } finally {
-      setUploading(false)
+    const caption = value
+    const ok = await sendFile(file, caption)
+    if (ok) resetComposer()
+  }
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    let file: File | null = null
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        file = item.getAsFile()
+        break
+      }
     }
+    if (!file) return
+    e.preventDefault()
+    const caption = value
+    resetComposer()
+    await sendFile(normalizePastedFile(file), caption)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -495,6 +581,7 @@ function Composer({ room }: ComposerProps) {
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         placeholder={t('chat.placeholder')}
       />
       <button
