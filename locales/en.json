@@ -685,6 +685,12 @@
     "newMessage": "New message",
     "collapseSidebar": "Collapse conversation list",
     "expandSidebar": "Expand conversation list",
+    "emojiCat": {
+      "positive": "Happy",
+      "neutral": "Neutral",
+      "negative": "Sad"
+    },
+    "removeAttachment": "Remove attachment",
     "search": "Search",
     "searchUsers": "Search users...",
     "searchFriends": "Search friends...",

@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
+import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
+import { renderEmojiContent } from './EmojiImage'
 import type { ChatConversation } from '../../types'
 import styles from './ConversationList.module.css'
 
@@ -25,6 +28,12 @@ export default function ConversationList({
   onNewChat,
 }: ConversationListProps) {
   const { t } = useTranslation()
+  const { emojis } = useEmojis()
+  const emojiCodeMap = useMemo(() => {
+    const map = emojiByCode(getEmotionEmojis())
+    for (const e of emojis.values()) map.set(e.code, e)
+    return map
+  }, [emojis])
   const [filter, setFilter] = useState('')
 
   const normalized = filter.trim().toLowerCase()
@@ -105,17 +114,24 @@ export default function ConversationList({
                 )}
               </div>
               <span className={styles.preview}>
-                {conv.last_message
-                  ? `${conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}${
-                      conv.last_message.media_id
-                        ? t('chat.mediaMessage')
-                        : conv.last_message.emoji_id
-                          ? t('chat.emojiMessage')
-                          : conv.is_encrypted && !conv.last_message.content
-                            ? t('chat.encryptedPreview')
-                            : conv.last_message.content || t('chat.mediaMessage')
-                    }`
-                  : t('chat.newChat')}
+                {conv.last_message ? (
+                  <>
+                    {conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}
+                    {conv.last_message.media_id
+                      ? t('chat.mediaMessage')
+                      : conv.last_message.emoji_id
+                        ? t('chat.emojiMessage')
+                        : conv.is_encrypted && !conv.last_message.content
+                          ? t('chat.encryptedPreview')
+                          : renderEmojiContent(
+                              conv.last_message.content || t('chat.mediaMessage'),
+                              emojiCodeMap,
+                              `pv-${conv.chat_id}`,
+                            )}
+                  </>
+                ) : (
+                  t('chat.newChat')
+                )}
               </span>
             </div>
           </button>
