@@ -683,6 +683,8 @@
   },
   "chat": {
     "newMessage": "New message",
+    "collapseSidebar": "Collapse conversation list",
+    "expandSidebar": "Expand conversation list",
     "search": "Search",
     "searchUsers": "Search users...",
     "searchFriends": "Search friends...",

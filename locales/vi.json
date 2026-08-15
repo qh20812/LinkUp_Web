@@ -683,6 +683,8 @@
   },
   "chat": {
     "newMessage": "Tin nhắn mới",
+    "collapseSidebar": "Thu danh sách hội thoại",
+    "expandSidebar": "Mở danh sách hội thoại",
     "search": "Tìm kiếm",
     "searchUsers": "Tìm kiếm người dùng...",
     "searchFriends": "Tìm kiếm bạn bè...",
