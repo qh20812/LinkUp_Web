@@ -735,6 +735,9 @@ export interface ChatMessage {
   emoji_id?: string | null
   media_id?: string | null
   reply_to_message_id?: string | null
+  // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
+  media_uri?: string | null
+  media_type?: string | null
   is_anonymized: boolean
   anonymous_name?: string | null
   e2e_version?: number

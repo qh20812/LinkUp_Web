@@ -312,12 +312,131 @@
 }
 
 .composer {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: var(--space-sm);
   padding: var(--space-md);
   border-top: 1px solid var(--color-border);
   background: var(--color-card);
+}
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.composerActions .iconBtn {
+  width: 38px;
+  height: 38px;
+  font-size: 1.25rem;
+}
+
+.iconBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emojiPicker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: var(--space-md);
+  display: grid;
+  grid-template-columns: repeat(8, 36px);
+  gap: 4px;
+  padding: var(--space-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.emojiItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.emojiItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.emojiItem img,
+.emojiItemImg {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.emojiMsg {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  display: block;
+}
+
+.bubblePlain,
+.mine .bubblePlain,
+.theirs .bubblePlain {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--color-text);
+}
+
+.bubblePlain .emojiMsg {
+  width: 96px;
+  height: 96px;
+}
+
+.bubblePlain .mediaEl {
+  max-width: 320px;
+  max-height: 400px;
+  border-radius: var(--radius-lg);
+}
+
+.emojiFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.mediaWrap {
+  min-width: 0;
+}
+
+.mediaEl {
+  max-width: 260px;
+  max-height: 320px;
+  border-radius: var(--radius-md);
+  display: block;
+  object-fit: cover;
+}
+
+.mediaLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 90px;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
 }
 
 .composer textarea {

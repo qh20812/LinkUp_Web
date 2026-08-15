@@ -64,3 +64,49 @@ export const searchUsers = (keyword: string) =>
     users: Array<{ id: string; username: string; display_name: string; avatar_uri: string }>
     message?: string
   }>(`/search?keyword=${encodeURIComponent(keyword)}&type=users`)
+
+export interface UploadMediaResponse {
+  data: {
+    id: string
+    file_uri: string
+    file_type: string
+    file_size: number
+    status: string
+    available_storage?: number
+  }
+  storage: {
+    quota_bytes: number
+    used_bytes: number
+    available_bytes: number
+  }
+}
+
+export const uploadMedia = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+  return fetch('/api/media/upload', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(await extractErrorMessage(res))
+    }
+    return (await res.json()) as UploadMediaResponse
+  })
+}
+
+export const downloadMessageMedia = (messageId: string) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+  return fetch(`/api/chats/messages/${messageId}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(await extractErrorMessage(res))
+    }
+    return res.blob()
+  })
+}

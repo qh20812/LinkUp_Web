@@ -722,7 +722,13 @@
     "e2eBadge": "E2E",
     "e2eTitle": "Messages are end-to-end encrypted; only sender and receiver can read them",
     "undecryptable": "Message can't be decrypted",
-    "newChat": "New conversation"
+    "newChat": "New conversation",
+    "emojiPicker": "Pick an emoji",
+    "attach": "Attach file",
+    "uploadFailed": "Could not upload file",
+    "mediaFailed": "Could not load media",
+    "emojiMessage": "[Emoji]",
+    "emojiUnavailable": "Emoji unavailable"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Internal server error",

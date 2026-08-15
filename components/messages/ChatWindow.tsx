@@ -4,8 +4,11 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import Modal from '../Modal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useEmojis } from '../../hooks/useEmojis'
+import { useToast } from '../../contexts/ToastContext'
+import { downloadMessageMedia, uploadMedia } from '../../api/chats'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
-import type { ChatConversation, ChatMessage } from '../../types'
+import type { ChatConversation, ChatMessage, EmojiItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import styles from './ChatWindow.module.css'
 
@@ -29,6 +32,7 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const { emojis } = useEmojis()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
@@ -161,7 +165,13 @@ export default function ChatWindow({
                 <span className={styles.searchResultSender}>
                   {msg.sender_id === myUserId ? t('chat.you') : conversation.partner.display_name}
                 </span>
-                <span className={styles.searchResultContent}>{msg.content}</span>
+                <span className={styles.searchResultContent}>
+                  {msg.media_id
+                    ? t('chat.mediaMessage')
+                    : msg.emoji_id
+                      ? emojis.get(msg.emoji_id)?.code || t('chat.emojiMessage')
+                      : msg.content}
+                </span>
               </div>
             ))
           )}
@@ -183,21 +193,40 @@ export default function ChatWindow({
             const showDate =
               !prev || formatChatDate(prev.created_at, t) !== formatChatDate(msg.created_at, t)
             const mine = msg.sender_id === myUserId
+            const plain =
+              !msg.deleted &&
+              !msg.decrypt_failed &&
+              !msg.content &&
+              Boolean(msg.media_id || msg.emoji_id)
             return (
               <Fragment key={msg.id}>
                 {showDate && (
                   <div className={styles.dateSep}>{formatChatDate(msg.created_at, t)}</div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
-                  <div className={styles.bubble}>
+                  <div
+                    className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
+                  >
                     {msg.deleted ? (
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
-                    ) : msg.decrypt_failed ? (
-                      <span className={styles.deletedText}>
-                        <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                      </span>
                     ) : (
-                      <span className={styles.msgText}>{msg.content}</span>
+                      <>
+                        {msg.media_id && (
+                          <div className={styles.mediaWrap}>
+                            <MessageMedia message={msg} />
+                          </div>
+                        )}
+                        {msg.emoji_id && !msg.media_id && (
+                          <EmojiBubble message={msg} emojis={emojis} />
+                        )}
+                        {msg.decrypt_failed ? (
+                          <span className={styles.deletedText}>
+                            <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                          </span>
+                        ) : msg.content ? (
+                          <span className={styles.msgText}>{msg.content}</span>
+                        ) : null}
+                      </>
                     )}
                     <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                   </div>
@@ -254,23 +283,112 @@ export default function ChatWindow({
   )
 }
 
+interface MessageMediaProps {
+  message: ChatMessage
+}
+
+function MessageMedia({ message }: MessageMediaProps) {
+  const { t } = useTranslation()
+  const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
+  const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
+  const [failed, setFailed] = useState(false)
+  const objectUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (message.media_uri) return
+    let cancelled = false
+    downloadMessageMedia(message.id)
+      .then((blob) => {
+        if (cancelled) return
+        const url = URL.createObjectURL(blob)
+        objectUrlRef.current = url
+        setSrc(url)
+        setIsVideo(blob.type.startsWith('video/'))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setFailed(true)
+      })
+    return () => {
+      cancelled = true
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [message.id, message.media_uri])
+
+  const loading = !src && !failed
+  if (loading) {
+    return (
+      <span className={styles.mediaLoading}>
+        <i className="bx bx-loader-circle bx-spin" />
+      </span>
+    )
+  }
+  if (failed || !src) {
+    return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
+  }
+  if (isVideo) {
+    return <video src={src} controls muted playsInline className={styles.mediaEl} />
+  }
+  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
+}
+
+interface EmojiImageProps {
+  emoji: EmojiItem
+  className?: string
+}
+
+function EmojiImage({ emoji, className }: EmojiImageProps) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <span className={styles.emojiFallback}>{emoji.code}</span>
+  }
+  return (
+    <ExternalImage
+      src={emoji.image_uri}
+      alt={emoji.code}
+      className={className}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+interface EmojiBubbleProps {
+  message: ChatMessage
+  emojis: Map<string, EmojiItem>
+}
+
+function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
+  const { t } = useTranslation()
+  const emoji = message.emoji_id ? emojis.get(message.emoji_id) : undefined
+  if (!emoji) {
+    return <span className={styles.deletedText}>{t('chat.emojiUnavailable')}</span>
+  }
+  return <EmojiImage emoji={emoji} className={styles.emojiMsg} />
+}
+
 interface ComposerProps {
   room: ChatRoom
 }
 
 function Composer({ room }: ComposerProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
+  const { emojis } = useEmojis()
   const [value, setValue] = useState('')
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const toggleEmojiRef = useRef<HTMLButtonElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sendTyping = room.sendTyping
-
-  const stopTyping = () => {
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
-    sendTyping(false)
-  }
 
   useEffect(() => {
     return () => {
@@ -279,14 +397,29 @@ function Composer({ room }: ComposerProps) {
     }
   }, [sendTyping])
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const v = e.target.value
-    setValue(v)
+  useEffect(() => {
     const el = textareaRef.current
     if (el) {
       el.style.height = 'auto'
       el.style.height = `${Math.min(el.scrollHeight, 120)}px`
     }
+  }, [value])
+
+  useEffect(() => {
+    if (!emojiOpen) return
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (pickerRef.current?.contains(target)) return
+      if (toggleEmojiRef.current?.contains(target)) return
+      setEmojiOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [emojiOpen])
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const v = e.target.value
+    setValue(v)
     const now = Date.now()
     if (v.trim() && now - lastTypingRef.current > 800) {
       lastTypingRef.current = now
@@ -296,13 +429,35 @@ function Composer({ room }: ComposerProps) {
     }
   }
 
-  const send = () => {
-    if (!value.trim()) return
-    room.sendMessage(value)
+  const resetComposer = () => {
     setValue('')
-    stopTyping()
-    const el = textareaRef.current
-    if (el) el.style.height = 'auto'
+    setEmojiOpen(false)
+    sendTyping(false)
+  }
+
+  const send = (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
+    if (!value.trim() && !opts?.emojiId && !opts?.mediaId) return
+    room.sendMessage(value, opts)
+    resetComposer()
+  }
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || uploading) return
+    setUploading(true)
+    try {
+      const res = await uploadMedia(file)
+      send({
+        mediaId: res.data.id,
+        mediaUri: res.data.file_uri,
+        mediaType: res.data.file_type,
+      })
+    } catch {
+      toast({ type: 'error', title: t('chat.uploadFailed') })
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -314,6 +469,26 @@ function Composer({ room }: ComposerProps) {
 
   return (
     <div className={styles.composer}>
+      <div className={styles.composerActions}>
+        <button
+          ref={toggleEmojiRef}
+          className={`${styles.iconBtn} ${emojiOpen ? styles.iconBtnActive : ''}`}
+          onClick={() => setEmojiOpen((prev) => !prev)}
+          aria-label={t('chat.emojiPicker')}
+          title={t('chat.emojiPicker')}
+        >
+          <i className="bx bxs-smile" />
+        </button>
+        <button
+          className={styles.iconBtn}
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          aria-label={t('chat.attach')}
+          title={t('chat.attach')}
+        >
+          <i className="bx bx-paperclip" />
+        </button>
+      </div>
       <textarea
         ref={textareaRef}
         rows={1}
@@ -324,12 +499,34 @@ function Composer({ room }: ComposerProps) {
       />
       <button
         className={styles.sendBtn}
-        onClick={send}
-        disabled={!value.trim()}
+        onClick={() => send()}
+        disabled={!value.trim() || uploading}
         aria-label={t('chat.send')}
       >
-        <i className="bx bx-send" />
+        <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
       </button>
+      <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={handleFile} />
+      {emojiOpen && (
+        <div ref={pickerRef} className={styles.emojiPicker}>
+          {emojis.size === 0 ? (
+            <span className={styles.center}>{t('common.loading')}</span>
+          ) : (
+            [...emojis.values()].map((e) => (
+              <button
+                key={e.id}
+                className={styles.emojiItem}
+                onClick={() => {
+                  room.sendMessage(value, { emojiId: e.id })
+                  resetComposer()
+                }}
+                title={e.code}
+              >
+                <EmojiImage emoji={e} className={styles.emojiItemImg} />
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }
