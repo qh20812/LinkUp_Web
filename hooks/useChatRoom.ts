@@ -14,6 +14,13 @@ interface UseChatRoomOptions {
   onNewMessage?: (message: ChatMessage) => void
 }
 
+export interface SendMessageOptions {
+  emojiId?: string
+  mediaId?: string
+  mediaUri?: string
+  mediaType?: string
+}
+
 export interface ChatRoom {
   messages: ChatMessage[]
   loading: boolean
@@ -21,7 +28,7 @@ export interface ChatRoom {
   searchResults: ChatMessage[] | null
   searchKeyword: string
   clearSearch: () => void
-  sendMessage: (content: string) => void
+  sendMessage: (content: string, opts?: SendMessageOptions) => void
   sendTyping: (isTyping: boolean) => void
   deleteMessage: (messageId: string, mode: 'all' | 'me') => void
   searchMessages: (keyword: string) => void
@@ -223,10 +230,11 @@ export function useChatRoom({
   }, [chatId, socketStatus, socketSend, e2eStatus, encryption])
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, opts?: SendMessageOptions) => {
       const chatID = activeChatIdRef.current
       const trimmed = content.trim()
-      if (!chatID || !trimmed) return
+      const hasAttachment = Boolean(opts?.emojiId || opts?.mediaId)
+      if (!chatID || (!trimmed && !hasAttachment)) return
       if (socket.status !== 'open') {
         toast({ type: 'error', title: 'Không thể gửi tin nhắn. Đang kết nối lại...' })
         return
@@ -242,19 +250,25 @@ export function useChatRoom({
             chat_id: chatID,
             sender_id: myUserIdRef.current,
             content: trimmed,
+            emoji_id: opts?.emojiId ?? null,
+            media_id: opts?.mediaId ?? null,
+            media_uri: opts?.mediaUri ?? null,
+            media_type: opts?.mediaType ?? null,
             is_anonymized: false,
             created_at: new Date().toISOString(),
           },
         ]),
       )
 
-      if (encryption?.ready) {
+      if (encryption?.ready && trimmed) {
         try {
           const cipher = await encryption.encrypt(trimmed)
           socket.send('message:send', {
             chat_id: chatID,
             content: cipher,
             e2e_version: 1,
+            emoji_id: opts?.emojiId ?? null,
+            media_id: opts?.mediaId ?? null,
           })
           return
         } catch {
@@ -262,7 +276,12 @@ export function useChatRoom({
           return
         }
       }
-      socket.send('message:send', { chat_id: chatID, content: trimmed })
+      socket.send('message:send', {
+        chat_id: chatID,
+        content: trimmed,
+        emoji_id: opts?.emojiId ?? null,
+        media_id: opts?.mediaId ?? null,
+      })
     },
     [socket, toast, encryption],
   )

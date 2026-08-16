@@ -1,13 +1,63 @@
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import Modal from '../Modal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useEmojis } from '../../hooks/useEmojis'
+import { useToast } from '../../contexts/ToastContext'
+import { downloadMessageMedia, uploadMedia } from '../../api/chats'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
-import type { ChatConversation, ChatMessage } from '../../types'
+import { EmojiImage, renderEmojiContent } from './EmojiImage'
+import {
+  EMOTION_GROUPS,
+  emojiByCode,
+  getEmotionEmojis,
+  type EmojiGroup,
+  type EmotionEmojiItem,
+} from '../../utils/emojis'
+import type { ChatConversation, ChatMessage, EmojiItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import styles from './ChatWindow.module.css'
+
+const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
+
+function singleEmojiCode(content: string, map: Map<string, EmojiItem>): string | null {
+  const trimmed = content.trim()
+  if (!trimmed.startsWith(':') || !trimmed.endsWith(':')) return null
+  if (trimmed.includes(' ') || trimmed.includes('\n')) return null
+  return map.has(trimmed) ? trimmed : null
+}
+
+function serializeContent(el: HTMLElement): string {
+  let out = ''
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent ?? ''
+      return
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return
+    const n = node as HTMLElement
+    if (n.dataset.code) {
+      out += n.dataset.code
+      return
+    }
+    const tag = n.tagName
+    if (tag === 'BR') {
+      out += '\n'
+      return
+    }
+    if (tag === 'DIV' || tag === 'P') {
+      if (out && !out.endsWith('\n')) out += '\n'
+      node.childNodes.forEach(walk)
+      if (!out.endsWith('\n')) out += '\n'
+      return
+    }
+    node.childNodes.forEach(walk)
+  }
+  walk(el)
+  return out.replace(/\n{3,}/g, '\n\n')
+}
 
 interface ChatWindowProps {
   conversation: ChatConversation | null
@@ -29,6 +79,12 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const { emojis } = useEmojis()
+  const emojiCodeMap = useMemo(() => {
+    const map = new Map(EMOTION_EMOJI_MAP)
+    for (const e of emojis.values()) map.set(e.code, e)
+    return map
+  }, [emojis])
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
@@ -161,7 +217,13 @@ export default function ChatWindow({
                 <span className={styles.searchResultSender}>
                   {msg.sender_id === myUserId ? t('chat.you') : conversation.partner.display_name}
                 </span>
-                <span className={styles.searchResultContent}>{msg.content}</span>
+                <span className={styles.searchResultContent}>
+                  {msg.media_id
+                    ? t('chat.mediaMessage')
+                    : msg.emoji_id
+                      ? emojis.get(msg.emoji_id)?.code || t('chat.emojiMessage')
+                      : renderEmojiContent(msg.content, emojiCodeMap, `s-${msg.id}`, styles.emojiInline)}
+                </span>
               </div>
             ))
           )}
@@ -183,24 +245,78 @@ export default function ChatWindow({
             const showDate =
               !prev || formatChatDate(prev.created_at, t) !== formatChatDate(msg.created_at, t)
             const mine = msg.sender_id === myUserId
+            const singleEmoji =
+              !msg.deleted && !msg.decrypt_failed
+                ? singleEmojiCode(msg.content ?? '', emojiCodeMap)
+                : null
+            const plain =
+              !msg.deleted &&
+              !msg.decrypt_failed &&
+              ((!msg.content && Boolean(msg.media_id || msg.emoji_id)) ||
+                (!msg.media_id && !msg.emoji_id && singleEmoji !== null))
             return (
               <Fragment key={msg.id}>
                 {showDate && (
                   <div className={styles.dateSep}>{formatChatDate(msg.created_at, t)}</div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
-                  <div className={styles.bubble}>
-                    {msg.deleted ? (
+                  {msg.deleted ? (
+                    <div className={styles.bubble}>
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
-                    ) : msg.decrypt_failed ? (
-                      <span className={styles.deletedText}>
-                        <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                      </span>
-                    ) : (
-                      <span className={styles.msgText}>{msg.content}</span>
-                    )}
-                    <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
-                  </div>
+                      <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                    </div>
+                  ) : msg.media_id && msg.content ? (
+                    <div className={styles.msgStack}>
+                      <div className={`${styles.bubble} ${styles.bubblePlain}`}>
+                        <div className={styles.mediaWrap}>
+                          <MessageMedia message={msg} />
+                        </div>
+                        <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                      </div>
+                      <div className={styles.bubble}>
+                        {msg.decrypt_failed ? (
+                          <span className={styles.deletedText}>
+                            <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                          </span>
+                        ) : (
+                          <span className={styles.msgText}>
+                            {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
+                          </span>
+                        )}
+                        <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
+                    >
+                      {msg.media_id && (
+                        <div className={styles.mediaWrap}>
+                          <MessageMedia message={msg} />
+                        </div>
+                      )}
+                      {msg.emoji_id && !msg.media_id && (
+                        <EmojiBubble message={msg} emojis={emojis} />
+                      )}
+                      {msg.decrypt_failed ? (
+                        <span className={styles.deletedText}>
+                          <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                        </span>
+                      ) : msg.content ? (
+                        singleEmoji ? (
+                          <EmojiImage
+                            emoji={emojiCodeMap.get(singleEmoji)!}
+                            className={styles.emojiMsg}
+                          />
+                        ) : (
+                          <span className={styles.msgText}>
+                            {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
+                          </span>
+                        )
+                      ) : null}
+                      <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                    </div>
+                  )}
                   {!msg.deleted && (
                     <button
                       className={styles.deleteBtn}
@@ -254,39 +370,224 @@ export default function ChatWindow({
   )
 }
 
+interface MessageMediaProps {
+  message: ChatMessage
+}
+
+function MessageMedia({ message }: MessageMediaProps) {
+  const { t } = useTranslation()
+  const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
+  const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
+  const [failed, setFailed] = useState(false)
+  const objectUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (message.media_uri) return
+    let cancelled = false
+    downloadMessageMedia(message.id)
+      .then((blob) => {
+        if (cancelled) return
+        const url = URL.createObjectURL(blob)
+        objectUrlRef.current = url
+        setSrc(url)
+        setIsVideo(blob.type.startsWith('video/'))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setFailed(true)
+      })
+    return () => {
+      cancelled = true
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [message.id, message.media_uri])
+
+  const loading = !src && !failed
+  if (loading) {
+    return (
+      <span className={styles.mediaLoading}>
+        <i className="bx bx-loader-circle bx-spin" />
+      </span>
+    )
+  }
+  if (failed || !src) {
+    return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
+  }
+  if (isVideo) {
+    return <video src={src} controls muted playsInline className={styles.mediaEl} />
+  }
+  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
+}
+
+interface EmojiBubbleProps {
+  message: ChatMessage
+  emojis: Map<string, EmojiItem>
+}
+
+function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
+  const { t } = useTranslation()
+  const emoji = message.emoji_id ? emojis.get(message.emoji_id) : undefined
+  if (!emoji) {
+    return <span className={styles.deletedText}>{t('chat.emojiUnavailable')}</span>
+  }
+  return <EmojiImage emoji={emoji} className={styles.emojiMsg} />
+}
+
+const SINGLE_URL_RE = /^https?:\/\/\S+$/i
+
+function isSingleImageUrl(text: string): boolean {
+  const trimmed = text.trim()
+  if (!SINGLE_URL_RE.test(trimmed)) return false
+  try {
+    const u = new URL(trimmed)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function imageExtension(contentType: string): string {
+  switch (contentType.split(';')[0].trim()) {
+    case 'image/jpeg':
+      return '.jpg'
+    case 'image/gif':
+      return '.gif'
+    case 'image/webp':
+      return '.webp'
+    case 'image/png':
+    default:
+      return '.png'
+  }
+}
+
+function normalizePastedFile(file: File): File {
+  if (file.name && /\.[a-z0-9]+$/i.test(file.name)) return file
+  return new File([file], `pasted-image${imageExtension(file.type)}`, { type: file.type })
+}
+
+async function fetchRemoteImage(url: string): Promise<File | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    if (!res.ok) return null
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.startsWith('image/')) return null
+    const blob = await res.blob()
+    return new File([blob], `image${imageExtension(contentType)}`, { type: contentType })
+  } catch {
+    return null
+  }
+}
+
 interface ComposerProps {
   room: ChatRoom
 }
 
 function Composer({ room }: ComposerProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const [value, setValue] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [emojiGroup, setEmojiGroup] = useState<EmojiGroup>('positive')
+  const [uploading, setUploading] = useState(false)
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
+  const attachmentUrlRef = useRef<string | null>(null)
+  const inputRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const toggleEmojiRef = useRef<HTMLButtonElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const sendTyping = room.sendTyping
+  const emotions = useMemo(() => getEmotionEmojis(), [])
+  const emotionGroups = useMemo(() => {
+    const map = new Map<EmojiGroup, EmotionEmojiItem[]>()
+    for (const g of EMOTION_GROUPS) {
+      map.set(g, emotions.filter((e) => e.group === g))
+    }
+    return map
+  }, [emotions])
 
-  const stopTyping = () => {
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
-    sendTyping(false)
-  }
+  const sendTyping = room.sendTyping
 
   useEffect(() => {
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+      if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
       sendTyping(false)
     }
   }, [sendTyping])
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const v = e.target.value
-    setValue(v)
-    const el = textareaRef.current
-    if (el) {
-      el.style.height = 'auto'
-      el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+  const attachFile = (file: File) => {
+    if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
+    const url = URL.createObjectURL(file)
+    attachmentUrlRef.current = url
+    setAttachment(file)
+    setAttachmentUrl(url)
+  }
+
+  const clearAttachment = () => {
+    if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
+    attachmentUrlRef.current = null
+    setAttachment(null)
+    setAttachmentUrl(null)
+  }
+
+  useEffect(() => {
+    if (!emojiOpen) return
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (pickerRef.current?.contains(target)) return
+      if (toggleEmojiRef.current?.contains(target)) return
+      setEmojiOpen(false)
     }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [emojiOpen])
+
+  const insertNodeAtCaret = (node: Node) => {
+    const el = inputRef.current
+    if (!el) return
+    el.focus()
+    const sel = window.getSelection()
+    let range: Range
+    if (sel && sel.rangeCount > 0 && el.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      range = sel.getRangeAt(0)
+    } else {
+      range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+    }
+    range.deleteContents()
+    range.insertNode(node)
+    range.setStartAfter(node)
+    range.collapse(true)
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+    setValue(serializeContent(el))
+  }
+
+  const insertEmoji = (emoji: EmotionEmojiItem) => {
+    const img = document.createElement('img')
+    img.src = emoji.image_uri
+    img.alt = emoji.code
+    img.dataset.code = emoji.code
+    img.className = 'emojiInline'
+    insertNodeAtCaret(img)
+  }
+
+  const insertText = (text: string) => {
+    insertNodeAtCaret(document.createTextNode(text))
+  }
+
+  const handleInput = () => {
+    const el = inputRef.current
+    if (!el) return
+    const v = serializeContent(el)
+    setValue(v)
     const now = Date.now()
     if (v.trim() && now - lastTypingRef.current > 800) {
       lastTypingRef.current = now
@@ -296,16 +597,93 @@ function Composer({ room }: ComposerProps) {
     }
   }
 
-  const send = () => {
-    if (!value.trim()) return
-    room.sendMessage(value)
+  const resetComposer = () => {
     setValue('')
-    stopTyping()
-    const el = textareaRef.current
-    if (el) el.style.height = 'auto'
+    if (inputRef.current) inputRef.current.innerHTML = ''
+    setEmojiOpen(false)
+    sendTyping(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const sendFile = async (file: File, caption: string): Promise<boolean> => {
+    if (uploading) return false
+    setUploading(true)
+    try {
+      const res = await uploadMedia(file)
+      room.sendMessage(caption, {
+        mediaId: res.data.id,
+        mediaUri: res.data.file_uri,
+        mediaType: res.data.file_type,
+      })
+      return true
+    } catch {
+      toast({ type: 'error', title: t('chat.uploadFailed') })
+      return false
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
+    if (!value.trim() && !opts?.emojiId && !opts?.mediaId && !attachment) return
+    const text = value
+
+    if (attachment) {
+      const ok = await sendFile(attachment, text)
+      if (ok) {
+        clearAttachment()
+        resetComposer()
+      }
+      return
+    }
+
+    // Toàn bộ tin là một URL duy nhất → thử tải ảnh về rồi gửi dạng media.
+    if (!opts && isSingleImageUrl(text)) {
+      const file = await fetchRemoteImage(text)
+      if (file) {
+        resetComposer()
+        const ok = await sendFile(file, '')
+        if (ok) return
+        // Upload ảnh thất bại → fallback gửi URL dạng text để không mất tin nhắn.
+        room.sendMessage(text)
+        return
+      }
+    }
+
+    room.sendMessage(text, opts)
+    resetComposer()
+  }
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || uploading) return
+    attachFile(file)
+  }
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData?.items
+    let file: File | null = null
+    if (items) {
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          file = item.getAsFile()
+          break
+        }
+      }
+    }
+    if (file) {
+      e.preventDefault()
+      attachFile(normalizePastedFile(file))
+      return
+    }
+    const text = e.clipboardData.getData('text/plain')
+    if (text) {
+      e.preventDefault()
+      insertText(text)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       send()
@@ -314,22 +692,101 @@ function Composer({ room }: ComposerProps) {
 
   return (
     <div className={styles.composer}>
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={t('chat.placeholder')}
-      />
-      <button
-        className={styles.sendBtn}
-        onClick={send}
-        disabled={!value.trim()}
-        aria-label={t('chat.send')}
-      >
-        <i className="bx bx-send" />
-      </button>
+      {attachment && (
+        <div className={styles.attachmentBar}>
+          {attachmentUrl && (
+            <span className={styles.attachmentThumb}>
+              {attachment.type.startsWith('video/') ? (
+                <video src={attachmentUrl} muted preload="metadata" />
+              ) : (
+                <ExternalImage src={attachmentUrl} alt="" />
+              )}
+            </span>
+          )}
+          <span className={styles.attachmentName}>{attachment.name}</span>
+          <button
+            type="button"
+            className={styles.attachmentRemove}
+            onClick={clearAttachment}
+            title={t('chat.removeAttachment')}
+            aria-label={t('chat.removeAttachment')}
+          >
+            <i className="bx bx-x" />
+          </button>
+        </div>
+      )}
+      <div className={styles.composerRow}>
+        <div className={styles.composerActions}>
+          <button
+            ref={toggleEmojiRef}
+            className={`${styles.iconBtn} ${emojiOpen ? styles.iconBtnActive : ''}`}
+            onClick={() => setEmojiOpen((prev) => !prev)}
+            aria-label={t('chat.emojiPicker')}
+            title={t('chat.emojiPicker')}
+          >
+            <i className="bx bxs-smile" />
+          </button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            aria-label={t('chat.attach')}
+            title={t('chat.attach')}
+          >
+            <i className="bx bx-paperclip" />
+          </button>
+        </div>
+        <div
+          ref={inputRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-label={t('chat.placeholder')}
+          className={styles.composerInput}
+          data-placeholder={t('chat.placeholder')}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+        />
+        <button
+          className={styles.sendBtn}
+          onClick={() => send()}
+          disabled={(!value.trim() && !attachment) || uploading}
+          aria-label={t('chat.send')}
+        >
+          <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
+        </button>
+      </div>
+      <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={handleFile} />
+      {emojiOpen && (
+        <div ref={pickerRef} className={styles.emojiPicker}>
+          <div className={styles.emojiTabs}>
+            {EMOTION_GROUPS.map((g) => (
+              <button
+                key={g}
+                type="button"
+                className={`${styles.emojiTab} ${emojiGroup === g ? styles.emojiTabActive : ''}`}
+                onClick={() => setEmojiGroup(g)}
+              >
+                {t(`chat.emojiCat.${g}`)}
+              </button>
+            ))}
+          </div>
+          <div className={styles.emojiGrid}>
+            {emotionGroups.get(emojiGroup)?.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                className={styles.emojiItem}
+                onClick={() => insertEmoji(e)}
+                title={`${e.label} ${e.code}`}
+              >
+                <EmojiImage emoji={e} className={styles.emojiItemImg} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

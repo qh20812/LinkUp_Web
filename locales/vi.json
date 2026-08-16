@@ -683,6 +683,14 @@
   },
   "chat": {
     "newMessage": "Tin nhắn mới",
+    "collapseSidebar": "Thu danh sách hội thoại",
+    "expandSidebar": "Mở danh sách hội thoại",
+    "emojiCat": {
+      "positive": "Vui",
+      "neutral": "Bình thường",
+      "negative": "Buồn bực"
+    },
+    "removeAttachment": "Gỡ đính kèm",
     "search": "Tìm kiếm",
     "searchUsers": "Tìm kiếm người dùng...",
     "searchFriends": "Tìm kiếm bạn bè...",
@@ -721,7 +729,13 @@
     "e2eBadge": "E2E",
     "e2eTitle": "Tin nhắn được mã hóa đầu cuối, chỉ người gửi và người nhận đọc được",
     "undecryptable": "Không thể giải mã tin nhắn",
-    "newChat": "Hội thoại mới"
+    "newChat": "Hội thoại mới",
+    "emojiPicker": "Chọn biểu tượng cảm xúc",
+    "attach": "Đính kèm tệp",
+    "uploadFailed": "Không thể tải tệp lên",
+    "mediaFailed": "Không thể tải phương tiện",
+    "emojiMessage": "[Biểu tượng cảm xúc]",
+    "emojiUnavailable": "Biểu tượng cảm xúc không khả dụng"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Lỗi hệ thống",
