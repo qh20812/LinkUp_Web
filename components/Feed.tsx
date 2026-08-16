@@ -7,7 +7,7 @@ import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import { getFeedStories } from '../api/stories'
 import { getTokenPayload } from '../api/auth'
-import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
+import type { FeedPost, EmojiItem, StoryFeedItem } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
@@ -48,8 +48,6 @@ function FeedContent() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
-  const [viewerStories, setViewerStories] = useState<StoryItem[] | null>(null)
-  const [viewerIndex, setViewerIndex] = useState(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -273,8 +271,7 @@ function FeedContent() {
         currentUserId={currentUserId}
         onSelectStory={(userId) => {
           const userStories = stories.find((item) => item.user.id === userId)
-          if (userStories) setViewerStories(userStories.stories)
-          setViewerIndex(0)
+          if (userStories) { /* TODO: open story viewer */ }
         }}
         onCreateStory={() => { /* TODO: open create story modal */ }}
       />

@@ -25,6 +25,22 @@
   display: block;
 }
 
+.skeleton {
+  cursor: default;
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton:hover {
+  opacity: 1;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @media (max-width: 576px) {
   .grid {
     grid-template-columns: repeat(3, 1fr);

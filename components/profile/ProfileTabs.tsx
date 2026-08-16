@@ -9,7 +9,10 @@ import { getUserPosts, getSavedPosts, reactPost, savePost, getEmojis, pinPost, u
 import { getUserMedia } from '../../api/posts'
 import PostCard from '../PostCard'
 import PostDetailModal from '../PostDetailModal'
-import type { FeedPost, EmojiItem, MediaItem } from '../../types'
+import ProfileFriendsTab from './ProfileFriendsTab'
+import ProfileAboutTab from './ProfileAboutTab'
+import MediaLightbox from './MediaLightbox'
+import type { FeedPost, EmojiItem, MediaItem, ViewProfileResponse } from '../../types'
 
 const PAGE_SIZE = 10
 const MEDIA_PAGE_SIZE = 18
@@ -23,15 +26,16 @@ async function ensureLikeEmojiId(): Promise<string | undefined> {
   return undefined
 }
 
-export type ProfileTab = 'posts' | 'media' | 'saved'
+export type ProfileTab = 'posts' | 'media' | 'saved' | 'friends' | 'about'
 
 interface ProfileTabsProps {
   userID: string
   isSelf: boolean
+  profile?: ViewProfileResponse
   onFollow?: (userId: string) => void
 }
 
-export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsProps) {
+export default function ProfileTabs({ userID, isSelf, profile, onFollow }: ProfileTabsProps) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
   const [posts, setPosts] = useState<FeedPost[]>([])
@@ -39,6 +43,7 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [pinBusy, setPinBusy] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const loadingRef = useRef(false)
@@ -202,6 +207,8 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
   const tabs: Array<{ key: ProfileTab; label: string; icon: string }> = [
     { key: 'posts', label: t('profile.tabPosts'), icon: 'bx bx-file' },
     { key: 'media', label: t('profile.tabMedia'), icon: 'bx bx-image' },
+    { key: 'friends', label: t('profile.tabFriends'), icon: 'bx bx-group' },
+    { key: 'about', label: t('profile.tabAbout'), icon: 'bx bx-info-circle' },
   ]
   if (isSelf) {
     tabs.push({ key: 'saved', label: t('profile.tabSaved'), icon: 'bx bx-bookmark' })
@@ -229,7 +236,11 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
       </div>
 
       <div className={styles.tabContent}>
-        {activeTab === 'media' ? (
+        {activeTab === 'friends' ? (
+          <ProfileFriendsTab userID={userID} />
+        ) : activeTab === 'about' && profile ? (
+          <ProfileAboutTab profile={profile} />
+        ) : activeTab === 'media' ? (
           <>
             {mediaItems.length === 0 && !mediaLoading && (
               <div className={styles.emptyState}>
@@ -237,12 +248,20 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
                 <p className={styles.emptyText}>{t('profile.noMedia')}</p>
               </div>
             )}
-            <div className={mediaStyles.grid}>
-              {mediaItems.map((item) => (
+            {mediaItems.length === 0 && mediaLoading && (
+              <div className={mediaStyles.grid}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className={`${mediaStyles.gridItem} ${mediaStyles.skeleton}`} />
+                ))}
+              </div>
+            )}
+            {mediaItems.length > 0 && (
+              <div className={mediaStyles.grid}>
+                {mediaItems.map((item, index) => (
                 <div
                   key={item.id}
                   className={mediaStyles.gridItem}
-                  onClick={() => setSelectedPostId(item.post_id)}
+                  onClick={() => setLightboxIndex(index)}
                 >
                   {item.file_type.startsWith('video') ? (
                     <video
@@ -263,7 +282,8 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+            )}
             {mediaLoading && (
               <div className={styles.loadingWrap}><div className={styles.loadingSpinner} /></div>
             )}
@@ -349,6 +369,18 @@ export default function ProfileTabs({ userID, isSelf, onFollow }: ProfileTabsPro
           />
         ) : null
       })()}
+
+      {lightboxIndex !== null && (
+        <MediaLightbox
+          items={mediaItems}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(postId) => {
+            setLightboxIndex(null)
+            setSelectedPostId(postId)
+          }}
+        />
+      )}
     </div>
   )
 }

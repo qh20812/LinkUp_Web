@@ -105,6 +105,7 @@ async function doFetch(path: string, options?: RequestInit): Promise<Response> {
   return fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    cache: 'no-store',
   })
 }
 

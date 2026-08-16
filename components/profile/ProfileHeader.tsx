@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
 import StoryAvatar from '../story/StoryAvatar'
+import FriendButton from './FriendButton'
 import styles from './ProfileHeader.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { ViewProfileResponse } from '../../types'
@@ -28,6 +29,7 @@ interface ProfileHeaderProps {
   showActions?: boolean
   hasStory?: boolean
   hasStoryViewed?: boolean
+  targetUserID?: string
   onFollow?: () => void
   onMessage?: () => void
   onOpenFollowers?: () => void
@@ -35,6 +37,7 @@ interface ProfileHeaderProps {
   onAvatarChange?: (file: File) => void
   onCoverChange?: (file: File) => void
   onSaved?: (profile: ViewProfileResponse) => void
+  onEdit?: () => void
   onViewStory?: () => void
   onViewAvatar?: () => void
 }
@@ -51,6 +54,7 @@ export default function ProfileHeader({
   showActions = true,
   hasStory = false,
   hasStoryViewed = false,
+  targetUserID,
   onFollow,
   onMessage,
   onOpenFollowers,
@@ -58,6 +62,7 @@ export default function ProfileHeader({
   onAvatarChange,
   onCoverChange,
   onSaved,
+  onEdit,
   onViewStory,
   onViewAvatar,
 }: ProfileHeaderProps) {
@@ -393,11 +398,17 @@ export default function ProfileHeader({
             <span className={styles.statValue}>{stats?.following_count ?? 0}</span>
             <span className={styles.statLabel}>{t('profile.following')}</span>
           </div>
+          {profile.friend_count > 0 && (
+            <div className={styles.statItem}>
+              <span className={styles.statValue}>{profile.friend_count}</span>
+              <span className={styles.statLabel}>{t('profile.friends')}</span>
+            </div>
+          )}
         </div>
 
         {isSelf ? (
           <div className={styles.actionRow}>
-            <button className={styles.editBtn} onClick={handleEdit}>
+            <button className={styles.editBtn} onClick={() => onEdit ? onEdit() : handleEdit()}>
               <i className="bx bx-edit" /> {t('profile.editProfile')}
             </button>
             <Link href="/settings" className={styles.settingsBtn}>
@@ -406,6 +417,7 @@ export default function ProfileHeader({
           </div>
         ) : showActions && !isPrivate ? (
           <div className={styles.actionRow}>
+            {targetUserID && <FriendButton userID={targetUserID} />}
             <button
               type="button"
               className={`${styles.editBtn} ${

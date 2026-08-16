@@ -257,8 +257,13 @@ export interface ViewProfileResponse {
   cover_uri: string
   username: string
   post_count: number
+  friend_count: number
   created_at: string
   bio: string
+  location: string
+  work: string
+  education: string
+  website: string
   is_private_profile: boolean
   is_private_posts: boolean
   allow_stranger_friend_request: boolean
@@ -756,6 +761,11 @@ export interface FriendRequestListResponse {
 export interface FriendActionResponse {
   status: string
   message: string
+}
+
+export interface FriendStatusResponse {
+  status: 'none' | 'sent' | 'received' | 'accepted' | 'self'
+  request_id?: string
 }
 
 // ===== Chat / Messages =====

@@ -14,6 +14,7 @@ import ProfileHeader from '../../../../components/profile/ProfileHeader'
 import ProfileTabs from '../../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../../components/profile/ProfileFollowersModal'
 import ProfileSkeleton from '../../../../components/profile/ProfileSkeleton'
+import ProfileMenu from '../../../../components/profile/ProfileMenu'
 import MutualFriends from '../../../../components/profile/MutualFriends'
 import type { ViewProfileResponse } from '../../../../types'
 import styles from './ProfilePage.module.css'
@@ -132,23 +133,31 @@ function ProfileView({ userID }: { userID: string }) {
 
   return (
     <div className={styles.page}>
-      <ProfileHeader
-        profile={profile}
-        stats={stats}
-        isSelf={isSelf}
-        isPrivate={isPrivate}
-        isFollowing={following}
-        followBusy={followBusy}
-        messageBusy={messageBusy}
-        inviteSent={inviteSent}
-        showActions={!!currentUserID}
-        hasStory={hasStory}
-        onFollow={handleFollow}
-        onMessage={handleMessage}
-        onOpenFollowers={() => setModalType('followers')}
-        onOpenFollowing={() => setModalType('following')}
-        onViewAvatar={() => {/* TODO: open lightbox */}}
-      />
+      <div className={styles.headerRow}>
+        <ProfileHeader
+          profile={profile}
+          stats={stats}
+          isSelf={isSelf}
+          isPrivate={isPrivate}
+          isFollowing={following}
+          followBusy={followBusy}
+          messageBusy={messageBusy}
+          inviteSent={inviteSent}
+          showActions={!!currentUserID}
+          hasStory={hasStory}
+          targetUserID={userID}
+          onFollow={handleFollow}
+          onMessage={handleMessage}
+          onOpenFollowers={() => setModalType('followers')}
+          onOpenFollowing={() => setModalType('following')}
+          onViewAvatar={() => {/* TODO: open lightbox */}}
+        />
+        {!isSelf && currentUserID && (
+          <div className={styles.menuPosition}>
+            <ProfileMenu userID={userID} isSelf={isSelf} />
+          </div>
+        )}
+      </div>
 
       {!isSelf && currentUserID && !isPrivate && (
         <MutualFriends userID={userID} />
@@ -158,6 +167,7 @@ function ProfileView({ userID }: { userID: string }) {
         <ProfileTabs
           userID={userID}
           isSelf={isSelf}
+          profile={profile}
           onFollow={isSelf ? undefined : handlePostFollow}
         />
       )}

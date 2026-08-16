@@ -3,6 +3,16 @@
   padding: var(--space-lg) var(--space-md);
 }
 
+.headerRow {
+  position: relative;
+}
+
+.menuPosition {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-md);
+}
+
 .card {
   display: flex;
   flex-direction: column;

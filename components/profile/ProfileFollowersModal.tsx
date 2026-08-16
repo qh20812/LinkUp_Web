@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import styles from './ProfileFollowersModal.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getFollowers, getFollowing } from '../../api/follow'
+import { useFollowContext } from '../../contexts/FollowContext'
 import type { FollowListItem } from '../../types'
 
 interface ProfileFollowersModalProps {
@@ -17,12 +18,14 @@ interface ProfileFollowersModalProps {
 export default function ProfileFollowersModal({ type, userID, onClose }: ProfileFollowersModalProps) {
   const { t } = useTranslation()
   const router = useRouter()
+  const { followUser: ctxFollowUser } = useFollowContext()
   const [list, setList] = useState<FollowListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [search, setSearch] = useState('')
   const [loadingMore, setLoadingMore] = useState(false)
+  const [followBusy, setFollowBusy] = useState<string | null>(null)
 
   useState(() => {
     const fn = type === 'followers' ? getFollowers : getFollowing
@@ -48,6 +51,18 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
       /* ignore */
     } finally {
       setLoadingMore(false)
+    }
+  }
+
+  const handleFollow = async (userId: string) => {
+    if (followBusy) return
+    setFollowBusy(userId)
+    try {
+      await ctxFollowUser(userId)
+    } catch {
+      /* ignore */
+    } finally {
+      setFollowBusy(null)
     }
   }
 
@@ -89,26 +104,34 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
             </div>
           )}
           {filteredList.map((user) => (
-            <div
-              key={user.user_id}
-              className={styles.followItem}
-              onClick={() => {
-                onClose()
-                router.push(`/profile/${user.user_id}`)
-              }}
-            >
-              <Image
-                className={styles.followAvatar}
-                src={user.avatar_uri || '/default-avatar.svg'}
-                alt={user.display_name}
-                width={40}
-                height={40}
-                unoptimized
-              />
-              <div className={styles.followInfo}>
-                <span className={styles.followName}>{user.display_name}</span>
-                <span className={styles.followUsername}>@{user.username}</span>
+            <div key={user.user_id} className={styles.followItem}>
+              <div
+                className={styles.followItemMain}
+                onClick={() => {
+                  onClose()
+                  router.push(`/profile/${user.user_id}`)
+                }}
+              >
+                <Image
+                  className={styles.followAvatar}
+                  src={user.avatar_uri || '/default-avatar.svg'}
+                  alt={user.display_name}
+                  width={40}
+                  height={40}
+                  unoptimized
+                />
+                <div className={styles.followInfo}>
+                  <span className={styles.followName}>{user.display_name}</span>
+                  <span className={styles.followUsername}>@{user.username}</span>
+                </div>
               </div>
+              <button
+                className={`${styles.followBtn} ${followBusy === user.user_id ? styles.followBtnBusy : ''}`}
+                onClick={() => handleFollow(user.user_id)}
+                disabled={followBusy === user.user_id}
+              >
+                <i className="bx bx-user-plus" />
+              </button>
             </div>
           ))}
           {hasMore && filteredList.length > 0 && (

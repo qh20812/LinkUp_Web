@@ -14,6 +14,7 @@ import { useFollowStats } from '../../../hooks/profile/useFollowStats'
 import ProfileHeader from '../../../components/profile/ProfileHeader'
 import ProfileTabs from '../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../components/profile/ProfileFollowersModal'
+import ProfileEditModal from '../../../components/profile/ProfileEditModal'
 import ProfileSkeleton from '../../../components/profile/ProfileSkeleton'
 import type { ViewProfileResponse } from '../../../types'
 
@@ -34,6 +35,7 @@ export default function MyProfilePage() {
   const { stats } = useFollowStats(userID)
 
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     const payload = getTokenPayload()
@@ -102,6 +104,7 @@ export default function MyProfilePage() {
 
   const handleProfileSaved = (updated: ViewProfileResponse) => {
     setProfile(updated)
+    setShowEditModal(false)
     toast({ type: 'success', title: t('common.save') })
   }
 
@@ -144,7 +147,16 @@ export default function MyProfilePage() {
           onAvatarChange={handleAvatarChange}
           onCoverChange={handleCoverChange}
           onSaved={handleProfileSaved}
+          onEdit={() => setShowEditModal(true)}
           onViewAvatar={() => {/* TODO: open lightbox */}}
+        />
+      )}
+
+      {showEditModal && profile && (
+        <ProfileEditModal
+          profile={profile}
+          onClose={() => setShowEditModal(false)}
+          onSaved={handleProfileSaved}
         />
       )}
 
@@ -152,6 +164,7 @@ export default function MyProfilePage() {
         <ProfileTabs
           userID={userID}
           isSelf
+          profile={profile ?? undefined}
           onFollow={async (userId) => {
             try { await ctxFollowUser(userId) } catch { /* ignore */ }
           }}
