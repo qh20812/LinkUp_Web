@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
+import GifPicker from './GifPicker'
 import styles from './PostComposer.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import type { ViewProfileResponse, PostStatus, FeedPost } from '../types'
+import { EMOTION_GROUPS, getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
+import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
 
 function useProfile() {
   const { data, error } = useSWR<ViewProfileResponse>(
@@ -21,6 +23,55 @@ function useProfile() {
 
 const CONTENT_MAX = 5000
 const TITLE_MAX = 150
+
+function serializeEmojiContent(el: HTMLElement): string {
+  let out = ''
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent ?? ''
+      return
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return
+    const n = node as HTMLElement
+    if (n.dataset.code) {
+      out += n.dataset.code
+      return
+    }
+    const tag = n.tagName
+    if (tag === 'BR') {
+      out += '\n'
+      return
+    }
+    if (tag === 'DIV' || tag === 'P') {
+      if (out && !out.endsWith('\n')) out += '\n'
+      node.childNodes.forEach(walk)
+      if (!out.endsWith('\n')) out += '\n'
+      return
+    }
+    node.childNodes.forEach(walk)
+  }
+  walk(el)
+  return out.replace(/\n{3,}/g, '\n\n')
+}
+
+function insertNodeAtCaret(el: HTMLElement, node: Node) {
+  el.focus()
+  const sel = window.getSelection()
+  let range: Range
+  if (sel && sel.rangeCount > 0 && el.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    range = sel.getRangeAt(0)
+  } else {
+    range = document.createRange()
+    range.selectNodeContents(el)
+    range.collapse(false)
+  }
+  range.deleteContents()
+  range.insertNode(node)
+  range.setStartAfter(node)
+  range.collapse(true)
+  sel?.removeAllRanges()
+  sel?.addRange(range)
+}
 
 const PRIVACY_OPTIONS: { value: PostStatus; icon: string; key: string }[] = [
   { value: 'public', icon: 'bx-globe', key: 'composer.privacy.public' },
@@ -38,10 +89,26 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
   const [privacy, setPrivacy] = useState<PostStatus>('public')
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [media, setMedia] = useState<{ file: File; url: string }[]>([])
+  const [gif, setGif] = useState<GifItem | null>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [gifOpen, setGifOpen] = useState(false)
+  const [emojiGroup, setEmojiGroup] = useState<EmotionEmojiItem['group']>('positive')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const privacyRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const emojiRef = useRef<HTMLDivElement>(null)
+  const gifRef = useRef<HTMLDivElement>(null)
+
+  const emotions = useMemo(() => getEmotionEmojis(), [])
+  const emotionGroups = useMemo(() => {
+    const map = new Map<EmotionEmojiItem['group'], EmotionEmojiItem[]>()
+    for (const g of EMOTION_GROUPS) {
+      map.set(g, emotions.filter((e) => e.group === g))
+    }
+    return map
+  }, [emotions])
 
   useEffect(() => {
     if (!privacyOpen) return
@@ -55,6 +122,19 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
   }, [privacyOpen])
 
   useEffect(() => {
+    if (!emojiOpen && !gifOpen) return
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (emojiRef.current?.contains(target)) return
+      if (gifRef.current?.contains(target)) return
+      setEmojiOpen(false)
+      setGifOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [emojiOpen, gifOpen])
+
+  useEffect(() => {
     const urls = media.map((m) => m.url)
     return () => {
       for (const u of urls) URL.revokeObjectURL(u)
@@ -65,9 +145,13 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
     setExpanded(false)
     setTitle('')
     setContent('')
+    if (contentRef.current) contentRef.current.innerHTML = ''
     setPrivacy('public')
     setPrivacyOpen(false)
     setMedia([])
+    setGif(null)
+    setEmojiOpen(false)
+    setGifOpen(false)
     setError(null)
   }
 
@@ -84,11 +168,37 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
     setError(null)
   }
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value)
+  const removeGif = () => {
+    setGif(null)
     setError(null)
-    e.target.style.height = 'auto'
-    e.target.style.height = `${e.target.scrollHeight}px`
+  }
+
+  const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    setContent(serializeEmojiContent(el))
+    setError(null)
+  }
+
+  const insertEmoji = (emoji: EmotionEmojiItem) => {
+    const el = contentRef.current
+    if (!el) {
+      setContent((prev) => prev + emoji.code)
+      return
+    }
+    const img = document.createElement('img')
+    img.src = emoji.image_uri
+    img.alt = emoji.code
+    img.dataset.code = emoji.code
+    img.className = 'emojiInline'
+    insertNodeAtCaret(el, img)
+    setContent(serializeEmojiContent(el))
+    setError(null)
+  }
+
+  const selectGif = (item: GifItem) => {
+    setGif(item)
+    setGifOpen(false)
+    setError(null)
   }
 
   const contentLength = Array.from(content).length
@@ -97,7 +207,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
   const validate = (): string | null => {
     const trimmedTitle = title.trim()
     const trimmedContent = content.trim()
-    const hasFiles = media.length > 0
+    const hasFiles = media.length > 0 || gif !== null
 
     if (trimmedTitle !== '' && (trimmedTitle.length < 5 || trimmedTitle.length > TITLE_MAX)) {
       return t('composer.errorTitleLength')
@@ -126,14 +236,19 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
         content: content.trim(),
         status: privacy,
         files: media.map((m) => m.file),
+        gifUrl: gif?.full,
       })
       toast({ type: 'success', title: t('composer.success') })
       setExpanded(false)
       setTitle('')
       setContent('')
+      if (contentRef.current) contentRef.current.innerHTML = ''
       setPrivacy('public')
       setPrivacyOpen(false)
       setMedia([])
+      setGif(null)
+      setEmojiOpen(false)
+      setGifOpen(false)
       onPosted?.(res.data)
     } catch (e) {
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
@@ -181,12 +296,15 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
               maxLength={TITLE_MAX}
               placeholder={t('composer.titlePlaceholder')}
             />
-            <textarea
+            <div
+              ref={contentRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-label={t('composer.contentPlaceholder')}
+              data-placeholder={t('composer.contentPlaceholder')}
               className={styles.contentInput}
-              value={content}
-              onChange={handleContentChange}
-              rows={1}
-              placeholder={t('composer.contentPlaceholder')}
+              onInput={handleContentChange}
             />
           </div>
           {error && <p className={styles.errorText}>{error}</p>}
@@ -214,6 +332,16 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
               ))}
             </div>
           )}
+          {gif && (
+            <div className={styles.mediaPreview}>
+              <div className={styles.mediaItem}>
+                <ExternalImage src={gif.preview} alt={gif.title ?? ''} className={styles.mediaEl} />
+                <button type="button" className={styles.removeBtn} onClick={removeGif} aria-label="Remove">
+                  <i className="bx bx-x" />
+                </button>
+              </div>
+            </div>
+          )}
           <div className={styles.footer}>
             <input
               ref={fileInputRef}
@@ -231,6 +359,62 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
               <i className="bx bx-image-add" />
               <span>{t('composer.media')}</span>
             </button>
+            <div className={styles.pickerWrap} ref={emojiRef}>
+              <button
+                type="button"
+                className={`${styles.mediaBtn}${emojiOpen ? ` ${styles.mediaBtnActive}` : ''}`}
+                onClick={() => {
+                  setEmojiOpen((v) => !v)
+                  setGifOpen(false)
+                }}
+              >
+                <i className="bx bxs-smile" />
+                <span>{t('composer.emoji')}</span>
+              </button>
+              {emojiOpen && (
+                <div className={styles.emojiPicker}>
+                  <div className={styles.emojiTabs}>
+                    {EMOTION_GROUPS.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        className={`${styles.emojiTab} ${emojiGroup === g ? styles.emojiTabActive : ''}`}
+                        onClick={() => setEmojiGroup(g)}
+                      >
+                        {t(`composer.emojiCat.${g}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.emojiGrid}>
+                    {emotionGroups.get(emojiGroup)?.map((e) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        className={styles.emojiItem}
+                        onClick={() => insertEmoji(e)}
+                        title={`${e.label} ${e.code}`}
+                      >
+                        <ExternalImage src={e.image_uri} alt={e.label} className={styles.emojiItemImg} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className={styles.pickerWrap} ref={gifRef}>
+              <button
+                type="button"
+                className={`${styles.mediaBtn}${gifOpen ? ` ${styles.mediaBtnActive}` : ''}`}
+                onClick={() => {
+                  setGifOpen((v) => !v)
+                  setEmojiOpen(false)
+                }}
+              >
+                <i className="bx bx-movie" />
+                <span>{t('composer.gif')}</span>
+              </button>
+              {gifOpen && <GifPicker onSelect={selectGif} onClose={() => setGifOpen(false)} />}
+            </div>
             <div className={styles.privacyWrap} ref={privacyRef}>
               <button
                 type="button"

@@ -146,6 +146,14 @@ export interface CreatePostInput {
   content: string
   status: PostStatus
   files?: File[]
+  gifUrl?: string
+}
+
+export interface GifItem {
+  id: string
+  preview: string
+  full: string
+  title?: string
 }
 
 export interface CreatePostResponse {

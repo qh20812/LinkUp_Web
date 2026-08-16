@@ -168,6 +168,17 @@
     "post": "Post",
     "cancel": "Cancel",
     "media": "Photo/Video",
+    "emoji": "Emoji",
+    "gif": "GIF",
+    "gifPlaceholder": "Search GIFs on GIPHY...",
+    "gifError": "Could not load GIFs. Please try again.",
+    "gifMissingKey": "GIPHY API key not configured. Set NEXT_PUBLIC_GIPHY_API_KEY in .env.local.",
+    "gifClose": "Close",
+    "emojiCat": {
+      "positive": "Happy",
+      "neutral": "Neutral",
+      "negative": "Sad"
+    },
     "charCount": "{count}/{max}",
     "privacy": {
       "public": "Public",

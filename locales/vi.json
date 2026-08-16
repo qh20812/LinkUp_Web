@@ -168,6 +168,17 @@
     "post": "Đăng bài",
     "cancel": "Hủy",
     "media": "Ảnh/video",
+    "emoji": "Biểu tượng cảm xúc",
+    "gif": "GIF",
+    "gifPlaceholder": "Tìm kiếm GIF trên GIPHY...",
+    "gifError": "Không thể tải GIF. Vui lòng thử lại.",
+    "gifMissingKey": "Chưa cấu hình khóa GIPHY API. Hãy đặt NEXT_PUBLIC_GIPHY_API_KEY trong .env.local.",
+    "gifClose": "Đóng",
+    "emojiCat": {
+      "positive": "Vui",
+      "neutral": "Bình thường",
+      "negative": "Buồn bực"
+    },
     "charCount": "{count}/{max}",
     "privacy": {
       "public": "Công khai",
