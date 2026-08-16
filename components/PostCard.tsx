@@ -4,11 +4,15 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ExternalImage from './ExternalImage'
+import { renderEmojiContent } from './messages/EmojiImage'
+import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
 import VideoPlayer from './VideoPlayer'
 import type { FeedPost } from '../types'
+
+const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
 
 function formatRelativeTime(dateStr: string, t: (key: string) => string): string {
   const now = Date.now()
@@ -159,7 +163,9 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         {post.title && <h2 className={styles.title}>{post.title}</h2>}
         {post.content && (
           <div className={styles.content}>
-            <p className={styles.text}>{displayContent}</p>
+            <p className={styles.text}>
+              {renderEmojiContent(displayContent, EMOJI_CODE_MAP, `pc-${post.id}`, styles.textEmoji)}
+            </p>
             {needsTruncation && (
               <button
                 className={styles.toggleBtn}

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import ExternalImage from './ExternalImage'
+import { renderEmojiContent } from './messages/EmojiImage'
+import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
 import styles from './PostDetailModal.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
@@ -21,6 +23,7 @@ import VideoPlayer from './VideoPlayer'
 import type { FeedPost, CommentItem, EmojiItem } from '../types'
 
 const COMMENT_PAGE_SIZE = 10
+const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
 
 let likeEmojiIdPromise: Promise<string | undefined> | undefined
 
@@ -437,7 +440,11 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
             <div className={styles.body}>
               {current.title && <h2 className={styles.title}>{current.title}</h2>}
-              {current.content && <p className={styles.text}>{current.content}</p>}
+              {current.content && (
+                <p className={styles.text}>
+                  {renderEmojiContent(current.content, EMOJI_CODE_MAP, `pd-${current.id}`, styles.textEmoji)}
+                </p>
+              )}
             </div>
 
             <div className={styles.stats}>

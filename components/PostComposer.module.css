@@ -116,13 +116,26 @@
 .contentInput {
   font-size: 15px;
   line-height: 1.5;
-  resize: none;
   min-height: 80px;
-  overflow: hidden;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  cursor: text;
 }
 
-.contentInput::placeholder {
+.contentInput:empty::before {
+  content: attr(data-placeholder);
   color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.contentInput :global(.emojiInline) {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  vertical-align: middle;
+  display: inline-block;
 }
 
 .footer {
@@ -267,6 +280,89 @@
 
 .privacyItemActive {
   font-weight: 600;
+}
+
+.pickerWrap {
+  position: relative;
+}
+
+.mediaBtnActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.emojiPicker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.emojiTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.emojiTab {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.emojiTab:hover {
+  background: var(--color-bg-secondary);
+}
+
+.emojiTabActive {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.emojiItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.emojiItem:hover {
+  background: var(--color-bg-secondary);
+}
+
+.emojiItemImg {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
 }
 
 .charCount {

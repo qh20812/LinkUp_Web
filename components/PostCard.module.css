@@ -116,6 +116,14 @@
   word-break: break-word;
 }
 
+.textEmoji {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 .toggleBtn {
   display: inline-block;
   margin-top: 4px;
