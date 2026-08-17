@@ -6,7 +6,14 @@ import Link from 'next/link'
 import styles from './UserNavbar.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 
-function UserNavbarContent() {
+type UserNavbarProps = {
+  leftCollapsed: boolean
+  rightCollapsed: boolean
+  onToggleLeft: () => void
+  onToggleRight: () => void
+}
+
+function UserNavbarContent({ leftCollapsed, rightCollapsed, onToggleLeft, onToggleRight }: UserNavbarProps) {
   const { t } = useTranslation()
   const router = useRouter()
   const pathname = usePathname()
@@ -42,6 +49,16 @@ function UserNavbarContent() {
 
   return (
     <nav className={styles.nav}>
+      <button
+        type="button"
+        className={styles.collapseBtn}
+        onClick={onToggleLeft}
+        aria-label={leftCollapsed ? t('userNavbar.expandLeft') : t('userNavbar.collapseLeft')}
+        title={leftCollapsed ? t('userNavbar.expandLeft') : t('userNavbar.collapseLeft')}
+      >
+        <i className={`bx ${leftCollapsed ? 'bx-chevrons-right' : 'bx-chevrons-left'}`} />
+      </button>
+
       {isDetail && (
         <button
           type="button"
@@ -84,14 +101,24 @@ function UserNavbarContent() {
       {pageTitleKey && (
         <div className={styles.pageTitle}>{t(pageTitleKey)}</div>
       )}
+
+      <button
+        type="button"
+        className={styles.collapseBtn}
+        onClick={onToggleRight}
+        aria-label={rightCollapsed ? t('userNavbar.expandRight') : t('userNavbar.collapseRight')}
+        title={rightCollapsed ? t('userNavbar.expandRight') : t('userNavbar.collapseRight')}
+      >
+        <i className={`bx ${rightCollapsed ? 'bx-chevrons-left' : 'bx-chevrons-right'}`} />
+      </button>
     </nav>
   )
 }
 
-export default function UserNavbar() {
+export default function UserNavbar(props: UserNavbarProps) {
   return (
     <Suspense fallback={null}>
-      <UserNavbarContent />
+      <UserNavbarContent {...props} />
     </Suspense>
   )
 }

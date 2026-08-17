@@ -48,7 +48,11 @@
   },
   "userNavbar": {
     "explore": "Khám phá",
-    "following": "Đang theo dõi"
+    "following": "Đang theo dõi",
+    "collapseLeft": "Thu gọn sidebar trái",
+    "expandLeft": "Mở rộng sidebar trái",
+    "collapseRight": "Thu gọn sidebar phải",
+    "expandRight": "Mở rộng sidebar phải"
   },
   "sidebar": {
     "home": "Trang chủ",
@@ -694,8 +698,6 @@
   },
   "chat": {
     "newMessage": "Tin nhắn mới",
-    "collapseSidebar": "Thu danh sách hội thoại",
-    "expandSidebar": "Mở danh sách hội thoại",
     "emojiCat": {
       "positive": "Vui",
       "neutral": "Bình thường",

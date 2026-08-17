@@ -48,7 +48,11 @@
   },
   "userNavbar": {
     "explore": "Explore",
-    "following": "Following"
+    "following": "Following",
+    "collapseLeft": "Collapse left sidebar",
+    "expandLeft": "Expand left sidebar",
+    "collapseRight": "Collapse right sidebar",
+    "expandRight": "Expand right sidebar"
   },
   "sidebar": {
     "home": "Home",
@@ -694,8 +698,6 @@
   },
   "chat": {
     "newMessage": "New message",
-    "collapseSidebar": "Collapse conversation list",
-    "expandSidebar": "Expand conversation list",
     "emojiCat": {
       "positive": "Happy",
       "neutral": "Neutral",

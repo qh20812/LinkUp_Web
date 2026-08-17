@@ -35,7 +35,7 @@ function useProfile() {
   return { profile: data, loading: !data && !error }
 }
 
-export default function LeftSidebar() {
+export default function LeftSidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useTranslation()
@@ -70,7 +70,7 @@ export default function LeftSidebar() {
   }
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar}${collapsed ? ` ${styles.collapsed}` : ''}`}>
       <div className={styles.logo}>
         <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
         <span>LinkUp</span>
