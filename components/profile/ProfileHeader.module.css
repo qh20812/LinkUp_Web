@@ -73,7 +73,7 @@
   border-radius: var(--radius-circle);
   background: var(--color-bg-secondary);
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,6 +83,13 @@
 
 .avatarWrap i {
   font-size: 48px;
+}
+
+.onlineIndicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  z-index: 1;
 }
 
 .avatar {
@@ -149,6 +156,12 @@
 .username {
   font: var(--text-caption);
   color: var(--color-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.statusText {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-xs);
 }
 

@@ -707,7 +707,8 @@
     "searchFriends": "Tìm kiếm bạn bè...",
     "typeToSearch": "Nhập từ khóa để tìm người dùng",
     "typeToSearchFriends": "Nhập từ khóa để tìm bạn bè của bạn",
-    "keywordTooShort": "Nhập ít nhất 2 ký tự để tìm kiếm",
+    "friends": "Bạn bè",
+    "keywordTooShort": "Nhập ít nhất 1 ký tự để tìm kiếm",
     "noConversations": "Chưa có hội thoại nào",
     "noMessages": "Chưa có tin nhắn nào. Hãy gửi lời chào đầu tiên!",
     "noResults": "Không có kết quả",
@@ -1231,5 +1232,20 @@
     "noStory": "Chưa có tin nào",
     "stories": "Tin",
     "viewers": "{count} người xem"
+  },
+  "presence": {
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeenJustNow": "vừa xong",
+    "lastSeenMinutes": "Lần cuối online {minutes} phút trước",
+    "lastSeenHours": "Lần cuối online {hours} giờ trước",
+    "lastSeenDays": "Lần cuối online {days} ngày trước",
+    "activityStatus": "Trạng thái hoạt động",
+    "activityStatusEnabled": "Hiển thị trạng thái online",
+    "activityStatusHint": "Khi tắt, bạn và bạn bè sẽ không thấy trạng thái online của nhau",
+    "lastSeenVisibility": "Hiển thị \"Lần cuối online\"",
+    "lastSeenVisibilityAll": "Tất cả bạn bè",
+    "lastSeenVisibilityDm": "Chỉ người có tin nhắn",
+    "lastSeenVisibilityNobody": "Không ai"
   }
 }

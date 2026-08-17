@@ -12,6 +12,7 @@ import type {
   NotificationItem,
   NotificationGroup,
   NotificationPreferences,
+  PresenceData,
 } from "../types";
 import {
   getUnreadCount,
@@ -35,6 +36,7 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreferences: (prefs: Partial<NotificationPreferences>) => Promise<void>;
+  wsConnected: boolean;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -51,6 +53,7 @@ export function NotificationProvider({
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] =
     useState<NotificationPreferences | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(1000);
@@ -165,6 +168,7 @@ export function NotificationProvider({
       ws.onopen = () => {
         if (!isComponentMounted) return;
         reconnectDelayRef.current = 1000;
+        setWsConnected(true);
       };
 
       ws.onmessage = (event) => {
@@ -182,6 +186,16 @@ export function NotificationProvider({
               setNotifications((prev) => mergeNotification(newNotif, prev));
               setUnreadCount((prev) => prev + 1);
               invalidate("/notifications");
+            } else if (message.type === "presence:update") {
+              // Presence updates are handled by PresenceContext
+              // Dispatch a custom event for PresenceContext to consume
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("presence:update", {
+                    detail: message.data,
+                  })
+                );
+              }
             }
           } catch (err) {
             console.error("Error parsing WS message:", err);
@@ -191,6 +205,7 @@ export function NotificationProvider({
 
       ws.onclose = () => {
         if (!isComponentMounted) return;
+        setWsConnected(false);
         setTimeout(() => {
           if (isComponentMounted) {
             reconnectDelayRef.current = Math.min(
@@ -248,6 +263,7 @@ export function NotificationProvider({
         markAllAsRead,
         loadPreferences,
         updatePreferences,
+        wsConnected,
       }}>
       {children}
     </NotificationContext.Provider>

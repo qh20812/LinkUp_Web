@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
 import StoryAvatar from '../story/StoryAvatar'
 import FriendButton from './FriendButton'
 import styles from './ProfileHeader.module.css'
@@ -30,6 +31,8 @@ interface ProfileHeaderProps {
   hasStory?: boolean
   hasStoryViewed?: boolean
   targetUserID?: string
+  isOnline?: boolean
+  statusText?: string
   onFollow?: () => void
   onMessage?: () => void
   onOpenFollowers?: () => void
@@ -55,6 +58,8 @@ export default function ProfileHeader({
   hasStory = false,
   hasStoryViewed = false,
   targetUserID,
+  isOnline = false,
+  statusText = '',
   onFollow,
   onMessage,
   onOpenFollowers,
@@ -321,6 +326,11 @@ export default function ProfileHeader({
               hasViewed={hasStoryViewed}
               size={96}
             />
+            {!isSelf && (
+              <div className={styles.onlineIndicator}>
+                <OnlineIndicator isOnline={isOnline} size="large" />
+              </div>
+            )}
             {isSelf && (
               <div className={styles.avatarOverlay}>
                 <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>
@@ -357,6 +367,9 @@ export default function ProfileHeader({
           <div className={styles.userInfo}>
             <p className={styles.displayName}>{profile.display_name}</p>
             {profile.username && <p className={styles.username}>@{profile.username}</p>}
+            {!isSelf && statusText && (
+              <p className={styles.statusText}>{statusText}</p>
+            )}
             {isPrivate ? (
               <span className={styles.privateLabel}>
                 <i className="bx bx-lock-alt" /> {t('profile.private')}

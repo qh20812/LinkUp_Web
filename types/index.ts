@@ -923,3 +923,46 @@ export interface StoryFeedItem {
   }
   stories: StoryItem[]
 }
+
+// ===== Presence =====
+export type PresenceStatus = 'online' | 'offline'
+
+export type LastSeenVisibility = 'all_friends' | 'dm_only' | 'nobody'
+
+export interface PresenceData {
+  user_id: string
+  status: PresenceStatus
+  last_seen?: string | null
+}
+
+export interface BatchPresenceInput {
+  user_ids: string[]
+}
+
+export interface BatchPresenceResponse {
+  data: Record<string, PresenceData>
+}
+
+export interface PresenceSettingsResponse {
+  activity_status_enabled: boolean
+  last_seen_visibility: LastSeenVisibility
+}
+
+export interface UpdatePresenceSettingsInput {
+  activity_status_enabled?: boolean
+  last_seen_visibility?: LastSeenVisibility
+}
+
+export interface OnlineUsersResponse {
+  data: string[]
+}
+
+export interface OnlineCountResponse {
+  count: number
+}
+
+export interface WsPresenceUpdatePayload {
+  user_id: string
+  status: PresenceStatus
+  last_seen?: string
+}

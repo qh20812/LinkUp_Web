@@ -10,6 +10,7 @@ import { getTokenPayload } from '../../../../api/auth'
 import { useTranslation } from '../../../../hooks/useTranslation'
 import { useFollowContext } from '../../../../contexts/FollowContext'
 import { useFollowStats } from '../../../../hooks/profile/useFollowStats'
+import { usePresence } from '../../../../hooks/usePresence'
 import ProfileHeader from '../../../../components/profile/ProfileHeader'
 import ProfileTabs from '../../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../../components/profile/ProfileFollowersModal'
@@ -42,6 +43,7 @@ function ProfileView({ userID }: { userID: string }) {
   const [hasStory, setHasStory] = useState(false)
 
   const { stats, following, followBusy, handleFollow } = useFollowStats(userID)
+  const { isOnline: profileOnline, statusText: profileStatusText } = usePresence(userID)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -146,6 +148,8 @@ function ProfileView({ userID }: { userID: string }) {
           showActions={!!currentUserID}
           hasStory={hasStory}
           targetUserID={userID}
+          isOnline={profileOnline}
+          statusText={profileStatusText}
           onFollow={handleFollow}
           onMessage={handleMessage}
           onOpenFollowers={() => setModalType('followers')}

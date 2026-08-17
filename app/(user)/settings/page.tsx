@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import ChangePasswordForm from './ChangePasswordForm'
-import PrivacyForm from './PrivacyForm'
+import PrivacySettings from '../../../components/settings/PrivacySettings'
 import StorageInfo from './StorageInfo'
 import AppearanceForm from './AppearanceForm'
 import SessionsManager from './SessionsManager'
@@ -64,7 +64,7 @@ export default function SettingsPage() {
           {activeTab === 'privacy' && (
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>{t('userSettings.tabPrivacy')}</h2>
-              <PrivacyForm />
+              <PrivacySettings />
             </div>
           )}
 

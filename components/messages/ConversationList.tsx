@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
+import { usePresenceBatch } from '../../hooks/usePresence'
 import { formatChatTime } from '../../utils/chat'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
@@ -42,6 +44,12 @@ export default function ConversationList({
         c.partner.display_name.toLowerCase().includes(normalized),
       )
     : conversations
+
+  const partnerUserIds = useMemo(
+    () => filtered.map((c) => c.partner.user_id).filter(Boolean),
+    [filtered],
+  )
+  const { getPresenceForUser } = usePresenceBatch(partnerUserIds)
 
   return (
     <div className={styles.panel}>
@@ -87,55 +95,61 @@ export default function ConversationList({
           </div>
         )}
 
-        {filtered.map((conv) => (
-          <button
-            key={conv.chat_id}
-            className={`${styles.row} ${
-              conv.chat_id === activeChatId ? styles.active : ''
-            }`}
-            onClick={() => onSelect(conv)}
-          >
-            <div className={styles.avatar}>
-              {conv.partner.avatar_uri ? (
-                <ExternalImage src={conv.partner.avatar_uri} alt="" />
-              ) : (
-                <i className="bx bxs-user" />
-              )}
-            </div>
-            <div className={styles.meta}>
-              <div className={styles.rowTop}>
-                <span className={styles.name}>
-                  {conv.partner.display_name || t('chat.unknown')}
-                </span>
-                {conv.last_message && (
-                  <span className={styles.time}>
-                    {formatChatTime(conv.last_message.created_at, t)}
-                  </span>
-                )}
-              </div>
-              <span className={styles.preview}>
-                {conv.last_message ? (
-                  <>
-                    {conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}
-                    {conv.last_message.media_id
-                      ? t('chat.mediaMessage')
-                      : conv.last_message.emoji_id
-                        ? t('chat.emojiMessage')
-                        : conv.is_encrypted && !conv.last_message.content
-                          ? t('chat.encryptedPreview')
-                          : renderEmojiContent(
-                              conv.last_message.content || t('chat.mediaMessage'),
-                              emojiCodeMap,
-                              `pv-${conv.chat_id}`,
-                            )}
-                  </>
+        {filtered.map((conv) => {
+          const { isOnline } = getPresenceForUser(conv.partner.user_id)
+          return (
+            <button
+              key={conv.chat_id}
+              className={`${styles.row} ${
+                conv.chat_id === activeChatId ? styles.active : ''
+              }`}
+              onClick={() => onSelect(conv)}
+            >
+              <div className={styles.avatar}>
+                {conv.partner.avatar_uri ? (
+                  <ExternalImage src={conv.partner.avatar_uri} alt="" />
                 ) : (
-                  t('chat.newChat')
+                  <i className="bx bxs-user" />
                 )}
-              </span>
-            </div>
-          </button>
-        ))}
+                <div className={styles.onlineIndicator}>
+                  <OnlineIndicator isOnline={isOnline} size="small" />
+                </div>
+              </div>
+              <div className={styles.meta}>
+                <div className={styles.rowTop}>
+                  <span className={styles.name}>
+                    {conv.partner.display_name || t('chat.unknown')}
+                  </span>
+                  {conv.last_message && (
+                    <span className={styles.time}>
+                      {formatChatTime(conv.last_message.created_at, t)}
+                    </span>
+                  )}
+                </div>
+                <span className={styles.preview}>
+                  {conv.last_message ? (
+                    <>
+                      {conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}
+                      {conv.last_message.media_id
+                        ? t('chat.mediaMessage')
+                        : conv.last_message.emoji_id
+                          ? t('chat.emojiMessage')
+                          : conv.is_encrypted && !conv.last_message.content
+                            ? t('chat.encryptedPreview')
+                            : renderEmojiContent(
+                                conv.last_message.content || t('chat.mediaMessage'),
+                                emojiCodeMap,
+                                `pv-${conv.chat_id}`,
+                              )}
+                    </>
+                  ) : (
+                    t('chat.newChat')
+                  )}
+                </span>
+              </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

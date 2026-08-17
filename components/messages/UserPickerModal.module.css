@@ -100,3 +100,12 @@
   font-size: 0.875rem;
   text-align: center;
 }
+
+.sectionLabel {
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

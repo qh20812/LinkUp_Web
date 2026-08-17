@@ -707,7 +707,8 @@
     "searchFriends": "Search friends...",
     "typeToSearch": "Type a keyword to find users",
     "typeToSearchFriends": "Type a keyword to find your friends",
-    "keywordTooShort": "Type at least 2 characters to search",
+    "friends": "Friends",
+    "keywordTooShort": "Type at least 1 character to search",
     "noConversations": "No conversations yet",
     "noMessages": "No messages yet. Send the first hello!",
     "noResults": "No results",
@@ -1239,5 +1240,20 @@
     "noStory": "No stories yet",
     "stories": "Stories",
     "viewers": "{count} viewers"
+  },
+  "presence": {
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeenJustNow": "just now",
+    "lastSeenMinutes": "Last seen {minutes} minutes ago",
+    "lastSeenHours": "Last seen {hours} hours ago",
+    "lastSeenDays": "Last seen {days} days ago",
+    "activityStatus": "Activity Status",
+    "activityStatusEnabled": "Show online status",
+    "activityStatusHint": "When off, you and your friends won't see each other's online status",
+    "lastSeenVisibility": "Show \"Last seen\"",
+    "lastSeenVisibilityAll": "All friends",
+    "lastSeenVisibilityDm": "People with conversations only",
+    "lastSeenVisibilityNobody": "Nobody"
   }
 }

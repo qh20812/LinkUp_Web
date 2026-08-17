@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Modal from '../Modal'
 import ExternalImage from '../ExternalImage'
 import { searchFriends } from '../../api/chats'
+import { getFriends } from '../../api/friends'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './UserPickerModal.module.css'
 
@@ -29,6 +30,9 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seqRef = useRef(0)
 
+  const [friends, setFriends] = useState<UserSearchItem[]>([])
+  const [loadingFriends, setLoadingFriends] = useState(false)
+
   const [wasOpen, setWasOpen] = useState(open)
   if (wasOpen !== open) {
     setWasOpen(open)
@@ -40,7 +44,33 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
     }
   }
 
-  const MIN_CHARS = 2
+  useEffect(() => {
+    if (!open) return
+    if (keyword.trim().length > 0) return
+    let cancelled = false
+    setLoadingFriends(true)
+    getFriends(1, 50)
+      .then((res) => {
+        if (cancelled) return
+        setFriends(
+          (res.data ?? []).map((u) => ({
+            id: u.user_id,
+            username: u.display_name || u.user_id,
+            display_name: u.display_name,
+            avatar_uri: u.avatar_uri,
+          }))
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setFriends([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingFriends(false)
+      })
+    return () => { cancelled = true }
+  }, [open, keyword])
+
+  const MIN_CHARS = 1
 
   const handleKeywordChange = (value: string) => {
     setKeyword(value)
@@ -77,7 +107,10 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
   }, [keyword, t])
 
   const keywordLen = keyword.trim().length
-  const emptyHint = keywordLen === 0 ? t('chat.typeToSearchFriends') : keywordLen < MIN_CHARS ? t('chat.keywordTooShort') : t('chat.noResults')
+  const showFriends = keywordLen === 0
+  const emptyHint = keywordLen < MIN_CHARS ? t('chat.keywordTooShort') : t('chat.noResults')
+
+  const displayList = showFriends ? friends : results
 
   return (
     <Modal open={open} onClose={onClose} title={t('chat.newMessage')}>
@@ -91,22 +124,25 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
         />
       </div>
       <div className={styles.results}>
-        {searching && (
+        {(searching || loadingFriends) && (
           <div className={styles.center}>
             <span>{t('common.loading')}</span>
           </div>
         )}
-        {!searching && error && (
+        {!searching && !loadingFriends && error && (
           <div className={styles.center}>
             <p>{error}</p>
           </div>
         )}
-        {!searching && !error && results.length === 0 && (
+        {!searching && !loadingFriends && !error && displayList.length === 0 && (
           <div className={styles.center}>
             <p>{emptyHint}</p>
           </div>
         )}
-        {results.map((user) => (
+        {!searching && !loadingFriends && showFriends && friends.length > 0 && (
+          <div className={styles.sectionLabel}>{t('chat.friends')}</div>
+        )}
+        {displayList.map((user) => (
           <button key={user.id} className={styles.row} onClick={() => onPick(user)}>
             <div className={styles.avatar}>
               {user.avatar_uri ? (

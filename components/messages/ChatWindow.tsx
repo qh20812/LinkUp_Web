@@ -2,10 +2,13 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
+import ChatMediaLightbox from './ChatMediaLightbox'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
+import { usePresence } from '../../hooks/usePresence'
 import { downloadMessageMedia, uploadMedia } from '../../api/chats'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
@@ -88,8 +91,12 @@ export default function ChatWindow({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
+  const [mediaTarget, setMediaTarget] = useState<{ src: string; isVideo: boolean } | null>(null)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const partnerUserId = conversation?.partner.user_id ?? ''
+  const { isOnline: partnerOnline, statusText: partnerStatusText } = usePresence(partnerUserId)
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -151,11 +158,19 @@ export default function ChatWindow({
           ) : (
             <i className="bx bxs-user" />
           )}
+          <div className={styles.onlineIndicator}>
+            <OnlineIndicator isOnline={partnerOnline} size="small" />
+          </div>
         </div>
         <div className={styles.headerMeta}>
           <span className={styles.name}>
             {conversation.partner.display_name || t('chat.unknown')}
           </span>
+          {partnerStatusText && (
+            <span className={styles.partnerStatus}>
+              {partnerStatusText}
+            </span>
+          )}
           {isEncrypted && (
             <span className={styles.e2eBadge} title={t('chat.e2eTitle')}>
               <i className="bx bxs-lock-alt" />
@@ -269,7 +284,7 @@ export default function ChatWindow({
                     <div className={styles.msgStack}>
                       <div className={`${styles.bubble} ${styles.bubblePlain}`}>
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} />
+                          <MessageMedia message={msg} onMediaClick={(src, isVideo) => setMediaTarget({ src, isVideo })} />
                         </div>
                         <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                       </div>
@@ -292,7 +307,7 @@ export default function ChatWindow({
                     >
                       {msg.media_id && (
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} />
+                          <MessageMedia message={msg} onMediaClick={(src, isVideo) => setMediaTarget({ src, isVideo })} />
                         </div>
                       )}
                       {msg.emoji_id && !msg.media_id && (
@@ -366,15 +381,24 @@ export default function ChatWindow({
           )}
         </div>
       </Modal>
+
+      {mediaTarget && (
+        <ChatMediaLightbox
+          src={mediaTarget.src}
+          isVideo={mediaTarget.isVideo}
+          onClose={() => setMediaTarget(null)}
+        />
+      )}
     </div>
   )
 }
 
 interface MessageMediaProps {
   message: ChatMessage
+  onMediaClick?: (src: string, isVideo: boolean) => void
 }
 
-function MessageMedia({ message }: MessageMediaProps) {
+function MessageMedia({ message, onMediaClick }: MessageMediaProps) {
   const { t } = useTranslation()
   const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
   const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
@@ -417,9 +441,28 @@ function MessageMedia({ message }: MessageMediaProps) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   if (isVideo) {
-    return <video src={src} controls muted playsInline className={styles.mediaEl} />
+    return (
+      <video
+        src={src}
+        controls
+        muted
+        playsInline
+        className={styles.mediaEl}
+        onClick={() => onMediaClick?.(src, true)}
+        style={{ cursor: 'pointer' }}
+      />
+    )
   }
-  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
+  return (
+    <ExternalImage
+      src={src}
+      alt=""
+      className={styles.mediaEl}
+      loading="lazy"
+      onClick={() => onMediaClick?.(src, false)}
+      style={{ cursor: 'pointer' }}
+    />
+  )
 }
 
 interface EmojiBubbleProps {
