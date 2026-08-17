@@ -7,6 +7,8 @@ import LeftSidebar from './LeftSidebar'
 import UserNavbar from './UserNavbar'
 import RightSidebar from './RightSidebar'
 import { NotificationProvider } from '../contexts/NotificationContext'
+import { CallProvider } from '../contexts/CallContext'
+import CallOverlay from './calls/CallOverlay'
 import { FollowedUserIdsProvider } from '../contexts/FollowContext'
 import { defaultSWRConfig } from '../api/swr'
 import styles from './UserLayout.module.css'
@@ -40,27 +42,30 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   return (
     <SWRConfig value={defaultSWRConfig}>
       <NotificationProvider>
-        <FollowedUserIdsProvider>
-        <div className={layoutClass}>
-          <div className={styles.left}>
-            <LeftSidebar collapsed={leftCollapsed} />
-          </div>
-          <div className={styles.center}>
-            <UserNavbar
-              leftCollapsed={leftCollapsed}
-              rightCollapsed={rightCollapsed}
-              onToggleLeft={() => setLeftCollapsed((prev) => !prev)}
-              onToggleRight={() => setRightCollapsed((prev) => !prev)}
-            />
-            {children}
-          </div>
-          {!hideRight && (
-            <div className={styles.right}>
-              <RightSidebar />
+        <CallProvider>
+          <FollowedUserIdsProvider>
+          <div className={layoutClass}>
+            <div className={styles.left}>
+              <LeftSidebar collapsed={leftCollapsed} />
             </div>
-          )}
-        </div>
-        </FollowedUserIdsProvider>
+            <div className={styles.center}>
+              <UserNavbar
+                leftCollapsed={leftCollapsed}
+                rightCollapsed={rightCollapsed}
+                onToggleLeft={() => setLeftCollapsed((prev) => !prev)}
+                onToggleRight={() => setRightCollapsed((prev) => !prev)}
+              />
+              {children}
+            </div>
+            {!hideRight && (
+              <div className={styles.right}>
+                <RightSidebar />
+              </div>
+            )}
+          </div>
+          <CallOverlay />
+          </FollowedUserIdsProvider>
+        </CallProvider>
       </NotificationProvider>
     </SWRConfig>
   )

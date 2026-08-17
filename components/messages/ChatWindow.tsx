@@ -18,6 +18,7 @@ import {
 } from '../../utils/emojis'
 import type { ChatConversation, ChatMessage, EmojiItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
+import { useCall } from '../../contexts/CallContext'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -79,6 +80,7 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const { startCall, isInCall } = useCall()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
     const map = new Map(EMOTION_EMOJI_MAP)
@@ -163,6 +165,24 @@ export default function ChatWindow({
             </span>
           )}
         </div>
+        <button
+          className={styles.iconBtn}
+          onClick={() => void startCall(conversation.partner, 'voice')}
+          disabled={isInCall}
+          aria-label={t('call.voiceCall')}
+          title={t('call.voiceCall')}
+        >
+          <i className="bx bx-phone-call" />
+        </button>
+        <button
+          className={styles.iconBtn}
+          onClick={() => void startCall(conversation.partner, 'video')}
+          disabled={isInCall}
+          aria-label={t('call.videoCall')}
+          title={t('call.videoCall')}
+        >
+          <i className="bx bx-video" />
+        </button>
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
           onClick={toggleSearch}
