@@ -746,6 +746,7 @@
     "newChat": "New conversation",
     "emojiPicker": "Pick an emoji",
     "attach": "Attach file",
+    "gif": "GIF",
     "uploadFailed": "Could not upload file",
     "mediaFailed": "Could not load media",
     "emojiMessage": "[Emoji]",

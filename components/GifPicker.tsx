@@ -47,9 +47,10 @@ function giphyUrl(endpoint: string, query: string): string {
 interface GifPickerProps {
   onSelect: (gif: GifItem) => void
   onClose: () => void
+  placement?: 'top' | 'bottom'
 }
 
-export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
+export default function GifPicker({ onSelect, onClose, placement = 'bottom' }: GifPickerProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [gifs, setGifs] = useState<GifItem[]>([])
@@ -98,9 +99,11 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
     return () => clearTimeout(timeout)
   }, [query, t])
 
+  const pickerClass = `${styles.picker}${placement === 'top' ? ` ${styles.pickerTop}` : ''}`
+
   if (!GIPHY_KEY) {
     return (
-      <div className={styles.picker}>
+      <div className={pickerClass}>
         <div className={styles.missingKey}>
           <i className="bx bx-error-circle" />
           <p>{t('composer.gifMissingKey')}</p>
@@ -110,7 +113,7 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
   }
 
   return (
-    <div className={styles.picker}>
+    <div className={pickerClass}>
       <div className={styles.searchRow}>
         <input
           className={styles.searchInput}

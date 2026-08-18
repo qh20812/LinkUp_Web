@@ -19,6 +19,7 @@ export interface SendMessageOptions {
   mediaId?: string
   mediaUri?: string
   mediaType?: string
+  gifUrl?: string
 }
 
 export interface ChatRoom {
@@ -233,7 +234,7 @@ export function useChatRoom({
     async (content: string, opts?: SendMessageOptions) => {
       const chatID = activeChatIdRef.current
       const trimmed = content.trim()
-      const hasAttachment = Boolean(opts?.emojiId || opts?.mediaId)
+      const hasAttachment = Boolean(opts?.emojiId || opts?.mediaId || opts?.gifUrl)
       if (!chatID || (!trimmed && !hasAttachment)) return
       if (socket.status !== 'open') {
         toast({ type: 'error', title: 'Không thể gửi tin nhắn. Đang kết nối lại...' })
@@ -269,6 +270,7 @@ export function useChatRoom({
             e2e_version: 1,
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
+            gif_url: opts?.gifUrl ?? null,
           })
           return
         } catch {
@@ -281,6 +283,7 @@ export function useChatRoom({
         content: trimmed,
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
+        gif_url: opts?.gifUrl ?? null,
       })
     },
     [socket, toast, encryption],

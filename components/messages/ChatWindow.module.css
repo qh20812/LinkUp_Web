@@ -507,6 +507,13 @@
   z-index: 20;
 }
 
+.gifPickerWrap {
+  position: relative;
+  width: 0;
+  height: 0;
+  z-index: 30;
+}
+
 .emojiTabs {
   display: flex;
   gap: 4px;

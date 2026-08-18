@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import Modal from '../Modal'
+import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
@@ -22,6 +23,7 @@ import type {
   ChatConversation,
   ChatMessage,
   EmojiItem,
+  GifItem,
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall } from '../../contexts/CallContext'
@@ -352,8 +354,8 @@ export default function ChatWindow({
             const plain =
               !msg.deleted &&
               !msg.decrypt_failed &&
-              ((!msg.content && Boolean(msg.media_id || msg.emoji_id)) ||
-                (!msg.media_id && !msg.emoji_id && singleEmoji !== null))
+              ((!msg.content && Boolean(msg.media_id || msg.media_uri || msg.emoji_id)) ||
+                (!msg.media_id && !msg.media_uri && !msg.emoji_id && singleEmoji !== null))
             return (
               <Fragment key={msg.id}>
                 {showDate && (
@@ -390,12 +392,12 @@ export default function ChatWindow({
                     <div
                       className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
                     >
-                      {msg.media_id && (
+                      {(msg.media_id || msg.media_uri) && (
                         <div className={styles.mediaWrap}>
                           <MessageMedia message={msg} />
                         </div>
                       )}
-                      {msg.emoji_id && !msg.media_id && (
+                      {msg.emoji_id && !msg.media_id && !msg.media_uri && (
                         <EmojiBubble message={msg} emojis={emojis} />
                       )}
                       {msg.decrypt_failed ? (
@@ -631,6 +633,7 @@ function Composer({ room }: ComposerProps) {
   const [value, setValue] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [emojiGroup, setEmojiGroup] = useState<EmojiGroup>('positive')
+  const [gifOpen, setGifOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
@@ -639,6 +642,8 @@ function Composer({ room }: ComposerProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const toggleEmojiRef = useRef<HTMLButtonElement>(null)
+  const gifPickerRef = useRef<HTMLDivElement>(null)
+  const toggleGifRef = useRef<HTMLButtonElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -677,16 +682,19 @@ function Composer({ room }: ComposerProps) {
   }
 
   useEffect(() => {
-    if (!emojiOpen) return
+    if (!emojiOpen && !gifOpen) return
     const onClick = (e: MouseEvent) => {
       const target = e.target as Node
       if (pickerRef.current?.contains(target)) return
       if (toggleEmojiRef.current?.contains(target)) return
+      if (gifPickerRef.current?.contains(target)) return
+      if (toggleGifRef.current?.contains(target)) return
       setEmojiOpen(false)
+      setGifOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [emojiOpen])
+  }, [emojiOpen, gifOpen])
 
   const insertNodeAtCaret = (node: Node) => {
     const el = inputRef.current
@@ -742,6 +750,15 @@ function Composer({ room }: ComposerProps) {
     if (inputRef.current) inputRef.current.innerHTML = ''
     setEmojiOpen(false)
     sendTyping(false)
+  }
+
+  const selectGif = (gif: GifItem) => {
+    room.sendMessage('', {
+      gifUrl: gif.preview,
+      mediaUri: gif.preview,
+      mediaType: 'image/gif',
+    })
+    setGifOpen(false)
   }
 
   const sendFile = async (file: File, caption: string): Promise<boolean> => {
@@ -860,11 +877,26 @@ function Composer({ room }: ComposerProps) {
           <button
             ref={toggleEmojiRef}
             className={`${styles.iconBtn} ${emojiOpen ? styles.iconBtnActive : ''}`}
-            onClick={() => setEmojiOpen((prev) => !prev)}
+            onClick={() => {
+              setGifOpen(false)
+              setEmojiOpen((prev) => !prev)
+            }}
             aria-label={t('chat.emojiPicker')}
             title={t('chat.emojiPicker')}
           >
             <i className="bx bxs-smile" />
+          </button>
+          <button
+            ref={toggleGifRef}
+            className={`${styles.iconBtn} ${gifOpen ? styles.iconBtnActive : ''}`}
+            onClick={() => {
+              setEmojiOpen(false)
+              setGifOpen((prev) => !prev)
+            }}
+            aria-label={t('chat.gif')}
+            title={t('chat.gif')}
+          >
+            <i className="bx bx-movie" />
           </button>
           <button
             className={styles.iconBtn}
@@ -925,6 +957,11 @@ function Composer({ room }: ComposerProps) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+      {gifOpen && (
+        <div ref={gifPickerRef} className={styles.gifPickerWrap}>
+          <GifPicker placement="top" onSelect={selectGif} onClose={() => setGifOpen(false)} />
         </div>
       )}
     </div>
