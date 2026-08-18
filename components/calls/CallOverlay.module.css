@@ -7,17 +7,16 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
-  padding: var(--space-lg);
+  padding: var(--space-xl);
 }
 
 .panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 340px;
-  max-width: 440px;
-  width: 100%;
-  padding: var(--space-xl) var(--space-lg) var(--space-lg);
+  width: min(880px, 100%);
+  max-width: 100%;
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
   background: var(--color-bg-primary);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -26,8 +25,8 @@
 .videoStage {
   position: relative;
   width: 100%;
-  max-width: 720px;
-  height: 360px;
+  aspect-ratio: 16 / 9;
+  min-height: 420px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-bg-secondary);
@@ -51,8 +50,8 @@
   position: absolute;
   top: var(--space-md);
   right: var(--space-md);
-  width: 140px;
-  height: 180px;
+  width: 180px;
+  height: 240px;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 2px solid var(--color-border);
@@ -63,8 +62,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  width: 160px;
+  height: 160px;
   margin-bottom: var(--space-md);
   border-radius: 50%;
   overflow: hidden;
@@ -83,7 +82,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-size: 56px;
+  font-size: 72px;
   color: var(--color-text-secondary);
 }
 
@@ -91,8 +90,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   overflow: hidden;
   background: var(--color-bg-primary);
@@ -105,17 +104,17 @@
 }
 
 .bigAvatar i {
-  font-size: 56px;
+  font-size: 72px;
   color: var(--color-text-secondary);
 }
 
 .name {
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--color-text);
   text-align: center;
   margin-top: var(--space-sm);
-  max-width: 320px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -126,18 +125,18 @@
   align-items: center;
   gap: var(--space-sm);
   margin-top: var(--space-xs);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text-secondary);
 }
 
 .remoteMutedIcon {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--color-danger);
 }
 
 .duration {
   margin-top: var(--space-sm);
-  font-size: 16px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
@@ -154,12 +153,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 26px;
+  font-size: 30px;
   color: #ffffff;
   background: var(--color-bg-hover);
   transition: transform 0.15s ease, background 0.15s ease;
@@ -188,8 +187,8 @@
 
 .endBtn {
   background: var(--color-danger);
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
 }
 
 .activeBtn {

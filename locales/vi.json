@@ -777,7 +777,10 @@
     "statusMissed": "Cuộc gọi nhỡ",
     "statusRejected": "Cuộc gọi đã bị từ chối",
     "statusBusy": "Người dùng đang bận",
-    "statusCancelled": "Cuộc gọi đã hủy"
+    "statusCancelled": "Cuộc gọi đã hủy",
+    "historyOutgoing": "Cuộc gọi đi",
+    "historyIncoming": "Cuộc gọi đến",
+    "historyMissed": "Cuộc gọi nhỡ"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Lỗi hệ thống",

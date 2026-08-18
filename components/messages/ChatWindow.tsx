@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
 import { downloadMessageMedia, uploadMedia } from '../../api/chats'
+import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import {
@@ -16,7 +17,12 @@ import {
   type EmojiGroup,
   type EmotionEmojiItem,
 } from '../../utils/emojis'
-import type { ChatConversation, ChatMessage, EmojiItem } from '../../types'
+import type {
+  CallHistoryItem,
+  ChatConversation,
+  ChatMessage,
+  EmojiItem,
+} from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall } from '../../contexts/CallContext'
 import styles from './ChatWindow.module.css'
@@ -72,6 +78,18 @@ interface DeleteTarget {
   message: ChatMessage
 }
 
+type TimelineItem =
+  | { kind: 'message'; msg: ChatMessage; created: number }
+  | { kind: 'call'; item: CallHistoryItem; created: number }
+
+const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
+
+function formatCallDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 export default function ChatWindow({
   conversation,
   myUserId,
@@ -92,6 +110,51 @@ export default function ChatWindow({
   const [searchInput, setSearchInput] = useState('')
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const partnerUserId = conversation?.partner.user_id ?? null
+  const [historyByPartner, setHistoryByPartner] = useState<
+    Map<string, CallHistoryItem[]>
+  >(() => new Map())
+
+  useEffect(() => {
+    if (!partnerUserId) return
+    if (historyByPartner.has(partnerUserId)) return
+    let cancelled = false
+    getCallHistory({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        const items = res.data.filter(
+          (item) => item.other_user.id === partnerUserId,
+        )
+        setHistoryByPartner((prev) => {
+          const next = new Map(prev)
+          next.set(partnerUserId, items)
+          return next
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [partnerUserId, historyByPartner])
+
+  const callHistory = partnerUserId
+    ? (historyByPartner.get(partnerUserId) ?? EMPTY_CALL_HISTORY)
+    : EMPTY_CALL_HISTORY
+
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const msgs: TimelineItem[] = room.messages.map((msg) => ({
+      kind: 'message',
+      msg,
+      created: new Date(msg.created_at).getTime(),
+    }))
+    const calls: TimelineItem[] = callHistory.map((item) => ({
+      kind: 'call',
+      item,
+      created: item.created_at,
+    }))
+    return [...msgs, ...calls].sort((a, b) => a.created - b.created)
+  }, [room.messages, callHistory])
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -122,7 +185,7 @@ export default function ChatWindow({
     if (el && room.searchResults === null) {
       el.scrollTop = el.scrollHeight
     }
-  }, [room.messages.length, room.partnerTyping, room.searchResults])
+  }, [room.messages.length, callHistory.length, room.partnerTyping, room.searchResults])
 
   if (!conversation) {
     return (
@@ -140,9 +203,16 @@ export default function ChatWindow({
     setDeleteTarget(null)
   }
 
-  const messages = room.messages
   const searchResults = room.searchResults
   const inSearch = searchResults !== null
+
+  const itemDate = (item: TimelineItem) =>
+    formatChatDate(
+      item.kind === 'message'
+        ? item.msg.created_at
+        : new Date(item.created).toISOString(),
+      t,
+    )
 
   return (
     <div className={styles.window}>
@@ -254,16 +324,26 @@ export default function ChatWindow({
             <div className={styles.center}>{t('common.loading')}</div>
           )}
 
-          {!room.loading && messages.length === 0 && (
+          {!room.loading && timeline.length === 0 && (
             <div className={styles.center}>
               <p>{t('chat.noMessages')}</p>
             </div>
           )}
 
-          {messages.map((msg, i) => {
-            const prev = messages[i - 1]
-            const showDate =
-              !prev || formatChatDate(prev.created_at, t) !== formatChatDate(msg.created_at, t)
+          {timeline.map((item, i) => {
+            const prev = timeline[i - 1]
+            const showDate = !prev || itemDate(prev) !== itemDate(item)
+
+            if (item.kind === 'call') {
+              return (
+                <Fragment key={`call-${item.item.id}`}>
+                  {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
+                  <CallLogItem item={item.item} />
+                </Fragment>
+              )
+            }
+
+            const msg = item.msg
             const mine = msg.sender_id === myUserId
             const singleEmoji =
               !msg.deleted && !msg.decrypt_failed
@@ -277,7 +357,7 @@ export default function ChatWindow({
             return (
               <Fragment key={msg.id}>
                 {showDate && (
-                  <div className={styles.dateSep}>{formatChatDate(msg.created_at, t)}</div>
+                  <div className={styles.dateSep}>{itemDate(item)}</div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
                   {msg.deleted ? (
@@ -454,6 +534,46 @@ function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
     return <span className={styles.deletedText}>{t('chat.emojiUnavailable')}</span>
   }
   return <EmojiImage emoji={emoji} className={styles.emojiMsg} />
+}
+
+interface CallLogItemProps {
+  item: CallHistoryItem
+}
+
+function CallLogItem({ item }: CallLogItemProps) {
+  const { t } = useTranslation()
+  const mine = item.direction === 'outgoing'
+  const isVideo = item.call_type === 'video'
+  const missed = item.is_missed
+  const typeLabel = isVideo ? t('call.videoCall') : t('call.voiceCall')
+  const label = missed
+    ? t('call.historyMissed')
+    : `${mine ? t('call.historyOutgoing') : t('call.historyIncoming')} • ${typeLabel}`
+  const icon = isVideo
+    ? 'bx-video'
+    : missed
+      ? 'bx-phone-missed'
+      : mine
+        ? 'bx-phone-call'
+        : 'bx-phone-incoming'
+  const showDuration = !missed && item.duration > 0
+
+  return (
+    <div className={`${styles.callRow} ${mine ? styles.callMine : styles.callTheirs}`}>
+      <div className={`${styles.callBubble}${missed ? ` ${styles.callMissed}` : ''}`}>
+        <i className={`bx ${icon}`} />
+        <span className={styles.callLabel}>{label}</span>
+        {showDuration && (
+          <span className={styles.callDuration}>
+            {formatCallDuration(item.duration)}
+          </span>
+        )}
+        <span className={styles.callTime}>
+          {formatChatTime(new Date(item.created_at).toISOString(), t)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 const SINGLE_URL_RE = /^https?:\/\/\S+$/i
