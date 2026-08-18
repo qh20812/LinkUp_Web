@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { SWRConfig } from 'swr'
 import LeftSidebar from './LeftSidebar'
@@ -25,15 +25,31 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const isMessages = pathname === '/messages'
 
-  const [leftCollapsed, setLeftCollapsed] = useState(() => readPref(LEFT_KEY))
-  const [rightCollapsed, setRightCollapsed] = useState(() => readPref(RIGHT_KEY))
+  const [leftCollapsed, setLeftCollapsed] = useState(false)
+  const [rightCollapsed, setRightCollapsed] = useState(false)
+  const leftPersistedRef = useRef(false)
+  const rightPersistedRef = useRef(false)
 
   useEffect(() => {
-    localStorage.setItem(LEFT_KEY, leftCollapsed ? '1' : '0')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLeftCollapsed(readPref(LEFT_KEY))
+    setRightCollapsed(readPref(RIGHT_KEY))
+  }, [])
+
+  useEffect(() => {
+    if (leftPersistedRef.current) {
+      localStorage.setItem(LEFT_KEY, leftCollapsed ? '1' : '0')
+    } else {
+      leftPersistedRef.current = true
+    }
   }, [leftCollapsed])
 
   useEffect(() => {
-    localStorage.setItem(RIGHT_KEY, rightCollapsed ? '1' : '0')
+    if (rightPersistedRef.current) {
+      localStorage.setItem(RIGHT_KEY, rightCollapsed ? '1' : '0')
+    } else {
+      rightPersistedRef.current = true
+    }
   }, [rightCollapsed])
 
   const hideRight = isMessages || rightCollapsed
