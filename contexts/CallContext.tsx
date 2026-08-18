@@ -166,6 +166,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setLocalVideoOn(false)
     setRemoteMuted(false)
     setRemoteVideoOn(false)
+    setRemoteStream(null)
   }
 
   const showEnded = (status: CallStatus) => {
@@ -177,6 +178,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     clearDuration()
     setPhaseBoth('ended')
     setLastStatus(status)
+    setRemoteStream(null)
     if (endedTimerRef.current) clearTimeout(endedTimerRef.current)
     endedTimerRef.current = setTimeout(() => {
       if (phaseRef.current === 'ended') resetToIdle()
