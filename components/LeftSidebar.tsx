@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { key: 'notifications', href: '/notifications', icon: 'bxs-bell' },
   { key: 'messages', href: '/messages', icon: 'bxs-message-dots' },
   { key: 'friends', href: '/friends', icon: 'bxs-group' },
-  { key: 'groups', href: '/groups', icon: 'bxs-chat' },
+  { key: 'communities', href: '/communities', icon: 'bxs-chat' },
   { key: 'saved', href: '/saved', icon: 'bxs-bookmark' },
   { key: 'profile', href: '/profile', icon: 'bxs-user' },
 ]
