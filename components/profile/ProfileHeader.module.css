@@ -144,6 +144,11 @@
   font-weight: 600;
   margin: 0 0 var(--space-xs);
   word-break: break-word;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .displayName {
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.75), 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .bio {
@@ -157,6 +162,11 @@
   font: var(--text-caption);
   color: var(--color-primary);
   margin: 0 0 var(--space-xs);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.85), 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .username {
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .statusText {
