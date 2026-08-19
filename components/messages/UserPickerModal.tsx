@@ -30,8 +30,10 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seqRef = useRef(0)
 
-  const [friends, setFriends] = useState<UserSearchItem[]>([])
-  const [loadingFriends, setLoadingFriends] = useState(false)
+  const [friendsState, setFriendsState] = useState<{
+    data: UserSearchItem[]
+    loaded: boolean
+  }>({ data: [], loaded: false })
 
   const [wasOpen, setWasOpen] = useState(open)
   if (wasOpen !== open) {
@@ -48,24 +50,21 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
     if (!open) return
     if (keyword.trim().length > 0) return
     let cancelled = false
-    setLoadingFriends(true)
     getFriends(1, 50)
       .then((res) => {
         if (cancelled) return
-        setFriends(
-          (res.data ?? []).map((u) => ({
+        setFriendsState({
+          data: (res.data ?? []).map((u) => ({
             id: u.user_id,
             username: u.display_name || u.user_id,
             display_name: u.display_name,
             avatar_uri: u.avatar_uri,
-          }))
-        )
+          })),
+          loaded: true,
+        })
       })
       .catch(() => {
-        if (!cancelled) setFriends([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingFriends(false)
+        if (!cancelled) setFriendsState({ data: [], loaded: true })
       })
     return () => { cancelled = true }
   }, [open, keyword])
@@ -78,6 +77,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
       setSearching(false)
       setResults([])
       setError(null)
+      setFriendsState({ data: [], loaded: false })
       return
     }
     setSearching(true)
@@ -110,7 +110,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
   const showFriends = keywordLen === 0
   const emptyHint = keywordLen < MIN_CHARS ? t('chat.keywordTooShort') : t('chat.noResults')
 
-  const displayList = showFriends ? friends : results
+  const displayList = showFriends ? friendsState.data : results
 
   return (
     <Modal open={open} onClose={onClose} title={t('chat.newMessage')}>
@@ -124,22 +124,22 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
         />
       </div>
       <div className={styles.results}>
-        {(searching || loadingFriends) && (
+        {(searching || !friendsState.loaded) && (
           <div className={styles.center}>
             <span>{t('common.loading')}</span>
           </div>
         )}
-        {!searching && !loadingFriends && error && (
+        {!searching && friendsState.loaded && error && (
           <div className={styles.center}>
             <p>{error}</p>
           </div>
         )}
-        {!searching && !loadingFriends && !error && displayList.length === 0 && (
+        {!searching && friendsState.loaded && !error && displayList.length === 0 && (
           <div className={styles.center}>
             <p>{emptyHint}</p>
           </div>
         )}
-        {!searching && !loadingFriends && showFriends && friends.length > 0 && (
+        {!searching && friendsState.loaded && showFriends && friendsState.data.length > 0 && (
           <div className={styles.sectionLabel}>{t('chat.friends')}</div>
         )}
         {displayList.map((user) => (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import styles from './MediaLightbox.module.css'
 import type { MediaItem } from '../../types'
 
@@ -48,11 +49,16 @@ export default function MediaLightbox({ items, initialIndex, onClose, onNavigate
               playsInline
             />
           ) : (
-            <img
-              src={item.file_uri}
-              alt=""
-              className={styles.media}
-            />
+            <div className={styles.mediaWrapper}>
+              <Image
+                src={item.file_uri}
+                alt=""
+                fill
+                sizes="100vw"
+                className={styles.mediaImg}
+                unoptimized
+              />
+            </div>
           )}
         </div>
 

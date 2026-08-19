@@ -252,7 +252,7 @@ export default function UsersPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={user.avatar_uri || '/default-avatar.png'}
+                          src={user.avatar_uri || '/default-avatar.svg'}
                           alt=""
                           width={36}
                           height={36}
@@ -377,7 +377,7 @@ export default function UsersPage() {
             <div className={styles.modalBody}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
                 <Image
-                  src={detailTarget.avatar_uri || '/default-avatar.png'}
+                  src={detailTarget.avatar_uri || '/default-avatar.svg'}
                   alt=""
                   width={64}
                   height={64}

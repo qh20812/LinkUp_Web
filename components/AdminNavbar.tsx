@@ -210,6 +210,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
             width={36}
             height={36}
             priority
+            unoptimized
           />
           <div className={styles.userInfo}>
             <span className={styles.userName}>{profile?.display_name || cachedProfile.display_name || "Admin"}</span>

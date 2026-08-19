@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   images: {
     dangerouslyAllowSVG: true,
-    contentDispositionType: "attachment",
+    contentDispositionType: "inline",
     remotePatterns: [
       {
         protocol: "https",
@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "api.dicebear.com",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
       },
     ],
   },

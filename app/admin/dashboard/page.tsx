@@ -471,7 +471,7 @@ export default function DashboardPage() {
                     <td>
                       <div className={styles.topListUser}>
                         <Image
-                          src={user.avatar_uri || '/default-avatar.png'}
+                          src={user.avatar_uri || '/default-avatar.svg'}
                           alt=""
                           width={28}
                           height={28}

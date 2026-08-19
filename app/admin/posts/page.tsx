@@ -245,7 +245,7 @@ export default function PostsPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={post.avatar_uri || "/default-avatar.png"}
+                          src={post.avatar_uri || "/default-avatar.svg"}
                           alt=""
                           width={36}
                           height={36}

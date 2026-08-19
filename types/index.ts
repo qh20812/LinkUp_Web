@@ -1015,7 +1015,7 @@ export interface CallHistoryItem {
   other_user: {
     id: string
     display_name: string
-    avatar_url: string
+    avatar_uri: string
   }
   call_type: CallType
   direction: 'outgoing' | 'incoming'

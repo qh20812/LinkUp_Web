@@ -61,6 +61,17 @@
   border-radius: var(--radius-sm);
 }
 
+.mediaWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mediaImg {
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
 .footer {
   position: absolute;
   bottom: 0;
