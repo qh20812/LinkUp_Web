@@ -1,0 +1,207 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  padding: var(--space-xl);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(880px, 100%);
+  max-width: 100%;
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.videoStage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 420px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.remoteVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remoteOff {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--color-bg-secondary);
+}
+
+.selfPreview {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 180px;
+  height: 240px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.avatarWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  margin-bottom: var(--space-md);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 72px;
+  color: var(--color-text-secondary);
+}
+
+.bigAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+.bigAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bigAvatar i {
+  font-size: 72px;
+  color: var(--color-text-secondary);
+}
+
+.name {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  margin-top: var(--space-sm);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
+.remoteMutedIcon {
+  font-size: 18px;
+  color: var(--color-danger);
+}
+
+.duration {
+  margin-top: var(--space-sm);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+}
+
+.controlBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 30px;
+  color: #ffffff;
+  background: var(--color-bg-hover);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.controlBtn:hover {
+  transform: scale(1.08);
+}
+
+.controlBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.acceptBtn {
+  background: var(--color-success);
+}
+
+.acceptBtn:hover {
+  background: var(--color-success);
+}
+
+.rejectBtn {
+  background: var(--color-danger);
+}
+
+.endBtn {
+  background: var(--color-danger);
+  width: 72px;
+  height: 72px;
+}
+
+.activeBtn {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mirrored {
+  transform: scaleX(-1);
+}

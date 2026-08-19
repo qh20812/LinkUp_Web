@@ -7,6 +7,68 @@
   padding: 16px 12px;
   gap: 8px;
   overflow-y: auto;
+  transition: padding 0.25s ease;
+}
+
+.collapsed {
+  padding: 16px 8px;
+}
+
+.collapsed .logo {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.collapsed .logo span {
+  display: none;
+}
+
+.collapsed .navItem {
+  justify-content: center;
+  padding: 12px;
+}
+
+.collapsed .navItem span {
+  display: none;
+}
+
+.collapsed .navBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+.collapsed .createPost {
+  width: 44px;
+  height: 44px;
+  margin: 8px auto;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.collapsed .createPost span {
+  display: none;
+}
+
+.collapsed .userSection {
+  align-items: center;
+}
+
+.collapsed .userInfo {
+  justify-content: center;
+  padding: 8px;
+}
+
+.collapsed .userMeta {
+  display: none;
+}
+
+.collapsed .chevron {
+  display: none;
 }
 
 .logo {
@@ -43,6 +105,7 @@
   font-weight: 500;
   color: var(--color-text);
   text-decoration: none;
+  position: relative;
   transition: background 0.15s, color 0.15s;
 }
 

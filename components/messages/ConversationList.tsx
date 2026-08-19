@@ -2,10 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
-import OnlineIndicator from '../OnlineIndicator'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
-import { usePresenceBatch } from '../../hooks/usePresence'
 import { formatChatTime } from '../../utils/chat'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
@@ -44,12 +42,6 @@ export default function ConversationList({
         c.partner.display_name.toLowerCase().includes(normalized),
       )
     : conversations
-
-  const partnerUserIds = useMemo(
-    () => filtered.map((c) => c.partner.user_id).filter(Boolean),
-    [filtered],
-  )
-  const { getPresenceForUser } = usePresenceBatch(partnerUserIds)
 
   return (
     <div className={styles.panel}>
@@ -95,26 +87,21 @@ export default function ConversationList({
           </div>
         )}
 
-        {filtered.map((conv) => {
-          const { isOnline } = getPresenceForUser(conv.partner.user_id)
-          return (
-            <button
-              key={conv.chat_id}
-              className={`${styles.row} ${
-                conv.chat_id === activeChatId ? styles.active : ''
-              }`}
-              onClick={() => onSelect(conv)}
-            >
-              <div className={styles.avatar}>
-                {conv.partner.avatar_uri ? (
-                  <ExternalImage src={conv.partner.avatar_uri} alt="" />
-                ) : (
-                  <i className="bx bxs-user" />
-                )}
-                <div className={styles.onlineIndicator}>
-                  <OnlineIndicator isOnline={isOnline} size="small" />
-                </div>
-              </div>
+        {filtered.map((conv) => (
+          <button
+            key={conv.chat_id}
+            className={`${styles.row} ${
+              conv.chat_id === activeChatId ? styles.active : ''
+            }`}
+            onClick={() => onSelect(conv)}
+          >
+            <div className={styles.avatar}>
+              {conv.partner.avatar_uri ? (
+                <ExternalImage src={conv.partner.avatar_uri} alt="" />
+              ) : (
+                <i className="bx bxs-user" />
+              )}
+            </div>
               <div className={styles.meta}>
                 <div className={styles.rowTop}>
                   <span className={styles.name}>
@@ -148,8 +135,7 @@ export default function ConversationList({
                 </span>
               </div>
             </button>
-          )
-        })}
+        ))}
       </div>
     </div>
   )

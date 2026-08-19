@@ -2,14 +2,13 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
-import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
-import ChatMediaLightbox from './ChatMediaLightbox'
+import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
-import { usePresence } from '../../hooks/usePresence'
 import { downloadMessageMedia, uploadMedia } from '../../api/chats'
+import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import {
@@ -19,8 +18,15 @@ import {
   type EmojiGroup,
   type EmotionEmojiItem,
 } from '../../utils/emojis'
-import type { ChatConversation, ChatMessage, EmojiItem } from '../../types'
+import type {
+  CallHistoryItem,
+  ChatConversation,
+  ChatMessage,
+  EmojiItem,
+  GifItem,
+} from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
+import { useCall } from '../../contexts/CallContext'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -74,6 +80,18 @@ interface DeleteTarget {
   message: ChatMessage
 }
 
+type TimelineItem =
+  | { kind: 'message'; msg: ChatMessage; created: number }
+  | { kind: 'call'; item: CallHistoryItem; created: number }
+
+const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
+
+function formatCallDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 export default function ChatWindow({
   conversation,
   myUserId,
@@ -82,6 +100,7 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const { startCall, isInCall } = useCall()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
     const map = new Map(EMOTION_EMOJI_MAP)
@@ -91,12 +110,53 @@ export default function ChatWindow({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
-  const [mediaTarget, setMediaTarget] = useState<{ src: string; isVideo: boolean } | null>(null)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const partnerUserId = conversation?.partner.user_id ?? ''
-  const { isOnline: partnerOnline, statusText: partnerStatusText } = usePresence(partnerUserId)
+  const partnerUserId = conversation?.partner.user_id ?? null
+  const [historyByPartner, setHistoryByPartner] = useState<
+    Map<string, CallHistoryItem[]>
+  >(() => new Map())
+
+  useEffect(() => {
+    if (!partnerUserId) return
+    if (historyByPartner.has(partnerUserId)) return
+    let cancelled = false
+    getCallHistory({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        const items = res.data.filter(
+          (item) => item.other_user.id === partnerUserId,
+        )
+        setHistoryByPartner((prev) => {
+          const next = new Map(prev)
+          next.set(partnerUserId, items)
+          return next
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [partnerUserId, historyByPartner])
+
+  const callHistory = partnerUserId
+    ? (historyByPartner.get(partnerUserId) ?? EMPTY_CALL_HISTORY)
+    : EMPTY_CALL_HISTORY
+
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const msgs: TimelineItem[] = room.messages.map((msg) => ({
+      kind: 'message',
+      msg,
+      created: new Date(msg.created_at).getTime(),
+    }))
+    const calls: TimelineItem[] = callHistory.map((item) => ({
+      kind: 'call',
+      item,
+      created: item.created_at,
+    }))
+    return [...msgs, ...calls].sort((a, b) => a.created - b.created)
+  }, [room.messages, callHistory])
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -127,7 +187,7 @@ export default function ChatWindow({
     if (el && room.searchResults === null) {
       el.scrollTop = el.scrollHeight
     }
-  }, [room.messages.length, room.partnerTyping, room.searchResults])
+  }, [room.messages.length, callHistory.length, room.partnerTyping, room.searchResults])
 
   if (!conversation) {
     return (
@@ -145,9 +205,16 @@ export default function ChatWindow({
     setDeleteTarget(null)
   }
 
-  const messages = room.messages
   const searchResults = room.searchResults
   const inSearch = searchResults !== null
+
+  const itemDate = (item: TimelineItem) =>
+    formatChatDate(
+      item.kind === 'message'
+        ? item.msg.created_at
+        : new Date(item.created).toISOString(),
+      t,
+    )
 
   return (
     <div className={styles.window}>
@@ -158,19 +225,11 @@ export default function ChatWindow({
           ) : (
             <i className="bx bxs-user" />
           )}
-          <div className={styles.onlineIndicator}>
-            <OnlineIndicator isOnline={partnerOnline} size="small" />
-          </div>
         </div>
         <div className={styles.headerMeta}>
           <span className={styles.name}>
             {conversation.partner.display_name || t('chat.unknown')}
           </span>
-          {partnerStatusText && (
-            <span className={styles.partnerStatus}>
-              {partnerStatusText}
-            </span>
-          )}
           {isEncrypted && (
             <span className={styles.e2eBadge} title={t('chat.e2eTitle')}>
               <i className="bx bxs-lock-alt" />
@@ -178,6 +237,24 @@ export default function ChatWindow({
             </span>
           )}
         </div>
+        <button
+          className={styles.iconBtn}
+          onClick={() => void startCall(conversation.partner, 'voice')}
+          disabled={isInCall}
+          aria-label={t('call.voiceCall')}
+          title={t('call.voiceCall')}
+        >
+          <i className="bx bx-phone-call" />
+        </button>
+        <button
+          className={styles.iconBtn}
+          onClick={() => void startCall(conversation.partner, 'video')}
+          disabled={isInCall}
+          aria-label={t('call.videoCall')}
+          title={t('call.videoCall')}
+        >
+          <i className="bx bx-video" />
+        </button>
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
           onClick={toggleSearch}
@@ -249,16 +326,26 @@ export default function ChatWindow({
             <div className={styles.center}>{t('common.loading')}</div>
           )}
 
-          {!room.loading && messages.length === 0 && (
+          {!room.loading && timeline.length === 0 && (
             <div className={styles.center}>
               <p>{t('chat.noMessages')}</p>
             </div>
           )}
 
-          {messages.map((msg, i) => {
-            const prev = messages[i - 1]
-            const showDate =
-              !prev || formatChatDate(prev.created_at, t) !== formatChatDate(msg.created_at, t)
+          {timeline.map((item, i) => {
+            const prev = timeline[i - 1]
+            const showDate = !prev || itemDate(prev) !== itemDate(item)
+
+            if (item.kind === 'call') {
+              return (
+                <Fragment key={`call-${item.item.id}`}>
+                  {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
+                  <CallLogItem item={item.item} />
+                </Fragment>
+              )
+            }
+
+            const msg = item.msg
             const mine = msg.sender_id === myUserId
             const singleEmoji =
               !msg.deleted && !msg.decrypt_failed
@@ -267,12 +354,12 @@ export default function ChatWindow({
             const plain =
               !msg.deleted &&
               !msg.decrypt_failed &&
-              ((!msg.content && Boolean(msg.media_id || msg.emoji_id)) ||
-                (!msg.media_id && !msg.emoji_id && singleEmoji !== null))
+              ((!msg.content && Boolean(msg.media_id || msg.media_uri || msg.emoji_id)) ||
+                (!msg.media_id && !msg.media_uri && !msg.emoji_id && singleEmoji !== null))
             return (
               <Fragment key={msg.id}>
                 {showDate && (
-                  <div className={styles.dateSep}>{formatChatDate(msg.created_at, t)}</div>
+                  <div className={styles.dateSep}>{itemDate(item)}</div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
                   {msg.deleted ? (
@@ -284,7 +371,7 @@ export default function ChatWindow({
                     <div className={styles.msgStack}>
                       <div className={`${styles.bubble} ${styles.bubblePlain}`}>
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} onMediaClick={(src, isVideo) => setMediaTarget({ src, isVideo })} />
+                          <MessageMedia message={msg} />
                         </div>
                         <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                       </div>
@@ -305,12 +392,12 @@ export default function ChatWindow({
                     <div
                       className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
                     >
-                      {msg.media_id && (
+                      {(msg.media_id || msg.media_uri) && (
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} onMediaClick={(src, isVideo) => setMediaTarget({ src, isVideo })} />
+                          <MessageMedia message={msg} />
                         </div>
                       )}
-                      {msg.emoji_id && !msg.media_id && (
+                      {msg.emoji_id && !msg.media_id && !msg.media_uri && (
                         <EmojiBubble message={msg} emojis={emojis} />
                       )}
                       {msg.decrypt_failed ? (
@@ -381,24 +468,15 @@ export default function ChatWindow({
           )}
         </div>
       </Modal>
-
-      {mediaTarget && (
-        <ChatMediaLightbox
-          src={mediaTarget.src}
-          isVideo={mediaTarget.isVideo}
-          onClose={() => setMediaTarget(null)}
-        />
-      )}
     </div>
   )
 }
 
 interface MessageMediaProps {
   message: ChatMessage
-  onMediaClick?: (src: string, isVideo: boolean) => void
 }
 
-function MessageMedia({ message, onMediaClick }: MessageMediaProps) {
+function MessageMedia({ message }: MessageMediaProps) {
   const { t } = useTranslation()
   const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
   const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
@@ -441,28 +519,9 @@ function MessageMedia({ message, onMediaClick }: MessageMediaProps) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   if (isVideo) {
-    return (
-      <video
-        src={src}
-        controls
-        muted
-        playsInline
-        className={styles.mediaEl}
-        onClick={() => onMediaClick?.(src, true)}
-        style={{ cursor: 'pointer' }}
-      />
-    )
+    return <video src={src} controls muted playsInline className={styles.mediaEl} />
   }
-  return (
-    <ExternalImage
-      src={src}
-      alt=""
-      className={styles.mediaEl}
-      loading="lazy"
-      onClick={() => onMediaClick?.(src, false)}
-      style={{ cursor: 'pointer' }}
-    />
-  )
+  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
 }
 
 interface EmojiBubbleProps {
@@ -477,6 +536,46 @@ function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
     return <span className={styles.deletedText}>{t('chat.emojiUnavailable')}</span>
   }
   return <EmojiImage emoji={emoji} className={styles.emojiMsg} />
+}
+
+interface CallLogItemProps {
+  item: CallHistoryItem
+}
+
+function CallLogItem({ item }: CallLogItemProps) {
+  const { t } = useTranslation()
+  const mine = item.direction === 'outgoing'
+  const isVideo = item.call_type === 'video'
+  const missed = item.is_missed
+  const typeLabel = isVideo ? t('call.videoCall') : t('call.voiceCall')
+  const label = missed
+    ? t('call.historyMissed')
+    : `${mine ? t('call.historyOutgoing') : t('call.historyIncoming')} • ${typeLabel}`
+  const icon = isVideo
+    ? 'bx-video'
+    : missed
+      ? 'bx-phone-missed'
+      : mine
+        ? 'bx-phone-call'
+        : 'bx-phone-incoming'
+  const showDuration = !missed && item.duration > 0
+
+  return (
+    <div className={`${styles.callRow} ${mine ? styles.callMine : styles.callTheirs}`}>
+      <div className={`${styles.callBubble}${missed ? ` ${styles.callMissed}` : ''}`}>
+        <i className={`bx ${icon}`} />
+        <span className={styles.callLabel}>{label}</span>
+        {showDuration && (
+          <span className={styles.callDuration}>
+            {formatCallDuration(item.duration)}
+          </span>
+        )}
+        <span className={styles.callTime}>
+          {formatChatTime(new Date(item.created_at).toISOString(), t)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 const SINGLE_URL_RE = /^https?:\/\/\S+$/i
@@ -534,6 +633,7 @@ function Composer({ room }: ComposerProps) {
   const [value, setValue] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [emojiGroup, setEmojiGroup] = useState<EmojiGroup>('positive')
+  const [gifOpen, setGifOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
@@ -542,6 +642,8 @@ function Composer({ room }: ComposerProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const toggleEmojiRef = useRef<HTMLButtonElement>(null)
+  const gifPickerRef = useRef<HTMLDivElement>(null)
+  const toggleGifRef = useRef<HTMLButtonElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -580,16 +682,19 @@ function Composer({ room }: ComposerProps) {
   }
 
   useEffect(() => {
-    if (!emojiOpen) return
+    if (!emojiOpen && !gifOpen) return
     const onClick = (e: MouseEvent) => {
       const target = e.target as Node
       if (pickerRef.current?.contains(target)) return
       if (toggleEmojiRef.current?.contains(target)) return
+      if (gifPickerRef.current?.contains(target)) return
+      if (toggleGifRef.current?.contains(target)) return
       setEmojiOpen(false)
+      setGifOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [emojiOpen])
+  }, [emojiOpen, gifOpen])
 
   const insertNodeAtCaret = (node: Node) => {
     const el = inputRef.current
@@ -645,6 +750,15 @@ function Composer({ room }: ComposerProps) {
     if (inputRef.current) inputRef.current.innerHTML = ''
     setEmojiOpen(false)
     sendTyping(false)
+  }
+
+  const selectGif = (gif: GifItem) => {
+    room.sendMessage('', {
+      gifUrl: gif.preview,
+      mediaUri: gif.preview,
+      mediaType: 'image/gif',
+    })
+    setGifOpen(false)
   }
 
   const sendFile = async (file: File, caption: string): Promise<boolean> => {
@@ -763,11 +877,26 @@ function Composer({ room }: ComposerProps) {
           <button
             ref={toggleEmojiRef}
             className={`${styles.iconBtn} ${emojiOpen ? styles.iconBtnActive : ''}`}
-            onClick={() => setEmojiOpen((prev) => !prev)}
+            onClick={() => {
+              setGifOpen(false)
+              setEmojiOpen((prev) => !prev)
+            }}
             aria-label={t('chat.emojiPicker')}
             title={t('chat.emojiPicker')}
           >
             <i className="bx bxs-smile" />
+          </button>
+          <button
+            ref={toggleGifRef}
+            className={`${styles.iconBtn} ${gifOpen ? styles.iconBtnActive : ''}`}
+            onClick={() => {
+              setEmojiOpen(false)
+              setGifOpen((prev) => !prev)
+            }}
+            aria-label={t('chat.gif')}
+            title={t('chat.gif')}
+          >
+            <i className="bx bx-movie" />
           </button>
           <button
             className={styles.iconBtn}
@@ -828,6 +957,11 @@ function Composer({ room }: ComposerProps) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+      {gifOpen && (
+        <div ref={gifPickerRef} className={styles.gifPickerWrap}>
+          <GifPicker placement="top" onSelect={selectGif} onClose={() => setGifOpen(false)} />
         </div>
       )}
     </div>

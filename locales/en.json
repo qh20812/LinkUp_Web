@@ -48,7 +48,11 @@
   },
   "userNavbar": {
     "explore": "Explore",
-    "following": "Following"
+    "following": "Following",
+    "collapseLeft": "Collapse left sidebar",
+    "expandLeft": "Expand left sidebar",
+    "collapseRight": "Collapse right sidebar",
+    "expandRight": "Expand right sidebar"
   },
   "sidebar": {
     "home": "Home",
@@ -694,8 +698,6 @@
   },
   "chat": {
     "newMessage": "New message",
-    "collapseSidebar": "Collapse conversation list",
-    "expandSidebar": "Expand conversation list",
     "emojiCat": {
       "positive": "Happy",
       "neutral": "Neutral",
@@ -745,10 +747,43 @@
     "newChat": "New conversation",
     "emojiPicker": "Pick an emoji",
     "attach": "Attach file",
+    "gif": "GIF",
     "uploadFailed": "Could not upload file",
     "mediaFailed": "Could not load media",
     "emojiMessage": "[Emoji]",
     "emojiUnavailable": "Emoji unavailable"
+  },
+  "call": {
+    "voiceCall": "Voice call",
+    "videoCall": "Video call",
+    "incomingVoice": "Incoming voice call...",
+    "incomingVideo": "Incoming video call...",
+    "outgoing": "Calling...",
+    "inCallVoice": "In a voice call",
+    "inCallVideo": "In a video call",
+    "accept": "Accept",
+    "reject": "Decline",
+    "end": "End call",
+    "cancel": "Cancel call",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "videoOn": "Turn camera on",
+    "videoOff": "Turn camera off",
+    "permissionDenied": "Could not access microphone/camera",
+    "failed": "Call failed",
+    "noConnection": "Could not connect to the call server",
+    "unknown": "Unknown",
+    "statusCalling": "Calling...",
+    "statusRinging": "Ringing...",
+    "statusConnected": "Connected",
+    "statusEnded": "Call ended",
+    "statusMissed": "Missed call",
+    "statusRejected": "Call declined",
+    "statusBusy": "User is busy",
+    "statusCancelled": "Call cancelled",
+    "historyOutgoing": "Outgoing call",
+    "historyIncoming": "Incoming call",
+    "historyMissed": "Missed call"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Internal server error",

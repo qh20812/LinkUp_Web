@@ -299,6 +299,79 @@
   font-size: 0.9rem;
 }
 
+.callRow {
+  display: flex;
+  align-items: center;
+  max-width: 72%;
+}
+
+.callMine {
+  align-self: flex-end;
+}
+
+.callTheirs {
+  align-self: flex-start;
+}
+
+.callBubble {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 14px;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+}
+
+.callMine .callBubble {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.callTheirs .callBubble {
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.callBubble i {
+  font-size: 1.125rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.callMine .callBubble i {
+  color: #fff;
+}
+
+.callMissed i {
+  color: var(--color-danger);
+}
+
+.callMine .callMissed i {
+  color: #fff;
+}
+
+.callLabel {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.callDuration {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.callTime {
+  font-size: 0.6875rem;
+  opacity: 0.75;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .searchResults {
   flex: 1;
   overflow-y: auto;
@@ -450,6 +523,13 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   width: 260px;
   z-index: 20;
+}
+
+.gifPickerWrap {
+  position: relative;
+  width: 0;
+  height: 0;
+  z-index: 30;
 }
 
 .emojiTabs {

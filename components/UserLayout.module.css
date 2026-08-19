@@ -2,6 +2,11 @@
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) 360px;
   min-height: 100vh;
+  transition: grid-template-columns 0.25s ease;
+}
+
+.layoutLeftCollapsed {
+  grid-template-columns: 72px minmax(0, 1fr) 360px;
 }
 
 .left {
@@ -39,6 +44,10 @@
 
 .layoutNoRight {
   grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.layoutLeftCollapsed.layoutNoRight {
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 @media (max-width: 1024px) {

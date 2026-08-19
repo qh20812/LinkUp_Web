@@ -34,19 +34,7 @@ export default function MessagesPage() {
   const [deleteTarget, setDeleteTarget] = useState<ChatConversation | null>(null)
   const [invites, setInvites] = useState<ChatInviteItem[]>([])
   const [respondingInvite, setRespondingInvite] = useState<string | null>(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('chatSidebar') === 'collapsed'
-  })
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('chatSidebar', sidebarCollapsed ? 'collapsed' : 'open')
-    } catch {
-      // localStorage không khả dụng thì bỏ qua, chỉ không nhớ trạng thái.
-    }
-  }, [sidebarCollapsed])
 
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
@@ -270,7 +258,7 @@ export default function MessagesPage() {
           </div>
         </div>
       )}
-      <div className={`${styles.layout} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
+      <div className={styles.layout}>
         <div className={styles.listPane}>
           <ConversationList
             conversations={conversations}
@@ -282,15 +270,6 @@ export default function MessagesPage() {
           />
         </div>
         <div className={styles.windowPane}>
-          <button
-            type="button"
-            className={styles.collapseBtn}
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
-            title={t(sidebarCollapsed ? 'chat.expandSidebar' : 'chat.collapseSidebar')}
-            aria-label={t(sidebarCollapsed ? 'chat.expandSidebar' : 'chat.collapseSidebar')}
-          >
-            <i className={sidebarCollapsed ? 'bx bx-chevrons-right' : 'bx bx-chevrons-left'} />
-          </button>
           <ChatWindow
             conversation={activeConversation}
             myUserId={myUserId}
