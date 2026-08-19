@@ -924,6 +924,23 @@ export interface StoryFeedItem {
   stories: StoryItem[]
 }
 
+// ===== Presence =====
+export type PresenceStatus = 'online' | 'offline'
+
+export interface UserPresence {
+  user_id: string
+  status: PresenceStatus
+  last_seen?: string
+}
+
+export interface PresenceBatchRequest {
+  user_ids: string[]
+}
+
+export interface PresenceBatchResponse {
+  data: Record<string, UserPresence>
+}
+
 // ===== Calls =====
 export type CallType = 'voice' | 'video'
 

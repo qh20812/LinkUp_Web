@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
 import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -27,6 +28,7 @@ import type {
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall } from '../../contexts/CallContext'
+import { usePresence } from '../../contexts/PresenceContext'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -101,6 +103,7 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const { startCall, isInCall } = useCall()
+  const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
     const map = new Map(EMOTION_EMOJI_MAP)
@@ -114,6 +117,11 @@ export default function ChatWindow({
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const partnerUserId = conversation?.partner.user_id ?? null
+
+  useEffect(() => {
+    if (partnerUserId) prefetchPresence([partnerUserId])
+  }, [partnerUserId, prefetchPresence])
+
   const [historyByPartner, setHistoryByPartner] = useState<
     Map<string, CallHistoryItem[]>
   >(() => new Map())
@@ -225,6 +233,7 @@ export default function ChatWindow({
           ) : (
             <i className="bx bxs-user" />
           )}
+          <OnlineIndicator isOnline={isOnline(conversation.partner.user_id)} />
         </div>
         <div className={styles.headerMeta}>
           <span className={styles.name}>

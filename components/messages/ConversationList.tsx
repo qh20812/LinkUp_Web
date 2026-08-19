@@ -1,7 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
+import { usePresence } from '../../contexts/PresenceContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
@@ -29,12 +31,18 @@ export default function ConversationList({
 }: ConversationListProps) {
   const { t } = useTranslation()
   const { emojis } = useEmojis()
+  const { isOnline, prefetchPresence } = usePresence()
   const emojiCodeMap = useMemo(() => {
     const map = emojiByCode(getEmotionEmojis())
     for (const e of emojis.values()) map.set(e.code, e)
     return map
   }, [emojis])
   const [filter, setFilter] = useState('')
+
+  useEffect(() => {
+    const ids = conversations.map((c) => c.partner.user_id)
+    if (ids.length > 0) prefetchPresence(ids)
+  }, [conversations, prefetchPresence])
 
   const normalized = filter.trim().toLowerCase()
   const filtered = normalized
@@ -101,6 +109,7 @@ export default function ConversationList({
               ) : (
                 <i className="bx bxs-user" />
               )}
+              <OnlineIndicator isOnline={isOnline(conv.partner.user_id)} />
             </div>
               <div className={styles.meta}>
                 <div className={styles.rowTop}>

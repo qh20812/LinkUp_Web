@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
+import OnlineIndicator from '../OnlineIndicator'
 import StoryAvatar from '../story/StoryAvatar'
 import FriendButton from './FriendButton'
 import styles from './ProfileHeader.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
+import { usePresence } from '../../contexts/PresenceContext'
 import type { ViewProfileResponse } from '../../types'
 import type { FollowStats } from '../../hooks/profile/useFollowStats'
 
@@ -67,6 +69,7 @@ export default function ProfileHeader({
   onViewAvatar,
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
+  const { isOnline, prefetchPresence } = usePresence()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarWrapRef = useRef<HTMLDivElement>(null)
@@ -89,6 +92,10 @@ export default function ProfileHeader({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showAvatarMenu])
+
+  useEffect(() => {
+    if (targetUserID) prefetchPresence([targetUserID])
+  }, [targetUserID, prefetchPresence])
 
   const handleAvatarClick = () => {
     if (isSelf && !hasStory) {
@@ -166,6 +173,7 @@ export default function ProfileHeader({
                 hasViewed={hasStoryViewed}
                 size={96}
               />
+              <OnlineIndicator isOnline={isOnline(targetUserID || '')} />
               {isSelf && (
                 <div className={styles.avatarOverlay}>
                   <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>
@@ -321,6 +329,7 @@ export default function ProfileHeader({
               hasViewed={hasStoryViewed}
               size={96}
             />
+            <OnlineIndicator isOnline={isOnline(targetUserID || '')} />
             {isSelf && (
               <div className={styles.avatarOverlay}>
                 <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>

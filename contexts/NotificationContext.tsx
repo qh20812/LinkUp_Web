@@ -182,6 +182,10 @@ export function NotificationProvider({
               setNotifications((prev) => mergeNotification(newNotif, prev));
               setUnreadCount((prev) => prev + 1);
               invalidate("/notifications");
+            } else if (message.type === "presence:update") {
+              window.dispatchEvent(
+                new CustomEvent("presence:update", { detail: message.data }),
+              );
             }
           } catch (err) {
             console.error("Error parsing WS message:", err);
