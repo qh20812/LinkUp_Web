@@ -18,7 +18,6 @@ import type { ViewProfileResponse } from '../types'
 
 const NAV_ITEMS = [
   { key: 'home', href: '/', icon: 'bxs-home' },
-  { key: 'explore', href: '/explore', icon: 'bx-compass' },
   { key: 'notifications', href: '/notifications', icon: 'bxs-bell' },
   { key: 'messages', href: '/messages', icon: 'bxs-message-dots' },
   { key: 'friends', href: '/friends', icon: 'bxs-group' },
