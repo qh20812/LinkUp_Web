@@ -1,10 +1,32 @@
-import React, { type ImgHTMLAttributes } from 'react'
+'use client'
+
+import { useState, type ImgHTMLAttributes } from 'react'
 
 interface ExternalImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   alt: string
 }
 
-// eslint-disable-next-line @next/next/no-img-element
-const ExternalImage = ({ alt, ...props }: ExternalImageProps) => <img alt={alt} {...props} />
+const ExternalImage = ({ alt, onError, onLoad, ...props }: ExternalImageProps) => {
+  const [error, setError] = useState(false)
+
+  if (error) {
+    return <i className="bx bxs-user" style={{ fontSize: 'inherit' }} />
+  }
+
+  return (
+    <img
+      alt={alt}
+      onError={(e) => {
+        setError(true)
+        onError?.(e)
+      }}
+      onLoad={(e) => {
+        setError(false)
+        onLoad?.(e)
+      }}
+      {...props}
+    />
+  )
+}
 
 export default ExternalImage

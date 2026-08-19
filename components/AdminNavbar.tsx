@@ -37,7 +37,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
 
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-  const { unreadCount } = useNotification();
+  const { unreadCount, closeWs } = useNotification();
 
   const [cachedProfile, setCachedProfile] = useState<Record<string, string>>({});
 
@@ -108,6 +108,7 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
+    closeWs();
     await logout().catch(() => {});
     clearSession();
     clearSWRCache();

@@ -7,6 +7,7 @@ import type { PresenceStatus } from '../types'
 interface PresenceContextType {
   isOnline: (userID: string) => boolean
   prefetchPresence: (userIDs: string[]) => void
+  resetPresence: () => void
 }
 
 const PresenceContext = createContext<PresenceContextType | undefined>(undefined)
@@ -42,6 +43,11 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
     [],
   )
 
+  const resetPresence = useCallback(() => {
+    setPresenceMap(new Map())
+    fetchedRef.current = new Set()
+  }, [])
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { user_id: string; status: string } | undefined
@@ -58,7 +64,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <PresenceContext.Provider value={{ isOnline, prefetchPresence }}>
+    <PresenceContext.Provider value={{ isOnline, prefetchPresence, resetPresence }}>
       {children}
     </PresenceContext.Provider>
   )

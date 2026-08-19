@@ -35,6 +35,7 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   loadPreferences: () => Promise<void>;
   updatePreferences: (prefs: Partial<NotificationPreferences>) => Promise<void>;
+  closeWs: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -54,7 +55,16 @@ export function NotificationProvider({
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(1000);
+  const closedByUserRef = useRef(false);
   const maxReconnectDelay = 30000;
+
+  const closeWs = useCallback(() => {
+    closedByUserRef.current = true;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, []);
 
   const refreshUnreadCount = useCallback(async () => {
     try {
@@ -164,6 +174,7 @@ export function NotificationProvider({
 
       ws.onopen = () => {
         if (!isComponentMounted) return;
+        closedByUserRef.current = false;
         reconnectDelayRef.current = 1000;
       };
 
@@ -194,9 +205,9 @@ export function NotificationProvider({
       };
 
       ws.onclose = () => {
-        if (!isComponentMounted) return;
+        if (!isComponentMounted || closedByUserRef.current) return;
         setTimeout(() => {
-          if (isComponentMounted) {
+          if (isComponentMounted && !closedByUserRef.current) {
             reconnectDelayRef.current = Math.min(
               reconnectDelayRef.current * 2,
               maxReconnectDelay
@@ -252,6 +263,7 @@ export function NotificationProvider({
         markAllAsRead,
         loadPreferences,
         updatePreferences,
+        closeWs,
       }}>
       {children}
     </NotificationContext.Provider>

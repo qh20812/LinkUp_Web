@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
   import { logout } from '../api/auth'
   import { clearSession } from '../api/api'
   import { clearSWRCache } from '../api/swr'
+  import { useNotification } from '../contexts/NotificationContext'
   import styles from './AdminSidebar.module.css'
 
 interface AdminSidebarProps {
@@ -30,6 +31,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   const { t } = useTranslation()
   const pathname = usePathname()
   const router = useRouter()
+  const { closeWs } = useNotification()
   const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   }, [])
 
   const handleLogout = async () => {
+    closeWs()
     await logout().catch(() => {})
     clearSession()
     clearSWRCache()
