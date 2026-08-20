@@ -154,6 +154,8 @@ export interface GifItem {
   preview: string
   full: string
   title?: string
+  preview_width?: number
+  preview_height?: number
 }
 
 export interface CreatePostResponse {

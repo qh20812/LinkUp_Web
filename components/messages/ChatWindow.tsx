@@ -88,6 +88,11 @@ type TimelineItem =
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 
+// Cache media trong session: tránh tải lại blob khi mở lại hội thoại, và lưu
+// tỉ lệ ảnh để render lại reserve đúng chỗ, giảm layout shift.
+const mediaBlobCache = new Map<string, { url: string; isVideo: boolean }>()
+const mediaRatioCache = new Map<string, { width: number; height: number }>()
+
 function formatCallDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -578,40 +583,94 @@ interface MessageMediaProps {
 function MessageMedia({ message }: MessageMediaProps) {
   const { t } = useTranslation()
   const downloadRequired = !message.media_uri
-  const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
-  const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
+  const cached = mediaBlobCache.get(message.id)
+  const cachedRatio = mediaRatioCache.get(message.id)
+  const [src, setSrc] = useState<string | null>(
+    message.media_uri ?? cached?.url ?? null,
+  )
+  const [isVideo, setIsVideo] = useState(
+    message.media_type?.startsWith('video/') ?? cached?.isVideo ?? false,
+  )
   const [failed, setFailed] = useState(false)
-  const [loaded, setLoaded] = useState(() => !downloadRequired)
+  const [loaded, setLoaded] = useState(() => !!(message.media_uri ?? cached?.url))
+  const [ratio, setRatio] = useState<{ width: number; height: number } | null>(
+    cachedRatio ?? null,
+  )
   const objectUrlRef = useRef<string | null>(null)
+  const boxRef = useRef<HTMLSpanElement>(null)
+
+  const needsDownload = downloadRequired && !src
 
   useEffect(() => {
-    if (message.media_uri) return
+    if (!needsDownload) return
+    if (mediaBlobCache.has(message.id)) return
     let cancelled = false
-    downloadMessageMedia(message.id)
-      .then((blob) => {
-        if (cancelled) return
-        const url = URL.createObjectURL(blob)
-        objectUrlRef.current = url
-        setSrc(url)
-        setIsVideo(blob.type.startsWith('video/'))
-      })
-      .catch(() => {
-        if (cancelled) return
-        setFailed(true)
-      })
-    return () => {
-      cancelled = true
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current)
-        objectUrlRef.current = null
+    let started = false
+    let observer: IntersectionObserver | null = null
+    const runDownload = () => {
+      if (started || cancelled) return
+      started = true
+      downloadMessageMedia(message.id)
+        .then((blob) => {
+          if (cancelled) return
+          const url = URL.createObjectURL(blob)
+          const isVideoBlob = blob.type.startsWith('video/')
+          mediaBlobCache.set(message.id, { url, isVideo: isVideoBlob })
+          objectUrlRef.current = url
+          setSrc(url)
+          setIsVideo(isVideoBlob)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setFailed(true)
+        })
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      runDownload()
+    } else {
+      const el = boxRef.current
+      if (!el) {
+        runDownload()
+      } else {
+        observer = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              runDownload()
+              observer?.disconnect()
+            }
+          },
+          { rootMargin: '200px' },
+        )
+        observer.observe(el)
       }
     }
-  }, [message.id, message.media_uri])
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+      if (
+        objectUrlRef.current &&
+        mediaBlobCache.get(message.id)?.url !== objectUrlRef.current
+      ) {
+        URL.revokeObjectURL(objectUrlRef.current)
+      }
+      objectUrlRef.current = null
+    }
+  }, [message.id, message.media_uri, needsDownload])
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setLoaded(true)
+    const img = e.currentTarget
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const dims = { width: img.naturalWidth, height: img.naturalHeight }
+      mediaRatioCache.set(message.id, dims)
+      setRatio(dims)
+    }
+  }
 
   const loading = !src && !failed
   if (loading) {
     return (
-      <span className={styles.mediaLoading}>
+      <span ref={boxRef} className={styles.mediaLoading}>
         <i className="bx bx-loader-circle bx-spin" />
       </span>
     )
@@ -620,10 +679,22 @@ function MessageMedia({ message }: MessageMediaProps) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   if (isVideo) {
-    return <video src={src} controls muted playsInline className={styles.mediaEl} />
+    return (
+      <video
+        src={src}
+        controls
+        muted
+        playsInline
+        preload="metadata"
+        className={styles.mediaEl}
+      />
+    )
   }
   return (
-    <span className={`${styles.mediaBox}${loaded ? '' : ` ${styles.mediaBoxLoading}`}`}>
+    <span
+      ref={boxRef}
+      className={`${styles.mediaBox}${loaded ? '' : ` ${styles.mediaBoxLoading}`}`}
+    >
       {!loaded && (
         <span className={styles.mediaLoading}>
           <i className="bx bx-loader-circle bx-spin" />
@@ -633,8 +704,10 @@ function MessageMedia({ message }: MessageMediaProps) {
         src={src}
         alt=""
         className={styles.mediaEl}
-        onLoad={() => setLoaded(true)}
+        onLoad={handleImageLoad}
         loading="eager"
+        decoding="async"
+        style={ratio ? { aspectRatio: `${ratio.width} / ${ratio.height}` } : undefined}
       />
     </span>
   )
