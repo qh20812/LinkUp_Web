@@ -27,7 +27,7 @@ import type {
   GifItem,
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
-import { useCall } from '../../contexts/CallContext'
+import { useCall, type CallPhase } from '../../contexts/CallContext'
 import { usePresence } from '../../contexts/PresenceContext'
 import styles from './ChatWindow.module.css'
 
@@ -102,7 +102,12 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
-  const { startCall, isInCall } = useCall()
+  const {
+    startCall,
+    isInCall,
+    phase: callPhase,
+    call: activeCall,
+  } = useCall()
   const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
@@ -149,6 +154,41 @@ export default function ChatWindow({
       cancelled = true
     }
   }, [partnerUserId, historyByPartner])
+
+  // Cập nhật lịch sử cuộc gọi theo thời gian thực: khi cuộc gọi với đối tác hiện
+  // tại kết thúc (cả 2 phía đều qua phase 'ended'), nạp lại history và merge để
+  // cuộc gọi xuất hiện ngay trong timeline mà không cần reload.
+  const prevCallPhaseRef = useRef<CallPhase>(callPhase)
+  useEffect(() => {
+    const prev = prevCallPhaseRef.current
+    prevCallPhaseRef.current = callPhase
+    if (prev === 'ended' || callPhase !== 'ended') return
+    if (!activeCall || activeCall.peer.user_id !== partnerUserId) return
+    let cancelled = false
+    getCallHistory({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        const items = res.data.filter(
+          (item) => item.other_user.id === partnerUserId,
+        )
+        if (items.length === 0) return
+        setHistoryByPartner((prevMap) => {
+          const existing = prevMap.get(partnerUserId) ?? []
+          const byId = new Map(existing.map((item) => [item.id, item]))
+          for (const item of items) byId.set(item.id, item)
+          const next = new Map(prevMap)
+          next.set(
+            partnerUserId,
+            [...byId.values()].sort((a, b) => b.created_at - a.created_at),
+          )
+          return next
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [callPhase, activeCall, partnerUserId])
 
   const callHistory = partnerUserId
     ? (historyByPartner.get(partnerUserId) ?? EMPTY_CALL_HISTORY)
