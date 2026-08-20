@@ -8,8 +8,6 @@ import UserNavbar from './UserNavbar'
 import RightSidebar from './RightSidebar'
 import { NotificationProvider } from '../contexts/NotificationContext'
 import { PresenceProvider } from '../contexts/PresenceContext'
-import { CallProvider } from '../contexts/CallContext'
-import CallOverlay from './calls/CallOverlay'
 import { FollowedUserIdsProvider } from '../contexts/FollowContext'
 import { defaultSWRConfig } from '../api/swr'
 import styles from './UserLayout.module.css'
@@ -60,8 +58,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     <SWRConfig value={defaultSWRConfig}>
       <NotificationProvider>
         <PresenceProvider>
-          <CallProvider>
-            <FollowedUserIdsProvider>
+          <FollowedUserIdsProvider>
             <div className={layoutClass}>
               <div className={styles.left}>
                 <LeftSidebar collapsed={leftCollapsed} />
@@ -81,9 +78,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 </div>
               )}
             </div>
-            <CallOverlay />
-            </FollowedUserIdsProvider>
-          </CallProvider>
+          </FollowedUserIdsProvider>
         </PresenceProvider>
       </NotificationProvider>
     </SWRConfig>
