@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
@@ -115,6 +115,8 @@ export default function ChatWindow({
   const [searchInput, setSearchInput] = useState('')
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const timelineRef = useRef<HTMLDivElement>(null)
+  const pinToBottomRef = useRef(true)
 
   const partnerUserId = conversation?.partner.user_id ?? null
 
@@ -190,12 +192,58 @@ export default function ChatWindow({
     }
   }, [searchInput, clearSearch, searchMessages])
 
+// Bám đáy khi có tin nhắn / cuộc gọi mới; media load xong làm nội dung cao
+  // thêm cũng được kéo xuống đáy nhờ ResizeObserver trên wrapper nội dung.
+  // Không giật người dùng đang cuộn lên đọc lịch sử (xem handleMessagesScroll).
+const prevTimelineLenRef = useRef(0)
+  const programmaticScrollRef = useRef(false)
+
+  const scrollToBottom = useCallback(() => {
+    const scroller = scrollRef.current
+    if (!scroller) return
+    programmaticScrollRef.current = true
+    scroller.scrollTop = scroller.scrollHeight
+  }, [])
+
   useEffect(() => {
-    const el = scrollRef.current
-    if (el && room.searchResults === null) {
-      el.scrollTop = el.scrollHeight
+    const el = timelineRef.current
+    if (!el) return
+
+    // Chỉ re-pin khi số mục timeline thay đổi (message/call mới) và không đang
+    // xem kết quả tìm kiếm. Thay đổi ephemeral (typing) không kéo xuống đáy.
+    const totalLen = room.messages.length + callHistory.length
+    if (totalLen !== prevTimelineLenRef.current && room.searchResults === null) {
+      pinToBottomRef.current = true
+      scrollToBottom()
     }
-  }, [room.messages.length, callHistory.length, room.partnerTyping, room.searchResults])
+    prevTimelineLenRef.current = totalLen
+
+    const observer = new ResizeObserver(() => {
+      if (pinToBottomRef.current && room.searchResults === null) {
+        scrollToBottom()
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [room.messages.length, callHistory.length, room.searchResults, scrollToBottom])
+
+  // Người dùng cuộn lên đọc lịch sử → không còn bám đáy. Các lần cuộn do
+  // scrollToBottom() gây ra bị bỏ qua để tránh race làm mất trạng thái bám đáy.
+  const handleMessagesScroll = () => {
+    if (programmaticScrollRef.current) {
+      programmaticScrollRef.current = false
+      return
+    }
+    const el = scrollRef.current
+    if (!el) return
+    pinToBottomRef.current =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 24
+  }
+
+  const chatId = conversation?.chat_id ?? null
+  useEffect(() => {
+    if (chatId) pinToBottomRef.current = true
+  }, [chatId])
 
   if (!conversation) {
     return (
@@ -330,7 +378,7 @@ export default function ChatWindow({
           )}
         </div>
       ) : (
-        <div className={styles.messages} ref={scrollRef}>
+        <div className={styles.messages} ref={scrollRef} onScroll={handleMessagesScroll}>
           {room.loading && (
             <div className={styles.center}>{t('common.loading')}</div>
           )}
@@ -341,7 +389,8 @@ export default function ChatWindow({
             </div>
           )}
 
-          {timeline.map((item, i) => {
+          <div ref={timelineRef} className={styles.timelineContent}>
+            {timeline.map((item, i) => {
             const prev = timeline[i - 1]
             const showDate = !prev || itemDate(prev) !== itemDate(item)
 
@@ -448,6 +497,7 @@ export default function ChatWindow({
               <span>{t('chat.typing')}</span>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -487,9 +537,11 @@ interface MessageMediaProps {
 
 function MessageMedia({ message }: MessageMediaProps) {
   const { t } = useTranslation()
+  const downloadRequired = !message.media_uri
   const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
   const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
   const [failed, setFailed] = useState(false)
+  const [loaded, setLoaded] = useState(() => !downloadRequired)
   const objectUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -530,7 +582,22 @@ function MessageMedia({ message }: MessageMediaProps) {
   if (isVideo) {
     return <video src={src} controls muted playsInline className={styles.mediaEl} />
   }
-  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
+  return (
+    <span className={`${styles.mediaBox}${loaded ? '' : ` ${styles.mediaBoxLoading}`}`}>
+      {!loaded && (
+        <span className={styles.mediaLoading}>
+          <i className="bx bx-loader-circle bx-spin" />
+        </span>
+      )}
+      <ExternalImage
+        src={src}
+        alt=""
+        className={styles.mediaEl}
+        onLoad={() => setLoaded(true)}
+        loading="eager"
+      />
+    </span>
+  )
 }
 
 interface EmojiBubbleProps {
