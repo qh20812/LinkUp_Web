@@ -782,7 +782,9 @@
     "statusCancelled": "Cuộc gọi đã hủy",
     "historyOutgoing": "Cuộc gọi đi",
     "historyIncoming": "Cuộc gọi đến",
-    "historyMissed": "Cuộc gọi nhỡ"
+    "historyMissed": "Cuộc gọi nhỡ",
+    "minimize": "Thu nhỏ cuộc gọi",
+    "expand": "Mở rộng cuộc gọi"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Lỗi hệ thống",

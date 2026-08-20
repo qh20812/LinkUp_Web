@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import { useCall } from '../../contexts/CallContext'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -79,6 +79,14 @@ export default function CallOverlay() {
     dismiss,
   } = useCall()
 
+  const [minimized, setMinimized] = useState(false)
+  const callId = call?.callId ?? null
+  const prevCallIdRef = useRef(callId)
+  if (prevCallIdRef.current !== callId) {
+    prevCallIdRef.current = callId
+    setMinimized(false)
+  }
+
   if (phase === 'idle' || !call) return null
 
   const isVideo = call.callType === 'video'
@@ -101,6 +109,75 @@ export default function CallOverlay() {
             ? t('call.inCallVideo')
             : t('call.inCallVoice')
           : ''
+
+  if (minimized && isActive) {
+    return (
+      <div
+        className={styles.miniBar}
+        role="dialog"
+        aria-label={isVideo ? t('call.inCallVideo') : t('call.inCallVoice')}
+      >
+        {isVideo && remoteStream && remoteVideoOn ? (
+          <div className={styles.miniThumb}>
+            <VideoFeed stream={remoteStream} className={styles.miniVideo} />
+          </div>
+        ) : (
+          <div className={styles.miniAvatar}>
+            {call.peer.avatar_uri ? (
+              <ExternalImage src={call.peer.avatar_uri} alt="" />
+            ) : (
+              <i className="bx bxs-user" />
+            )}
+          </div>
+        )}
+        <div className={styles.miniInfo}>
+          <span className={styles.miniName}>{peerName}</span>
+          <span className={styles.miniStatus}>
+            {formatDuration(duration)}
+            {remoteMuted && (
+              <i className={`bx bx-microphone-off ${styles.remoteMutedIcon}`} />
+            )}
+          </span>
+        </div>
+        <div className={styles.miniControls}>
+          <button
+            className={`${styles.miniBtn} ${localMuted ? styles.activeBtn : ''}`}
+            onClick={toggleMute}
+            aria-label={localMuted ? t('call.unmute') : t('call.mute')}
+            title={localMuted ? t('call.unmute') : t('call.mute')}
+          >
+            <i className={localMuted ? 'bx bx-microphone-off' : 'bx bx-microphone'} />
+          </button>
+          {isVideo && (
+            <button
+              className={`${styles.miniBtn} ${!localVideoOn ? styles.activeBtn : ''}`}
+              onClick={toggleVideo}
+              aria-label={localVideoOn ? t('call.videoOff') : t('call.videoOn')}
+              title={localVideoOn ? t('call.videoOff') : t('call.videoOn')}
+            >
+              <i className={localVideoOn ? 'bx bx-video' : 'bx bx-video-off'} />
+            </button>
+          )}
+          <button
+            className={styles.miniBtn}
+            onClick={() => setMinimized(false)}
+            aria-label={t('call.expand')}
+            title={t('call.expand')}
+          >
+            <i className="bx bx-expand" />
+          </button>
+          <button
+            className={`${styles.miniBtn} ${styles.miniEnd}`}
+            onClick={endCall}
+            aria-label={t('call.end')}
+            title={t('call.end')}
+          >
+            <i className="bx bx-phone-off" />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
@@ -203,6 +280,14 @@ export default function CallOverlay() {
                   <i className={localVideoOn ? 'bx bx-video' : 'bx bx-video-off'} />
                 </button>
               )}
+              <button
+                className={styles.controlBtn}
+                onClick={() => setMinimized(true)}
+                aria-label={t('call.minimize')}
+                title={t('call.minimize')}
+              >
+                <i className="bx bx-chevrons-down" />
+              </button>
               <button
                 className={`${styles.controlBtn} ${styles.endBtn}`}
                 onClick={endCall}
