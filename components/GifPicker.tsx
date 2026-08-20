@@ -9,8 +9,13 @@ const GIPHY_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY ?? ''
 const GIPHY_BASE = 'https://api.giphy.com/v1/gifs'
 const GIPHY_LIMIT = 24
 
+// Cache trending để không gọi lại GIPHY mỗi lần mở picker trong cùng phiên.
+let trendingCache: GifItem[] | null = null
+
 interface GiphyImage {
   url: string
+  width?: string
+  height?: string
 }
 
 interface GiphyImages {
@@ -32,7 +37,15 @@ function toGifItem(r: GiphyResult): GifItem | null {
   const preview = r.images.fixed_width?.url ?? r.images.original?.url
   const full = r.images.original?.url ?? r.images.fixed_width?.url
   if (!preview || !full) return null
-  return { id: r.id, preview, full, title: r.title }
+  const fw = r.images.fixed_width
+  return {
+    id: r.id,
+    preview,
+    full,
+    title: r.title,
+    preview_width: fw?.width ? Number(fw.width) : undefined,
+    preview_height: fw?.height ? Number(fw.height) : undefined,
+  }
 }
 
 function giphyUrl(endpoint: string, query: string): string {
@@ -52,28 +65,35 @@ interface GifPickerProps {
 
 export default function GifPicker({ onSelect, onClose, placement = 'bottom' }: GifPickerProps) {
   const { t } = useTranslation()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  })
   const [query, setQuery] = useState('')
-  const [gifs, setGifs] = useState<GifItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [gifs, setGifs] = useState<GifItem[]>(() => trendingCache ?? [])
+  const [loading, setLoading] = useState(() => trendingCache === null)
   const [error, setError] = useState<string | null>(null)
   const requestIdRef = useRef(0)
 
   useEffect(() => {
     if (!GIPHY_KEY) return
+    if (trendingCache) return
     const id = ++requestIdRef.current
     fetch(giphyUrl('trending', ''))
       .then((res) => res.json())
       .then((data: GiphyResponse) => {
         if (requestIdRef.current !== id) return
-        setGifs(data.data.map(toGifItem).filter((g): g is GifItem => g !== null))
+        const items = data.data.map(toGifItem).filter((g): g is GifItem => g !== null)
+        trendingCache = items
+        setGifs(items)
       })
       .catch(() => {
-        if (requestIdRef.current === id) setError(t('composer.gifError'))
+        if (requestIdRef.current === id) setError(tRef.current('composer.gifError'))
       })
       .finally(() => {
         if (requestIdRef.current === id) setLoading(false)
       })
-  }, [t])
+  }, [])
 
   useEffect(() => {
     if (!GIPHY_KEY) return
@@ -90,14 +110,14 @@ export default function GifPicker({ onSelect, onClose, placement = 'bottom' }: G
           setGifs(data.data.map(toGifItem).filter((g): g is GifItem => g !== null))
         })
         .catch(() => {
-          if (requestIdRef.current === id) setError(t('composer.gifError'))
+          if (requestIdRef.current === id) setError(tRef.current('composer.gifError'))
         })
         .finally(() => {
           if (requestIdRef.current === id) setLoading(false)
         })
     }, 400)
     return () => clearTimeout(timeout)
-  }, [query, t])
+  }, [query])
 
   const pickerClass = `${styles.picker}${placement === 'top' ? ` ${styles.pickerTop}` : ''}`
 
@@ -137,7 +157,14 @@ export default function GifPicker({ onSelect, onClose, placement = 'bottom' }: G
             title={g.title ?? ''}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={g.preview} alt={g.title ?? ''} loading="lazy" />
+            <img
+              src={g.preview}
+              alt={g.title ?? ''}
+              loading="lazy"
+              decoding="async"
+              width={g.preview_width}
+              height={g.preview_height}
+            />
           </button>
         ))}
         {loading && (

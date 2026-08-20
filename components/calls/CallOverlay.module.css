@@ -205,3 +205,114 @@
 .mirrored {
   transform: scaleX(-1);
 }
+
+.miniBar {
+  position: fixed;
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: min(380px, calc(100vw - var(--space-lg) * 2));
+  padding: var(--space-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.miniThumb {
+  flex-shrink: 0;
+  width: 96px;
+  height: 54px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.miniVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  font-size: 24px;
+  color: var(--color-text-secondary);
+}
+
+.miniAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.miniName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniStatus {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.miniControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.miniBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.miniBtn:hover {
+  background: var(--color-bg-secondary);
+  transform: scale(1.05);
+}
+
+.miniEnd {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.miniEnd:hover {
+  background: var(--color-danger);
+}

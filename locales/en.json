@@ -783,7 +783,9 @@
     "statusCancelled": "Call cancelled",
     "historyOutgoing": "Outgoing call",
     "historyIncoming": "Incoming call",
-    "historyMissed": "Missed call"
+    "historyMissed": "Missed call",
+    "minimize": "Minimize call",
+    "expand": "Expand call"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Internal server error",

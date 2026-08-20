@@ -149,6 +149,12 @@
   gap: var(--space-sm);
 }
 
+.timelineContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 .dateSep {
   align-self: center;
   padding: 4px 12px;
@@ -638,6 +644,21 @@
   height: 90px;
   color: var(--color-text-secondary);
   font-size: 1.25rem;
+}
+
+.mediaBox {
+  position: relative;
+  display: block;
+  min-height: 90px;
+}
+
+.mediaBoxLoading .mediaEl {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .composerInput {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
@@ -27,7 +27,7 @@ import type {
   GifItem,
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
-import { useCall } from '../../contexts/CallContext'
+import { useCall, type CallPhase } from '../../contexts/CallContext'
 import { usePresence } from '../../contexts/PresenceContext'
 import styles from './ChatWindow.module.css'
 
@@ -88,6 +88,11 @@ type TimelineItem =
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 
+// Cache media trong session: tránh tải lại blob khi mở lại hội thoại, và lưu
+// tỉ lệ ảnh để render lại reserve đúng chỗ, giảm layout shift.
+const mediaBlobCache = new Map<string, { url: string; isVideo: boolean }>()
+const mediaRatioCache = new Map<string, { width: number; height: number }>()
+
 function formatCallDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -102,7 +107,12 @@ export default function ChatWindow({
   onDeleteChat,
 }: ChatWindowProps) {
   const { t } = useTranslation()
-  const { startCall, isInCall } = useCall()
+  const {
+    startCall,
+    isInCall,
+    phase: callPhase,
+    call: activeCall,
+  } = useCall()
   const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
@@ -115,6 +125,8 @@ export default function ChatWindow({
   const [searchInput, setSearchInput] = useState('')
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const timelineRef = useRef<HTMLDivElement>(null)
+  const pinToBottomRef = useRef(true)
 
   const partnerUserId = conversation?.partner.user_id ?? null
 
@@ -147,6 +159,41 @@ export default function ChatWindow({
       cancelled = true
     }
   }, [partnerUserId, historyByPartner])
+
+  // Cập nhật lịch sử cuộc gọi theo thời gian thực: khi cuộc gọi với đối tác hiện
+  // tại kết thúc (cả 2 phía đều qua phase 'ended'), nạp lại history và merge để
+  // cuộc gọi xuất hiện ngay trong timeline mà không cần reload.
+  const prevCallPhaseRef = useRef<CallPhase>(callPhase)
+  useEffect(() => {
+    const prev = prevCallPhaseRef.current
+    prevCallPhaseRef.current = callPhase
+    if (prev === 'ended' || callPhase !== 'ended') return
+    if (!activeCall || activeCall.peer.user_id !== partnerUserId) return
+    let cancelled = false
+    getCallHistory({ limit: 100 })
+      .then((res) => {
+        if (cancelled) return
+        const items = res.data.filter(
+          (item) => item.other_user.id === partnerUserId,
+        )
+        if (items.length === 0) return
+        setHistoryByPartner((prevMap) => {
+          const existing = prevMap.get(partnerUserId) ?? []
+          const byId = new Map(existing.map((item) => [item.id, item]))
+          for (const item of items) byId.set(item.id, item)
+          const next = new Map(prevMap)
+          next.set(
+            partnerUserId,
+            [...byId.values()].sort((a, b) => b.created_at - a.created_at),
+          )
+          return next
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [callPhase, activeCall, partnerUserId])
 
   const callHistory = partnerUserId
     ? (historyByPartner.get(partnerUserId) ?? EMPTY_CALL_HISTORY)
@@ -190,12 +237,58 @@ export default function ChatWindow({
     }
   }, [searchInput, clearSearch, searchMessages])
 
+// Bám đáy khi có tin nhắn / cuộc gọi mới; media load xong làm nội dung cao
+  // thêm cũng được kéo xuống đáy nhờ ResizeObserver trên wrapper nội dung.
+  // Không giật người dùng đang cuộn lên đọc lịch sử (xem handleMessagesScroll).
+const prevTimelineLenRef = useRef(0)
+  const programmaticScrollRef = useRef(false)
+
+  const scrollToBottom = useCallback(() => {
+    const scroller = scrollRef.current
+    if (!scroller) return
+    programmaticScrollRef.current = true
+    scroller.scrollTop = scroller.scrollHeight
+  }, [])
+
   useEffect(() => {
-    const el = scrollRef.current
-    if (el && room.searchResults === null) {
-      el.scrollTop = el.scrollHeight
+    const el = timelineRef.current
+    if (!el) return
+
+    // Chỉ re-pin khi số mục timeline thay đổi (message/call mới) và không đang
+    // xem kết quả tìm kiếm. Thay đổi ephemeral (typing) không kéo xuống đáy.
+    const totalLen = room.messages.length + callHistory.length
+    if (totalLen !== prevTimelineLenRef.current && room.searchResults === null) {
+      pinToBottomRef.current = true
+      scrollToBottom()
     }
-  }, [room.messages.length, callHistory.length, room.partnerTyping, room.searchResults])
+    prevTimelineLenRef.current = totalLen
+
+    const observer = new ResizeObserver(() => {
+      if (pinToBottomRef.current && room.searchResults === null) {
+        scrollToBottom()
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [room.messages.length, callHistory.length, room.searchResults, scrollToBottom])
+
+  // Người dùng cuộn lên đọc lịch sử → không còn bám đáy. Các lần cuộn do
+  // scrollToBottom() gây ra bị bỏ qua để tránh race làm mất trạng thái bám đáy.
+  const handleMessagesScroll = () => {
+    if (programmaticScrollRef.current) {
+      programmaticScrollRef.current = false
+      return
+    }
+    const el = scrollRef.current
+    if (!el) return
+    pinToBottomRef.current =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 24
+  }
+
+  const chatId = conversation?.chat_id ?? null
+  useEffect(() => {
+    if (chatId) pinToBottomRef.current = true
+  }, [chatId])
 
   if (!conversation) {
     return (
@@ -330,7 +423,7 @@ export default function ChatWindow({
           )}
         </div>
       ) : (
-        <div className={styles.messages} ref={scrollRef}>
+        <div className={styles.messages} ref={scrollRef} onScroll={handleMessagesScroll}>
           {room.loading && (
             <div className={styles.center}>{t('common.loading')}</div>
           )}
@@ -341,7 +434,8 @@ export default function ChatWindow({
             </div>
           )}
 
-          {timeline.map((item, i) => {
+          <div ref={timelineRef} className={styles.timelineContent}>
+            {timeline.map((item, i) => {
             const prev = timeline[i - 1]
             const showDate = !prev || itemDate(prev) !== itemDate(item)
 
@@ -448,6 +542,7 @@ export default function ChatWindow({
               <span>{t('chat.typing')}</span>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -487,39 +582,95 @@ interface MessageMediaProps {
 
 function MessageMedia({ message }: MessageMediaProps) {
   const { t } = useTranslation()
-  const [src, setSrc] = useState<string | null>(message.media_uri ?? null)
-  const [isVideo, setIsVideo] = useState(message.media_type?.startsWith('video/') ?? false)
+  const downloadRequired = !message.media_uri
+  const cached = mediaBlobCache.get(message.id)
+  const cachedRatio = mediaRatioCache.get(message.id)
+  const [src, setSrc] = useState<string | null>(
+    message.media_uri ?? cached?.url ?? null,
+  )
+  const [isVideo, setIsVideo] = useState(
+    message.media_type?.startsWith('video/') ?? cached?.isVideo ?? false,
+  )
   const [failed, setFailed] = useState(false)
+  const [loaded, setLoaded] = useState(() => !!(message.media_uri ?? cached?.url))
+  const [ratio, setRatio] = useState<{ width: number; height: number } | null>(
+    cachedRatio ?? null,
+  )
   const objectUrlRef = useRef<string | null>(null)
+  const boxRef = useRef<HTMLSpanElement>(null)
+
+  const needsDownload = downloadRequired && !src
 
   useEffect(() => {
-    if (message.media_uri) return
+    if (!needsDownload) return
+    if (mediaBlobCache.has(message.id)) return
     let cancelled = false
-    downloadMessageMedia(message.id)
-      .then((blob) => {
-        if (cancelled) return
-        const url = URL.createObjectURL(blob)
-        objectUrlRef.current = url
-        setSrc(url)
-        setIsVideo(blob.type.startsWith('video/'))
-      })
-      .catch(() => {
-        if (cancelled) return
-        setFailed(true)
-      })
-    return () => {
-      cancelled = true
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current)
-        objectUrlRef.current = null
+    let started = false
+    let observer: IntersectionObserver | null = null
+    const runDownload = () => {
+      if (started || cancelled) return
+      started = true
+      downloadMessageMedia(message.id)
+        .then((blob) => {
+          if (cancelled) return
+          const url = URL.createObjectURL(blob)
+          const isVideoBlob = blob.type.startsWith('video/')
+          mediaBlobCache.set(message.id, { url, isVideo: isVideoBlob })
+          objectUrlRef.current = url
+          setSrc(url)
+          setIsVideo(isVideoBlob)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setFailed(true)
+        })
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      runDownload()
+    } else {
+      const el = boxRef.current
+      if (!el) {
+        runDownload()
+      } else {
+        observer = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              runDownload()
+              observer?.disconnect()
+            }
+          },
+          { rootMargin: '200px' },
+        )
+        observer.observe(el)
       }
     }
-  }, [message.id, message.media_uri])
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+      if (
+        objectUrlRef.current &&
+        mediaBlobCache.get(message.id)?.url !== objectUrlRef.current
+      ) {
+        URL.revokeObjectURL(objectUrlRef.current)
+      }
+      objectUrlRef.current = null
+    }
+  }, [message.id, message.media_uri, needsDownload])
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setLoaded(true)
+    const img = e.currentTarget
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const dims = { width: img.naturalWidth, height: img.naturalHeight }
+      mediaRatioCache.set(message.id, dims)
+      setRatio(dims)
+    }
+  }
 
   const loading = !src && !failed
   if (loading) {
     return (
-      <span className={styles.mediaLoading}>
+      <span ref={boxRef} className={styles.mediaLoading}>
         <i className="bx bx-loader-circle bx-spin" />
       </span>
     )
@@ -528,9 +679,38 @@ function MessageMedia({ message }: MessageMediaProps) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   if (isVideo) {
-    return <video src={src} controls muted playsInline className={styles.mediaEl} />
+    return (
+      <video
+        src={src}
+        controls
+        muted
+        playsInline
+        preload="metadata"
+        className={styles.mediaEl}
+      />
+    )
   }
-  return <ExternalImage src={src} alt="" className={styles.mediaEl} loading="lazy" />
+  return (
+    <span
+      ref={boxRef}
+      className={`${styles.mediaBox}${loaded ? '' : ` ${styles.mediaBoxLoading}`}`}
+    >
+      {!loaded && (
+        <span className={styles.mediaLoading}>
+          <i className="bx bx-loader-circle bx-spin" />
+        </span>
+      )}
+      <ExternalImage
+        src={src}
+        alt=""
+        className={styles.mediaEl}
+        onLoad={handleImageLoad}
+        loading="eager"
+        decoding="async"
+        style={ratio ? { aspectRatio: `${ratio.width} / ${ratio.height}` } : undefined}
+      />
+    </span>
+  )
 }
 
 interface EmojiBubbleProps {

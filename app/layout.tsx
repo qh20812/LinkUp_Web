@@ -4,6 +4,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
+import { CallProvider } from '../contexts/CallContext'
+import CallOverlay from '../components/calls/CallOverlay'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -40,7 +42,12 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''}>
           <LanguageProvider>
             <ThemeProvider>
-              <ToastProvider>{children}</ToastProvider>
+              <ToastProvider>
+                <CallProvider>
+                  {children}
+                  <CallOverlay />
+                </CallProvider>
+              </ToastProvider>
             </ThemeProvider>
           </LanguageProvider>
         </GoogleOAuthProvider>

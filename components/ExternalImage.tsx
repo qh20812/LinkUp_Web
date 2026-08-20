@@ -6,7 +6,13 @@ interface ExternalImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   alt: string
 }
 
-const ExternalImage = ({ alt, onError, onLoad, ...props }: ExternalImageProps) => {
+const ExternalImage = ({
+  alt,
+  onError,
+  onLoad,
+  decoding = 'async',
+  ...props
+}: ExternalImageProps) => {
   const [error, setError] = useState(false)
 
   if (error) {
@@ -16,6 +22,7 @@ const ExternalImage = ({ alt, onError, onLoad, ...props }: ExternalImageProps) =
   return (
     <img
       alt={alt}
+      decoding={decoding}
       onError={(e) => {
         setError(true)
         onError?.(e)
