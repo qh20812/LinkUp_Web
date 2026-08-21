@@ -77,12 +77,13 @@ export const savePost = (postId: string) =>
 export const getEmojis = () =>
   request<{ data: EmojiItem[] }>('/emojis')
 
-export const createPost = ({ title, content, status, files = [], gifUrl }: CreatePostInput) => {
+export const createPost = ({ title, content, status, files = [], gifUrl, communityID }: CreatePostInput) => {
   const formData = new FormData()
   if (title) formData.append('title', title)
   if (content) formData.append('content', content)
   if (status) formData.append('status', status)
   if (gifUrl) formData.append('gif_url', gifUrl)
+  if (communityID) formData.append('community_id', communityID)
   for (const file of files) formData.append('media', file)
 
   return fetch('/api/posts', {

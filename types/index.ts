@@ -147,6 +147,7 @@ export interface CreatePostInput {
   status: PostStatus
   files?: File[]
   gifUrl?: string
+  communityID?: string
 }
 
 export interface GifItem {
@@ -455,6 +456,60 @@ export interface AdminCommunityMember {
   display_name: string
   avatar_uri: string
   role: string
+}
+
+// ===== User-facing Community Types =====
+export interface CommunityListItem {
+  id: string
+  name: string
+  description: string
+  avatar_uri: string
+  privacy: 'public' | 'code' | 'invitation_only'
+  member_count: number
+  created_at: string
+}
+
+export interface CommunityListResponse {
+  communities: CommunityListItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface CommunityDetailResponse {
+  id: string
+  name: string
+  description: string
+  avatar_uri: string
+  background_uri: string
+  creator_id: string
+  creator_name: string
+  privacy: 'public' | 'code' | 'invitation_only'
+  auto_approve: boolean
+  member_count: number
+  membership_status: 'none' | 'pending' | 'member' | 'admin' | 'creator'
+  user_member_role?: string
+  created_at: string
+}
+
+export interface CommunityMember {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  role: string
+  joined_at: string
+  contribution_score: number
+  badge_type?: string
+}
+
+export interface CommunityRule {
+  id: string
+  community_id: string
+  category: string
+  title: string
+  content: string
+  position: number
+  created_at: string
 }
 
 export interface AdminCommunityDetailResponse {
@@ -848,10 +903,19 @@ export interface HashtagSearchResult {
   post_count: number
 }
 
+export interface CommunitySearchResult {
+  id: string
+  name: string
+  avatar_uri: string
+  member_count: number
+  privacy: string
+}
+
 export interface SearchResponse {
   users?: UserSearchResult[]
   posts?: PostSearchResult[]
   hashtags?: HashtagSearchResult[]
+  communities?: CommunitySearchResult[]
   message?: string
 }
 

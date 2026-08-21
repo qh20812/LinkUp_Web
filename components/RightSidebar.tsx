@@ -167,7 +167,8 @@ export default function RightSidebar() {
     searchResults &&
     ((searchResults.users && searchResults.users.length > 0) ||
       (searchResults.posts && searchResults.posts.length > 0) ||
-      (searchResults.hashtags && searchResults.hashtags.length > 0))
+      (searchResults.hashtags && searchResults.hashtags.length > 0) ||
+      (searchResults.communities && searchResults.communities.length > 0))
 
   const showDropdown = dropdownOpen && (searching || hasResults || (searchResults && !hasResults))
 
@@ -275,7 +276,31 @@ export default function RightSidebar() {
               </div>
             )}
 
-            {searchResults && (searchResults.users || searchResults.posts || searchResults.hashtags) && (
+            {searchResults?.communities && searchResults.communities.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.dropdownLabel}>{t('search.tabCommunities')}</div>
+                {searchResults.communities.map((community) => (
+                  <button
+                    key={community.id}
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      router.push(`/communities/${community.id}`)
+                    }}
+                  >
+                    <div className={styles.dropdownCommunityIcon}>
+                      <i className="bx bxs-chat" />
+                    </div>
+                    <div className={styles.dropdownItemMeta}>
+                      <span className={styles.dropdownItemName}>{community.name}</span>
+                      <span className={styles.dropdownItemSub}>{formatCount(community.member_count)} {t('communities.members')}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {searchResults && (searchResults.users || searchResults.posts || searchResults.hashtags || searchResults.communities) && (
               <button
                 className={styles.dropdownViewAll}
                 onClick={() => {

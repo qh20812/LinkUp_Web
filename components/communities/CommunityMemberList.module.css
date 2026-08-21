@@ -1,0 +1,102 @@
+.list {
+  padding: var(--space-md);
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.memberItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-bg-secondary);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roleBadge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.roleAdmin {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.roleMod {
+  background: rgba(25, 118, 210, 0.12);
+  color: var(--color-info);
+}
+
+.roleMember {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.skeletonItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.skeletonCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonLine {
+  height: 14px;
+  background: var(--color-bg-secondary);
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}

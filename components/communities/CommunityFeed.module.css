@@ -1,0 +1,52 @@
+.feed {
+  padding: var(--space-md);
+}
+
+.skeletonCard {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonLine {
+  background: var(--color-bg-secondary);
+  border-radius: 4px;
+  height: 14px;
+  animation: pulse 1.5s infinite;
+}
+
+.skeletonLineShort {
+  width: 60%;
+}
+
+.skeletonCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+  animation: pulse 1.5s infinite;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+  display: block;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}

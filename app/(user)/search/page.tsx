@@ -10,9 +10,9 @@ import { useAuth } from '../../../hooks/useAuth'
 import type { SearchResponse } from '../../../types'
 import styles from './Search.module.css'
 
-type Tab = 'all' | 'users' | 'posts' | 'hashtags'
+type Tab = 'all' | 'users' | 'posts' | 'hashtags' | 'communities'
 
-const VALID_TABS: Tab[] = ['all', 'users', 'posts', 'hashtags']
+const VALID_TABS: Tab[] = ['all', 'users', 'posts', 'hashtags', 'communities']
 
 export default function SearchPage() {
   return (
@@ -63,7 +63,8 @@ function SearchContent() {
   const users = res?.users ?? []
   const posts = res?.posts ?? []
   const hashtags = res?.hashtags ?? []
-  const hasResults = users.length > 0 || posts.length > 0 || hashtags.length > 0
+  const communities = res?.communities ?? []
+  const hasResults = users.length > 0 || posts.length > 0 || hashtags.length > 0 || communities.length > 0
 
   const handleTabChange = (tab: Tab) => {
     const params = new URLSearchParams({ q })
@@ -222,11 +223,44 @@ function SearchContent() {
     )
   }
 
+  const renderCommunities = () => {
+    if (communities.length === 0) return null
+    return (
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          {t('search.communitiesSection').replace('{count}', String(communities.length))}
+        </h3>
+        {communities.map((community) => (
+          <button
+            key={community.id}
+            className={styles.communityItem}
+            onClick={() => router.push(`/communities/${community.id}`)}
+          >
+            <div className={styles.communityAvatar}>
+              {community.avatar_uri ? (
+                <ExternalImage src={community.avatar_uri} alt="" className={styles.communityAvatarImg} />
+              ) : (
+                <i className="bx bxs-chat" />
+              )}
+            </div>
+            <div className={styles.itemMeta}>
+              <span className={styles.itemName}>{community.name}</span>
+              <span className={styles.itemSub}>
+                {community.member_count} {t('communities.members')}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   const renderAllTabs = () => (
     <div className={styles.content}>
       {renderUsers()}
       {renderPosts()}
       {renderHashtags()}
+      {renderCommunities()}
     </div>
   )
 
@@ -239,7 +273,7 @@ function SearchContent() {
       </div>
 
       <div className={styles.tabs}>
-        {(['all', 'users', 'posts', 'hashtags'] as Tab[]).map((tab) => (
+        {(['all', 'users', 'posts', 'hashtags', 'communities'] as Tab[]).map((tab) => (
           <button
             key={tab}
             className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
@@ -260,6 +294,8 @@ function SearchContent() {
         <div className={styles.content}>{renderUsers()}</div>
       ) : activeTab === 'posts' ? (
         <div className={styles.content}>{renderPosts()}</div>
+      ) : activeTab === 'communities' ? (
+        <div className={styles.content}>{renderCommunities()}</div>
       ) : (
         <div className={styles.content}>{renderHashtags()}</div>
       )}
