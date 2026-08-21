@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
@@ -23,6 +23,8 @@ type Filter = 'all' | 'unread' | 'read'
 
 const PAGE_SIZE = 20
 
+const ALLOWED_FILTERS: Filter[] = ['all', 'unread', 'read']
+
 export default function NotificationsPage() {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -37,8 +39,10 @@ export default function NotificationsPage() {
     markAllAsRead,
   } = useNotification()
 
-  const [filter, setFilter] = useState<Filter>('all')
-  const [page, setPage] = useState(1)
+  const searchParams = useSearchParams()
+  const filter = ALLOWED_FILTERS.includes(searchParams.get('filter') as Filter)
+    ? (searchParams.get('filter') as Filter) : 'all'
+  const page = Math.max(1, Number(searchParams.get('page')) || 1)
 
   useEffect(() => {
     loadPreferences().catch(() => {})
@@ -69,8 +73,10 @@ export default function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const handleFilterChange = (next: Filter) => {
-    setFilter(next)
-    setPage(1)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('filter', next)
+    params.delete('page')
+    router.replace(`/notifications?${params.toString()}`)
   }
 
   const handleItemClick = async (item: NotificationGroup) => {
@@ -284,7 +290,7 @@ export default function NotificationsPage() {
           <button
             className={styles.pageBtn}
             disabled={page <= 1}
-            onClick={() => setPage(page - 1)}>
+            onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.set('page', String(page - 1)); router.replace(`/notifications?${params.toString()}`) }}>
             <i className="bx bx-chevron-left" />
           </button>
           {getPageNumbers().map((p, i) =>
@@ -296,7 +302,7 @@ export default function NotificationsPage() {
               <button
                 key={p}
                 className={`${styles.pageBtn} ${p === page ? styles.pageBtnActive : ''}`}
-                onClick={() => setPage(p)}>
+                onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.set('page', String(p)); router.replace(`/notifications?${params.toString()}`) }}>
                 {p}
               </button>
             ),
@@ -304,7 +310,7 @@ export default function NotificationsPage() {
           <button
             className={styles.pageBtn}
             disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}>
+            onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.set('page', String(page + 1)); router.replace(`/notifications?${params.toString()}`) }}>
             <i className="bx bx-chevron-right" />
           </button>
         </div>
