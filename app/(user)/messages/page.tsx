@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Modal from '../../../components/Modal'
 import ExternalImage from '../../../components/ExternalImage'
 import ConversationList from '../../../components/messages/ConversationList'
@@ -29,7 +29,10 @@ export default function MessagesPage() {
 
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [loadingChats, setLoadingChats] = useState(true)
-  const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    searchParams.get('chat_id'),
+  )
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ChatConversation | null>(null)
   const [invites, setInvites] = useState<ChatInviteItem[]>([])
@@ -102,12 +105,33 @@ export default function MessagesPage() {
     onNewMessage,
   })
 
+  const navigateToChat = useCallback(
+    (chatId: string | null) => {
+      setActiveChatId(chatId)
+      const params = new URLSearchParams(searchParams.toString())
+      if (chatId) {
+        params.set('chat_id', chatId)
+      } else {
+        params.delete('chat_id')
+      }
+      router.replace(`/messages?${params.toString()}`)
+    },
+    [searchParams, router],
+  )
+
   useEffect(() => {
     let cancelled = false
     listChats()
       .then((res) => hydrateConversations(res.data))
       .then((hydrated) => {
-        if (!cancelled) setConversations(hydrated)
+        if (cancelled) return
+        setConversations(hydrated)
+        const queryChat = searchParams.get('chat_id')
+        if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
+          setActiveChatId(queryChat)
+        } else if (!activeChatId && hydrated.length > 0) {
+          setActiveChatId(hydrated[0].chat_id)
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -116,7 +140,7 @@ export default function MessagesPage() {
     return () => {
       cancelled = true
     }
-  }, [hydrateConversations])
+  }, [hydrateConversations, searchParams, activeChatId])
 
   useEffect(() => {
     let cancelled = false
@@ -138,7 +162,7 @@ export default function MessagesPage() {
       setInvites((prev) => prev.filter((i) => i.invite_id !== invite.invite_id))
       if (accept) {
         await refreshList()
-        if (res.chat_id) setActiveChatId(res.chat_id)
+        if (res.chat_id) navigateToChat(res.chat_id)
         toast({ type: 'success', title: t('chat.inviteAccepted') })
       } else {
         toast({ type: 'info', title: t('chat.inviteDeclined') })
@@ -151,21 +175,6 @@ export default function MessagesPage() {
     } finally {
       setRespondingInvite(null)
     }
-  }
-
-  const [selectionInitialized, setSelectionInitialized] = useState(false)
-  if (!selectionInitialized && !loadingChats && conversations.length > 0) {
-    setSelectionInitialized(true)
-    const params =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search)
-        : null
-    const queryChat = params?.get('chat_id') ?? null
-    const target =
-      queryChat && conversations.some((c) => c.chat_id === queryChat)
-        ? queryChat
-        : conversations[0].chat_id
-    setActiveChatId(target)
   }
 
   if (initializing) {
@@ -182,7 +191,7 @@ export default function MessagesPage() {
     try {
       const res = await createDirectChat(user.id)
       await refreshList()
-      setActiveChatId(res.chat_id)
+      navigateToChat(res.chat_id)
     } catch (err) {
       toast({
         type: 'error',
@@ -198,7 +207,7 @@ export default function MessagesPage() {
       const remaining = conversations.filter((c) => c.chat_id !== deleteTarget.chat_id)
       setConversations(remaining)
       if (activeChatId === deleteTarget.chat_id) {
-        setActiveChatId(remaining[0]?.chat_id ?? null)
+        navigateToChat(remaining[0]?.chat_id ?? null)
       }
       setDeleteTarget(null)
       toast({ type: 'success', title: t('chat.deleteChatSuccess') })
@@ -265,7 +274,7 @@ export default function MessagesPage() {
             activeChatId={activeChatId}
             myUserId={myUserId}
             loading={loadingChats}
-            onSelect={(conv) => setActiveChatId(conv.chat_id)}
+            onSelect={(conv) => navigateToChat(conv.chat_id)}
             onNewChat={() => setPickerOpen(true)}
           />
         </div>
