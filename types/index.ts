@@ -782,6 +782,8 @@ export interface ChatMessage {
   // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
   media_uri?: string | null
   media_type?: string | null
+  sender_name?: string
+  sender_avatar?: string
   is_anonymized: boolean
   anonymous_name?: string | null
   e2e_version?: number

@@ -19,7 +19,7 @@ import { useChatE2E } from '../../../hooks/useChatE2E'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats } from '../../../api/chats'
+import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
 import { getChatKey as getStoredChatKey } from '../../../utils/idb'
 import { decryptMessage } from '../../../utils/e2ee'
 import type { ChatConversation, ChatInviteItem, GroupChatConversation } from '../../../types'
@@ -186,6 +186,28 @@ export default function MessagesPage() {
       cancelled = true
     }
   }, [hydrateConversations, searchParams, activeChatId])
+
+  useEffect(() => {
+    if (activeChatType !== 'group' || !activeChatId) {
+      setActiveGroupMembers(new Map())
+      return
+    }
+    let cancelled = false
+    getGroupSettings(activeChatId)
+      .then((res) => {
+        if (cancelled) return
+        const settings = res.data
+        const memberMap = new Map<string, { display_name: string; avatar_uri: string }>()
+        for (const m of settings.members ?? []) {
+          memberMap.set(m.user_id, { display_name: m.display_name, avatar_uri: m.avatar_uri })
+        }
+        setActiveGroupMembers(memberMap)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [activeChatId, activeChatType])
 
   useEffect(() => {
     let cancelled = false

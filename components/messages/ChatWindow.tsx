@@ -497,7 +497,10 @@ const prevTimelineLenRef = useRef(0)
               ((!msg.content && Boolean(msg.media_id || msg.media_uri || msg.emoji_id)) ||
                 (!msg.media_id && !msg.media_uri && !msg.emoji_id && singleEmoji !== null))
             const showSenderName = mode === 'group' && !mine
-            const senderMember = showSenderName ? memberNames?.get(msg.sender_id) : null
+            const mapMember = showSenderName ? memberNames?.get(msg.sender_id) : null
+            const senderDisplayName = msg.sender_name || mapMember?.display_name || null
+            const senderAvatarUri = msg.sender_avatar || mapMember?.avatar_uri || null
+            const senderMember = showSenderName ? { display_name: senderDisplayName || '', avatar_uri: senderAvatarUri || '' } : null
             return (
               <Fragment key={msg.id}>
                 {showDate && (
@@ -509,10 +512,10 @@ const prevTimelineLenRef = useRef(0)
                       <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
                     ) : (
                       <div className={styles.senderAvatarPlaceholder}>
-                        {(senderMember?.display_name || '?')[0]?.toUpperCase()}
+                        {(senderDisplayName || '?')[0]?.toUpperCase()}
                       </div>
                     )}
-                    <span className={styles.senderName}>{senderMember?.display_name || t('chat.unknown')}</span>
+                    <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                   </div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>

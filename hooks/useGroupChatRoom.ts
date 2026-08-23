@@ -256,6 +256,7 @@ export function useGroupChatRoom({
         content: trimmed,
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
+        gif_url: opts?.gifUrl ?? null,
       })
     },
     [socket, toast],
