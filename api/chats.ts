@@ -173,3 +173,13 @@ export const transferGroupAdmin = (chatId: string, targetUserId: string) =>
     method: 'POST',
     body: JSON.stringify({ target_user_id: targetUserId }),
   })
+
+export const approveGroupChatInvite = (chatId: string, requestId: string) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/member-requests/${requestId}/approve`, {
+    method: 'POST',
+  })
+
+export const rejectGroupChatInvite = (chatId: string, requestId: string) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/member-requests/${requestId}/reject`, {
+    method: 'POST',
+  })

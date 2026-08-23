@@ -296,6 +296,12 @@ export default function MessagesPage() {
     navigateToChat(chatId, 'group')
   }
 
+  const handleGroupInviteAccepted = (groupChatId: string) => {
+    refreshGroupList()
+    refreshList()
+    navigateToChat(groupChatId, 'group')
+  }
+
   const handleOpenGroupSettings = () => {
     setGroupSettingsOpen(true)
   }
@@ -401,6 +407,7 @@ export default function MessagesPage() {
               onDeleteChat={
                 activeConversation ? () => setDeleteTarget(activeConversation) : undefined
               }
+              onGroupInviteAccepted={handleGroupInviteAccepted}
             />
           ) : (
             <div className={styles.center}>

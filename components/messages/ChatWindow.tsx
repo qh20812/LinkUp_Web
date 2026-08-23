@@ -12,6 +12,7 @@ import { downloadMessageMedia, uploadMedia } from '../../api/chats'
 import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
+import GroupInviteBubble from './GroupInviteBubble'
 import {
   EMOTION_GROUPS,
   emojiByCode,
@@ -82,6 +83,7 @@ interface ChatWindowProps {
   typingUsers?: Set<string>
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>
   onOpenGroupSettings?: () => void
+  onGroupInviteAccepted?: (groupChatId: string) => void
 }
 
 interface DeleteTarget {
@@ -117,6 +119,7 @@ export default function ChatWindow({
   typingUsers,
   memberNames,
   onOpenGroupSettings,
+  onGroupInviteAccepted,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const {
@@ -510,6 +513,12 @@ const prevTimelineLenRef = useRef(0)
                   <div className={styles.systemMessage}>
                     <span className={styles.systemMessageText}>{msg.content}</span>
                   </div>
+                ) : msg.type === 'group_invite' ? (
+                  <GroupInviteBubble
+                    message={msg}
+                    myUserId={myUserId}
+                    onAccepted={onGroupInviteAccepted}
+                  />
                 ) : (
                 <>
                 {showSenderName && (

@@ -864,6 +864,19 @@ export interface GroupChatSettings {
   members: GroupChatMember[]
 }
 
+// ===== Group Chat Invite (message type) =====
+export type GroupChatInviteStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface GroupChatInviteContent {
+  request_id: string
+  chat_id: string
+  group_name: string
+  group_avatar: string
+  requester_id: string
+  requester_name: string
+  status: GroupChatInviteStatus
+}
+
 // ===== Search =====
 export interface UserSearchResult {
   id: string
