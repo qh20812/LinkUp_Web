@@ -6,8 +6,10 @@ import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useToast } from '../../contexts/ToastContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { googleLogin, decodeToken } from '../../api/auth'
-import { clearSWRCache } from '../../api/swr'
+import { request } from '../../api/api'
+import { clearSWRCache, seedProfileCache } from '../../api/swr'
 import { getPostAuthPath } from '../../utils/auth'
+import type { ViewProfileResponse } from '../../types'
 import styles from './GoogleAuthButton.module.css'
 
 export default function GoogleAuthButton() {
@@ -26,6 +28,13 @@ export default function GoogleAuthButton() {
       localStorage.setItem('token', res.tokens.access_token)
       localStorage.setItem('refresh_token', res.tokens.refresh_token)
       clearSWRCache()
+
+      try {
+        const profile = await request<ViewProfileResponse>('/profile')
+        seedProfileCache(profile)
+      } catch {
+        // SWR will fetch on mount if this fails
+      }
 
       router.push(getPostAuthPath(decodeToken(res.tokens.access_token)?.role))
     } catch (err) {

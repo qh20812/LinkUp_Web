@@ -151,7 +151,7 @@ export default function CreateCommunityModal({ open, onClose }: CreateCommunityM
             <input
               ref={bgInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/gif,image/webp"
               className={styles.fileInput}
               onChange={handleBgChange}
             />
@@ -174,7 +174,7 @@ export default function CreateCommunityModal({ open, onClose }: CreateCommunityM
             <input
               ref={avatarInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/gif,image/webp"
               className={styles.fileInput}
               onChange={handleAvatarChange}
             />

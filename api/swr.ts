@@ -28,3 +28,9 @@ export function invalidate(prefix: string) {
 export function clearSWRCache() {
   return mutate(() => true, undefined, { revalidate: false })
 }
+
+// Seeds the /profile cache so LeftSidebar avatar shows immediately after login
+// instead of waiting for the SWR fetch to complete.
+export function seedProfileCache(profile: unknown) {
+  return mutate('/profile', profile, false)
+}

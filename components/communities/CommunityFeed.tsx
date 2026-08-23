@@ -6,49 +6,16 @@ import { getCommunityPosts } from '../../api/communities'
 import PostCard from '../PostCard'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './CommunityFeed.module.css'
-import type { FeedPost } from '../../types'
+import { feedReducer, initialState, PAGE_SIZE } from '../../lib/feed-reducer'
 
 interface CommunityFeedProps {
   communityID: string
   membershipStatus: 'none' | 'pending' | 'member' | 'admin' | 'creator'
 }
 
-const PAGE_SIZE = 10
-
-interface FeedState {
-  posts: FeedPost[]
-  cursor: string | null
-  hasMore: boolean
-}
-
-type FeedAction =
-  | { type: 'INIT'; posts: FeedPost[] }
-  | { type: 'APPEND'; posts: FeedPost[]; cursor: string | null }
-  | { type: 'UPDATE'; posts: FeedPost[] }
-
-function feedReducer(state: FeedState, action: FeedAction): FeedState {
-  switch (action.type) {
-    case 'INIT':
-      return {
-        posts: action.posts,
-        cursor: action.posts.length > 0 ? action.posts[action.posts.length - 1].id : null,
-        hasMore: action.posts.length >= PAGE_SIZE,
-      }
-    case 'APPEND': {
-      const seen = new Set(state.posts.map((p) => p.id))
-      const newPosts = action.posts.filter((p) => !seen.has(p.id))
-      return { ...state, posts: [...state.posts, ...newPosts], cursor: action.cursor, hasMore: action.posts.length >= PAGE_SIZE }
-    }
-    case 'UPDATE':
-      return { ...state, posts: action.posts }
-    default:
-      return state
-  }
-}
-
 export default function CommunityFeed({ communityID, membershipStatus }: CommunityFeedProps) {
   const { t } = useTranslation()
-  const [feed, dispatch] = useReducer(feedReducer, { posts: [], cursor: null, hasMore: true })
+  const [feed, dispatch] = useReducer(feedReducer, initialState)
   const [loadingMore, setLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
