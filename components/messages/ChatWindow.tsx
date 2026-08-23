@@ -506,6 +506,12 @@ const prevTimelineLenRef = useRef(0)
                 {showDate && (
                   <div className={styles.dateSep}>{itemDate(item)}</div>
                 )}
+                {(msg.sender_id === 'SYSTEM' || msg.type === 'member_invited' || msg.type === 'member_joined') ? (
+                  <div className={styles.systemMessage}>
+                    <span className={styles.systemMessageText}>{msg.content}</span>
+                  </div>
+                ) : (
+                <>
                 {showSenderName && (
                   <div className={styles.senderLine}>
                     {senderMember?.avatar_uri ? (
@@ -586,6 +592,8 @@ const prevTimelineLenRef = useRef(0)
                     </button>
                   )}
                 </div>
+                </>
+                )}
               </Fragment>
             )
           })}

@@ -784,6 +784,7 @@ export interface ChatMessage {
   media_type?: string | null
   sender_name?: string
   sender_avatar?: string
+  type?: string
   is_anonymized: boolean
   anonymous_name?: string | null
   e2e_version?: number
