@@ -179,3 +179,28 @@
   background: var(--color-danger);
   color: #fff;
 }
+
+.addMemberBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 10px var(--space-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.addMemberBtn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.addMemberBtn i {
+  font-size: 1.1rem;
+}

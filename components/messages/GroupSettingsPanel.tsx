@@ -1,15 +1,14 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Modal from '../Modal'
-import ExternalImage from '../ExternalImage'
 import GroupMemberList from './GroupMemberList'
+import AddGroupMemberModal from './AddGroupMemberModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import {
   getGroupSettings,
   updateGroupSettings,
-  addGroupMember,
   banGroupMember,
   unmuteGroupMember,
   muteGroupMember,
@@ -43,11 +42,7 @@ export default function GroupSettingsPanel({
   const [loading, setLoading] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
-  const [addMemberSearch, setAddMemberSearch] = useState('')
-  const [searchResults, setSearchResults] = useState<
-    Array<{ id: string; username: string; display_name: string; avatar_uri: string }>
-  >([])
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [addMemberOpen, setAddMemberOpen] = useState(false)
 
   const loadSettings = useCallback(async () => {
     if (!open || !chatId) return
@@ -79,36 +74,6 @@ export default function GroupSettingsPanel({
       setEditingName(false)
       onSettingsUpdated?.(res.data)
       toast({ type: 'success', title: t('common.success') })
-    } catch {
-      toast({ type: 'error', title: t('common.error') })
-    }
-  }
-
-  const handleSearchMember = (value: string) => {
-    setAddMemberSearch(value)
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-    if (value.trim().length < 2) {
-      setSearchResults([])
-      return
-    }
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const { searchFriends } = await import('../../api/chats')
-        const res = await searchFriends(value.trim())
-        setSearchResults(res.users ?? [])
-      } catch {
-        setSearchResults([])
-      }
-    }, 350)
-  }
-
-  const handleAddMember = async (userId: string) => {
-    try {
-      await addGroupMember(chatId, userId)
-      setAddMemberSearch('')
-      setSearchResults([])
-      await loadSettings()
-      toast({ type: 'success', title: t('chat.memberAdded') })
     } catch {
       toast({ type: 'error', title: t('common.error') })
     }
@@ -220,27 +185,10 @@ export default function GroupSettingsPanel({
 
             <div className={styles.section}>
               <label className={styles.label}>{t('chat.addMember')}</label>
-              <input
-                className={styles.input}
-                value={addMemberSearch}
-                onChange={(e) => handleSearchMember(e.target.value)}
-                placeholder={t('chat.searchFriends')}
-              />
-              {searchResults.length > 0 && (
-                <div className={styles.searchResults}>
-                  {searchResults.map((user) => (
-                    <button
-                      key={user.id}
-                      className={styles.searchResult}
-                      onClick={() => handleAddMember(user.id)}
-                    >
-                      <ExternalImage src={user.avatar_uri} alt="" className={styles.resultAvatar} />
-                      <span>{user.display_name}</span>
-                      <i className="bx bx-plus-circle" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button className={styles.addMemberBtn} onClick={() => setAddMemberOpen(true)}>
+                <i className="bx bx-user-plus" />
+                <span>{t('chat.addMembers')}</span>
+              </button>
             </div>
 
             <div className={styles.section}>
@@ -258,6 +206,13 @@ export default function GroupSettingsPanel({
           </>
         )}
       </div>
+      <AddGroupMemberModal
+        open={addMemberOpen}
+        onClose={() => setAddMemberOpen(false)}
+        chatId={chatId}
+        memberIds={new Set(members.map((m: { user_id: string }) => m.user_id))}
+        onMembersAdded={loadSettings}
+      />
     </Modal>
   )
 }
