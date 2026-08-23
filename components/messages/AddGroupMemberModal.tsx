@@ -137,17 +137,20 @@ export default function AddGroupMemberModal({
     if (selectedIds.size === 0 || adding) return
     setAdding(true)
     let addedCount = 0
+    let lastError = ''
     for (const userId of selectedIds) {
       try {
         await addGroupMember(chatId, userId)
         addedCount++
-      } catch {
-        // continue with next
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : t('common.error')
       }
     }
     if (addedCount > 0) {
-      toast({ type: 'success', title: t('chat.memberAddedCount', { count: addedCount }) })
+      toast({ type: 'success', title: t('chat.memberInviteSent', { count: addedCount }) })
       onMembersAdded?.()
+    } else if (lastError) {
+      toast({ type: 'error', title: lastError })
     }
     resetState()
     onClose()
@@ -175,7 +178,7 @@ export default function AddGroupMemberModal({
             disabled={selectedIds.size === 0 || adding}
             onClick={handleAdd}
           >
-            {adding ? t('common.loading') : t('chat.addMemberCount', { count: selectedIds.size })}
+            {adding ? t('common.loading') : t('chat.sendInviteCount', { count: selectedIds.size })}
           </button>
         </div>
       }

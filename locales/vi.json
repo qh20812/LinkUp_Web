@@ -763,6 +763,8 @@
     "groupCreated": "Đã tạo nhóm chat",
     "memberAdded": "Đã thêm thành viên",
     "memberAddedCount": "Đã thêm {count} thành viên",
+    "memberInviteSent": "Đã gửi lời mời đến {count} thành viên",
+    "sendInviteCount": "Gửi lời mời ({count})",
     "selectedCount": "Đã chọn {count}",
     "noFriends": "Không tìm thấy bạn bè",
     "memberBanned": "Đã chặn thành viên",

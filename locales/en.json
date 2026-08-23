@@ -764,6 +764,8 @@
     "groupCreated": "Group created",
     "memberAdded": "Member added",
     "memberAddedCount": "Added {count} member(s)",
+    "memberInviteSent": "Invitation sent to {count} member(s)",
+    "sendInviteCount": "Send invite ({count})",
     "selectedCount": "{count} selected",
     "noFriends": "No friends found",
     "memberBanned": "Member banned",
