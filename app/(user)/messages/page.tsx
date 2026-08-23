@@ -9,16 +9,20 @@ import UserPickerModal, {
   type UserSearchItem,
 } from '../../../components/messages/UserPickerModal'
 import ChatWindow from '../../../components/messages/ChatWindow'
+import CreateGroupModal from '../../../components/messages/CreateGroupModal'
+import GroupSettingsPanel from '../../../components/messages/GroupSettingsPanel'
 import { useChatSocket } from '../../../hooks/useChatSocket'
 import { useChatRoom } from '../../../hooks/useChatRoom'
+import { useGroupChatSocket } from '../../../hooks/useGroupChatSocket'
+import { useGroupChatRoom } from '../../../hooks/useGroupChatRoom'
 import { useChatE2E } from '../../../hooks/useChatE2E'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite } from '../../../api/chats'
+import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats } from '../../../api/chats'
 import { getChatKey as getStoredChatKey } from '../../../utils/idb'
 import { decryptMessage } from '../../../utils/e2ee'
-import type { ChatConversation, ChatInviteItem } from '../../../types'
+import type { ChatConversation, ChatInviteItem, GroupChatConversation } from '../../../types'
 import styles from './Messages.module.css'
 
 export default function MessagesPage() {
@@ -39,15 +43,26 @@ export default function MessagesPage() {
   const [respondingInvite, setRespondingInvite] = useState<string | null>(null)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Group chat state
+  const [groupConversations, setGroupConversations] = useState<GroupChatConversation[]>([])
+  const [activeChatType, setActiveChatType] = useState<'direct' | 'group'>('direct')
+  const [createGroupOpen, setCreateGroupOpen] = useState(false)
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
+  const [activeGroupMembers, setActiveGroupMembers] = useState<Map<string, { display_name: string; avatar_uri: string }>>(new Map())
+
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
+  const groupSocket = useGroupChatSocket()
 
   const activeConversation =
     conversations.find((c) => c.chat_id === activeChatId) ?? null
 
+  const activeGroupConversation =
+    groupConversations.find((c) => c.chat_id === activeChatId) ?? null
+
   const encryption = useChatE2E({
-    chatId: activeChatId,
-    partnerUserId: activeConversation?.partner.user_id ?? null,
+    chatId: activeChatType === 'direct' ? activeChatId : null,
+    partnerUserId: activeChatType === 'direct' ? activeConversation?.partner.user_id ?? null : null,
     myUserId,
   })
 
@@ -90,29 +105,49 @@ export default function MessagesPage() {
     }
   }, [hydrateConversations])
 
+  const refreshGroupList = useCallback(async () => {
+    try {
+      const res = await listGroupChats()
+      setGroupConversations(res.data ?? [])
+    } catch {
+      /* keep current list on background refresh */
+    }
+  }, [])
+
   const onNewMessage = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     refreshTimerRef.current = setTimeout(() => {
       refreshList()
+      refreshGroupList()
     }, 600)
-  }, [refreshList])
+  }, [refreshList, refreshGroupList])
 
   const room = useChatRoom({
-    chatId: activeChatId,
+    chatId: activeChatType === 'direct' ? activeChatId : null,
     myUserId,
     socket,
     encryption,
     onNewMessage,
   })
 
+  const groupRoom = useGroupChatRoom({
+    chatId: activeChatType === 'group' ? activeChatId : null,
+    myUserId,
+    socket: groupSocket,
+    onNewMessage,
+  })
+
   const navigateToChat = useCallback(
-    (chatId: string | null) => {
+    (chatId: string | null, type: 'direct' | 'group' = 'direct') => {
       setActiveChatId(chatId)
+      setActiveChatType(type)
       const params = new URLSearchParams(searchParams.toString())
       if (chatId) {
         params.set('chat_id', chatId)
+        params.set('type', type)
       } else {
         params.delete('chat_id')
+        params.delete('type')
       }
       router.replace(`/messages?${params.toString()}`)
     },
@@ -121,17 +156,27 @@ export default function MessagesPage() {
 
   useEffect(() => {
     let cancelled = false
-    listChats()
-      .then((res) => hydrateConversations(res.data))
-      .then((hydrated) => {
-        if (cancelled) return
-        setConversations(hydrated)
-        const queryChat = searchParams.get('chat_id')
-        if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
-          setActiveChatId(queryChat)
-        } else if (!activeChatId && hydrated.length > 0) {
-          setActiveChatId(hydrated[0].chat_id)
-        }
+    Promise.all([listChats(), listGroupChats()])
+      .then(([directRes, groupRes]) => {
+        return hydrateConversations(directRes.data).then((hydrated) => {
+          if (cancelled) return
+          setConversations(hydrated)
+          setGroupConversations(groupRes.data ?? [])
+
+          const queryChat = searchParams.get('chat_id')
+          const queryType = searchParams.get('type') as 'direct' | 'group' | null
+
+          if (queryChat && queryType === 'group') {
+            setActiveChatId(queryChat)
+            setActiveChatType('group')
+          } else if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
+            setActiveChatId(queryChat)
+            setActiveChatType('direct')
+          } else if (!activeChatId && hydrated.length > 0) {
+            setActiveChatId(hydrated[0].chat_id)
+            setActiveChatType('direct')
+          }
+        })
       })
       .catch(() => {})
       .finally(() => {
@@ -219,6 +264,36 @@ export default function MessagesPage() {
     }
   }
 
+  const handleSelectGroup = (group: GroupChatConversation) => {
+    navigateToChat(group.chat_id, 'group')
+  }
+
+  const handleGroupCreated = (chatId: string) => {
+    setCreateGroupOpen(false)
+    refreshGroupList()
+    navigateToChat(chatId, 'group')
+  }
+
+  const handleOpenGroupSettings = () => {
+    setGroupSettingsOpen(true)
+  }
+
+  const handleGroupSettingsUpdated = (settings: { members: Array<{ user_id: string; display_name: string; avatar_uri: string }> }) => {
+    const memberMap = new Map<string, { display_name: string; avatar_uri: string }>()
+    for (const m of settings.members) {
+      memberMap.set(m.user_id, { display_name: m.display_name, avatar_uri: m.avatar_uri })
+    }
+    setActiveGroupMembers(memberMap)
+    refreshGroupList()
+  }
+
+  const handleGroupLeave = () => {
+    setGroupSettingsOpen(false)
+    setActiveGroupMembers(new Map())
+    refreshGroupList()
+    navigateToChat(null)
+  }
+
   return (
     <div className={styles.page}>
       {invites.length > 0 && (
@@ -271,23 +346,46 @@ export default function MessagesPage() {
         <div className={styles.listPane}>
           <ConversationList
             conversations={conversations}
+            groupConversations={groupConversations}
             activeChatId={activeChatId}
             myUserId={myUserId}
             loading={loadingChats}
-            onSelect={(conv) => navigateToChat(conv.chat_id)}
+            onSelect={(conv) => navigateToChat(conv.chat_id, 'direct')}
+            onSelectGroup={handleSelectGroup}
             onNewChat={() => setPickerOpen(true)}
+            onCreateGroup={() => setCreateGroupOpen(true)}
           />
         </div>
         <div className={styles.windowPane}>
-          <ChatWindow
-            conversation={activeConversation}
-            myUserId={myUserId}
-            room={room}
-            isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
-            onDeleteChat={
-              activeConversation ? () => setDeleteTarget(activeConversation) : undefined
-            }
-          />
+          {activeChatType === 'group' && activeGroupConversation ? (
+            <ChatWindow
+              conversation={null}
+              myUserId={myUserId}
+              room={groupRoom}
+              mode="group"
+              groupName={activeGroupConversation.name}
+              memberCount={activeGroupConversation.member_count}
+              typingUsers={groupRoom.typingUsers}
+              memberNames={activeGroupMembers}
+              onOpenGroupSettings={handleOpenGroupSettings}
+            />
+          ) : activeChatType === 'direct' ? (
+            <ChatWindow
+              conversation={activeConversation}
+              myUserId={myUserId}
+              room={room}
+              isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
+              mode="direct"
+              onDeleteChat={
+                activeConversation ? () => setDeleteTarget(activeConversation) : undefined
+              }
+            />
+          ) : (
+            <div className={styles.center}>
+              <i className="bx bx-message-rounded-dots" />
+              <p>{t('chat.selectConversation')}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -296,6 +394,23 @@ export default function MessagesPage() {
         onClose={() => setPickerOpen(false)}
         onPick={handlePickUser}
       />
+
+      <CreateGroupModal
+        open={createGroupOpen}
+        onClose={() => setCreateGroupOpen(false)}
+        onCreated={handleGroupCreated}
+      />
+
+      {activeChatId && activeChatType === 'group' && (
+        <GroupSettingsPanel
+          open={groupSettingsOpen}
+          onClose={() => setGroupSettingsOpen(false)}
+          chatId={activeChatId}
+          myUserId={myUserId}
+          onSettingsUpdated={handleGroupSettingsUpdated}
+          onLeave={handleGroupLeave}
+        />
+      )}
 
       <Modal
         open={deleteTarget !== null}

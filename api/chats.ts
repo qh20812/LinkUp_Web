@@ -4,6 +4,8 @@ import type {
   ChatInviteResponse,
   ChatListResponse,
   CreateDirectChatResponse,
+  GroupChatListResponse,
+  GroupChatSettings,
   MessageResponse,
 } from '../types'
 
@@ -110,3 +112,64 @@ export const downloadMessageMedia = (messageId: string) => {
     return res.blob()
   })
 }
+
+// ===== Group Chat =====
+export const listGroupChats = () => request<GroupChatListResponse>('/group-chats')
+
+export const createGroupChat = (name: string, memberIds: string[], avatarUri?: string) =>
+  request<{ group_id: string; message?: string }>('/group-chats', {
+    method: 'POST',
+    body: JSON.stringify({ name, member_ids: memberIds, avatar_uri: avatarUri }),
+  })
+
+export const getGroupSettings = (chatId: string) =>
+  request<{ data: GroupChatSettings }>(`/group-chats/${chatId}/settings`)
+
+export const updateGroupSettings = (
+  chatId: string,
+  input: {
+    name?: string
+    avatar_uri?: string
+    allow_member_add?: boolean
+    notifications_enabled?: boolean
+  },
+) =>
+  request<{ data: GroupChatSettings }>(`/group-chats/${chatId}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+
+export const addGroupMember = (chatId: string, userId: string) =>
+  request<{ request_id: string; message?: string }>(`/group-chats/${chatId}/add-member`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  })
+
+export const banGroupMember = (chatId: string, userId: string) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/ban`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  })
+
+export const muteGroupMember = (
+  chatId: string,
+  userId: string,
+  reason: string,
+  durationMinutes: number,
+) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/mute`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, reason, duration_minutes: durationMinutes }),
+  })
+
+export const unmuteGroupMember = (chatId: string, userId: string) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/unmute`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  })
+
+export const transferGroupAdmin = (chatId: string, targetUserId: string) =>
+  request<{ message?: string }>(`/group-chats/${chatId}/transfer-admin`, {
+    method: 'POST',
+    body: JSON.stringify({ target_user_id: targetUserId }),
+  })

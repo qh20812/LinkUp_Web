@@ -827,6 +827,40 @@ export interface ChatInviteResponse {
   message: string
 }
 
+// ===== Group Chat =====
+export interface GroupChatConversation {
+  chat_id: string
+  name: string
+  avatar_uri: string
+  member_count: number
+  last_message?: ChatMessage | null
+  updated_at: string
+}
+
+export interface GroupChatListResponse {
+  data: GroupChatConversation[]
+}
+
+export interface GroupChatMember {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  role: 'CHAT_ADMIN' | 'CHAT_MEMBER'
+  is_muted: boolean
+  joined_at: string
+}
+
+export interface GroupChatSettings {
+  chat_id: string
+  name: string
+  avatar_uri: string
+  allow_member_add: boolean
+  member_settings: {
+    notifications_enabled: boolean
+  }
+  members: GroupChatMember[]
+}
+
 // ===== Search =====
 export interface UserSearchResult {
   id: string

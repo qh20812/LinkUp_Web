@@ -21,6 +21,30 @@
   color: var(--color-text);
 }
 
+.headerActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.secondaryBtn:hover {
+  background: var(--color-border);
+}
+
 .newBtn {
   display: flex;
   align-items: center;
@@ -199,4 +223,19 @@
 
 .center p {
   font-size: 0.875rem;
+}
+
+.sectionHeader {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-bg-secondary);
+}
+
+.sectionHeader:first-child {
+  border-top: none;
 }

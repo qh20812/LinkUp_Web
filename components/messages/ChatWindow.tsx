@@ -76,6 +76,12 @@ interface ChatWindowProps {
   room: ChatRoom
   isEncrypted?: boolean
   onDeleteChat?: () => void
+  mode?: 'direct' | 'group'
+  groupName?: string
+  memberCount?: number
+  typingUsers?: Set<string>
+  memberNames?: Map<string, { display_name: string; avatar_uri: string }>
+  onOpenGroupSettings?: () => void
 }
 
 interface DeleteTarget {
@@ -105,6 +111,12 @@ export default function ChatWindow({
   room,
   isEncrypted = false,
   onDeleteChat,
+  mode = 'direct',
+  groupName,
+  memberCount,
+  typingUsers,
+  memberNames,
+  onOpenGroupSettings,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const {
@@ -290,7 +302,7 @@ const prevTimelineLenRef = useRef(0)
     if (chatId) pinToBottomRef.current = true
   }, [chatId])
 
-  if (!conversation) {
+  if (!conversation && mode !== 'group') {
     return (
       <div className={styles.empty}>
         <i className="bx bx-message-rounded-dots" />
@@ -321,17 +333,25 @@ const prevTimelineLenRef = useRef(0)
     <div className={styles.window}>
       <div className={styles.header}>
         <div className={styles.avatar}>
-          {conversation.partner.avatar_uri ? (
+          {mode === 'group' ? (
+            <i className="bx bx-group" />
+          ) : conversation?.partner.avatar_uri ? (
             <ExternalImage src={conversation.partner.avatar_uri} alt="" />
           ) : (
             <i className="bx bxs-user" />
           )}
-          <OnlineIndicator isOnline={isOnline(conversation.partner.user_id)} />
+          {mode === 'direct' && conversation && <OnlineIndicator isOnline={isOnline(conversation.partner.user_id)} />}
         </div>
         <div className={styles.headerMeta}>
           <span className={styles.name}>
-            {conversation.partner.display_name || t('chat.unknown')}
+            {mode === 'group'
+              ? (groupName || t('chat.groupChat'))
+              : (conversation?.partner.display_name || t('chat.unknown'))
+            }
           </span>
+          {mode === 'group' && memberCount != null && (
+            <span className={styles.memberCount}>{memberCount} {t('chat.members')}</span>
+          )}
           {isEncrypted && (
             <span className={styles.e2eBadge} title={t('chat.e2eTitle')}>
               <i className="bx bxs-lock-alt" />
@@ -339,24 +359,37 @@ const prevTimelineLenRef = useRef(0)
             </span>
           )}
         </div>
-        <button
-          className={styles.iconBtn}
-          onClick={() => void startCall(conversation.partner, 'voice')}
-          disabled={isInCall}
-          aria-label={t('call.voiceCall')}
-          title={t('call.voiceCall')}
-        >
-          <i className="bx bx-phone-call" />
-        </button>
-        <button
-          className={styles.iconBtn}
-          onClick={() => void startCall(conversation.partner, 'video')}
-          disabled={isInCall}
-          aria-label={t('call.videoCall')}
-          title={t('call.videoCall')}
-        >
-          <i className="bx bx-video" />
-        </button>
+        {mode === 'direct' ? (
+          <>
+            <button
+              className={styles.iconBtn}
+              onClick={() => conversation && void startCall(conversation.partner, 'voice')}
+              disabled={isInCall}
+              aria-label={t('call.voiceCall')}
+              title={t('call.voiceCall')}
+            >
+              <i className="bx bx-phone-call" />
+            </button>
+            <button
+              className={styles.iconBtn}
+              onClick={() => conversation && void startCall(conversation.partner, 'video')}
+              disabled={isInCall}
+              aria-label={t('call.videoCall')}
+              title={t('call.videoCall')}
+            >
+              <i className="bx bx-video" />
+            </button>
+          </>
+        ) : onOpenGroupSettings ? (
+          <button
+            className={styles.iconBtn}
+            onClick={onOpenGroupSettings}
+            aria-label={t('chat.groupSettings')}
+            title={t('chat.groupSettings')}
+          >
+            <i className="bx bx-cog" />
+          </button>
+        ) : null}
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
           onClick={toggleSearch}
@@ -409,7 +442,11 @@ const prevTimelineLenRef = useRef(0)
             searchResults.map((msg) => (
               <div key={msg.id} className={styles.searchResultItem}>
                 <span className={styles.searchResultSender}>
-                  {msg.sender_id === myUserId ? t('chat.you') : conversation.partner.display_name}
+                  {msg.sender_id === myUserId
+                    ? t('chat.you')
+                    : mode === 'group'
+                      ? (memberNames?.get(msg.sender_id)?.display_name || t('chat.unknown'))
+                      : (conversation?.partner.display_name || t('chat.unknown'))}
                 </span>
                 <span className={styles.searchResultContent}>
                   {msg.media_id
@@ -459,10 +496,24 @@ const prevTimelineLenRef = useRef(0)
               !msg.decrypt_failed &&
               ((!msg.content && Boolean(msg.media_id || msg.media_uri || msg.emoji_id)) ||
                 (!msg.media_id && !msg.media_uri && !msg.emoji_id && singleEmoji !== null))
+            const showSenderName = mode === 'group' && !mine
+            const senderMember = showSenderName ? memberNames?.get(msg.sender_id) : null
             return (
               <Fragment key={msg.id}>
                 {showDate && (
                   <div className={styles.dateSep}>{itemDate(item)}</div>
+                )}
+                {showSenderName && (
+                  <div className={styles.senderLine}>
+                    {senderMember?.avatar_uri ? (
+                      <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
+                    ) : (
+                      <div className={styles.senderAvatarPlaceholder}>
+                        {(senderMember?.display_name || '?')[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <span className={styles.senderName}>{senderMember?.display_name || t('chat.unknown')}</span>
+                  </div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
                   {msg.deleted ? (
@@ -536,10 +587,20 @@ const prevTimelineLenRef = useRef(0)
             )
           })}
 
-          {room.partnerTyping && (
+          {(mode === 'group' ? (typingUsers && typingUsers.size > 0) : room.partnerTyping) && (
             <div className={styles.typing}>
               <i className="bx bx-loader-circle bx-spin" />
-              <span>{t('chat.typing')}</span>
+              <span>
+                {mode === 'group'
+                  ? (() => {
+                      const names = Array.from(typingUsers ?? []).map((uid) => memberNames?.get(uid)?.display_name || uid)
+                      if (names.length === 1) return `${names[0]} ${t('chat.isTyping')}`
+                      if (names.length === 2) return `${names[0]} ${t('chat.and')} ${names[1]} ${t('chat.isTyping')}`
+                      return t('chat.multiplePeopleTyping')
+                    })()
+                  : t('chat.typing')
+                }
+              </span>
             </div>
           )}
           </div>
