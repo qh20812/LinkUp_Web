@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import ChangePasswordForm from './ChangePasswordForm'
@@ -23,11 +23,14 @@ const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'deactivate', labelKey: 'userSettings.tabDeactivate' },
 ]
 
+const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'deactivate']
+
 export default function SettingsPage() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated, initializing } = useAuth()
-  const [activeTab, setActiveTab] = useState<TabKey>('password')
+  const activeTab = (ALLOWED_TABS.includes(searchParams.get('tab') as TabKey) ? searchParams.get('tab') : 'password') as TabKey
 
   if (initializing) {
     return <div className={styles.page} />
@@ -46,7 +49,7 @@ export default function SettingsPage() {
             <button
               key={tab.key}
               className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => router.replace(`/settings?tab=${tab.key}`)}
             >
               {t(tab.labelKey)}
             </button>

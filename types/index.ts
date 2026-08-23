@@ -837,6 +837,9 @@ export interface ChatMessage {
   // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
   media_uri?: string | null
   media_type?: string | null
+  sender_name?: string
+  sender_avatar?: string
+  type?: string
   is_anonymized: boolean
   anonymous_name?: string | null
   e2e_version?: number
@@ -880,6 +883,53 @@ export interface ChatInviteResponse {
   invite_id: string
   chat_id?: string
   message: string
+}
+
+// ===== Group Chat =====
+export interface GroupChatConversation {
+  chat_id: string
+  name: string
+  avatar_uri: string
+  member_count: number
+  last_message?: ChatMessage | null
+  updated_at: string
+}
+
+export interface GroupChatListResponse {
+  data: GroupChatConversation[]
+}
+
+export interface GroupChatMember {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  role: 'CHAT_ADMIN' | 'CHAT_MEMBER'
+  is_muted: boolean
+  joined_at: string
+}
+
+export interface GroupChatSettings {
+  chat_id: string
+  name: string
+  avatar_uri: string
+  allow_member_add: boolean
+  member_settings: {
+    notifications_enabled: boolean
+  }
+  members: GroupChatMember[]
+}
+
+// ===== Group Chat Invite (message type) =====
+export type GroupChatInviteStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface GroupChatInviteContent {
+  request_id: string
+  chat_id: string
+  group_name: string
+  group_avatar: string
+  requester_id: string
+  requester_name: string
+  status: GroupChatInviteStatus
 }
 
 // ===== Search =====

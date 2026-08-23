@@ -3,31 +3,38 @@
 import { useEffect, useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
+import MultiAvatar from '../MultiAvatar'
 import { usePresence } from '../../contexts/PresenceContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
-import type { ChatConversation } from '../../types'
+import type { ChatConversation, GroupChatConversation } from '../../types'
 import styles from './ConversationList.module.css'
 
 interface ConversationListProps {
   conversations: ChatConversation[]
+  groupConversations: GroupChatConversation[]
   activeChatId: string | null
   myUserId: string
   loading: boolean
   onSelect: (chat: ChatConversation) => void
+  onSelectGroup?: (group: GroupChatConversation) => void
   onNewChat: () => void
+  onCreateGroup?: () => void
 }
 
 export default function ConversationList({
   conversations,
+  groupConversations,
   activeChatId,
   myUserId,
   loading,
   onSelect,
+  onSelectGroup,
   onNewChat,
+  onCreateGroup,
 }: ConversationListProps) {
   const { t } = useTranslation()
   const { emojis } = useEmojis()
@@ -45,24 +52,39 @@ export default function ConversationList({
   }, [conversations, prefetchPresence])
 
   const normalized = filter.trim().toLowerCase()
-  const filtered = normalized
+  const filteredDirect = normalized
     ? conversations.filter((c) =>
         c.partner.display_name.toLowerCase().includes(normalized),
       )
     : conversations
+  const filteredGroups = normalized
+    ? groupConversations.filter((c) => c.name.toLowerCase().includes(normalized))
+    : groupConversations
 
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>{t('sidebar.messages')}</span>
-        <button
-          className={styles.newBtn}
-          onClick={onNewChat}
-          title={t('chat.newMessage')}
-          aria-label={t('chat.newMessage')}
-        >
-          <i className="bx bx-plus" />
-        </button>
+        <div className={styles.headerActions}>
+          {onCreateGroup && (
+            <button
+              className={styles.secondaryBtn}
+              onClick={onCreateGroup}
+              title={t('chat.createGroup')}
+              aria-label={t('chat.createGroup')}
+            >
+              <i className="bx bx-group" />
+            </button>
+          )}
+          <button
+            className={styles.newBtn}
+            onClick={onNewChat}
+            title={t('chat.newMessage')}
+            aria-label={t('chat.newMessage')}
+          >
+            <i className="bx bx-plus" />
+          </button>
+        </div>
       </div>
 
       <div className={styles.search}>
@@ -80,71 +102,119 @@ export default function ConversationList({
       </div>
 
       <div className={styles.list}>
-        {loading && conversations.length === 0 && (
+        {loading && conversations.length === 0 && groupConversations.length === 0 && (
           <div className={styles.center}>
             <span>{t('common.loading')}</span>
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && filteredDirect.length === 0 && filteredGroups.length === 0 && (
           <div className={styles.center}>
             <i className="bx bx-message-rounded-dots" />
             <p>
-              {normalized ? t('chat.noResults') : t('chat.noConversations')}
+              {normalized
+                ? t('chat.noResults')
+                : t('chat.noConversations')}
             </p>
           </div>
         )}
 
-        {filtered.map((conv) => (
-          <button
-            key={conv.chat_id}
-            className={`${styles.row} ${
-              conv.chat_id === activeChatId ? styles.active : ''
-            }`}
-            onClick={() => onSelect(conv)}
-          >
-            <div className={styles.avatar}>
-              {conv.partner.avatar_uri ? (
-                <ExternalImage src={conv.partner.avatar_uri} alt="" />
-              ) : (
-                <i className="bx bxs-user" />
-              )}
-              <OnlineIndicator isOnline={isOnline(conv.partner.user_id)} />
+        {filteredDirect.length > 0 && (
+          <>
+            <div className={styles.sectionHeader}>
+              {t('chat.directMessages')}
             </div>
-              <div className={styles.meta}>
-                <div className={styles.rowTop}>
-                  <span className={styles.name}>
-                    {conv.partner.display_name || t('chat.unknown')}
-                  </span>
-                  {conv.last_message && (
-                    <span className={styles.time}>
-                      {formatChatTime(conv.last_message.created_at, t)}
-                    </span>
-                  )}
-                </div>
-                <span className={styles.preview}>
-                  {conv.last_message ? (
-                    <>
-                      {conv.last_message.sender_id === myUserId ? t('chat.youPrefix') : ''}
-                      {conv.last_message.media_id
-                        ? t('chat.mediaMessage')
-                        : conv.last_message.emoji_id
-                          ? t('chat.emojiMessage')
-                          : conv.is_encrypted && !conv.last_message.content
-                            ? t('chat.encryptedPreview')
-                            : renderEmojiContent(
-                                conv.last_message.content || t('chat.mediaMessage'),
-                                emojiCodeMap,
-                                `pv-${conv.chat_id}`,
-                              )}
-                    </>
+            {filteredDirect.map((conv) => (
+              <button
+                key={conv.chat_id}
+                className={`${styles.row} ${
+                  conv.chat_id === activeChatId ? styles.active : ''
+                }`}
+                onClick={() => onSelect(conv)}
+              >
+                <div className={styles.avatar}>
+                  {conv.partner.avatar_uri ? (
+                    <ExternalImage src={conv.partner.avatar_uri} alt="" />
                   ) : (
-                    t('chat.newChat')
+                    <i className="bx bxs-user" />
                   )}
-                </span>
-              </div>
-            </button>
-        ))}
+                  <OnlineIndicator isOnline={isOnline(conv.partner.user_id)} />
+                </div>
+                <div className={styles.meta}>
+                  <div className={styles.rowTop}>
+                    <span className={styles.name}>
+                      {conv.partner.display_name || t('chat.unknown')}
+                    </span>
+                    {conv.last_message && (
+                      <span className={styles.time}>
+                        {formatChatTime(conv.last_message.created_at, t)}
+                      </span>
+                    )}
+                  </div>
+                  <span className={styles.preview}>
+                    {conv.last_message ? (
+                      <>
+                        {conv.last_message.sender_id === myUserId
+                          ? t('chat.youPrefix')
+                          : ''}
+                        {conv.last_message.media_id
+                          ? t('chat.mediaMessage')
+                          : conv.last_message.emoji_id
+                            ? t('chat.emojiMessage')
+                            : conv.is_encrypted && !conv.last_message.content
+                              ? t('chat.encryptedPreview')
+                              : renderEmojiContent(
+                                  conv.last_message.content || t('chat.mediaMessage'),
+                                  emojiCodeMap,
+                                  `pv-${conv.chat_id}`,
+                                )}
+                      </>
+                    ) : (
+                      t('chat.newChat')
+                    )}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </>
+        )}
+
+        {filteredGroups.length > 0 && (
+          <>
+            <div className={styles.sectionHeader}>
+              {t('chat.groupChats')}
+            </div>
+            {filteredGroups.map((group) => (
+              <button
+                key={group.chat_id}
+                className={`${styles.row} ${
+                  group.chat_id === activeChatId ? styles.active : ''
+                }`}
+                onClick={() => onSelectGroup?.(group)}
+              >
+                <div className={styles.avatar}>
+                  <MultiAvatar srcs={[]} size={40} />
+                </div>
+                <div className={styles.meta}>
+                  <div className={styles.rowTop}>
+                    <span className={styles.name}>{group.name}</span>
+                    {group.last_message && (
+                      <span className={styles.time}>
+                        {formatChatTime(group.last_message.created_at, t)}
+                      </span>
+                    )}
+                  </div>
+                  <span className={styles.preview}>
+                    {group.member_count} {t('chat.members')}
+                    {group.last_message ? (
+                      <> &middot; {group.last_message.content || t('chat.mediaMessage')}</>
+                    ) : null}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </>
+        )}
       </div>
     </div>
   )
