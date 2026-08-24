@@ -721,8 +721,8 @@
     "memberBanned": "Member banned",
     "memberMuted": "Member muted",
     "memberUnmuted": "Member unmuted",
-    "adminTransferred": "Admin transferred",
-    "admin": "Admin",
+    "adminTransferred": "Group leader transferred",
+    "admin": "Group Leader",
     "groupSettings": "Group Settings",
     "leaveGroup": "Leave Group",
     "leftGroup": "Left group",
@@ -730,7 +730,11 @@
     "and": "and",
     "multiplePeopleTyping": "several people are typing...",
     "selectConversation": "Select a conversation to start chatting",
-    "groupChat": "Group Chat"
+    "groupChat": "Group Chat",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "ban": "Ban",
+    "transferAdmin": "Transfer Group Leader"
   },
   "call": {
     "voiceCall": "Voice call",
