@@ -20,6 +20,7 @@ interface GroupMemberListProps {
 export default function GroupMemberList({
   members,
   myUserId,
+  isAdmin,
   onBan,
   onMute,
   onUnmute,
@@ -47,7 +48,7 @@ export default function GroupMemberList({
     <div className={styles.list}>
       {sorted.map((member) => {
         const isSelf = member.user_id === myUserId
-        const isAdmin = member.role === 'CHAT_ADMIN'
+        const memberIsAdmin = member.role === 'CHAT_ADMIN'
         return (
           <div key={member.user_id} className={styles.row}>
             <div className={styles.avatar}>
@@ -63,11 +64,11 @@ export default function GroupMemberList({
                 {member.display_name || t('chat.unknown')}
                 {isSelf && <span className={styles.youBadge}> ({t('chat.you')})</span>}
               </span>
-              {isAdmin && (
+              {memberIsAdmin && (
                 <span className={styles.adminBadge}>{t('chat.admin')}</span>
               )}
             </div>
-            {isAdmin && !isSelf && (
+            {isAdmin && !isSelf && !memberIsAdmin && (
               <div className={styles.actions}>
                 {member.is_muted ? (
                   <button
@@ -86,24 +87,20 @@ export default function GroupMemberList({
                     <i className="bx bx-volume-mute" />
                   </button>
                 )}
-                {!isAdmin && (
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => onBan?.(member.user_id)}
-                    title={t('chat.ban')}
-                  >
-                    <i className="bx bx-block" />
-                  </button>
-                )}
-                {!isAdmin && (
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => onTransferAdmin?.(member.user_id)}
-                    title={t('chat.transferAdmin')}
-                  >
-                    <i className="bx bx-crown" />
-                  </button>
-                )}
+                <button
+                  className={styles.actionBtn}
+                  onClick={() => onBan?.(member.user_id)}
+                  title={t('chat.ban')}
+                >
+                  <i className="bx bx-block" />
+                </button>
+                <button
+                  className={styles.actionBtn}
+                  onClick={() => onTransferAdmin?.(member.user_id)}
+                  title={t('chat.transferAdmin')}
+                >
+                  <i className="bx bx-crown" />
+                </button>
               </div>
             )}
           </div>

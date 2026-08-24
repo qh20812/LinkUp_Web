@@ -19,6 +19,10 @@
   padding: 8px 0;
 }
 
+.collapsed .logoImg {
+  display: none;
+}
+
 .collapsed .logo span {
   display: none;
 }
@@ -86,6 +90,36 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggleBtn:hover {
+  background: var(--color-primary);
+  color: var(--color-secondary);
+}
+
+.collapsed .toggleBtn {
+  justify-content: center;
+  padding: 0;
+}
+
+.toggleBtnCollapsed {
+  transform: rotate(180deg);
 }
 
 .nav {

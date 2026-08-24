@@ -138,6 +138,7 @@ export default function ChatWindow({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
+  const [newMessagesCount, setNewMessagesCount] = useState(0)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
@@ -273,8 +274,11 @@ const prevTimelineLenRef = useRef(0)
     // xem kết quả tìm kiếm. Thay đổi ephemeral (typing) không kéo xuống đáy.
     const totalLen = room.messages.length + callHistory.length
     if (totalLen !== prevTimelineLenRef.current && room.searchResults === null) {
-      pinToBottomRef.current = true
-      scrollToBottom()
+      if (pinToBottomRef.current) {
+        scrollToBottom()
+      } else {
+        setNewMessagesCount((prev) => prev + (totalLen - prevTimelineLenRef.current))
+      }
     }
     prevTimelineLenRef.current = totalLen
 
@@ -292,12 +296,14 @@ const prevTimelineLenRef = useRef(0)
   const handleMessagesScroll = () => {
     if (programmaticScrollRef.current) {
       programmaticScrollRef.current = false
+      setNewMessagesCount(0)
       return
     }
     const el = scrollRef.current
     if (!el) return
-    pinToBottomRef.current =
-      el.scrollTop + el.clientHeight >= el.scrollHeight - 24
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24
+    pinToBottomRef.current = atBottom
+    if (atBottom) setNewMessagesCount(0)
   }
 
   const chatId = conversation?.chat_id ?? null
@@ -606,26 +612,26 @@ const prevTimelineLenRef = useRef(0)
               </Fragment>
             )
           })}
-
-          {(mode === 'group' ? (typingUsers && typingUsers.size > 0) : room.partnerTyping) && (
-            <div className={styles.typing}>
-              <i className="bx bx-loader-circle bx-spin" />
-              <span>
-                {mode === 'group'
-                  ? (() => {
-                      const names = Array.from(typingUsers ?? []).map((uid) => memberNames?.get(uid)?.display_name || uid)
-                      if (names.length === 1) return `${names[0]} ${t('chat.isTyping')}`
-                      if (names.length === 2) return `${names[0]} ${t('chat.and')} ${names[1]} ${t('chat.isTyping')}`
-                      return t('chat.multiplePeopleTyping')
-                    })()
-                  : t('chat.typing')
-                }
-              </span>
-            </div>
-          )}
           </div>
         </div>
       )}
+
+      {newMessagesCount > 0 && (
+        <button className={styles.newMessagesBar} onClick={scrollToBottom}>
+          <i className="bx bx-chevron-down" />
+          {newMessagesCount} tin nhắn mới
+        </button>
+      )}
+
+      <div className={styles.typingFloat}>
+        {(mode === 'group' ? (typingUsers && typingUsers.size > 0) : room.partnerTyping) && (
+          <>
+            <span className={styles.typingDot} />
+            <span className={styles.typingDot} />
+            <span className={styles.typingDot} />
+          </>
+        )}
+      </div>
 
       <Composer room={room} />
 

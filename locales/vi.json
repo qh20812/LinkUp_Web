@@ -721,8 +721,8 @@
     "memberBanned": "Đã chặn thành viên",
     "memberMuted": "Đã tắt tiếng thành viên",
     "memberUnmuted": "Đã bật tiếng thành viên",
-    "adminTransferred": "Đã chuyển quyền quản trị",
-    "admin": "Quản trị",
+    "adminTransferred": "Đã chuyển quyền nhóm trưởng",
+    "admin": "Nhóm trưởng",
     "groupSettings": "Cài đặt nhóm",
     "leaveGroup": "Rời nhóm",
     "leftGroup": "Đã rời nhóm",
@@ -730,7 +730,11 @@
     "and": "và",
     "multiplePeopleTyping": "nhiều người đang gõ...",
     "selectConversation": "Chọn một hội thoại để bắt đầu trò chuyện",
-    "groupChat": "Nhóm chat"
+    "groupChat": "Nhóm chat",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "ban": "Chặn",
+    "transferAdmin": "Chuyển nhóm trưởng"
   },
   "call": {
     "voiceCall": "Gọi thoại",
