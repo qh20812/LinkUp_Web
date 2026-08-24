@@ -42,6 +42,7 @@ interface ProfileHeaderProps {
   onEdit?: () => void
   onViewStory?: () => void
   onViewAvatar?: () => void
+  menuSlot?: React.ReactNode
 }
 
 export default function ProfileHeader({
@@ -67,6 +68,7 @@ export default function ProfileHeader({
   onEdit,
   onViewStory,
   onViewAvatar,
+  menuSlot,
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
   const { isOnline, prefetchPresence } = usePresence()
@@ -318,6 +320,8 @@ export default function ProfileHeader({
           </>
         )}
       </div>
+
+      {menuSlot}
 
       <div className={styles.headerBody}>
         <div className={styles.headerTop}>

@@ -10,10 +10,11 @@ import CommunityHeader from '../../../../components/communities/CommunityHeader'
 import CommunityFeed from '../../../../components/communities/CommunityFeed'
 import CommunityMemberList from '../../../../components/communities/CommunityMemberList'
 import CommunityRules from '../../../../components/communities/CommunityRules'
+import CommunityManageTab from '../../../../components/communities/CommunityManageTab'
 import type { CommunityDetailResponse } from '../../../../types'
 import styles from './CommunityDetail.module.css'
 
-type Tab = 'posts' | 'members' | 'rules'
+type Tab = 'posts' | 'members' | 'rules' | 'manage'
 
 export default function CommunityDetailPage() {
   return (
@@ -36,7 +37,7 @@ function CommunityDetailContent() {
   >('none')
 
   const swrKey = communityID ? `/communities/${communityID}` : null
-  const { data: community, error, isLoading } = useSWR<CommunityDetailResponse>(
+  const { data: community, error, isLoading, mutate } = useSWR<CommunityDetailResponse>(
     swrKey,
     (url: string) => swrFetcher<CommunityDetailResponse>(url),
   )
@@ -87,6 +88,10 @@ function CommunityDetailContent() {
     { key: 'rules', label: t('communities.rules') },
   ]
 
+  if (effectiveStatus === 'admin' || effectiveStatus === 'creator') {
+    tabs.push({ key: 'manage', label: t('communities.manage') })
+  }
+
   return (
     <div className={styles.page}>
       <CommunityHeader community={community} onStatusChange={handleStatusChange} />
@@ -111,12 +116,22 @@ function CommunityDetailContent() {
           />
         )}
         {activeTab === 'members' && (
-          <CommunityMemberList communityID={communityID} />
+          <CommunityMemberList
+            communityID={communityID}
+            isAdmin={effectiveStatus === 'admin' || effectiveStatus === 'creator'}
+          />
         )}
         {activeTab === 'rules' && (
           <CommunityRules
             communityID={communityID}
             isAdmin={effectiveStatus === 'admin' || effectiveStatus === 'creator'}
+          />
+        )}
+        {activeTab === 'manage' && (
+          <CommunityManageTab
+            communityID={communityID}
+            community={community}
+            onUpdate={() => mutate()}
           />
         )}
       </div>

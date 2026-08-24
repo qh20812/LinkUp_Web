@@ -512,6 +512,25 @@ export interface CommunityRule {
   created_at: string
 }
 
+export interface CommunityJoinRequest {
+  id: string
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  status: string
+  created_at: string
+}
+
+export interface CommunityInviteCode {
+  id: string
+  code: string
+  max_uses: number
+  used_count: number
+  expires_at: string | null
+  is_active: boolean
+  created_at: string
+}
+
 export interface AdminCommunityDetailResponse {
   id: string
   name: string

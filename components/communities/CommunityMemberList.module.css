@@ -61,6 +61,156 @@
   color: var(--color-text-secondary);
 }
 
+.adminActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.roleSelect {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  font-size: 12px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.roleSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.kickBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-size: 14px;
+}
+
+.kickBtn:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.kickFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.kickCancelBtn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.kickCancelBtn:hover {
+  background: var(--color-bg-hover);
+}
+
+.kickCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kickSubmitBtn {
+  padding: 8px 16px;
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.kickSubmitBtn:hover {
+  opacity: 0.9;
+}
+
+.kickSubmitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kickForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.kickMember {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.kickAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-bg-tertiary);
+}
+
+.kickField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kickLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.kickTextarea {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.15s ease;
+}
+
+.kickTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.kickTextarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .empty {
   text-align: center;
   padding: var(--space-xl);

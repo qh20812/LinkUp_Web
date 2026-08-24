@@ -133,31 +133,31 @@ function ProfileView({ userID }: { userID: string }) {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <ProfileHeader
-          profile={profile}
-          stats={stats}
-          isSelf={isSelf}
-          isPrivate={isPrivate}
-          isFollowing={following}
-          followBusy={followBusy}
-          messageBusy={messageBusy}
-          inviteSent={inviteSent}
-          showActions={!!currentUserID}
-          hasStory={hasStory}
-          targetUserID={userID}
-          onFollow={handleFollow}
-          onMessage={handleMessage}
-          onOpenFollowers={() => setModalType('followers')}
-          onOpenFollowing={() => setModalType('following')}
-          onViewAvatar={() => {/* TODO: open lightbox */}}
-        />
-        {!isSelf && currentUserID && (
-          <div className={styles.menuPosition}>
-            <ProfileMenu userID={userID} isSelf={isSelf} />
-          </div>
-        )}
-      </div>
+      <ProfileHeader
+        profile={profile}
+        stats={stats}
+        isSelf={isSelf}
+        isPrivate={isPrivate}
+        isFollowing={following}
+        followBusy={followBusy}
+        messageBusy={messageBusy}
+        inviteSent={inviteSent}
+        showActions={!!currentUserID}
+        hasStory={hasStory}
+        targetUserID={userID}
+        onFollow={handleFollow}
+        onMessage={handleMessage}
+        onOpenFollowers={() => setModalType('followers')}
+        onOpenFollowing={() => setModalType('following')}
+        onViewAvatar={() => {/* TODO: open lightbox */}}
+        menuSlot={
+          !isSelf && currentUserID ? (
+            <div className={styles.menuPosition}>
+              <ProfileMenu userID={userID} isSelf={isSelf} />
+            </div>
+          ) : undefined
+        }
+      />
 
       {!isSelf && currentUserID && !isPrivate && (
         <MutualFriends userID={userID} />

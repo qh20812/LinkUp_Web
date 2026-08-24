@@ -4,6 +4,8 @@ import type {
   CommunityDetailResponse,
   CommunityMember,
   CommunityRule,
+  CommunityJoinRequest,
+  CommunityInviteCode,
   FeedPost,
 } from '../types'
 
@@ -77,4 +79,58 @@ export const updateCommunityRule = (
 export const deleteCommunityRule = (communityID: string, ruleID: string) =>
   request<{ message: string }>(`/communities/${communityID}/rules/${ruleID}`, {
     method: 'DELETE',
+  })
+
+export const updateCommunity = (
+  communityID: string,
+  data: { name?: string; description?: string; privacy?: string; auto_approve?: boolean },
+) =>
+  request<{ message: string }>(`/communities/${communityID}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+
+export const listJoinRequests = (communityID: string) =>
+  request<{ requests: CommunityJoinRequest[] }>(`/communities/${communityID}/join-requests`)
+
+export const approveJoinRequest = (communityID: string, requestID: string) =>
+  request<{ message: string }>(`/communities/${communityID}/join-requests/${requestID}/approve`, {
+    method: 'PUT',
+  })
+
+export const rejectJoinRequest = (communityID: string, requestID: string) =>
+  request<{ message: string }>(`/communities/${communityID}/join-requests/${requestID}/reject`, {
+    method: 'PUT',
+  })
+
+export const updateMemberRole = (communityID: string, memberID: string, role: string) =>
+  request<{ message: string }>(`/communities/${communityID}/members/${memberID}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  })
+
+export const kickMember = (communityID: string, memberID: string, reason: string) =>
+  request<{ message: string }>(`/communities/${communityID}/members/${memberID}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ reason }),
+  })
+
+export const createInviteCode = (communityID: string, maxUses?: number, expiresAt?: string) =>
+  request<{ id: string; code: string }>(`/communities/${communityID}/invite-codes`, {
+    method: 'POST',
+    body: JSON.stringify({ max_uses: maxUses, expires_at: expiresAt }),
+  })
+
+export const listInviteCodes = (communityID: string) =>
+  request<{ invite_codes: CommunityInviteCode[] }>(`/communities/${communityID}/invite-codes`)
+
+export const deactivateInviteCode = (communityID: string, codeID: string) =>
+  request<{ message: string }>(`/communities/${communityID}/invite-codes/${codeID}`, {
+    method: 'DELETE',
+  })
+
+export const transferOwnership = (communityID: string, targetUserID: string, keepAdmin: boolean) =>
+  request<{ message: string }>(`/communities/${communityID}/transfer-ownership`, {
+    method: 'POST',
+    body: JSON.stringify({ target_user_id: targetUserID, keep_admin: keepAdmin }),
   })
