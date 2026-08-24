@@ -61,14 +61,16 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <FollowedUserIdsProvider>
             <div className={layoutClass}>
               <div className={styles.left}>
-                <LeftSidebar collapsed={leftCollapsed} />
+                <LeftSidebar
+                  collapsed={leftCollapsed}
+                  onToggle={() => setLeftCollapsed((prev) => !prev)}
+                />
               </div>
               <div className={styles.center}>
                 <UserNavbar
-                  leftCollapsed={leftCollapsed}
                   rightCollapsed={rightCollapsed}
-                  onToggleLeft={() => setLeftCollapsed((prev) => !prev)}
                   onToggleRight={() => setRightCollapsed((prev) => !prev)}
+                  showRightToggle={!isMessages}
                 />
                 {children}
               </div>

@@ -83,6 +83,10 @@
   color: var(--color-secondary);
 }
 
+.collapseBtnCollapsed {
+  transform: rotate(180deg);
+}
+
 .pageTitle {
   flex: 1;
   min-width: 0;
@@ -98,6 +102,12 @@
 
 @media (min-width: 1025px) {
   .searchForm {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .collapseBtn {
     display: none;
   }
 }

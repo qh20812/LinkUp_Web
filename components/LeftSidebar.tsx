@@ -35,7 +35,7 @@ function useProfile() {
   return { profile: data, loading: !data && !error }
 }
 
-export default function LeftSidebar({ collapsed = false }: { collapsed?: boolean }) {
+export default function LeftSidebar({ collapsed = false, onToggle }: { collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useTranslation()
@@ -75,6 +75,16 @@ export default function LeftSidebar({ collapsed = false }: { collapsed?: boolean
   return (
     <aside className={`${styles.sidebar}${collapsed ? ` ${styles.collapsed}` : ''}`}>
       <div className={styles.logo}>
+        {onToggle && (
+          <button
+            className={`${styles.toggleBtn}${collapsed ? ` ${styles.toggleBtnCollapsed}` : ''}`}
+            onClick={onToggle}
+            aria-label={collapsed ? t('userNavbar.expandLeft') : t('userNavbar.collapseLeft')}
+            title={collapsed ? t('userNavbar.expandLeft') : t('userNavbar.collapseLeft')}
+          >
+            <i className="bx bx-sidebar" />
+          </button>
+        )}
         <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
         <span>LinkUp</span>
       </div>
