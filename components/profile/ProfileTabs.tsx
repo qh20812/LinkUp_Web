@@ -90,7 +90,7 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
     setMediaLoading(true)
     try {
       const res = await getUserMedia(userID, page, MEDIA_PAGE_SIZE)
-      setMediaItems((prev) => (page === 1 || reset ? res.data : [...prev, ...res.data]))
+      setMediaItems((prev) => (page === 1 || reset ? (res.data ?? []) : [...prev, ...(res.data ?? [])]))
       setMediaHasMore(res.has_more)
     } catch { /* ignore */ } finally {
       setMediaLoading(false)
