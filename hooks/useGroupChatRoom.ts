@@ -18,6 +18,7 @@ export interface SendMessageOptions {
   mediaUri?: string
   mediaType?: string
   gifUrl?: string
+  replyToMessageId?: string
 }
 
 export interface GroupChatRoom {
@@ -263,6 +264,7 @@ export function useGroupChatRoom({
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
         gif_url: opts?.gifUrl ?? null,
+        reply_to_message_id: opts?.replyToMessageId ?? null,
       })
     },
     [socket, toast],

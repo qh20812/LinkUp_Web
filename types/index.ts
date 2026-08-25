@@ -845,6 +845,14 @@ export interface FriendStatusResponse {
 }
 
 // ===== Chat / Messages =====
+export interface ReplyPreview {
+  id: string
+  content: string
+  sender_id: string
+  sender_name: string
+  sender_avatar: string
+}
+
 export interface ChatMessage {
   id: string
   chat_id: string
@@ -853,6 +861,7 @@ export interface ChatMessage {
   emoji_id?: string | null
   media_id?: string | null
   reply_to_message_id?: string | null
+  reply_to?: ReplyPreview | null
   // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
   media_uri?: string | null
   media_type?: string | null

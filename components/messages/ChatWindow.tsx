@@ -136,6 +136,8 @@ export default function ChatWindow({
     return map
   }, [emojis])
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null)
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [newMessagesCount, setNewMessagesCount] = useState(0)
@@ -310,6 +312,15 @@ const prevTimelineLenRef = useRef(0)
   useEffect(() => {
     if (chatId) pinToBottomRef.current = true
   }, [chatId])
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = timelineRef.current?.querySelector(`[data-message-id="${messageId}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightedMsgId(messageId)
+      setTimeout(() => setHighlightedMsgId(null), 1500)
+    }
+  }, [])
 
   if (!conversation && mode !== 'group') {
     return (
@@ -516,15 +527,17 @@ const prevTimelineLenRef = useRef(0)
                   <div className={styles.dateSep}>{itemDate(item)}</div>
                 )}
                 {(msg.sender_id === 'SYSTEM' || msg.type === 'member_invited' || msg.type === 'member_joined') ? (
-                  <div className={styles.systemMessage}>
+                  <div className={styles.systemMessage} data-message-id={msg.id}>
                     <span className={styles.systemMessageText}>{msg.content}</span>
                   </div>
                 ) : msg.type === 'group_invite' ? (
-                  <GroupInviteBubble
-                    message={msg}
-                    myUserId={myUserId}
-                    onAccepted={onGroupInviteAccepted}
-                  />
+                  <div data-message-id={msg.id}>
+                    <GroupInviteBubble
+                      message={msg}
+                      myUserId={myUserId}
+                      onAccepted={onGroupInviteAccepted}
+                    />
+                  </div>
                 ) : (
                 <>
                 {showSenderName && (
@@ -539,7 +552,7 @@ const prevTimelineLenRef = useRef(0)
                     <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                   </div>
                 )}
-                <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
+                <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`} data-message-id={msg.id}>
                   {msg.deleted ? (
                     <div className={styles.bubble}>
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
@@ -554,6 +567,20 @@ const prevTimelineLenRef = useRef(0)
                         <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                       </div>
                       <div className={styles.bubble}>
+                        {msg.reply_to && (
+                          <div
+                            className={styles.replySnippet}
+                            onClick={() => msg.reply_to?.id && scrollToMessage(msg.reply_to.id)}
+                          >
+                            <div className={styles.replySnippetHeader}>
+                              <i className="bx bx-reply" />
+                              <span className={styles.replySnippetName}>{msg.reply_to.sender_name || t('chat.unknown')}</span>
+                            </div>
+                            <span className={styles.replySnippetText}>
+                              {msg.reply_to.content || t('chat.attachment')}
+                            </span>
+                          </div>
+                        )}
                         {msg.decrypt_failed ? (
                           <span className={styles.deletedText}>
                             <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
@@ -570,6 +597,20 @@ const prevTimelineLenRef = useRef(0)
                     <div
                       className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
                     >
+                      {msg.reply_to && (
+                        <div
+                          className={styles.replySnippet}
+                          onClick={() => msg.reply_to?.id && scrollToMessage(msg.reply_to.id)}
+                        >
+                          <div className={styles.replySnippetHeader}>
+                            <i className="bx bx-reply" />
+                            <span className={styles.replySnippetName}>{msg.reply_to.sender_name || t('chat.unknown')}</span>
+                          </div>
+                          <span className={styles.replySnippetText}>
+                            {msg.reply_to.content || t('chat.attachment')}
+                          </span>
+                        </div>
+                      )}
                       {(msg.media_id || msg.media_uri) && (
                         <div className={styles.mediaWrap}>
                           <MessageMedia message={msg} />
@@ -598,13 +639,23 @@ const prevTimelineLenRef = useRef(0)
                     </div>
                   )}
                   {!msg.deleted && (
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => setDeleteTarget({ message: msg })}
-                      aria-label={t('chat.delete')}
-                    >
-                      <i className="bx bx-trash" />
-                    </button>
+                    <>
+                      <button
+                        className={styles.replyBtn}
+                        onClick={() => setReplyingTo(msg)}
+                        aria-label={t('chat.reply')}
+                        title={t('chat.reply')}
+                      >
+                        <i className="bx bx-reply" />
+                      </button>
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => setDeleteTarget({ message: msg })}
+                        aria-label={t('chat.delete')}
+                      >
+                        <i className="bx bx-trash" />
+                      </button>
+                    </>
                   )}
                 </div>
                 </>
@@ -633,7 +684,7 @@ const prevTimelineLenRef = useRef(0)
         )}
       </div>
 
-      <Composer room={room} />
+      <Composer room={room} replyingTo={replyingTo} onClearReply={() => setReplyingTo(null)} onScrollToMessage={scrollToMessage} />
 
       <Modal
         open={deleteTarget !== null}
@@ -901,9 +952,12 @@ async function fetchRemoteImage(url: string): Promise<File | null> {
 
 interface ComposerProps {
   room: ChatRoom
+  replyingTo: ChatMessage | null
+  onClearReply: () => void
+  onScrollToMessage?: (messageId: string) => void
 }
 
-function Composer({ room }: ComposerProps) {
+function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: ComposerProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [value, setValue] = useState('')
@@ -1033,8 +1087,10 @@ function Composer({ room }: ComposerProps) {
       gifUrl: gif.preview,
       mediaUri: gif.preview,
       mediaType: 'image/gif',
+      replyToMessageId: replyingTo?.id || undefined,
     })
     setGifOpen(false)
+    onClearReply()
   }
 
   const sendFile = async (file: File, caption: string): Promise<boolean> => {
@@ -1046,6 +1102,7 @@ function Composer({ room }: ComposerProps) {
         mediaId: res.data.id,
         mediaUri: res.data.file_uri,
         mediaType: res.data.file_type,
+        replyToMessageId: replyingTo?.id || undefined,
       })
       return true
     } catch {
@@ -1059,31 +1116,38 @@ function Composer({ room }: ComposerProps) {
   const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
     if (!value.trim() && !opts?.emojiId && !opts?.mediaId && !attachment) return
     const text = value
+    const replyId = replyingTo?.id || undefined
 
     if (attachment) {
       const ok = await sendFile(attachment, text)
       if (ok) {
         clearAttachment()
         resetComposer()
+        onClearReply()
       }
       return
     }
 
     // Toàn bộ tin là một URL duy nhất → thử tải ảnh về rồi gửi dạng media.
-    if (!opts && isSingleImageUrl(text)) {
+    if (!opts && !replyId && isSingleImageUrl(text)) {
       const file = await fetchRemoteImage(text)
       if (file) {
         resetComposer()
         const ok = await sendFile(file, '')
-        if (ok) return
+        if (ok) {
+          onClearReply()
+          return
+        }
         // Upload ảnh thất bại → fallback gửi URL dạng text để không mất tin nhắn.
-        room.sendMessage(text)
+        room.sendMessage(text, { replyToMessageId: replyId })
+        onClearReply()
         return
       }
     }
 
-    room.sendMessage(text, opts)
+    room.sendMessage(text, { ...opts, replyToMessageId: replyId })
     resetComposer()
+    onClearReply()
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1143,6 +1207,28 @@ function Composer({ room }: ComposerProps) {
             onClick={clearAttachment}
             title={t('chat.removeAttachment')}
             aria-label={t('chat.removeAttachment')}
+          >
+            <i className="bx bx-x" />
+          </button>
+        </div>
+      )}
+      {replyingTo && (
+        <div className={styles.replyBar}>
+          <div className={styles.replyBarContent}>
+            <div className={styles.replyBarLabel}>
+              <i className="bx bx-reply" />
+              {replyingTo.sender_id === 'SYSTEM' ? 'System' : (replyingTo.sender_name || t('chat.unknown'))}
+            </div>
+            <span className={styles.replyBarSnippet}>
+              {replyingTo.deleted ? t('chat.messageDeleted') : replyingTo.content || t('chat.attachment')}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.replyBarCancel}
+            onClick={onClearReply}
+            title={t('chat.cancelReply')}
+            aria-label={t('chat.cancelReply')}
           >
             <i className="bx bx-x" />
           </button>

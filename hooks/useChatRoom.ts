@@ -20,6 +20,7 @@ export interface SendMessageOptions {
   mediaUri?: string
   mediaType?: string
   gifUrl?: string
+  replyToMessageId?: string
 }
 
 export interface ChatRoom {
@@ -96,15 +97,25 @@ export function useChatRoom({
       if (!encryption) return list
       return Promise.all(
         list.map(async (msg) => {
+          let updated = msg
           if (msg.e2e_version === 1 && msg.content && !msg.deleted) {
             try {
               const plain = await encryption.decrypt(msg.content)
-              return { ...msg, content: plain }
+              updated = { ...updated, content: plain }
             } catch {
               return { ...msg, content: '', decrypt_failed: true }
             }
           }
-          return msg
+          if (updated.reply_to && updated.reply_to.content && updated.e2e_version === 1) {
+            const rt = updated.reply_to
+            try {
+              const plain = await encryption.decrypt(rt.content)
+              updated = { ...updated, reply_to: { ...rt, content: plain } }
+            } catch {
+              updated = { ...updated, reply_to: { id: rt.id, content: '', sender_id: rt.sender_id, sender_name: rt.sender_name, sender_avatar: rt.sender_avatar } }
+            }
+          }
+          return updated
         }),
       )
     },
@@ -277,6 +288,7 @@ export function useChatRoom({
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
             gif_url: opts?.gifUrl ?? null,
+            reply_to_message_id: opts?.replyToMessageId ?? null,
           })
           return
         } catch {
@@ -290,6 +302,7 @@ export function useChatRoom({
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
         gif_url: opts?.gifUrl ?? null,
+        reply_to_message_id: opts?.replyToMessageId ?? null,
       })
     },
     [socket, toast, encryption],

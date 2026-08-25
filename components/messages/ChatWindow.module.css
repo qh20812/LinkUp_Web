@@ -172,6 +172,15 @@
   max-width: 72%;
 }
 
+.msgRow.highlight {
+  animation: highlightFade 1.5s ease-out;
+}
+
+@keyframes highlightFade {
+  0% { background: rgba(59, 130, 246, 0.2); border-radius: var(--radius-lg); }
+  100% { background: transparent; }
+}
+
 .msgRow.theirs {
   align-self: flex-start;
   flex-direction: row;
@@ -555,6 +564,162 @@
 .attachmentRemove:hover {
   background: var(--color-danger-light);
   color: var(--color-danger);
+}
+
+/* Reply bar (composer preview) */
+.replyBar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 10px 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
+}
+
+.replyBarContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.replyBarLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.replyBarLabel i {
+  font-size: 0.85rem;
+}
+
+.replyBarSnippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.replyBarCancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.replyBarCancel:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Reply bubble preview (inside message bubble) — Messenger style */
+.replySnippet {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: background 0.15s;
+  overflow: hidden;
+}
+
+.replySnippet:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.replySnippetHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.replySnippetHeader i {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--color-primary);
+}
+
+.replySnippetName {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.replySnippetText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.mine .replySnippet {
+  background: rgba(255, 255, 255, 0.15);
+  border-left-color: rgba(255, 255, 255, 0.7);
+}
+
+.mine .replySnippet:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.mine .replySnippetName {
+  color: #fff;
+}
+
+.mine .replySnippetText {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mine .replySnippetHeader i {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Reply button (hover on message) */
+.replyBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.msgRow:hover .replyBtn {
+  display: flex;
+}
+
+.replyBtn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
 }
 
 .composerActions {
