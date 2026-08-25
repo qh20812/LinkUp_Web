@@ -853,6 +853,13 @@
   min-width: 0;
 }
 
+.videoPreviewStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
 .mediaEl {
   max-width: 260px;
   max-height: 320px;

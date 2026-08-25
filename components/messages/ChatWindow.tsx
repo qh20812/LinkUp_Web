@@ -13,6 +13,8 @@ import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
+import VideoLinkPreview from './VideoLinkPreview'
+import { extractVideoUrls } from '../../utils/videoLink'
 import {
   EMOTION_GROUPS,
   emojiByCode,
@@ -521,6 +523,10 @@ const prevTimelineLenRef = useRef(0)
             const senderDisplayName = msg.sender_name || mapMember?.display_name || null
             const senderAvatarUri = msg.sender_avatar || mapMember?.avatar_uri || null
             const senderMember = showSenderName ? { display_name: senderDisplayName || '', avatar_uri: senderAvatarUri || '' } : null
+            const videoUrls = !msg.deleted && !msg.decrypt_failed && msg.content
+              ? extractVideoUrls(msg.content)
+              : []
+            const isSingleVideo = videoUrls.length === 1 && videoUrls[0] === msg.content?.trim()
             return (
               <Fragment key={msg.id}>
                 {showDate && (
@@ -595,7 +601,7 @@ const prevTimelineLenRef = useRef(0)
                     </div>
                   ) : (
                     <div
-                      className={`${styles.bubble}${plain ? ` ${styles.bubblePlain}` : ''}`}
+                      className={`${styles.bubble}${(plain || isSingleVideo) ? ` ${styles.bubblePlain}` : ''}`}
                     >
                       {msg.reply_to && (
                         <div
@@ -623,6 +629,8 @@ const prevTimelineLenRef = useRef(0)
                         <span className={styles.deletedText}>
                           <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
                         </span>
+                      ) : isSingleVideo ? (
+                        <VideoLinkPreview url={videoUrls[0]} isMine={mine} />
                       ) : msg.content ? (
                         singleEmoji ? (
                           <EmojiImage
@@ -635,6 +643,13 @@ const prevTimelineLenRef = useRef(0)
                           </span>
                         )
                       ) : null}
+                      {videoUrls.length > 0 && !isSingleVideo && (
+                        <div className={styles.videoPreviewStack}>
+                          {videoUrls.map((vUrl) => (
+                            <VideoLinkPreview key={vUrl} url={vUrl} isMine={mine} />
+                          ))}
+                        </div>
+                      )}
                       <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                     </div>
                   )}
