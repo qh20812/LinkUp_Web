@@ -20,6 +20,7 @@ export interface SendMessageOptions {
   mediaUri?: string
   mediaType?: string
   gifUrl?: string
+  sharedPostId?: string
 }
 
 export interface ChatRoom {
@@ -271,6 +272,7 @@ export function useChatRoom({
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
             gif_url: opts?.gifUrl ?? null,
+            shared_post_id: opts?.sharedPostId ?? null,
           })
           return
         } catch {
@@ -284,6 +286,7 @@ export function useChatRoom({
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
         gif_url: opts?.gifUrl ?? null,
+        shared_post_id: opts?.sharedPostId ?? null,
       })
     },
     [socket, toast, encryption],

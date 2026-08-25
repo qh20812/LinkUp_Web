@@ -58,8 +58,13 @@ export const deleteChat = (chatId: string) =>
 export const searchFriends = (keyword: string) =>
   request<{
     users: Array<{ id: string; username: string; display_name: string; avatar_uri: string }>
-    message?: string
   }>(`/friends/search?keyword=${encodeURIComponent(keyword)}`)
+
+export const sharePostToChat = (targetUserId: string, sharedPostId: string) =>
+  request<{ message: string; data: unknown }>('/chats/share', {
+    method: 'POST',
+    body: JSON.stringify({ target_user_id: targetUserId, shared_post_id: sharedPostId }),
+  })
 
 export const searchUsers = (keyword: string) =>
   request<{

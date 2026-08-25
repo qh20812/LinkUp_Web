@@ -527,6 +527,60 @@ const prevTimelineLenRef = useRef(0)
                     myUserId={myUserId}
                     onAccepted={onGroupInviteAccepted}
                   />
+                ) : msg.type === 'shared_post' ? (
+                <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}>
+                  <div className={styles.bubble}>
+                    <div className={styles.sharedPostHeader}>
+                      <i className="bx bx-revision" />
+                      <span>{t('chat.sharedPost')}</span>
+                    </div>
+                    {msg.shared_post ? (
+                      <a
+                        href={`/posts/${msg.shared_post_id}`}
+                        className={styles.sharedPostCard}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {msg.shared_post.media_uri && (
+                          <ExternalImage
+                            src={msg.shared_post.media_uri}
+                            alt=""
+                            className={styles.sharedPostImage}
+                          />
+                        )}
+                        <div className={styles.sharedPostContent}>
+                          <div className={styles.sharedPostAuthor}>
+                            {msg.shared_post.avatar_uri && (
+                              <ExternalImage
+                                src={msg.shared_post.avatar_uri}
+                                alt=""
+                                className={styles.sharedPostAvatar}
+                              />
+                            )}
+                            <span className={styles.sharedPostName}>
+                              {msg.shared_post.display_name}
+                            </span>
+                          </div>
+                          {msg.shared_post.title && (
+                            <div className={styles.sharedPostTitle}>{msg.shared_post.title}</div>
+                          )}
+                          {msg.shared_post.content && (
+                            <div className={styles.sharedPostText}>
+                              {msg.shared_post.content.length > 120
+                                ? msg.shared_post.content.slice(0, 120) + '...'
+                                : msg.shared_post.content}
+                            </div>
+                          )}
+                        </div>
+                      </a>
+                    ) : (
+                      <div className={styles.sharedPostPlaceholder}>
+                        <span>{t('chat.postNotAvailable')}</span>
+                      </div>
+                    )}
+                    <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                  </div>
+                </div>
                 ) : (
                 <>
                 {showSenderName && (

@@ -131,6 +131,9 @@ export interface FeedPost {
   is_following: boolean
   is_pinned: boolean
   pinned_at?: string
+  shared_from_post_id?: string
+  share_content?: string
+  shared_post?: FeedPost
 }
 
 export interface FeedResponse {
@@ -854,6 +857,8 @@ export interface ChatMessage {
   emoji_id?: string | null
   media_id?: string | null
   reply_to_message_id?: string | null
+  shared_post_id?: string | null
+  shared_post?: SharedPostPreview | null
   // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
   media_uri?: string | null
   media_type?: string | null
@@ -866,6 +871,18 @@ export interface ChatMessage {
   decrypt_failed?: boolean
   deleted?: boolean
   created_at: string
+}
+
+export interface SharedPostPreview {
+  id: string
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  title: string
+  content: string
+  media_uri?: string
+  media_type?: string
 }
 
 export interface ChatPartner {

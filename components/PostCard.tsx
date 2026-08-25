@@ -10,6 +10,7 @@ import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
 import VideoPlayer from './VideoPlayer'
+import ShareModal from './messages/ShareModal'
 import type { FeedPost } from '../types'
 
 const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
@@ -107,6 +108,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -125,6 +127,8 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
     router.push(`/posts/${post.id}`)
   }
 
+  const isRepost = Boolean(post.shared_from_post_id && post.shared_post)
+
   return (
     <article className={styles.card}>
       <div className={styles.header}>
@@ -139,6 +143,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
           <div className={styles.authorMeta}>
             <span className={styles.displayName}>
               <span className={styles.displayNameText}>{post.display_name}</span>
+              {isRepost && <span className={styles.repostLabel}>{t('post.sharedPost')}</span>}
               {!post.is_following && post.user_id !== currentUserId && (
                 <button
                   className={styles.followBadge}
@@ -160,28 +165,69 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
       </div>
 
       <div className={styles.body} onClick={navigateToPost}>
-        {post.title && <h2 className={styles.title}>{post.title}</h2>}
-        {post.content && (
-          <div className={styles.content}>
-            <p className={styles.text}>
-              {renderEmojiContent(displayContent, EMOJI_CODE_MAP, `pc-${post.id}`, styles.textEmoji)}
-            </p>
-            {needsTruncation && (
-              <button
-                className={styles.toggleBtn}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setExpanded((v) => !v)
-                }}
-              >
-                {expanded ? t('post.viewLess') : t('post.viewMore')}
-              </button>
+        {isRepost && post.share_content && (
+          <p className={styles.shareContent}>
+            {renderEmojiContent(post.share_content, EMOJI_CODE_MAP, `sc-${post.id}`, styles.textEmoji)}
+          </p>
+        )}
+        {isRepost && post.shared_post ? (
+          <div className={styles.embeddedPost}>
+            <div className={styles.embeddedHeader}>
+              <Link href={`/profile/${post.shared_post.user_id}`} className={styles.embeddedAuthor} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.embeddedAvatar}>
+                  {post.shared_post.avatar_uri ? (
+                    <ExternalImage src={post.shared_post.avatar_uri} alt="" className={styles.avatarImg} />
+                  ) : (
+                    <i className="bx bxs-user" />
+                  )}
+                </div>
+                <div className={styles.embeddedAuthorMeta}>
+                  <span className={styles.embeddedName}>{post.shared_post.display_name}</span>
+                  <span className={styles.embeddedUsername}>@{post.shared_post.username}</span>
+                </div>
+              </Link>
+            </div>
+            {post.shared_post.title && <h2 className={styles.title}>{post.shared_post.title}</h2>}
+            {post.shared_post.content && (
+              <p className={styles.text}>
+                {renderEmojiContent(
+                  post.shared_post.content.length > CONTENT_TRUNCATE_LENGTH
+                    ? post.shared_post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
+                    : post.shared_post.content,
+                  EMOJI_CODE_MAP, `spc-${post.shared_post.id}`, styles.textEmoji
+                )}
+              </p>
+            )}
+            {post.shared_post.media.length > 0 && (
+              <MediaGrid media={post.shared_post.media} onNavigate={navigateToPost} />
             )}
           </div>
+        ) : (
+          <>
+            {post.title && <h2 className={styles.title}>{post.title}</h2>}
+            {post.content && (
+              <div className={styles.content}>
+                <p className={styles.text}>
+                  {renderEmojiContent(displayContent, EMOJI_CODE_MAP, `pc-${post.id}`, styles.textEmoji)}
+                </p>
+                {needsTruncation && (
+                  <button
+                    className={styles.toggleBtn}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpanded((v) => !v)
+                    }}
+                  >
+                    {expanded ? t('post.viewLess') : t('post.viewMore')}
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <LazyMediaGrid media={post.media} onNavigate={navigateToPost} />
+      {!isRepost && <LazyMediaGrid media={post.media} onNavigate={navigateToPost} />}
 
       <div className={styles.actionBar}>
         <button
@@ -232,7 +278,25 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         >
           <i className={`bx ${post.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
         </button>
+
+        <button
+          className={styles.actionBtn}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShareToFriendOpen(true)
+          }}
+          aria-label={t('post.shareToFriend')}
+          disabled={post.user_id === currentUserId}
+        >
+          <i className="bx bx-message-rounded-detail" />
+        </button>
       </div>
+
+      <ShareModal
+        open={shareToFriendOpen}
+        onClose={() => setShareToFriendOpen(false)}
+        postId={post.id}
+      />
     </article>
   )
 }

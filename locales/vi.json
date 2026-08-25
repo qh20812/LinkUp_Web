@@ -94,6 +94,8 @@
     "like": "Thích",
     "comment": "Bình luận",
     "share": "Chia sẻ",
+    "sharedPost": "đã chia sẻ",
+    "shareToFriend": "Gửi cho bạn bè",
     "save": "Lưu",
     "saved": "Đã lưu",
     "liked": "Đã thích",
@@ -690,6 +692,8 @@
     "deleteForAll": "Xóa cho mọi người",
     "messageDeleted": "Tin nhắn đã bị xóa",
     "mediaMessage": "[Tin nhắn đa phương tiện]",
+    "sharedPost": "Đã chia sẻ bài viết",
+    "postNotAvailable": "Bài viết không khả dụng",
     "encryptedPreview": "🔒 Tin nhắn đã mã hóa",
     "e2eBadge": "E2E",
     "e2eTitle": "Tin nhắn được mã hóa đầu cuối, chỉ người gửi và người nhận đọc được",
@@ -1430,5 +1434,10 @@
     "lastSeenVisibilityAll": "Tất cả bạn bè",
     "lastSeenVisibilityDm": "Chỉ người có tin nhắn",
     "lastSeenVisibilityNobody": "Không ai"
+  },
+  "shareModal": {
+    "title": "Gửi bài viết",
+    "searchPlaceholder": "Tìm kiếm bạn bè...",
+    "share": "Gửi"
   }
 }

@@ -94,6 +94,8 @@
     "like": "Like",
     "comment": "Comment",
     "share": "Share",
+    "sharedPost": "shared",
+    "shareToFriend": "Send to friends",
     "save": "Save",
     "saved": "Saved",
     "liked": "Liked",
@@ -690,6 +692,8 @@
     "deleteForAll": "Delete for everyone",
     "messageDeleted": "Message deleted",
     "mediaMessage": "[Multimedia message]",
+    "sharedPost": "Shared a post",
+    "postNotAvailable": "Post not available",
     "encryptedPreview": "🔒 Encrypted message",
     "e2eBadge": "E2E",
     "e2eTitle": "Messages are end-to-end encrypted; only sender and receiver can read them",
@@ -1437,5 +1441,10 @@
     "lastSeenVisibilityAll": "All friends",
     "lastSeenVisibilityDm": "People with conversations only",
     "lastSeenVisibilityNobody": "Nobody"
+  },
+  "shareModal": {
+    "title": "Send post",
+    "searchPlaceholder": "Search friends...",
+    "share": "Send"
   }
 }

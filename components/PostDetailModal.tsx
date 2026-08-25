@@ -20,6 +20,7 @@ import {
   getEmojis,
 } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
+import ShareModal from './messages/ShareModal'
 import type { FeedPost, CommentItem, EmojiItem } from '../types'
 
 const COMMENT_PAGE_SIZE = 10
@@ -137,6 +138,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [shareOpen, setShareOpen] = useState(false)
   const [shareText, setShareText] = useState('')
   const [sharing, setSharing] = useState(false)
+  const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [mediaIndex, setMediaIndex] = useState(0)
@@ -439,11 +441,44 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
             </div>
 
             <div className={styles.body}>
-              {current.title && <h2 className={styles.title}>{current.title}</h2>}
-              {current.content && (
-                <p className={styles.text}>
-                  {renderEmojiContent(current.content, EMOJI_CODE_MAP, `pd-${current.id}`, styles.textEmoji)}
-                </p>
+              {current.shared_from_post_id && current.shared_post && (
+                current.share_content && (
+                  <p className={styles.text} style={{ marginBottom: 10 }}>
+                    {renderEmojiContent(current.share_content, EMOJI_CODE_MAP, `psc-${current.id}`, styles.textEmoji)}
+                  </p>
+                )
+              )}
+              {current.shared_from_post_id && current.shared_post ? (
+                <div className={styles.embeddedPost}>
+                  <Link href={`/profile/${current.shared_post.user_id}`} className={styles.embeddedAuthor} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.embeddedAvatar}>
+                      {current.shared_post.avatar_uri ? (
+                        <ExternalImage src={current.shared_post.avatar_uri} alt="" />
+                      ) : (
+                        <i className="bx bxs-user" />
+                      )}
+                    </div>
+                    <div className={styles.embeddedAuthorMeta}>
+                      <span className={styles.embeddedName}>{current.shared_post.display_name}</span>
+                      <span className={styles.embeddedUsername}>@{current.shared_post.username}</span>
+                    </div>
+                  </Link>
+                  {current.shared_post.title && <h2 className={styles.title}>{current.shared_post.title}</h2>}
+                  {current.shared_post.content && (
+                    <p className={styles.text}>
+                      {renderEmojiContent(current.shared_post.content, EMOJI_CODE_MAP, `spd-${current.shared_post.id}`, styles.textEmoji)}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {current.title && <h2 className={styles.title}>{current.title}</h2>}
+                  {current.content && (
+                    <p className={styles.text}>
+                      {renderEmojiContent(current.content, EMOJI_CODE_MAP, `pd-${current.id}`, styles.textEmoji)}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -488,6 +523,16 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                 disabled={isOwner}
               >
                 <i className={`bx ${current.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
+              </button>
+
+              <button
+                type="button"
+                className={styles.actionBtn}
+                onClick={() => setShareToFriendOpen(true)}
+                disabled={isOwner}
+                title={t('post.shareToFriend')}
+              >
+                <i className="bx bx-message-rounded-detail" />
               </button>
             </div>
 
@@ -583,6 +628,13 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           </div>
         </div>
       </div>
+      {current && (
+        <ShareModal
+          open={shareToFriendOpen}
+          onClose={() => setShareToFriendOpen(false)}
+          postId={current.id}
+        />
+      )}
     </div>
   )
 }

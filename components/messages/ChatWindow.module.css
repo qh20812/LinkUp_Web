@@ -894,3 +894,74 @@
   text-align: center;
   font-style: italic;
 }
+
+.sharedPostHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.sharedPostCard {
+  display: block;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  max-width: 300px;
+  transition: opacity var(--fast);
+}
+
+.sharedPostCard:hover {
+  opacity: 0.85;
+}
+
+.sharedPostImage {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.sharedPostContent {
+  padding: var(--space-sm);
+}
+
+.sharedPostAuthor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.sharedPostAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.sharedPostName {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sharedPostTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sharedPostText {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.sharedPostPlaceholder {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}

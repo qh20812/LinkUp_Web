@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './Modal.module.css'
 
 interface ModalProps {
@@ -23,7 +24,7 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
@@ -35,6 +36,7 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
         <div className={styles.body}>{children}</div>
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
