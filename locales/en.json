@@ -734,7 +734,18 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "ban": "Ban",
-    "transferAdmin": "Transfer Group Leader"
+    "transferAdmin": "Transfer Group Leader",
+    "adminSettings": "Admin Settings",
+    "allowMemberAdd": "Allow members to invite others",
+    "allowMemberAddOn": "Member invite enabled",
+    "allowMemberAddOff": "Member invite disabled",
+    "notificationSettings": "Notification Settings",
+    "notifications": "Group Notifications",
+    "notificationsOn": "Group notifications enabled",
+    "notificationsOff": "Group notifications disabled",
+    "muteMember": "Mute Member",
+    "muteReason": "Mute Reason",
+    "muteDuration": "Mute Duration"
   },
   "call": {
     "voiceCall": "Voice call",

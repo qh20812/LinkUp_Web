@@ -184,6 +184,12 @@ export function useChatRoom({
     const data = payload as { message?: string }
     if (!data || !data.message) return
     toast({ type: 'error', title: data.message })
+    const pending = pendingIdsRef.current
+    if (pending.length > 0) {
+      const tempID = pending[pending.length - 1]
+      pendingIdsRef.current = pending.slice(0, -1)
+      setMessages((prev) => prev.filter((m) => m.id !== tempID))
+    }
   }, [toast])
 
   useEffect(() => {

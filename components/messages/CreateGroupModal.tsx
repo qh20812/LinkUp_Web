@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Modal from '../Modal'
 import ExternalImage from '../ExternalImage'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { searchFriends, createGroupChat } from '../../api/chats'
+import { getFriends } from '../../api/friends'
 import styles from './CreateGroupModal.module.css'
 
 interface CreateGroupModalProps {
@@ -29,6 +30,10 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
   const [results, setResults] = useState<Friend[]>([])
   const [selected, setSelected] = useState<Map<string, Friend>>(new Map())
   const [creating, setCreating] = useState(false)
+  const [friendsState, setFriendsState] = useState<{
+    data: Friend[]
+    loaded: boolean
+  }>({ data: [], loaded: false })
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const reset = () => {
@@ -36,12 +41,36 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     setSearch('')
     setResults([])
     setSelected(new Map())
+    setFriendsState({ data: [], loaded: false })
   }
 
   const handleClose = () => {
     reset()
     onClose()
   }
+
+  useEffect(() => {
+    if (!open) return
+    if (search.trim().length > 0) return
+    let cancelled = false
+    getFriends(1, 50)
+      .then((res) => {
+        if (cancelled) return
+        setFriendsState({
+          data: (res.data ?? []).map((u) => ({
+            id: u.user_id,
+            username: u.display_name || u.user_id,
+            display_name: u.display_name,
+            avatar_uri: u.avatar_uri,
+          })),
+          loaded: true,
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setFriendsState({ data: [], loaded: true })
+      })
+    return () => { cancelled = true }
+  }, [open, search])
 
   const handleSearch = (value: string) => {
     setSearch(value)
@@ -96,6 +125,11 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       setCreating(false)
     }
   }, [name, selected, toast, t, onCreated])
+
+  const keywordLen = search.trim().length
+  const showFriends = keywordLen === 0
+  const displayList = showFriends ? friendsState.data : results
+  const isLoading = !showFriends && !friendsState.loaded
 
   return (
     <Modal
@@ -153,9 +187,17 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
           </div>
         )}
 
-        {results.length > 0 && (
+        {showFriends && friendsState.loaded && friendsState.data.length > 0 && (
+          <div className={styles.friendsLabel}>{t('chat.friends')}</div>
+        )}
+
+        {isLoading && (
+          <div className={styles.loading}>{t('common.loading')}</div>
+        )}
+
+        {displayList.length > 0 && (
           <div className={styles.results}>
-            {results.map((friend) => (
+            {displayList.map((friend) => (
               <button
                 key={friend.id}
                 className={`${styles.resultRow} ${
@@ -173,6 +215,12 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
                 )}
               </button>
             ))}
+          </div>
+        )}
+
+        {!isLoading && displayList.length === 0 && (
+          <div className={styles.loading}>
+            {keywordLen < 1 ? t('chat.noFriends') : t('chat.noResults')}
           </div>
         )}
       </div>

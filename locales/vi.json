@@ -734,7 +734,18 @@
     "mute": "Tắt tiếng",
     "unmute": "Bật tiếng",
     "ban": "Chặn",
-    "transferAdmin": "Chuyển nhóm trưởng"
+    "transferAdmin": "Chuyển nhóm trưởng",
+    "adminSettings": "Cài đặt quản trị",
+    "allowMemberAdd": "Cho phép thành viên mời người khác",
+    "allowMemberAddOn": "Đã cho phép thành viên mời người khác",
+    "allowMemberAddOff": "Đã thu hồi quyền mời thành viên",
+    "notificationSettings": "Cài đặt thông báo",
+    "notifications": "Thông báo nhóm",
+    "notificationsOn": "Đã bật thông báo nhóm",
+    "notificationsOff": "Đã tắt thông báo nhóm",
+    "muteMember": "Tắt tiếng thành viên",
+    "muteReason": "Lý do tắt tiếng",
+    "muteDuration": "Thời hạn tắt tiếng"
   },
   "call": {
     "voiceCall": "Gọi thoại",
