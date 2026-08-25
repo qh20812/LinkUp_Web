@@ -56,6 +56,20 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.creatorBadge {
+  font-weight: 500;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(var(--color-primary-rgb, 0, 168, 150), 0.12);
+  color: var(--color-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .description {
@@ -89,11 +103,6 @@
 .privacyPublic {
   background: rgba(56, 142, 60, 0.12);
   color: var(--color-success);
-}
-
-.privacyCode {
-  background: rgba(251, 192, 45, 0.12);
-  color: #f57f17;
 }
 
 .privacyInvitation {

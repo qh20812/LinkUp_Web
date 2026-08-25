@@ -13,7 +13,7 @@ import type { CommunityListResponse } from '../../../types'
 import styles from './Communities.module.css'
 
 type Tab = 'discover' | 'joined' | 'created'
-type PrivacyFilter = 'all' | 'public' | 'code' | 'invitation_only'
+type PrivacyFilter = 'all' | 'public' | 'invitation_only'
 
 const VALID_TABS: Tab[] = ['discover', 'joined', 'created']
 
@@ -35,7 +35,7 @@ function CommunitiesContent() {
   const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'discover'
 
   const rawPrivacy = searchParams.get('privacy') || 'all'
-  const privacyFilter: PrivacyFilter = ['all', 'public', 'code', 'invitation_only'].includes(rawPrivacy) ? (rawPrivacy as PrivacyFilter) : 'all'
+  const privacyFilter: PrivacyFilter = ['all', 'public', 'invitation_only'].includes(rawPrivacy) ? (rawPrivacy as PrivacyFilter) : 'all'
 
   const rawKeyword = searchParams.get('q') || ''
   const [keyword, setKeyword] = useState(rawKeyword)
@@ -109,7 +109,7 @@ function CommunitiesContent() {
   if (privacyFilter !== 'all') {
     communities = communities.filter(c => c.privacy === privacyFilter)
   }
-  const showFilters = activeTab === 'discover'
+  const showFilters = true
 
   return (
     <div className={styles.page}>
@@ -146,13 +146,13 @@ function CommunitiesContent() {
 
       {showFilters && (
         <div className={styles.filters}>
-          {(['all', 'public', 'code', 'invitation_only'] as PrivacyFilter[]).map(filter => (
+          {(['all', 'public', 'invitation_only'] as PrivacyFilter[]).map(filter => (
             <button
               key={filter}
               className={`${styles.filterChip} ${privacyFilter === filter ? styles.filterChipActive : ''}`}
               onClick={() => handlePrivacyFilter(filter)}
             >
-              {t(`communities.filter${filter === 'all' ? 'All' : filter === 'public' ? 'Public' : filter === 'code' ? 'Code' : 'Invitation'}`)}
+              {t(`communities.filter${filter === 'all' ? 'All' : filter === 'public' ? 'Public' : 'Invitation'}`)}
             </button>
           ))}
         </div>

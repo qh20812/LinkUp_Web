@@ -464,8 +464,9 @@ export interface CommunityListItem {
   name: string
   description: string
   avatar_uri: string
-  privacy: 'public' | 'code' | 'invitation_only'
+  privacy: 'public' | 'invitation_only'
   member_count: number
+  is_creator: boolean
   created_at: string
 }
 
@@ -484,7 +485,7 @@ export interface CommunityDetailResponse {
   background_uri: string
   creator_id: string
   creator_name: string
-  privacy: 'public' | 'code' | 'invitation_only'
+  privacy: 'public' | 'invitation_only'
   auto_approve: boolean
   member_count: number
   membership_status: 'none' | 'pending' | 'member' | 'admin' | 'creator'

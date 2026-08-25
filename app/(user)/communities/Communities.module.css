@@ -129,6 +129,12 @@
   border-color: var(--color-primary);
 }
 
+.filterChipActive:hover {
+  background: var(--color-primary-hover);
+  color: #fff;
+  border-color: var(--color-primary-hover);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

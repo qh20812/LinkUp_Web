@@ -79,6 +79,7 @@ interface ChatWindowProps {
   onDeleteChat?: () => void
   mode?: 'direct' | 'group'
   groupName?: string
+  groupAvatarUri?: string
   memberCount?: number
   typingUsers?: Set<string>
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>
@@ -115,6 +116,7 @@ export default function ChatWindow({
   onDeleteChat,
   mode = 'direct',
   groupName,
+  groupAvatarUri,
   memberCount,
   typingUsers,
   memberNames,
@@ -343,7 +345,7 @@ const prevTimelineLenRef = useRef(0)
       <div className={styles.header}>
         <div className={styles.avatar}>
           {mode === 'group' ? (
-            <i className="bx bx-group" />
+            groupAvatarUri ? <ExternalImage src={groupAvatarUri} alt="" /> : <i className="bx bx-group" />
           ) : conversation?.partner.avatar_uri ? (
             <ExternalImage src={conversation.partner.avatar_uri} alt="" />
           ) : (

@@ -58,13 +58,6 @@ describe('CommunityCard', () => {
     expect(screen.getByText(/communities\.privacyPublic/)).toBeInTheDocument()
   })
 
-  it('renders privacy badge for code', () => {
-    const community = buildCommunity({ privacy: 'code' })
-    renderWithProviders(<CommunityCard community={community} />)
-
-    expect(screen.getByText(/communities\.privacyCode/)).toBeInTheDocument()
-  })
-
   it('renders privacy badge for invitation_only', () => {
     const community = buildCommunity({ privacy: 'invitation_only' })
     renderWithProviders(<CommunityCard community={community} />)

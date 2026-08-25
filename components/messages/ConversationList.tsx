@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
-import MultiAvatar from '../MultiAvatar'
 import { usePresence } from '../../contexts/PresenceContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
@@ -193,7 +192,11 @@ export default function ConversationList({
                 onClick={() => onSelectGroup?.(group)}
               >
                 <div className={styles.avatar}>
-                  <MultiAvatar srcs={[]} size={40} />
+                  {group.avatar_uri ? (
+                    <ExternalImage src={group.avatar_uri} alt="" />
+                  ) : (
+                    <i className="bx bx-group" />
+                  )}
                 </div>
                 <div className={styles.meta}>
                   <div className={styles.rowTop}>

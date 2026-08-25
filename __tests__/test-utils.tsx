@@ -163,6 +163,7 @@ export function buildCommunity(overrides?: Partial<CommunityListItem>): Communit
     avatar_uri: '',
     privacy: 'public',
     member_count: 10,
+    is_creator: false,
     created_at: new Date().toISOString(),
     ...overrides,
   }

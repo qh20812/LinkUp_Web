@@ -145,7 +145,7 @@ function SettingsSection({ communityID, community, onUpdate }: { communityID: st
             <button
               key={opt.value}
               className={`${styles.privacyOption} ${privacy === opt.value ? styles.privacyOptionActive : ''}`}
-              onClick={() => setPrivacy(opt.value as 'public' | 'code' | 'invitation_only')}
+              onClick={() => setPrivacy(opt.value as 'public'| 'invitation_only')}
               disabled={loading}
               type="button"
             >

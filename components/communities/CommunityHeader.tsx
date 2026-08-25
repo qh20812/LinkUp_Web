@@ -15,7 +15,6 @@ interface CommunityHeaderProps {
 
 const PRIVACY_LABELS: Record<CommunityDetailResponse['privacy'], string> = {
   public: 'communities.privacyPublic',
-  code: 'communities.privacyCode',
   invitation_only: 'communities.privacyInvitation',
 }
 

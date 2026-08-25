@@ -60,13 +60,6 @@ describe('CommunityHeader', () => {
     expect(screen.getByText(/5,432/)).toBeInTheDocument()
   })
 
-  it('renders privacy label', () => {
-    const community = buildCommunityDetail({ privacy: 'code' })
-    renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
-
-    expect(screen.getByText(/communities\.privacyCode/)).toBeInTheDocument()
-  })
-
   it('renders creator link with correct href', () => {
     const community = buildCommunityDetail({ creator_id: 'user-99', creator_name: 'alice' })
     renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)

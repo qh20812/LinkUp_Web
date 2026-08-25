@@ -392,6 +392,7 @@ export default function MessagesPage() {
               room={groupRoom}
               mode="group"
               groupName={activeGroupConversation.name}
+              groupAvatarUri={activeGroupConversation.avatar_uri}
               memberCount={activeGroupConversation.member_count}
               typingUsers={groupRoom.typingUsers}
               memberNames={activeGroupMembers}

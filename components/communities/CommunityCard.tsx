@@ -12,13 +12,11 @@ interface CommunityCardProps {
 
 const PRIVACY_LABELS: Record<CommunityListItem['privacy'], string> = {
   public: 'communities.privacyPublic',
-  code: 'communities.privacyCode',
   invitation_only: 'communities.privacyInvitation',
 }
 
 const PRIVACY_CLASS: Record<CommunityListItem['privacy'], string> = {
   public: styles.privacyPublic,
-  code: styles.privacyCode,
   invitation_only: styles.privacyInvitation,
 }
 
@@ -52,7 +50,12 @@ export default function CommunityCard({ community }: CommunityCardProps) {
       </div>
 
       <div className={styles.info}>
-        <div className={styles.name}>{community.name}</div>
+        <div className={styles.name}>
+          {community.name}
+          {community.is_creator && (
+            <span className={styles.creatorBadge}>{t('communities.yourCommunity')}</span>
+          )}
+        </div>
 
         {community.description && (
           <div className={styles.description}>{community.description}</div>
@@ -66,7 +69,6 @@ export default function CommunityCard({ community }: CommunityCardProps) {
 
           <span className={`${styles.privacyBadge} ${PRIVACY_CLASS[community.privacy]}`}>
             {community.privacy === 'public' && <i className="bx bx-globe" />}
-            {community.privacy === 'code' && <i className="bx bx-hash" />}
             {community.privacy === 'invitation_only' && <i className="bx bx-lock-alt" />}
             {' '}{t(PRIVACY_LABELS[community.privacy])}
           </span>
