@@ -5,7 +5,7 @@ import Modal from '../Modal'
 import ExternalImage from '../ExternalImage'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
-import { searchFriends, createGroupChat } from '../../api/chats'
+import { searchFriends, createGroupChat, uploadMedia } from '../../api/chats'
 import { getFriends } from '../../api/friends'
 import styles from './CreateGroupModal.module.css'
 
@@ -30,6 +30,11 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
   const [results, setResults] = useState<Friend[]>([])
   const [selected, setSelected] = useState<Map<string, Friend>>(new Map())
   const [creating, setCreating] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
+  const avatarPreviewUrlRef = useRef<string | null>(null)
   const [friendsState, setFriendsState] = useState<{
     data: Friend[]
     loaded: boolean
@@ -42,6 +47,12 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     setResults([])
     setSelected(new Map())
     setFriendsState({ data: [], loaded: false })
+    setAvatarFile(null)
+    if (avatarPreviewUrlRef.current) {
+      URL.revokeObjectURL(avatarPreviewUrlRef.current)
+      avatarPreviewUrlRef.current = null
+    }
+    setAvatarPreview(null)
   }
 
   const handleClose = () => {
@@ -101,6 +112,19 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     })
   }
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (avatarPreviewUrlRef.current) {
+      URL.revokeObjectURL(avatarPreviewUrlRef.current)
+    }
+    const url = URL.createObjectURL(file)
+    avatarPreviewUrlRef.current = url
+    setAvatarFile(file)
+    setAvatarPreview(url)
+  }
+
   const handleCreate = useCallback(async () => {
     if (!name.trim() || name.trim().length < 3) {
       toast({ type: 'warning', title: 'Tên nhóm phải từ 3-50 ký tự' })
@@ -112,7 +136,17 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     }
     setCreating(true)
     try {
-      const res = await createGroupChat(name.trim(), Array.from(selected.keys()))
+      let avatarUri: string | undefined
+      if (avatarFile) {
+        setAvatarUploading(true)
+        try {
+          const uploadRes = await uploadMedia(avatarFile)
+          avatarUri = uploadRes.data.file_uri
+        } finally {
+          setAvatarUploading(false)
+        }
+      }
+      const res = await createGroupChat(name.trim(), Array.from(selected.keys()), avatarUri)
       toast({ type: 'success', title: t('chat.groupCreated') })
       reset()
       onCreated(res.group_id)
@@ -124,7 +158,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
     } finally {
       setCreating(false)
     }
-  }, [name, selected, toast, t, onCreated])
+  }, [name, selected, avatarFile, toast, t, onCreated])
 
   const keywordLen = search.trim().length
   const showFriends = keywordLen === 0
@@ -152,6 +186,31 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
       }
     >
       <div className={styles.body}>
+        <div className={styles.avatarField}>
+          <div
+            className={styles.avatarPicker}
+            onClick={() => avatarFileRef.current?.click()}
+          >
+            {avatarPreview ? (
+              <ExternalImage src={avatarPreview} alt="" className={styles.avatarPreviewImg} />
+            ) : (
+              <i className="bx bx-camera" />
+            )}
+            {avatarUploading && (
+              <div className={styles.avatarUploading}>
+                <i className="bx bx-loader-circle bx-spin" />
+              </div>
+            )}
+          </div>
+          <input
+            ref={avatarFileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleAvatarChange}
+          />
+        </div>
+
         <div className={styles.field}>
           <label className={styles.label}>{t('chat.groupName')}</label>
           <input

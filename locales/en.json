@@ -748,7 +748,11 @@
     "notificationsOff": "Group notifications disabled",
     "muteMember": "Mute Member",
     "muteReason": "Mute Reason",
-    "muteDuration": "Mute Duration"
+    "muteDuration": "Mute Duration",
+    "groupAvatar": "Group Avatar",
+    "changeAvatar": "Change Photo",
+    "avatarUpdated": "Group photo updated",
+    "uploadingImage": "Uploading..."
   },
   "call": {
     "voiceCall": "Voice call",

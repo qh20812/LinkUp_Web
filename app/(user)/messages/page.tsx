@@ -396,6 +396,7 @@ export default function MessagesPage() {
               typingUsers={groupRoom.typingUsers}
               memberNames={activeGroupMembers}
               onOpenGroupSettings={handleOpenGroupSettings}
+              groupAvatarUri={activeGroupConversation.avatar_uri}
             />
           ) : activeChatType === 'direct' ? (
             <ChatWindow

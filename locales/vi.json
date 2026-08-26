@@ -748,7 +748,11 @@
     "notificationsOff": "Đã tắt thông báo nhóm",
     "muteMember": "Tắt tiếng thành viên",
     "muteReason": "Lý do tắt tiếng",
-    "muteDuration": "Thời hạn tắt tiếng"
+    "muteDuration": "Thời hạn tắt tiếng",
+    "groupAvatar": "Ảnh đại diện nhóm",
+    "changeAvatar": "Đổi ảnh",
+    "avatarUpdated": "Đã cập nhật ảnh nhóm",
+    "uploadingImage": "Đang tải lên..."
   },
   "call": {
     "voiceCall": "Gọi thoại",

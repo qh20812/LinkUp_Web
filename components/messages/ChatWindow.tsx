@@ -86,6 +86,7 @@ interface ChatWindowProps {
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>
   onOpenGroupSettings?: () => void
   onGroupInviteAccepted?: (groupChatId: string) => void
+  groupAvatarUri?: string
 }
 
 interface DeleteTarget {
@@ -122,6 +123,7 @@ export default function ChatWindow({
   memberNames,
   onOpenGroupSettings,
   onGroupInviteAccepted,
+  groupAvatarUri,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const {
@@ -356,7 +358,11 @@ const prevTimelineLenRef = useRef(0)
       <div className={styles.header}>
         <div className={styles.avatar}>
           {mode === 'group' ? (
-            <i className="bx bx-group" />
+            groupAvatarUri ? (
+              <ExternalImage src={groupAvatarUri} alt="" />
+            ) : (
+              <i className="bx bx-group" />
+            )
           ) : conversation?.partner.avatar_uri ? (
             <ExternalImage src={conversation.partner.avatar_uri} alt="" />
           ) : (

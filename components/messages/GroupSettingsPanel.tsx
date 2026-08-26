@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Modal from '../Modal'
 import GroupMemberList from './GroupMemberList'
 import AddGroupMemberModal from './AddGroupMemberModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
+import ExternalImage from '../ExternalImage'
 import {
   getGroupSettings,
   updateGroupSettings,
@@ -13,6 +14,7 @@ import {
   unmuteGroupMember,
   muteGroupMember,
   transferGroupAdmin,
+  uploadMedia,
 } from '../../api/chats'
 import type { GroupChatSettings } from '../../types'
 import styles from './GroupSettingsPanel.module.css'
@@ -62,6 +64,8 @@ export default function GroupSettingsPanel({
   const [muteTarget, setMuteTarget] = useState<string | null>(null)
   const [muteReason, setMuteReason] = useState<string>('spam')
   const [muteDuration, setMuteDuration] = useState<number>(60)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const loadSettings = useCallback(async () => {
     if (!open || !chatId) return
@@ -99,6 +103,24 @@ export default function GroupSettingsPanel({
       toast({ type: 'success', title: t('common.success') })
     } catch {
       toast({ type: 'error', title: t('common.error') })
+    }
+  }
+
+  const handleChangeAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !settings) return
+    setAvatarUploading(true)
+    try {
+      const uploadRes = await uploadMedia(file)
+      const res = await updateGroupSettings(chatId, { avatar_uri: uploadRes.data.file_uri })
+      setSettings(res.data)
+      onSettingsUpdated?.(res.data)
+      toast({ type: 'success', title: t('chat.avatarUpdated') })
+    } catch {
+      toast({ type: 'error', title: t('common.error') })
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -212,6 +234,41 @@ export default function GroupSettingsPanel({
 
           {settings && (
             <>
+              {isAdmin && (
+                <div className={styles.section}>
+                  <label className={styles.label}>{t('chat.groupAvatar')}</label>
+                  <div className={styles.avatarSection}>
+                    <div className={styles.avatarPreview}>
+                      {settings.avatar_uri ? (
+                        <ExternalImage src={settings.avatar_uri} alt="" className={styles.avatarImage} />
+                      ) : (
+                        <i className={`bx bx-group ${styles.avatarPlaceholder}`} />
+                      )}
+                      {avatarUploading && (
+                        <div className={styles.avatarOverlay}>
+                          <i className="bx bx-loader-circle bx-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      className={styles.changeAvatarBtn}
+                      onClick={() => avatarFileRef.current?.click()}
+                      disabled={avatarUploading}
+                    >
+                      <i className="bx bx-camera" />
+                      <span>{t('chat.changeAvatar')}</span>
+                    </button>
+                  </div>
+                  <input
+                    ref={avatarFileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleChangeAvatar}
+                  />
+                </div>
+              )}
+
               <div className={styles.section}>
                 <label className={styles.label}>{t('chat.groupName')}</label>
                 {editingName ? (

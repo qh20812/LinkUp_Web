@@ -193,7 +193,11 @@ export default function ConversationList({
                 onClick={() => onSelectGroup?.(group)}
               >
                 <div className={styles.avatar}>
-                  <MultiAvatar srcs={[]} size={40} />
+                  {group.avatar_uri ? (
+                    <ExternalImage src={group.avatar_uri} alt="" className={styles.groupAvatar} />
+                  ) : (
+                    <MultiAvatar srcs={[]} size={40} />
+                  )}
                 </div>
                 <div className={styles.meta}>
                   <div className={styles.rowTop}>
