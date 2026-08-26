@@ -27,8 +27,14 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
 
   const rules = data?.rules ?? []
 
+  const categoryLabelMap: Record<string, string> = {
+    conduct: 'communities.ruleConduct',
+    prohibited: 'communities.ruleProhibited',
+    guidelines: 'communities.ruleGuidelines',
+  }
+
   const grouped = rules.reduce<Record<string, CommunityRule[]>>((acc, rule) => {
-    const key = rule.category || 'Khác'
+    const key = rule.category || 'other'
     if (!acc[key]) acc[key] = []
     acc[key].push(rule)
     return acc
@@ -115,7 +121,7 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
           const categoryRules = grouped[category].sort((a, b) => a.position - b.position)
           return (
             <div key={category} className={styles.category}>
-              <div className={styles.categoryTitle}>{category}</div>
+              <div className={styles.categoryTitle}>{t(categoryLabelMap[category] || 'communities.ruleCategory')}</div>
               {categoryRules.map((rule) => {
                 number++
                 return (
