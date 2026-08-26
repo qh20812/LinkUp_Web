@@ -6,7 +6,6 @@ import styles from './VideoLinkPreview.module.css'
 
 interface VideoLinkPreviewProps {
   url: string
-  isMine?: boolean
 }
 
 function getDomain(url: string): string {
@@ -31,7 +30,7 @@ function getTitle(url: string): string | null {
   return null
 }
 
-export default function VideoLinkPreview({ url, isMine = false }: VideoLinkPreviewProps) {
+export default function VideoLinkPreview({ url }: VideoLinkPreviewProps) {
   const thumbnail = useMemo(() => getVideoThumbnail(url), [url])
   const domain = useMemo(() => getDomain(url), [url])
   const title = useMemo(() => getTitle(url), [url])
@@ -53,7 +52,7 @@ export default function VideoLinkPreview({ url, isMine = false }: VideoLinkPrevi
 
   return (
     <div
-      className={`${styles.card} ${isMine ? styles.mine : ''}`}
+      className={styles.card}
       onClick={handleOpen}
       onKeyDown={handleKeyDown}
       role="link"
