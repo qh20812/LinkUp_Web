@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  background: var(--color-bg);
+  background: var(--color-bg-secondary);
 }
 
 .header {
@@ -47,6 +47,9 @@
 .headerMeta {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .name {
