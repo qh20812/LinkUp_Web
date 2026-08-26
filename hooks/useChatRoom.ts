@@ -21,6 +21,7 @@ export interface SendMessageOptions {
   mediaType?: string
   gifUrl?: string
   sharedPostId?: string
+  replyToMessageId?: string
 }
 
 export interface ChatRoom {
@@ -97,15 +98,25 @@ export function useChatRoom({
       if (!encryption) return list
       return Promise.all(
         list.map(async (msg) => {
+          let updated = msg
           if (msg.e2e_version === 1 && msg.content && !msg.deleted) {
             try {
               const plain = await encryption.decrypt(msg.content)
-              return { ...msg, content: plain }
+              updated = { ...updated, content: plain }
             } catch {
               return { ...msg, content: '', decrypt_failed: true }
             }
           }
-          return msg
+          if (updated.reply_to && updated.reply_to.content && updated.e2e_version === 1) {
+            const rt = updated.reply_to
+            try {
+              const plain = await encryption.decrypt(rt.content)
+              updated = { ...updated, reply_to: { ...rt, content: plain } }
+            } catch {
+              updated = { ...updated, reply_to: { id: rt.id, content: '', sender_id: rt.sender_id, sender_name: rt.sender_name, sender_avatar: rt.sender_avatar } }
+            }
+          }
+          return updated
         }),
       )
     },
@@ -185,6 +196,12 @@ export function useChatRoom({
     const data = payload as { message?: string }
     if (!data || !data.message) return
     toast({ type: 'error', title: data.message })
+    const pending = pendingIdsRef.current
+    if (pending.length > 0) {
+      const tempID = pending[pending.length - 1]
+      pendingIdsRef.current = pending.slice(0, -1)
+      setMessages((prev) => prev.filter((m) => m.id !== tempID))
+    }
   }, [toast])
 
   useEffect(() => {
@@ -273,6 +290,7 @@ export function useChatRoom({
             media_id: opts?.mediaId ?? null,
             gif_url: opts?.gifUrl ?? null,
             shared_post_id: opts?.sharedPostId ?? null,
+            reply_to_message_id: opts?.replyToMessageId ?? null,
           })
           return
         } catch {
@@ -287,6 +305,7 @@ export function useChatRoom({
         media_id: opts?.mediaId ?? null,
         gif_url: opts?.gifUrl ?? null,
         shared_post_id: opts?.sharedPostId ?? null,
+        reply_to_message_id: opts?.replyToMessageId ?? null,
       })
     },
     [socket, toast, encryption],

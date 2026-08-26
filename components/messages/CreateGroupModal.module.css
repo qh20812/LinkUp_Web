@@ -182,3 +182,66 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.friendsLabel {
+  margin-bottom: var(--space-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.avatarField {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.avatarPicker {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 150ms ease;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 1.5rem;
+}
+
+.avatarPicker:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.avatarPreviewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarUploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1.25rem;
+}
