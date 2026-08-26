@@ -107,18 +107,4 @@
   font-size: 1.5rem;
 }
 
-.mine .card {
-  border-color: rgba(255, 255, 255, 0.2);
-}
 
-.mine .info {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.mine .domain {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.mine .title {
-  color: #fff;
-}

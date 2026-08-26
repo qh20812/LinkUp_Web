@@ -690,7 +690,7 @@ const prevTimelineLenRef = useRef(0)
                           <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
                         </span>
                       ) : isSingleVideo ? (
-                        <VideoLinkPreview url={videoUrls[0]} isMine={mine} />
+                        <VideoLinkPreview url={videoUrls[0]} />
                       ) : msg.content ? (
                         singleEmoji ? (
                           <EmojiImage
@@ -706,7 +706,7 @@ const prevTimelineLenRef = useRef(0)
                       {videoUrls.length > 0 && !isSingleVideo && (
                         <div className={styles.videoPreviewStack}>
                           {videoUrls.map((vUrl) => (
-                            <VideoLinkPreview key={vUrl} url={vUrl} isMine={mine} />
+                            <VideoLinkPreview key={vUrl} url={vUrl} />
                           ))}
                         </div>
                       )}
