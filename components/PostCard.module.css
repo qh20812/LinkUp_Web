@@ -196,18 +196,12 @@
 }
 
 .grid1 .mediaItem {
-  aspect-ratio: auto;
-  background: transparent;
-  max-width: 100%;
+  width: 100%;
+  max-height: 500px;
 }
 
 .grid1 .mediaEl {
-  height: auto;
   object-fit: contain;
-}
-
-.grid1 video {
-  max-height: none;
 }
 
 .shareContent {
