@@ -175,6 +175,21 @@ export function useGroupChatRoom({
     setSearchResults(sortByCreatedAt(dedupeByID(data.messages ?? [])))
   }, [])
 
+  const handleDeleted = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; message_id?: string }
+    if (!data || data.chat_id !== activeChatIdRef.current || !data.message_id) return
+    setMessages((prev) =>
+      prev.map((m) => (m.id === data.message_id ? { ...m, deleted: true, content: '' } : m)),
+    )
+    setSearchResults((prev) =>
+      prev
+        ? prev.map((m) =>
+            m.id === data.message_id ? { ...m, deleted: true, content: '' } : m,
+          )
+        : prev,
+    )
+  }, [])
+
   const handleError = useCallback((payload: unknown) => {
     const data = payload as { message?: string }
     if (!data || !data.message) return
@@ -193,6 +208,7 @@ export function useGroupChatRoom({
       socketSubscribe('group:message:new', handleNewMessage),
       socketSubscribe('group:typing', handleTyping),
       socketSubscribe('group:message:search_result', handleSearchResult),
+      socketSubscribe('group:message:deleted', handleDeleted),
       socketSubscribe('error', handleError),
     ]
     return () => unsubs.forEach((u) => u())
@@ -202,6 +218,7 @@ export function useGroupChatRoom({
     handleNewMessage,
     handleTyping,
     handleSearchResult,
+    handleDeleted,
     handleError,
   ])
 
@@ -302,6 +319,15 @@ export function useGroupChatRoom({
     setSearchKeyword('')
   }, [])
 
+  const deleteMessage = useCallback(
+    (messageId: string, mode: 'all' | 'me') => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('group:message:delete', { chat_id: chatID, message_id: messageId, mode })
+    },
+    [socket],
+  )
+
   return {
     messages,
     loading,
@@ -312,7 +338,7 @@ export function useGroupChatRoom({
     clearSearch,
     sendMessage,
     sendTyping,
-    deleteMessage: () => {},
+    deleteMessage,
     searchMessages,
     callHistory,
   }
