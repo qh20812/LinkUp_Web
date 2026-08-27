@@ -73,7 +73,7 @@ interface CommentNode {
   replies: CommentNode[]
 }
 
-function buildCommentTree(comments: CommentItem[]): CommentNode[] {
+function buildCommentTree(comments: CommentItem[], sort: string): CommentNode[] {
   const byId = new Map<string, CommentItem>(comments.map((c) => [c.id, c]))
 
   const rootOf = (id: string): string => {
@@ -102,9 +102,15 @@ function buildCommentTree(comments: CommentItem[]): CommentNode[] {
     }
   }
 
-  roots.sort(
-    (a, b) => new Date(b.comment.created_at).getTime() - new Date(a.comment.created_at).getTime(),
-  )
+  if (sort === 'newest') {
+    roots.sort(
+      (a, b) => new Date(b.comment.created_at).getTime() - new Date(a.comment.created_at).getTime(),
+    )
+  } else if (sort === 'oldest') {
+    roots.sort(
+      (a, b) => new Date(a.comment.created_at).getTime() - new Date(b.comment.created_at).getTime(),
+    )
+  }
 
   for (const root of roots) {
     root.replies.sort(
@@ -135,6 +141,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState<CommentItem | null>(null)
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'relevant'>('newest')
   const [shareOpen, setShareOpen] = useState(false)
   const [shareText, setShareText] = useState('')
   const [sharing, setSharing] = useState(false)
@@ -142,6 +149,8 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [mediaIndex, setMediaIndex] = useState(0)
+  const [mediaLoaded, setMediaLoaded] = useState(false)
+  const [videoFrame, setVideoFrame] = useState<string | null>(null)
   const commentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -152,7 +161,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMediaIndex(0)
-    getComments(post.id, 1, COMMENT_PAGE_SIZE)
+    getComments(post.id, 1, COMMENT_PAGE_SIZE, 'newest')
       .then((res) => {
         setComments(res.data)
         setCommentTotal(res.total)
@@ -180,6 +189,33 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   }, [post.id])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMediaLoaded(false)
+    setVideoFrame(null)
+  }, [mediaIndex, post.id])
+
+  useEffect(() => {
+    if (current.media.length === 0) return
+    const safeIndex = Math.min(mediaIndex, current.media.length - 1)
+    const m = current.media[safeIndex]
+    if (!isVideo(m.file_type)) return
+
+    const video = document.createElement('video')
+    video.src = m.file_uri
+    video.crossOrigin = 'anonymous'
+    video.muted = true
+    video.currentTime = 1
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 128
+      canvas.height = 72
+      canvas.getContext('2d')?.drawImage(video, 0, 0, 128, 72)
+      setVideoFrame(canvas.toDataURL('image/jpeg', 0.4))
+      video.remove()
+    }
+  }, [mediaIndex, current.media])
+
+  useEffect(() => {
     if (!open) return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -197,7 +233,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     const nextPage = commentPage + 1
     setCommentsLoading(true)
     try {
-      const res = await getComments(current.id, nextPage, COMMENT_PAGE_SIZE)
+      const res = await getComments(current.id, nextPage, COMMENT_PAGE_SIZE, commentSort)
       setComments((prev) => [...prev, ...res.data])
       setCommentPage(nextPage)
       setCommentTotal(res.total)
@@ -206,7 +242,24 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     } finally {
       setCommentsLoading(false)
     }
-  }, [commentPage, current])
+  }, [commentPage, current, commentSort])
+
+  const handleSortChange = useCallback(
+    (sort: 'newest' | 'oldest' | 'relevant') => {
+      setCommentSort(sort)
+      setComments([])
+      setCommentPage(1)
+      setCommentsLoading(true)
+      getComments(current.id, 1, COMMENT_PAGE_SIZE, sort)
+        .then((res) => {
+          setComments(res.data)
+          setCommentTotal(res.total)
+        })
+        .catch(() => {})
+        .finally(() => setCommentsLoading(false))
+    },
+    [current],
+  )
 
   const handleLike = async () => {
     if (!current) return
@@ -306,7 +359,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
   const isOwner = currentUserId !== null && current.user_id === currentUserId
 
-  const commentTree = buildCommentTree(comments)
+  const commentTree = buildCommentTree(comments, commentSort)
 
   const renderComment = (node: CommentNode): React.ReactNode => (
     <div key={node.comment.id} className={styles.commentItem}>
@@ -359,13 +412,18 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                   const mediaCount = current.media.length
                   const safeIndex = Math.min(mediaIndex, mediaCount - 1)
                   const m = current.media[safeIndex]
+                  const blurUrl = isVideo(m.file_type)
+                    ? (videoFrame ? `url(${videoFrame})` : 'none')
+                    : `url(${m.file_uri})`
+                  const itemClass = `${styles.mediaItem}${mediaLoaded ? ` ${styles.loaded}` : ''}`
+                  const itemStyle = { '--media-url': blurUrl } as React.CSSProperties
                   return isVideo(m.file_type) ? (
-                    <div key={m.id} className={`${styles.mediaItem} ${styles.videoWrap}`}>
+                    <div key={m.id} className={`${itemClass} ${styles.videoWrap}`} style={itemStyle}>
                       <VideoPlayer src={m.file_uri} />
                     </div>
                   ) : (
-                    <div key={m.id} className={styles.mediaItem}>
-                      <ExternalImage src={m.file_uri} alt="" />
+                    <div key={m.id} className={itemClass} style={itemStyle}>
+                      <ExternalImage src={m.file_uri} alt="" onLoad={() => setMediaLoaded(true)} />
                     </div>
                   )
                 })()}
@@ -560,6 +618,29 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
             <div className={styles.commentsSection}>
               <div className={styles.commentsHeader}>
                 <span>{t('postDetail.comments')}</span>
+                <div className={styles.commentSort}>
+                  <button
+                    type="button"
+                    className={`${styles.commentSortBtn} ${commentSort === 'newest' ? styles.commentSortActive : ''}`}
+                    onClick={() => handleSortChange('newest')}
+                  >
+                    {t('postDetail.sortNewest')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.commentSortBtn} ${commentSort === 'oldest' ? styles.commentSortActive : ''}`}
+                    onClick={() => handleSortChange('oldest')}
+                  >
+                    {t('postDetail.sortOldest')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.commentSortBtn} ${commentSort === 'relevant' ? styles.commentSortActive : ''}`}
+                    onClick={() => handleSortChange('relevant')}
+                  >
+                    {t('postDetail.sortRelevant')}
+                  </button>
+                </div>
               </div>
               <div className={styles.commentsList}>
                 {comments.length === 0 && !commentsLoading && (

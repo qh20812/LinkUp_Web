@@ -54,6 +54,24 @@ function isVideo(fileType: string): boolean {
   return fileType.startsWith('video/')
 }
 
+function MediaItem({ m }: { m: FeedPost['media'][number] }) {
+  const [loaded, setLoaded] = useState(false)
+  const url = m.file_uri
+
+  return (
+    <div
+      className={`${styles.mediaItem}${loaded ? ` ${styles.loaded}` : ''}`}
+      style={{ '--media-url': `url(${url})` } as React.CSSProperties}
+    >
+      {isVideo(m.file_type) ? (
+        <VideoPlayer src={url} />
+      ) : (
+        <ExternalImage src={url} alt="" className={styles.mediaEl} loading="lazy" onLoad={() => setLoaded(true)} />
+      )}
+    </div>
+  )
+}
+
 function MediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate: () => void }) {
   if (media.length === 0) return null
   const count = Math.min(media.length, 4)
@@ -62,13 +80,7 @@ function MediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate
   return (
     <div className={`${styles.mediaGrid} ${gridClass}`} onClick={onNavigate}>
       {media.slice(0, 4).map((m) => (
-        <div key={m.id} className={styles.mediaItem}>
-          {isVideo(m.file_type) ? (
-            <VideoPlayer src={m.file_uri} />
-          ) : (
-            <ExternalImage src={m.file_uri} alt="" className={styles.mediaEl} loading="lazy" />
-          )}
-        </div>
+        <MediaItem key={m.id} m={m} />
       ))}
     </div>
   )

@@ -192,6 +192,8 @@ export interface CreateCommentResponse {
   data: CommentItem[]
 }
 
+export type CommentSort = 'newest' | 'oldest' | 'relevant'
+
 // ===== Dashboard / Analytics =====
 export interface ChartDataPoint {
   date: string

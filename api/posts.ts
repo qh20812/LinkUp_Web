@@ -22,10 +22,11 @@ export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: stri
 export const getPostDetail = (postId: string) =>
   request<{ data: FeedPost }>(`/posts/${postId}`)
 
-export const getComments = (postId: string, page = 1, pageSize = 10) => {
+export const getComments = (postId: string, page = 1, pageSize = 10, sort: string = 'newest') => {
   const params = new URLSearchParams()
   params.set('page', String(page))
   params.set('page_size', String(pageSize))
+  params.set('sort', sort)
   return request<CommentListResponse>(`/posts/${postId}/comments?${params.toString()}`)
 }
 

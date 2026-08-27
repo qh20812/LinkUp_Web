@@ -131,7 +131,10 @@
     "deleteConfirm": "Bạn có chắc chắn muốn xóa bài viết này?",
     "deleted": "Đã xóa bài viết",
     "shared": "Chia sẻ bài viết thành công!",
-    "commentPosted": "Đăng bình luận thành công!"
+    "commentPosted": "Đăng bình luận thành công!",
+    "sortNewest": "Mới nhất",
+    "sortOldest": "Cũ nhất",
+    "sortRelevant": "Phù hợp nhất"
   },
   "saved": {
     "title": "Bài viết đã lưu",

@@ -131,7 +131,10 @@
     "deleteConfirm": "Are you sure you want to delete this post?",
     "deleted": "Post deleted",
     "shared": "Post shared successfully!",
-    "commentPosted": "Comment posted successfully!"
+    "commentPosted": "Comment posted successfully!",
+    "sortNewest": "Newest",
+    "sortOldest": "Oldest",
+    "sortRelevant": "Most relevant"
   },
   "saved": {
     "title": "Saved Posts",

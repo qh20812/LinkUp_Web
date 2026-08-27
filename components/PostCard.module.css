@@ -176,9 +176,27 @@
 }
 
 .mediaItem {
+  position: relative;
   overflow: hidden;
   background: var(--color-bg-secondary);
   aspect-ratio: 16 / 9;
+}
+
+.mediaItem::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background-image: var(--media-url);
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px) saturate(1.5);
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mediaItem.loaded::before {
+  opacity: 1;
 }
 
 .grid2 .mediaItem,
@@ -188,11 +206,18 @@
 }
 
 .mediaEl {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   max-width: 100%;
   object-fit: contain;
   display: block;
+}
+
+.mediaItem :global(.videoPlayer) {
+  position: relative;
+  z-index: 1;
 }
 
 .grid1 .mediaItem {
