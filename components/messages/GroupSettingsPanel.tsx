@@ -45,6 +45,16 @@ const MUTE_DURATIONS = [
   { value: 0, label: 'Vĩnh viễn' },
 ] as const
 
+const LEAVE_MODES = [
+  { value: 'public', labelKey: 'chat.leaveModePublic', descKey: 'chat.leaveModePublicDesc' },
+  { value: 'silent', labelKey: 'chat.leaveModeSilent', descKey: 'chat.leaveModeSilentDesc' },
+] as const
+
+const LEAVE_HISTORY_MODES = [
+  { value: 'keep', labelKey: 'chat.leaveHistoryKeep', descKey: 'chat.leaveHistoryKeepDesc' },
+  { value: 'anonymize', labelKey: 'chat.leaveHistoryAnonymize', descKey: 'chat.leaveHistoryAnonymizeDesc' },
+] as const
+
 export default function GroupSettingsPanel({
   open,
   onClose,
@@ -65,6 +75,9 @@ export default function GroupSettingsPanel({
   const [muteReason, setMuteReason] = useState<string>('spam')
   const [muteDuration, setMuteDuration] = useState<number>(60)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+  const [leaveMode, setLeaveMode] = useState<string>('public')
+  const [leaveHistoryMode, setLeaveHistoryMode] = useState<string>('keep')
   const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const loadSettings = useCallback(async () => {
@@ -202,11 +215,12 @@ export default function GroupSettingsPanel({
   const handleLeave = async () => {
     try {
       const { request } = await import('../../api/api')
-      await request(`/api/group-chats/${chatId}/leave`, {
+      await request(`/group-chats/${chatId}/leave`, {
         method: 'POST',
-        body: JSON.stringify({ leave_mode: 'public', history_mode: 'keep' }),
+        body: JSON.stringify({ leave_mode: leaveMode, history_mode: leaveHistoryMode }),
       })
       toast({ type: 'success', title: t('chat.leftGroup') })
+      setLeaveConfirmOpen(false)
       onLeave?.()
     } catch {
       toast({ type: 'error', title: t('common.error') })
@@ -221,7 +235,7 @@ export default function GroupSettingsPanel({
         title={t('chat.groupSettings')}
         footer={
           <div className={styles.footer}>
-            <button className={styles.leaveBtn} onClick={handleLeave}>
+            <button className={styles.leaveBtn} onClick={() => setLeaveConfirmOpen(true)}>
               {t('chat.leaveGroup')}
             </button>
           </div>
@@ -399,6 +413,58 @@ export default function GroupSettingsPanel({
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={leaveConfirmOpen}
+        onClose={() => setLeaveConfirmOpen(false)}
+        title={t('chat.leaveConfirmTitle')}
+        footer={
+          <div className={styles.footer}>
+            <button className={styles.cancelBtn} onClick={() => setLeaveConfirmOpen(false)}>
+              {t('common.cancel')}
+            </button>
+            <button className={styles.leaveBtn} onClick={handleLeave}>
+              {t('chat.leaveConfirmBtn')}
+            </button>
+          </div>
+        }
+      >
+        <div className={styles.body}>
+          <p className={styles.leaveDesc}>{t('chat.leaveConfirmDesc')}</p>
+
+          <div className={styles.section}>
+            <label className={styles.label}>{t('chat.leaveMode')}</label>
+            <select
+              className={styles.input}
+              value={leaveMode}
+              onChange={(e) => setLeaveMode(e.target.value)}
+            >
+              {LEAVE_MODES.map((m) => (
+                <option key={m.value} value={m.value}>{t(m.labelKey)}</option>
+              ))}
+            </select>
+            <p className={styles.leaveHint}>
+              {t(LEAVE_MODES.find((m) => m.value === leaveMode)?.descKey ?? 'chat.leaveModePublicDesc')}
+            </p>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.label}>{t('chat.leaveHistoryMode')}</label>
+            <select
+              className={styles.input}
+              value={leaveHistoryMode}
+              onChange={(e) => setLeaveHistoryMode(e.target.value)}
+            >
+              {LEAVE_HISTORY_MODES.map((m) => (
+                <option key={m.value} value={m.value}>{t(m.labelKey)}</option>
+              ))}
+            </select>
+            <p className={styles.leaveHint}>
+              {t(LEAVE_HISTORY_MODES.find((m) => m.value === leaveHistoryMode)?.descKey ?? 'chat.leaveHistoryKeepDesc')}
+            </p>
           </div>
         </div>
       </Modal>
