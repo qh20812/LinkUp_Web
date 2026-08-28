@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { SWRConfig } from 'swr'
 import LeftSidebar from './LeftSidebar'
@@ -12,72 +12,74 @@ import { FollowedUserIdsProvider } from '../contexts/FollowContext'
 import { defaultSWRConfig } from '../api/swr'
 import styles from './UserLayout.module.css'
 
-const LEFT_KEY = 'linkup.sidebar-left-collapsed'
-const RIGHT_KEY = 'linkup.sidebar-right-collapsed'
-
-function readPref(key: string): boolean {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(key) === '1'
-}
-
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMessages = pathname === '/messages'
 
-  const [leftCollapsed, setLeftCollapsed] = useState(false)
-  const [rightCollapsed, setRightCollapsed] = useState(false)
-  const leftPersistedRef = useRef(false)
-  const rightPersistedRef = useRef(false)
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
+  const prevPathname = useRef(pathname)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLeftCollapsed(readPref(LEFT_KEY))
-    setRightCollapsed(readPref(RIGHT_KEY))
+    if (prevPathname.current !== pathname) {
+      prevPathname.current = pathname
+      setLeftOpen(false)
+      setRightOpen(false)
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) setLeftOpen(false)
+      if (window.innerWidth > 1024) setRightOpen(false)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   useEffect(() => {
-    if (leftPersistedRef.current) {
-      localStorage.setItem(LEFT_KEY, leftCollapsed ? '1' : '0')
-    } else {
-      leftPersistedRef.current = true
+    if (!leftOpen && !rightOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLeftOpen(false)
+        setRightOpen(false)
+      }
     }
-  }, [leftCollapsed])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [leftOpen, rightOpen])
 
-  useEffect(() => {
-    if (rightPersistedRef.current) {
-      localStorage.setItem(RIGHT_KEY, rightCollapsed ? '1' : '0')
-    } else {
-      rightPersistedRef.current = true
-    }
-  }, [rightCollapsed])
-
-  const hideRight = isMessages || rightCollapsed
-  const layoutClass = `${styles.layout}${leftCollapsed ? ` ${styles.layoutLeftCollapsed}` : ''}${hideRight ? ` ${styles.layoutNoRight}` : ''}`
+  const closeDrawers = useCallback(() => {
+    setLeftOpen(false)
+    setRightOpen(false)
+  }, [])
 
   return (
     <SWRConfig value={defaultSWRConfig}>
       <NotificationProvider>
         <PresenceProvider>
           <FollowedUserIdsProvider>
-            <div className={layoutClass}>
-              <div className={styles.left}>
-                <LeftSidebar
-                  collapsed={leftCollapsed}
-                  onToggle={() => setLeftCollapsed((prev) => !prev)}
-                />
+            <div className={styles.layout}>
+              <div className={`${styles.left}${leftOpen ? ` ${styles.leftOpen}` : ''}`}>
+                <LeftSidebar />
               </div>
               <div className={styles.center}>
                 <UserNavbar
-                  rightCollapsed={rightCollapsed}
-                  onToggleRight={() => setRightCollapsed((prev) => !prev)}
+                  leftOpen={leftOpen}
+                  onToggleLeft={() => setLeftOpen((prev) => !prev)}
+                  rightOpen={rightOpen}
+                  onToggleRight={() => setRightOpen((prev) => !prev)}
                   showRightToggle={!isMessages}
                 />
                 {children}
               </div>
-              {!hideRight && (
-                <div className={styles.right}>
+              {!isMessages && (
+                <div className={`${styles.right}${rightOpen ? ` ${styles.rightOpen}` : ''}`}>
                   <RightSidebar />
                 </div>
+              )}
+              {(leftOpen || rightOpen) && (
+                <div className={styles.backdrop} onClick={closeDrawers} />
               )}
             </div>
           </FollowedUserIdsProvider>

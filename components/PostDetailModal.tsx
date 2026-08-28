@@ -698,52 +698,52 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                   </div>
                 )}
               </div>
-              <div className={styles.commentForm}>
-                {replyingTo && (
-                  <div className={styles.replyChip}>
-                    <span>
-                      {t('postDetail.replyingTo')} @{replyingTo.username}
-                    </span>
-                    <button
-                      type="button"
-                      className={styles.cancelReplyBtn}
-                      onClick={() => setReplyingTo(null)}
-                      aria-label={t('postDetail.cancelReply')}
-                    >
-                      <i className="bx bx-x" />
-                    </button>
-                  </div>
-                )}
-                <div className={styles.commentInputRow}>
-                  <input
-                    ref={commentInputRef}
-                    className={styles.commentInput}
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSubmitComment()
-                      }
-                    }}
-                    placeholder={t('postDetail.commentPlaceholder')}
-                  />
-                  <button
-                    type="button"
-                    className={styles.commentSubmit}
-                    onClick={handleSubmitComment}
-                    disabled={submittingComment || commentText.trim() === ''}
-                    aria-label={t('postDetail.commentButton')}
-                  >
-                    {submittingComment ? (
-                      <i className="bx bx-loader-circle bx-spin" />
-                    ) : (
-                      <i className="bx bx-send" />
-                    )}
-                  </button>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+        <div className={styles.commentForm}>
+          {replyingTo && (
+            <div className={styles.replyChip}>
+              <span>
+                {t('postDetail.replyingTo')} @{replyingTo.username}
+              </span>
+              <button
+                type="button"
+                className={styles.cancelReplyBtn}
+                onClick={() => setReplyingTo(null)}
+                aria-label={t('postDetail.cancelReply')}
+              >
+                <i className="bx bx-x" />
+              </button>
+            </div>
+          )}
+          <div className={styles.commentInputRow}>
+            <input
+              ref={commentInputRef}
+              className={styles.commentInput}
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmitComment()
+                }
+              }}
+              placeholder={t('postDetail.commentPlaceholder')}
+            />
+            <button
+              type="button"
+              className={styles.commentSubmit}
+              onClick={handleSubmitComment}
+              disabled={submittingComment || commentText.trim() === ''}
+              aria-label={t('postDetail.commentButton')}
+            >
+              {submittingComment ? (
+                <i className="bx bx-loader-circle bx-spin" />
+              ) : (
+                <i className="bx bx-send" />
+              )}
+            </button>
           </div>
         </div>
       </div>

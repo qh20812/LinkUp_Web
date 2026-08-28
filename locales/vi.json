@@ -52,10 +52,10 @@
   "userNavbar": {
     "explore": "Khám phá",
     "following": "Đang theo dõi",
-    "collapseLeft": "Thu gọn sidebar trái",
-    "expandLeft": "Mở rộng sidebar trái",
-    "collapseRight": "Thu gọn sidebar phải",
-    "expandRight": "Mở rộng sidebar phải"
+    "openLeft": "Mở sidebar trái",
+    "closeLeft": "Đóng sidebar trái",
+    "openRight": "Mở sidebar phải",
+    "closeRight": "Đóng sidebar phải"
   },
   "sidebar": {
     "home": "Trang chủ",

@@ -7,12 +7,14 @@ import styles from './UserNavbar.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 
 type UserNavbarProps = {
-  rightCollapsed: boolean
+  leftOpen: boolean
+  onToggleLeft: () => void
+  rightOpen: boolean
   onToggleRight: () => void
   showRightToggle: boolean
 }
 
-function UserNavbarContent({ rightCollapsed, onToggleRight, showRightToggle }: UserNavbarProps) {
+function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, showRightToggle }: UserNavbarProps) {
   const { t } = useTranslation()
   const router = useRouter()
   const pathname = usePathname()
@@ -48,6 +50,16 @@ function UserNavbarContent({ rightCollapsed, onToggleRight, showRightToggle }: U
 
   return (
     <nav className={styles.nav}>
+      <button
+        type="button"
+        className={styles.menuBtn}
+        onClick={onToggleLeft}
+        aria-label={leftOpen ? t('userNavbar.closeLeft') : t('userNavbar.openLeft')}
+        title={leftOpen ? t('userNavbar.closeLeft') : t('userNavbar.openLeft')}
+      >
+        <i className={`bx ${leftOpen ? 'bx-x' : 'bx-menu'}`} />
+      </button>
+
       {isDetail && (
         <button
           type="button"
@@ -94,12 +106,12 @@ function UserNavbarContent({ rightCollapsed, onToggleRight, showRightToggle }: U
       {showRightToggle && (
         <button
           type="button"
-          className={`${styles.collapseBtn}${rightCollapsed ? ` ${styles.collapseBtnCollapsed}` : ''}`}
+          className={styles.collapseBtn}
           onClick={onToggleRight}
-          aria-label={rightCollapsed ? t('userNavbar.expandRight') : t('userNavbar.collapseRight')}
-          title={rightCollapsed ? t('userNavbar.expandRight') : t('userNavbar.collapseRight')}
+          aria-label={rightOpen ? t('userNavbar.closeRight') : t('userNavbar.openRight')}
+          title={rightOpen ? t('userNavbar.closeRight') : t('userNavbar.openRight')}
         >
-          <i className="bx bx-sidebar" />
+          <i className={`bx ${rightOpen ? 'bx-x' : 'bx-menu'}`} />
         </button>
       )}
     </nav>
