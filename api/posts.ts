@@ -70,6 +70,12 @@ export const reactPost = (postId: string, emojiId: string) =>
     body: JSON.stringify({ emoji_id: emojiId }),
   })
 
+export const toggleCommentReaction = (commentId: string, emojiId: string) =>
+  request<{ action: string }>(`/posts/comments/${commentId}/react`, {
+    method: 'POST',
+    body: JSON.stringify({ emoji_id: emojiId }),
+  })
+
 export const savePost = (postId: string) =>
   request<{ action: string; message: string }>(`/posts/${postId}/save`, {
     method: 'POST',

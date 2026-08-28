@@ -8,6 +8,7 @@
   justify-content: center;
   padding: var(--space-lg);
   animation: fadeIn 0.2s ease;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -21,6 +22,7 @@
   flex-direction: column;
   overflow: hidden;
   animation: slideUp 0.25s ease;
+  overscroll-behavior: contain;
 }
 
 .grid {
@@ -29,6 +31,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .mediaPane {
@@ -300,6 +303,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .title {
@@ -500,6 +504,7 @@
   flex: 1;
   min-height: 0;
   padding: 0 var(--space-lg);
+  overscroll-behavior: contain;
 }
 
 .commentItem {
@@ -576,6 +581,29 @@
 
 .commentActions {
   margin: 4px 0 0 36px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.commentLikeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.commentLikeBtn:hover {
+  color: #e74c3c;
+}
+
+.commentLikeActive {
+  color: #e74c3c;
 }
 
 .replyBtn {

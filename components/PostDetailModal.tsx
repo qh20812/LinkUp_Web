@@ -14,6 +14,7 @@ import {
   getComments,
   createComment,
   reactPost,
+  toggleCommentReaction,
   savePost,
   sharePost,
   deletePost,
@@ -221,11 +222,11 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', handleKey)
-      document.body.style.overflow = prevOverflow
+      document.documentElement.style.overflow = prevHtmlOverflow
     }
   }, [open, onClose])
 
@@ -259,6 +260,35 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
         .finally(() => setCommentsLoading(false))
     },
     [current],
+  )
+
+  const handleToggleCommentLike = useCallback(
+    async (commentId: string) => {
+      if (!currentUserId) return
+      const emojiId = await ensureLikeEmojiId()
+      if (!emojiId) return
+
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, is_liked: !c.is_liked, likes_count: c.is_liked ? c.likes_count - 1 : c.likes_count + 1 }
+            : c,
+        ),
+      )
+
+      try {
+        await toggleCommentReaction(commentId, emojiId)
+      } catch {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, is_liked: !c.is_liked, likes_count: c.is_liked ? c.likes_count - 1 : c.likes_count + 1 }
+              : c,
+          ),
+        )
+      }
+    },
+    [currentUserId],
   )
 
   const handleLike = async () => {
@@ -384,6 +414,14 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
         {node.comment.content}
       </p>
       <div className={styles.commentActions}>
+        <button
+          type="button"
+          className={`${styles.commentLikeBtn} ${node.comment.is_liked ? styles.commentLikeActive : ''}`}
+          onClick={() => handleToggleCommentLike(node.comment.id)}
+        >
+          <i className={`bx ${node.comment.is_liked ? 'bxs-heart' : 'bx-heart'}`} />
+          {node.comment.likes_count > 0 && <span>{formatCount(node.comment.likes_count)}</span>}
+        </button>
         <button
           type="button"
           className={styles.replyBtn}

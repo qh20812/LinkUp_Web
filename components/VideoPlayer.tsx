@@ -20,6 +20,7 @@ export default function VideoPlayer({ src }: { src: string }) {
   const [pip, setPip] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [error, setError] = useState(false)
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
@@ -162,9 +163,29 @@ export default function VideoPlayer({ src }: { src: string }) {
         loop
         autoPlay
         onPlay={() => setPlaying(true)}
+        onError={() => setError(true)}
         style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
         onClick={togglePlay}
       />
+
+      {error && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--color-bg-secondary)',
+            color: 'var(--color-text-secondary)',
+            fontSize: 14,
+          }}
+        >
+          <i className="bx bx-video-off" style={{ fontSize: 48, marginBottom: 8 }} />
+          <span>Video not available</span>
+        </div>
+      )}
 
       {showControls && (
         <div

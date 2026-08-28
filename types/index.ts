@@ -176,6 +176,8 @@ export interface CommentItem {
   avatar_uri: string
   content: string
   status: string
+  likes_count: number
+  is_liked: boolean
   created_at: string
   updated_at?: string
 }

@@ -19,7 +19,12 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.documentElement.style.overflow = prevHtmlOverflow
+    }
   }, [open, onClose])
 
   if (!open) return null

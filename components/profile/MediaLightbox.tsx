@@ -21,10 +21,11 @@ export default function MediaLightbox({ items, initialIndex, onClose, onNavigate
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
-    document.body.style.overflow = 'hidden'
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      document.documentElement.style.overflow = prevHtmlOverflow
     }
   }, [handleKeyDown])
 

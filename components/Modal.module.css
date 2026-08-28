@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.2s ease;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -19,6 +20,7 @@
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.25s ease;
+  overscroll-behavior: contain;
 }
 
 .header {
