@@ -110,6 +110,49 @@ function formatCallDuration(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function getSystemMessageText(
+  msg: ChatMessage,
+  memberNames?: Map<string, { display_name: string; avatar_uri: string }>,
+  t?: (key: string, params?: Record<string, string>) => string,
+): string {
+  if (!t) return msg.content
+  if (msg.message_category !== 'system') return msg.content
+
+  const hasNewFormat = msg.content.includes('|')
+  if (!hasNewFormat) return msg.content
+
+  const parts = msg.content.split('|')
+  const translationKey = parts[0]
+  const actorId = parts[1] || ''
+  const extraParam = parts[2] || ''
+
+  const actorName = actorId ? (memberNames?.get(actorId)?.display_name || actorId) : ''
+
+  switch (translationKey) {
+    case 'member_left':
+      return t('chat.systemMemberLeft', { name: actorName })
+    case 'member_joined':
+      return t('chat.systemMemberJoined', { name: actorName })
+    case 'member_invited':
+      return t('chat.systemMemberInvited', { name: actorName })
+    case 'admin_transferred':
+      return t('chat.systemAdminTransferred', { name: actorName })
+    case 'group_settings_updated':
+    case 'group_name_changed':
+      return t('chat.systemGroupNameChanged', { name: actorName, groupName: extraParam })
+    case 'group_avatar_changed':
+      return t('chat.systemGroupAvatarChanged', { name: actorName })
+    case 'call_started':
+      return t('chat.callStarted')
+    case 'call_ended':
+      return t('chat.callEnded', { name: actorName })
+    case 'call_timeout':
+      return t('chat.callTimeout')
+    default:
+      return msg.content
+  }
+}
+
 export default function ChatWindow({
   conversation,
   myUserId,
@@ -538,9 +581,11 @@ const prevTimelineLenRef = useRef(0)
                 {showDate && (
                   <div className={styles.dateSep}>{itemDate(item)}</div>
                 )}
-                {(msg.sender_id === 'SYSTEM' || msg.type === 'member_invited' || msg.type === 'member_joined') ? (
+                {(msg.message_category === 'system' || msg.sender_id === 'SYSTEM' || msg.type === 'member_invited' || msg.type === 'member_joined' || msg.type === 'member_left' || msg.type === 'admin_transferred' || msg.type === 'group_settings_updated') ? (
                   <div className={styles.systemMessage} data-message-id={msg.id}>
-                    <span className={styles.systemMessageText}>{msg.content}</span>
+                    <span className={styles.systemMessageText}>
+                      {getSystemMessageText(msg, memberNames, t)}
+                    </span>
                   </div>
                 ) : msg.type === 'group_invite' ? (
                   <div data-message-id={msg.id}>

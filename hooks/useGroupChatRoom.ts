@@ -175,6 +175,21 @@ export function useGroupChatRoom({
     setSearchResults(sortByCreatedAt(dedupeByID(data.messages ?? [])))
   }, [])
 
+  const handleDeleted = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; message_id?: string }
+    if (!data || data.chat_id !== activeChatIdRef.current || !data.message_id) return
+    setMessages((prev) =>
+      prev.map((m) => (m.id === data.message_id ? { ...m, deleted: true, content: '' } : m)),
+    )
+    setSearchResults((prev) =>
+      prev
+        ? prev.map((m) =>
+            m.id === data.message_id ? { ...m, deleted: true, content: '' } : m,
+          )
+        : prev,
+    )
+  }, [])
+
   const handleError = useCallback((payload: unknown) => {
     const data = payload as { message?: string }
     if (!data || !data.message) return
@@ -187,12 +202,102 @@ export function useGroupChatRoom({
     }
   }, [toast])
 
+  const handleMemberLeft = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; user_id?: string; leave_mode?: string }
+    if (!data || data.chat_id !== activeChatIdRef.current) return
+    if (data.leave_mode !== 'public') return
+    const sysMsg: ChatMessage = {
+      id: `sys-left-${data.user_id}-${Date.now()}`,
+      chat_id: data.chat_id!,
+      sender_id: data.user_id || '',
+      content: `member_left|${data.user_id || ''}`,
+      type: 'member_left',
+      message_category: 'system',
+      is_anonymized: false,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, sysMsg])))
+  }, [])
+
+  const handleMemberAdded = useCallback((payload: unknown) => {
+    const data = payload as {
+      chat_id?: string
+      user_id?: string
+      user_name?: string
+      by?: string
+      member_name?: string
+    }
+    if (!data || data.chat_id !== activeChatIdRef.current) return
+    const sysMsg: ChatMessage = {
+      id: `sys-joined-${data.user_id}-${Date.now()}`,
+      chat_id: data.chat_id!,
+      sender_id: data.user_id || '',
+      content: `member_joined|${data.user_id || ''}`,
+      type: 'member_joined',
+      message_category: 'system',
+      is_anonymized: false,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, sysMsg])))
+  }, [])
+
+  const handleAdminTransferred = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; target_user_id?: string; by?: string }
+    if (!data || data.chat_id !== activeChatIdRef.current) return
+    const sysMsg: ChatMessage = {
+      id: `sys-admin-${data.target_user_id}-${Date.now()}`,
+      chat_id: data.chat_id!,
+      sender_id: data.target_user_id || '',
+      content: `admin_transferred|${data.target_user_id || ''}`,
+      type: 'admin_transferred',
+      message_category: 'system',
+      is_anonymized: false,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, sysMsg])))
+  }, [])
+
+  const handleSettingsUpdated = useCallback((payload: unknown) => {
+    const data = payload as {
+      chat_id?: string
+      name?: string
+      avatar_uri?: string
+      by?: string
+      actor_name?: string
+      detail?: string
+      text?: string
+    }
+    if (!data || data.chat_id !== activeChatIdRef.current) return
+    let content = ''
+    if (data.detail === 'name_changed') {
+      content = `group_name_changed|${data.by || ''}|${data.name || ''}`
+    } else if (data.detail === 'avatar_changed') {
+      content = `group_avatar_changed|${data.by || ''}`
+    }
+    const sysMsg: ChatMessage = {
+      id: `sys-settings-${Date.now()}`,
+      chat_id: data.chat_id!,
+      sender_id: data.by || '',
+      content,
+      type: data.detail === 'name_changed' ? 'group_name_changed' : 'group_avatar_changed',
+      message_category: 'system',
+      is_anonymized: false,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, sysMsg])))
+  }, [])
+
   useEffect(() => {
     const unsubs = [
       socketSubscribe('group:history', handleHistory),
       socketSubscribe('group:message:new', handleNewMessage),
       socketSubscribe('group:typing', handleTyping),
       socketSubscribe('group:message:search_result', handleSearchResult),
+      socketSubscribe('group:message:deleted', handleDeleted),
+      socketSubscribe('group:member:left', handleMemberLeft),
+      socketSubscribe('group:member:added', handleMemberAdded),
+      socketSubscribe('group:admin:transferred', handleAdminTransferred),
+      socketSubscribe('group:settings:updated', handleSettingsUpdated),
       socketSubscribe('error', handleError),
     ]
     return () => unsubs.forEach((u) => u())
@@ -202,6 +307,11 @@ export function useGroupChatRoom({
     handleNewMessage,
     handleTyping,
     handleSearchResult,
+    handleDeleted,
+    handleMemberLeft,
+    handleMemberAdded,
+    handleAdminTransferred,
+    handleSettingsUpdated,
     handleError,
   ])
 
@@ -302,6 +412,15 @@ export function useGroupChatRoom({
     setSearchKeyword('')
   }, [])
 
+  const deleteMessage = useCallback(
+    (messageId: string, mode: 'all' | 'me') => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('group:message:delete', { chat_id: chatID, message_id: messageId, mode })
+    },
+    [socket],
+  )
+
   return {
     messages,
     loading,
@@ -312,7 +431,7 @@ export function useGroupChatRoom({
     clearSearch,
     sendMessage,
     sendTyping,
-    deleteMessage: () => {},
+    deleteMessage,
     searchMessages,
     callHistory,
   }

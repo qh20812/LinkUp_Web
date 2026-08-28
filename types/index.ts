@@ -878,6 +878,7 @@ export interface ChatMessage {
   sender_name?: string
   sender_avatar?: string
   type?: string
+  message_category?: string
   is_anonymized: boolean
   anonymous_name?: string | null
   e2e_version?: number
