@@ -783,7 +783,11 @@
     "groupAvatar": "Group Avatar",
     "changeAvatar": "Change Photo",
     "avatarUpdated": "Group photo updated",
-    "uploadingImage": "Uploading..."
+    "uploadingImage": "Uploading...",
+    "pin": "Pin message",
+    "unpin": "Unpin",
+    "pinnedMessages": "Pinned messages",
+    "pinnedMessage": "Message pinned"
   },
   "call": {
     "voiceCall": "Voice call",

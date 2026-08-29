@@ -28,6 +28,7 @@ import type {
   ChatMessage,
   EmojiItem,
   GifItem,
+  PinnedMessage,
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall, type CallPhase } from '../../contexts/CallContext'
@@ -387,6 +388,9 @@ const prevTimelineLenRef = useRef(0)
 
   const searchResults = room.searchResults
   const inSearch = searchResults !== null
+  const pinnedMessages = room.pinnedMessages
+  const pinMessage = room.pinMessage
+  const unpinMessage = room.unpinMessage
 
   const itemDate = (item: TimelineItem) =>
     formatChatDate(
@@ -479,6 +483,40 @@ const prevTimelineLenRef = useRef(0)
           </button>
         )}
       </div>
+
+      {pinnedMessages.length > 0 && !inSearch && (
+        <div className={styles.pinnedBar}>
+          <div className={styles.pinnedBarHeader}>
+            <i className="bx bx-pin" />
+            <span>{t('chat.pinnedMessages')} ({pinnedMessages.length})</span>
+          </div>
+          {pinnedMessages.map((pin) => (
+            <div
+              key={pin.message_id}
+              className={styles.pinnedBarItem}
+              onClick={() => scrollToMessage(pin.message_id)}
+            >
+              <div className={styles.pinnedBarItemContent}>
+                <span className={styles.pinnedBarItemSender}>{pin.sender_name || t('chat.unknown')}</span>
+                <span className={styles.pinnedBarItemText}>
+                  {pin.content.length > 60 ? pin.content.slice(0, 60) + '...' : pin.content || t('chat.attachment')}
+                </span>
+              </div>
+              <button
+                className={styles.pinnedBarRemove}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  unpinMessage(pin.message_id)
+                }}
+                title={t('chat.unpin')}
+                aria-label={t('chat.unpin')}
+              >
+                <i className="bx bx-x" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {searchActive && (
         <div className={styles.searchRow}>
@@ -664,6 +702,11 @@ const prevTimelineLenRef = useRef(0)
                   </div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`} data-message-id={msg.id}>
+                  {pinnedMessages.some((p) => p.message_id === msg.id) && (
+                    <span className={styles.pinBadge} title={t('chat.pinnedMessage')}>
+                      <i className="bx bx-pin" />
+                    </span>
+                  )}
                   {msg.deleted ? (
                     <div className={styles.bubble}>
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
@@ -768,6 +811,25 @@ const prevTimelineLenRef = useRef(0)
                       >
                         <i className="bx bx-reply" />
                       </button>
+                      {pinnedMessages.some((p) => p.message_id === msg.id) ? (
+                        <button
+                          className={`${styles.pinBtn} ${styles.pinBtnActive}`}
+                          onClick={() => unpinMessage(msg.id)}
+                          aria-label={t('chat.unpin')}
+                          title={t('chat.unpin')}
+                        >
+                          <i className="bx bx-pin" />
+                        </button>
+                      ) : pinnedMessages.length < 2 ? (
+                        <button
+                          className={styles.pinBtn}
+                          onClick={() => pinMessage(msg.id)}
+                          aria-label={t('chat.pin')}
+                          title={t('chat.pin')}
+                        >
+                          <i className="bx bx-pin" />
+                        </button>
+                      ) : null}
                       <button
                         className={styles.deleteBtn}
                         onClick={() => setDeleteTarget({ message: msg })}

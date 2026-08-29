@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage } from '../types'
+import type { ChatMessage, PinnedMessage } from '../types'
 import type { ChatSocket } from './useChatSocket'
 import type { ChatE2E } from './useChatE2E'
 import { useToast } from '../contexts/ToastContext'
@@ -30,11 +30,14 @@ export interface ChatRoom {
   partnerTyping: boolean
   searchResults: ChatMessage[] | null
   searchKeyword: string
+  pinnedMessages: PinnedMessage[]
   clearSearch: () => void
   sendMessage: (content: string, opts?: SendMessageOptions) => void
   sendTyping: (isTyping: boolean) => void
   deleteMessage: (messageId: string, mode: 'all' | 'me') => void
   searchMessages: (keyword: string) => void
+  pinMessage: (messageId: string) => void
+  unpinMessage: (messageId: string) => void
 }
 
 function dedupeByID(list: ChatMessage[]): ChatMessage[] {
@@ -68,6 +71,7 @@ export function useChatRoom({
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [pinnedMessages, setPinnedMessages] = useState<PinnedMessage[]>([])
 
   const activeChatIdRef = useRef<string | null>(null)
   const myUserIdRef = useRef(myUserId)
@@ -192,6 +196,28 @@ export function useChatRoom({
     setSearchResults(sortByCreatedAt(dedupeByID(data.messages ?? [])))
   }, [])
 
+  const handlePinnedList = useCallback((payload: unknown) => {
+    const data = payload as { pinned_messages?: PinnedMessage[] }
+    if (!data) return
+    setPinnedMessages(data.pinned_messages ?? [])
+  }, [])
+
+  const handlePinned = useCallback((payload: unknown) => {
+    const pin = payload as PinnedMessage
+    if (!pin || !pin.message_id) return
+    setPinnedMessages((prev) => {
+      const exists = prev.some((p) => p.message_id === pin.message_id)
+      if (exists) return prev
+      return [pin, ...prev].slice(0, 2)
+    })
+  }, [])
+
+  const handleUnpinned = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; message_id?: string }
+    if (!data || !data.message_id) return
+    setPinnedMessages((prev) => prev.filter((p) => p.message_id !== data.message_id))
+  }, [])
+
   const handleError = useCallback((payload: unknown) => {
     const data = payload as { message?: string }
     if (!data || !data.message) return
@@ -211,6 +237,9 @@ export function useChatRoom({
       socketSubscribe('typing', handleTyping),
       socketSubscribe('message:deleted', handleDeleted),
       socketSubscribe('message:search_result', handleSearchResult),
+      socketSubscribe('message:pinned_list', handlePinnedList),
+      socketSubscribe('message:pinned', handlePinned),
+      socketSubscribe('message:unpinned', handleUnpinned),
       socketSubscribe('error', handleError),
     ]
     return () => unsubs.forEach((u) => u())
@@ -221,6 +250,9 @@ export function useChatRoom({
     handleTyping,
     handleDeleted,
     handleSearchResult,
+    handlePinnedList,
+    handlePinned,
+    handleUnpinned,
     handleError,
   ])
 
@@ -232,6 +264,7 @@ export function useChatRoom({
     setPartnerTyping(false)
     setSearchResults(null)
     setSearchKeyword('')
+    setPinnedMessages([])
   }
 
   // Join chat khi mở hội thoại, socket kết nối lại, hoặc khóa E2E sẵn sàng
@@ -362,16 +395,37 @@ export function useChatRoom({
     setSearchKeyword('')
   }, [])
 
+  const pinMessage = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('message:pin', { chat_id: chatID, message_id: messageId })
+    },
+    [socket],
+  )
+
+  const unpinMessage = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('message:unpin', { chat_id: chatID, message_id: messageId })
+    },
+    [socket],
+  )
+
   return {
     messages,
     loading,
     partnerTyping,
     searchResults,
     searchKeyword,
+    pinnedMessages,
     clearSearch,
     sendMessage,
     sendTyping,
     deleteMessage,
     searchMessages,
+    pinMessage,
+    unpinMessage,
   }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage } from '../types'
+import type { ChatMessage, PinnedMessage } from '../types'
 import type { GroupChatSocket } from './useGroupChatSocket'
 import { useToast } from '../contexts/ToastContext'
 
@@ -29,11 +29,14 @@ export interface GroupChatRoom {
   partnerTyping: boolean
   searchResults: ChatMessage[] | null
   searchKeyword: string
+  pinnedMessages: PinnedMessage[]
   clearSearch: () => void
   sendMessage: (content: string, opts?: SendMessageOptions) => void
   sendTyping: (isTyping: boolean) => void
   deleteMessage: (messageId: string, mode: 'all' | 'me') => void
   searchMessages: (keyword: string) => void
+  pinMessage: (messageId: string) => void
+  unpinMessage: (messageId: string) => void
   callHistory: Array<{
     call_id: string
     chat_id: string
@@ -75,6 +78,7 @@ export function useGroupChatRoom({
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
   const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [pinnedMessages, setPinnedMessages] = useState<PinnedMessage[]>([])
   const [callHistory, setCallHistory] = useState<
     Array<{
       call_id: string
@@ -173,6 +177,28 @@ export function useGroupChatRoom({
     if (!data || data.chat_id !== activeChatIdRef.current) return
     setSearchKeyword(data.keyword ?? '')
     setSearchResults(sortByCreatedAt(dedupeByID(data.messages ?? [])))
+  }, [])
+
+  const handlePinnedList = useCallback((payload: unknown) => {
+    const data = payload as { pinned_messages?: PinnedMessage[] }
+    if (!data) return
+    setPinnedMessages(data.pinned_messages ?? [])
+  }, [])
+
+  const handlePinned = useCallback((payload: unknown) => {
+    const pin = payload as PinnedMessage
+    if (!pin || !pin.message_id) return
+    setPinnedMessages((prev) => {
+      const exists = prev.some((p) => p.message_id === pin.message_id)
+      if (exists) return prev
+      return [pin, ...prev].slice(0, 2)
+    })
+  }, [])
+
+  const handleUnpinned = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; message_id?: string }
+    if (!data || !data.message_id) return
+    setPinnedMessages((prev) => prev.filter((p) => p.message_id !== data.message_id))
   }, [])
 
   const handleDeleted = useCallback((payload: unknown) => {
@@ -294,6 +320,9 @@ export function useGroupChatRoom({
       socketSubscribe('group:typing', handleTyping),
       socketSubscribe('group:message:search_result', handleSearchResult),
       socketSubscribe('group:message:deleted', handleDeleted),
+      socketSubscribe('group:message:pinned_list', handlePinnedList),
+      socketSubscribe('group:message:pinned', handlePinned),
+      socketSubscribe('group:message:unpinned', handleUnpinned),
       socketSubscribe('group:member:left', handleMemberLeft),
       socketSubscribe('group:member:added', handleMemberAdded),
       socketSubscribe('group:admin:transferred', handleAdminTransferred),
@@ -308,6 +337,9 @@ export function useGroupChatRoom({
     handleTyping,
     handleSearchResult,
     handleDeleted,
+    handlePinnedList,
+    handlePinned,
+    handleUnpinned,
     handleMemberLeft,
     handleMemberAdded,
     handleAdminTransferred,
@@ -323,6 +355,7 @@ export function useGroupChatRoom({
     setTypingUsers(new Set())
     setSearchResults(null)
     setSearchKeyword('')
+    setPinnedMessages([])
     setCallHistory([])
   }
 
@@ -421,6 +454,24 @@ export function useGroupChatRoom({
     [socket],
   )
 
+  const pinMessage = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('group:message:pin', { chat_id: chatID, message_id: messageId })
+    },
+    [socket],
+  )
+
+  const unpinMessage = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('group:message:unpin', { chat_id: chatID, message_id: messageId })
+    },
+    [socket],
+  )
+
   return {
     messages,
     loading,
@@ -428,11 +479,14 @@ export function useGroupChatRoom({
     partnerTyping: false,
     searchResults,
     searchKeyword,
+    pinnedMessages,
     clearSearch,
     sendMessage,
     sendTyping,
     deleteMessage,
     searchMessages,
+    pinMessage,
+    unpinMessage,
     callHistory,
   }
 }

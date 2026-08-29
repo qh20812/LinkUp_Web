@@ -783,7 +783,11 @@
     "groupAvatar": "Ảnh đại diện nhóm",
     "changeAvatar": "Đổi ảnh",
     "avatarUpdated": "Đã cập nhật ảnh nhóm",
-    "uploadingImage": "Đang tải lên..."
+    "uploadingImage": "Đang tải lên...",
+    "pin": "Ghim tin nhắn",
+    "unpin": "Bỏ ghim",
+    "pinnedMessages": "Tin nhắn đã ghim",
+    "pinnedMessage": "Tin nhắn đã được ghim"
   },
   "call": {
     "voiceCall": "Gọi thoại",
