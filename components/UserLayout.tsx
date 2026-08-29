@@ -18,6 +18,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const prevPathname = useRef(pathname)
 
   useEffect(() => {
@@ -30,9 +31,12 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 768) setLeftOpen(false)
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+      if (!mobile) setLeftOpen(false)
       if (window.innerWidth > 1024) setRightOpen(false)
     }
+    handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -59,18 +63,20 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
       <NotificationProvider>
         <PresenceProvider>
           <FollowedUserIdsProvider>
-            <div className={styles.layout}>
+            <div className={`${styles.layout}${isMessages ? ` ${styles.noRight}` : ''}`}>
               <div className={`${styles.left}${leftOpen ? ` ${styles.leftOpen}` : ''}`}>
                 <LeftSidebar />
               </div>
               <div className={styles.center}>
-                <UserNavbar
-                  leftOpen={leftOpen}
-                  onToggleLeft={() => setLeftOpen((prev) => !prev)}
-                  rightOpen={rightOpen}
-                  onToggleRight={() => setRightOpen((prev) => !prev)}
-                  showRightToggle={!isMessages}
-                />
+                {(!isMessages || isMobile) && (
+                  <UserNavbar
+                    leftOpen={leftOpen}
+                    onToggleLeft={() => setLeftOpen((prev) => !prev)}
+                    rightOpen={rightOpen}
+                    onToggleRight={() => setRightOpen((prev) => !prev)}
+                    showRightToggle={!isMessages}
+                  />
+                )}
                 {children}
               </div>
               {!isMessages && (

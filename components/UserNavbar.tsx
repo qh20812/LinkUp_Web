@@ -26,6 +26,7 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
     '/saved': 'saved.title',
     '/settings': 'nav.settings',
     '/notifications': 'notifications.title',
+    '/messages': 'sidebar.messages',
   }[pathname]
   const isDetail = !showTabs && !pageTitleKey
   const [query, setQuery] = useState('')

@@ -5,6 +5,10 @@
   transition: grid-template-columns 0.25s ease;
 }
 
+.noRight {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
 .left {
   position: sticky;
   top: 0;

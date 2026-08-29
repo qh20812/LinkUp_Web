@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
@@ -14,7 +14,6 @@ import ExternalImage from '../../../components/ExternalImage'
 import type {
   NotificationGroup,
   NotificationListResponse,
-  NotificationPreferences,
   NotificationType,
 } from '../../../types'
 import styles from './Notifications.module.css'
@@ -32,9 +31,6 @@ export default function NotificationsPage() {
   const { isAuthenticated, initializing } = useAuth()
   const {
     unreadCount,
-    preferences,
-    loadPreferences,
-    updatePreferences,
     markAsRead,
     markAllAsRead,
   } = useNotification()
@@ -43,10 +39,6 @@ export default function NotificationsPage() {
   const filter = ALLOWED_FILTERS.includes(searchParams.get('filter') as Filter)
     ? (searchParams.get('filter') as Filter) : 'all'
   const page = Math.max(1, Number(searchParams.get('page')) || 1)
-
-  useEffect(() => {
-    loadPreferences().catch(() => {})
-  }, [loadPreferences])
 
   const params = new URLSearchParams({
     page: String(page),
@@ -101,28 +93,6 @@ export default function NotificationsPage() {
       toast({
         type: 'error',
         title: err instanceof Error ? err.message : t('notifications.markAllReadError'),
-      })
-    }
-  }
-
-  const handlePrefToggle = async (
-    key: keyof NotificationPreferences,
-    value: boolean,
-    combined?: boolean,
-  ) => {
-    try {
-      if (combined) {
-        await updatePreferences({
-          friend_request_enabled: value,
-          community_enabled: value,
-        })
-      } else {
-        await updatePreferences({ [key]: value })
-      }
-    } catch (err) {
-      toast({
-        type: 'error',
-        title: err instanceof Error ? err.message : t('common.error'),
       })
     }
   }
@@ -201,27 +171,8 @@ export default function NotificationsPage() {
     return <div className={styles.page} />
   }
 
-  const prefRows: { key: keyof NotificationPreferences; label: string; combined?: boolean }[] = [
-    { key: 'like_enabled', label: t('notifications.prefLike') },
-    { key: 'comment_enabled', label: t('notifications.prefComment') },
-    { key: 'follow_enabled', label: t('notifications.prefFollow') },
-    { key: 'message_enabled', label: t('notifications.prefMessage') },
-    { key: 'friend_request_enabled', label: t('notifications.prefFriendRequest'), combined: true },
-    { key: 'voice_call_enabled', label: t('notifications.prefVoiceCall') },
-  ]
-
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>{t('notifications.title')}</h1>
-        {unreadCount > 0 && (
-          <button className={styles.markAllBtn} onClick={handleMarkAll}>
-            <i className="bx bx-check-double" />
-            {t('notifications.markAllRead')}
-          </button>
-        )}
-      </div>
-
       <div className={styles.tabs}>
         {(['all', 'unread', 'read'] as Filter[]).map((f) => (
           <button
@@ -234,6 +185,23 @@ export default function NotificationsPage() {
             {t(`notifications.filter${f.charAt(0).toUpperCase()}${f.slice(1)}`)}
           </button>
         ))}
+        <div className={styles.tabsActions}>
+          {unreadCount > 0 && (
+            <button className={styles.markAllBtn} onClick={handleMarkAll}>
+              <i className="bx bx-envelope-open" />
+              {t('notifications.markAllRead')}
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.settingsBtn}
+            onClick={() => router.push('/settings?tab=notifications')}
+            aria-label={t('notifications.preferences')}
+            title={t('notifications.preferences')}
+          >
+            <i className="bx bx-cog" />
+          </button>
+        </div>
       </div>
 
       <div className={styles.list}>
@@ -316,36 +284,6 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      <section className={styles.prefCard}>
-        <h2 className={styles.prefTitle}>
-          <i className="bx bx-cog" />
-          {t('notifications.preferences')}
-        </h2>
-        <div className={styles.prefList}>
-          {prefRows.map((row) => {
-            const value = row.combined
-              ? preferences
-                ? !!(preferences.friend_request_enabled && preferences.community_enabled)
-                : true
-              : preferences
-                ? !!preferences[row.key]
-                : true
-            return (
-              <div key={row.key} className={styles.prefRow}>
-                <span className={styles.prefLabel}>{row.label}</span>
-                <button
-                  role="switch"
-                  aria-checked={value}
-                  aria-label={row.label}
-                  className={`${styles.toggle} ${value ? styles.toggleOn : ''}`}
-                  onClick={() => handlePrefToggle(row.key, !value, row.combined)}>
-                  <span className={styles.toggleThumb} />
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-    </div>
+      </div>
   )
 }

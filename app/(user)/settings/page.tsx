@@ -10,9 +10,10 @@ import StorageInfo from './StorageInfo'
 import AppearanceForm from './AppearanceForm'
 import SessionsManager from './SessionsManager'
 import DeactivateAccount from './DeactivateAccount'
+import NotificationsForm from './NotificationsForm'
 import styles from './Settings.module.css'
 
-type TabKey = 'password' | 'privacy' | 'storage' | 'appearance' | 'sessions' | 'deactivate'
+type TabKey = 'password' | 'privacy' | 'storage' | 'appearance' | 'sessions' | 'deactivate' | 'notifications'
 
 const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'password', labelKey: 'settings.tabChangePassword' },
@@ -20,10 +21,11 @@ const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'storage', labelKey: 'userSettings.tabStorage' },
   { key: 'appearance', labelKey: 'userSettings.tabAppearance' },
   { key: 'sessions', labelKey: 'userSettings.tabSessions' },
+  { key: 'notifications', labelKey: 'userSettings.tabNotifications' },
   { key: 'deactivate', labelKey: 'userSettings.tabDeactivate' },
 ]
 
-const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'deactivate']
+const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'notifications', 'deactivate']
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -89,6 +91,13 @@ export default function SettingsPage() {
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>{t('userSettings.tabSessions')}</h2>
               <SessionsManager />
+            </div>
+          )}
+
+          {activeTab === 'notifications' && (
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>{t('userSettings.tabNotifications')}</h2>
+              <NotificationsForm />
             </div>
           )}
 

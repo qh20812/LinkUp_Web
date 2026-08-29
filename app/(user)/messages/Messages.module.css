@@ -1,5 +1,5 @@
 .page {
-  height: calc(100vh - 57px);
+  height: 100vh;
   min-height: 0;
   display: flex;
   flex-direction: column;
