@@ -21,13 +21,17 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab') || 'explore'
   const showTabs = pathname === '/'
-  const pageTitleKey: string | undefined = {
-    '/friends': 'friends.title',
-    '/saved': 'saved.title',
-    '/settings': 'nav.settings',
-    '/notifications': 'notifications.title',
-    '/messages': 'sidebar.messages',
-  }[pathname]
+  const pageTitleKey: string | undefined = (() => {
+    if (pathname === '/profile' || pathname.startsWith('/profile/')) return 'sidebar.profile'
+    if (pathname === '/communities' || pathname.startsWith('/communities/')) return 'sidebar.communities'
+    return {
+      '/friends': 'friends.title',
+      '/saved': 'saved.title',
+      '/settings': 'nav.settings',
+      '/notifications': 'notifications.title',
+      '/messages': 'sidebar.messages',
+    }[pathname]
+  })()
   const isDetail = !showTabs && !pageTitleKey
   const [query, setQuery] = useState('')
 

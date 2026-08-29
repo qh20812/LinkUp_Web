@@ -113,23 +113,21 @@ function CommunitiesContent() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>{t('communities.title')}</h1>
+      <div className={styles.toolbar}>
+        <div className={styles.searchWrap}>
+          <i className={`bx bx-search ${styles.searchIcon}`} />
+          <input
+            className={styles.searchInput}
+            type="text"
+            placeholder={t('communities.searchPlaceholder')}
+            value={keyword}
+            onChange={e => handleKeywordChange(e.target.value)}
+          />
+        </div>
         <button className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
           <i className="bx bx-plus" />
           {t('communities.createBtn')}
         </button>
-      </div>
-
-      <div className={styles.searchWrap}>
-        <i className={`bx bx-search ${styles.searchIcon}`} />
-        <input
-          className={styles.searchInput}
-          type="text"
-          placeholder={t('communities.searchPlaceholder')}
-          value={keyword}
-          onChange={e => handleKeywordChange(e.target.value)}
-        />
       </div>
 
       <div className={styles.tabs}>
