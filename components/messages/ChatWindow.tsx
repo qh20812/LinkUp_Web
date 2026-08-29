@@ -32,6 +32,7 @@ import type {
 } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall, type CallPhase } from '../../contexts/CallContext'
+import { useGroupCall } from '../../contexts/GroupCallContext'
 import { usePresence } from '../../contexts/PresenceContext'
 import styles from './ChatWindow.module.css'
 
@@ -81,6 +82,7 @@ interface ChatWindowProps {
   isEncrypted?: boolean
   onDeleteChat?: () => void
   mode?: 'direct' | 'group'
+  groupChatId?: string | null
   groupName?: string
   groupAvatarUri?: string
   memberCount?: number
@@ -161,6 +163,7 @@ export default function ChatWindow({
   isEncrypted = false,
   onDeleteChat,
   mode = 'direct',
+  groupChatId,
   groupName,
   groupAvatarUri,
   memberCount,
@@ -176,6 +179,12 @@ export default function ChatWindow({
     phase: callPhase,
     call: activeCall,
   } = useCall()
+  const {
+    phase: groupCallPhase,
+    call: groupCall,
+    startGroupCall,
+    isInGroupCall,
+  } = useGroupCall()
   const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
@@ -356,7 +365,7 @@ const prevTimelineLenRef = useRef(0)
     if (atBottom) setNewMessagesCount(0)
   }
 
-  const chatId = conversation?.chat_id ?? null
+  const chatId = conversation?.chat_id ?? groupChatId ?? null
   useEffect(() => {
     if (chatId) pinToBottomRef.current = true
   }, [chatId])
@@ -455,15 +464,28 @@ const prevTimelineLenRef = useRef(0)
               <i className="bx bx-video" />
             </button>
           </>
-        ) : onOpenGroupSettings ? (
-          <button
-            className={styles.iconBtn}
-            onClick={onOpenGroupSettings}
-            aria-label={t('chat.groupSettings')}
-            title={t('chat.groupSettings')}
-          >
-            <i className="bx bx-cog" />
-          </button>
+        ) : mode === 'group' ? (
+          <>
+            <button
+              className={styles.iconBtn}
+              onClick={() => chatId && startGroupCall(chatId)}
+              disabled={isInGroupCall || isInCall}
+              aria-label={t('call.videoCall')}
+              title={t('call.videoCall')}
+            >
+              <i className="bx bx-video" />
+            </button>
+            {onOpenGroupSettings && (
+              <button
+                className={styles.iconBtn}
+                onClick={onOpenGroupSettings}
+                aria-label={t('chat.groupSettings')}
+                title={t('chat.groupSettings')}
+              >
+                <i className="bx bx-cog" />
+              </button>
+            )}
+          </>
         ) : null}
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
@@ -483,6 +505,19 @@ const prevTimelineLenRef = useRef(0)
           </button>
         )}
       </div>
+
+      {mode === 'group' && groupCall && groupCall.chatId === chatId && (groupCallPhase === 'active' || groupCallPhase === 'minimized') && (
+        <div className={styles.callBanner}>
+          <i className="bx bx-video" />
+          <span>{t('groupCall.inCall')}</span>
+          <button
+            className={styles.callBannerBtn}
+            onClick={() => groupCallPhase === 'minimized' ? undefined : undefined}
+          >
+            {t('groupCall.expand')}
+          </button>
+        </div>
+      )}
 
       {pinnedMessages.length > 0 && !inSearch && (
         <div className={styles.pinnedBar}>
