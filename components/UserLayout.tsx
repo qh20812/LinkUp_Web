@@ -6,6 +6,7 @@ import { SWRConfig } from 'swr'
 import LeftSidebar from './LeftSidebar'
 import UserNavbar from './UserNavbar'
 import RightSidebar from './RightSidebar'
+import NotificationBanner from './NotificationBanner'
 import { NotificationProvider } from '../contexts/NotificationContext'
 import { PresenceProvider } from '../contexts/PresenceContext'
 import { FollowedUserIdsProvider } from '../contexts/FollowContext'
@@ -57,6 +58,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   return (
     <SWRConfig value={defaultSWRConfig}>
       <NotificationProvider>
+        <NotificationBanner />
         <PresenceProvider>
           <FollowedUserIdsProvider>
             <div className={styles.layout}>
