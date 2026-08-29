@@ -178,6 +178,32 @@
   border-radius: var(--radius-sm);
 }
 
+.pendingUser {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pendingAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pendingAvatarPlaceholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
 .pendingName {
   font-size: 0.875rem;
   font-weight: 500;

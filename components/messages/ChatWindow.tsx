@@ -31,10 +31,14 @@ import type {
   GifItem,
   PinnedMessage,
 } from '../../types'
+import type { GroupCallHistoryItem, GroupCallJoinRequestState } from '../../types/groupCall'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall, type CallPhase } from '../../contexts/CallContext'
 import { useGroupCall } from '../../contexts/GroupCallContext'
 import { usePresence } from '../../contexts/PresenceContext'
+import GroupCallMemberSelectModal from '../calls/GroupCallMemberSelectModal'
+import GroupCallRequestJoinModal from '../calls/GroupCallRequestJoinModal'
+import GroupCallMessage from './GroupCallMessage'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -91,6 +95,8 @@ interface ChatWindowProps {
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>
   onOpenGroupSettings?: () => void
   onGroupInviteAccepted?: (groupChatId: string) => void
+  groupCallHistory?: GroupCallHistoryItem[]
+  activeGroupCallId?: string | null
 }
 
 interface DeleteTarget {
@@ -100,6 +106,7 @@ interface DeleteTarget {
 type TimelineItem =
   | { kind: 'message'; msg: ChatMessage; created: number }
   | { kind: 'call'; item: CallHistoryItem; created: number }
+  | { kind: 'group_call'; call: GroupCallHistoryItem; created: number }
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 
@@ -172,6 +179,8 @@ export default function ChatWindow({
   memberNames,
   onOpenGroupSettings,
   onGroupInviteAccepted,
+  groupCallHistory = [],
+  activeGroupCallId = null,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -185,6 +194,7 @@ export default function ChatWindow({
     phase: groupCallPhase,
     call: groupCall,
     startGroupCall,
+    joinGroupCall,
     isInGroupCall,
   } = useGroupCall()
   const { isOnline, prefetchPresence } = usePresence()
@@ -200,12 +210,33 @@ export default function ChatWindow({
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [newMessagesCount, setNewMessagesCount] = useState(0)
+  const [showMemberSelectModal, setShowMemberSelectModal] = useState(false)
+  const [joinRequestState, setJoinRequestState] = useState<GroupCallJoinRequestState | null>(null)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const pinToBottomRef = useRef(true)
 
   const partnerUserId = conversation?.partner.user_id ?? null
+
+  const handleRequestJoin = useCallback(
+    (callId: string) => {
+      const gc = groupCallHistory.find((c) => c.call_id === callId)
+      if (!gc) return
+      setJoinRequestState({
+        callId,
+        callerId: gc.caller_id,
+        participantCount: gc.participants.length,
+      })
+    },
+    [groupCallHistory],
+  )
+
+  const handleConfirmJoinRequest = useCallback(() => {
+    if (!joinRequestState) return
+    void joinGroupCall(joinRequestState.callId)
+    setJoinRequestState(null)
+  }, [joinRequestState, joinGroupCall])
 
   useEffect(() => {
     if (partnerUserId) prefetchPresence([partnerUserId])
@@ -287,8 +318,13 @@ export default function ChatWindow({
       item,
       created: item.created_at,
     }))
-    return [...msgs, ...calls].sort((a, b) => a.created - b.created)
-  }, [room.messages, callHistory])
+    const groupCalls: TimelineItem[] = groupCallHistory.map((gc) => ({
+      kind: 'group_call',
+      call: gc,
+      created: new Date(gc.created_at).getTime(),
+    }))
+    return [...msgs, ...calls, ...groupCalls].sort((a, b) => a.created - b.created)
+  }, [room.messages, callHistory, groupCallHistory])
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -371,6 +407,15 @@ const prevTimelineLenRef = useRef(0)
   useEffect(() => {
     if (chatId) pinToBottomRef.current = true
   }, [chatId])
+
+  const handleStartGroupCall = useCallback(
+    (selectedIds: string[]) => {
+      if (chatId) {
+        void startGroupCall(chatId, selectedIds)
+      }
+    },
+    [chatId, startGroupCall],
+  )
 
   const scrollToMessage = useCallback((messageId: string) => {
     const el = timelineRef.current?.querySelector(`[data-message-id="${messageId}"]`)
@@ -470,7 +515,7 @@ const prevTimelineLenRef = useRef(0)
           <>
             <button
               className={styles.iconBtn}
-              onClick={() => chatId && startGroupCall(chatId)}
+              onClick={() => setShowMemberSelectModal(true)}
               disabled={isInGroupCall || isInCall}
               aria-label={t('call.videoCall')}
               title={t('call.videoCall')}
@@ -627,6 +672,22 @@ const prevTimelineLenRef = useRef(0)
                 <Fragment key={`call-${item.item.id}`}>
                   {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
                   <CallLogItem item={item.item} />
+                </Fragment>
+              )
+            }
+
+            if (item.kind === 'group_call') {
+              return (
+                <Fragment key={`gc-${item.call.call_id}`}>
+                  {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
+                  <GroupCallMessage
+                    call={item.call}
+                    myUserId={myUserId}
+                    memberNames={memberNames}
+                    isMine={item.call.caller_id === myUserId}
+                    isActive={activeGroupCallId === item.call.call_id}
+                    onRequestJoin={handleRequestJoin}
+                  />
                 </Fragment>
               )
             }
@@ -929,6 +990,26 @@ const prevTimelineLenRef = useRef(0)
           )}
         </div>
       </Modal>
+
+      <GroupCallMemberSelectModal
+        open={showMemberSelectModal}
+        onClose={() => setShowMemberSelectModal(false)}
+        members={memberNames ?? new Map()}
+        myUserId={myUserId}
+        onStartCall={handleStartGroupCall}
+      />
+
+      <GroupCallRequestJoinModal
+        open={joinRequestState !== null}
+        onClose={() => setJoinRequestState(null)}
+        onConfirm={handleConfirmJoinRequest}
+        callerName={
+          joinRequestState
+            ? (memberNames?.get(joinRequestState.callerId)?.display_name || t('chat.unknown'))
+            : ''
+        }
+        participantCount={joinRequestState?.participantCount ?? 0}
+      />
     </div>
   )
 }

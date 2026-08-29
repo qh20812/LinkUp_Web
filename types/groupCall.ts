@@ -141,3 +141,21 @@ export interface GroupCallToggleVideoPayload {
 export interface GroupCallParticipantsRequestPayload {
   call_id: string
 }
+
+// Group call history item (returned via group:history WS event)
+export interface GroupCallHistoryItem {
+  call_id: string
+  chat_id: string
+  caller_id: string
+  participants: string[]
+  status: string
+  created_at: string
+  ended_at?: string
+}
+
+// Request join modal state
+export interface GroupCallJoinRequestState {
+  callId: string
+  callerId: string
+  participantCount: number
+}

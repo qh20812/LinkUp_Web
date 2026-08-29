@@ -845,7 +845,16 @@
     "minimize": "Minimize",
     "expand": "Expand",
     "callStarted": "started a group call",
-    "callEnded": "group call ended"
+    "callEnded": "group call ended",
+    "selectMembers": "Select members to join",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "startVideoCall": "Video call",
+    "requestToJoin": "Join",
+    "joinRequestConfirm": "Do you want to join the group video call?",
+    "joinRequestSender": "{name} is calling",
+    "participantsCount": "{count} participants",
+    "sendRequest": "Send request"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Internal server error",

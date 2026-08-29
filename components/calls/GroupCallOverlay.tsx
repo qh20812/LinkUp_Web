@@ -2,6 +2,7 @@
 
 import { useGroupCall } from '../../contexts/GroupCallContext'
 import ParticipantTile from './ParticipantTile'
+import ExternalImage from '../ExternalImage'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { GroupCallParticipant } from '../../types/groupCall'
 import styles from './GroupCallOverlay.module.css'
@@ -35,6 +36,8 @@ export default function GroupCallOverlay() {
     toggleVideo,
     endGroupCall,
     minimize,
+    acceptJoinRequest,
+    rejectJoinRequest,
   } = useGroupCall()
 
   if (phase !== 'active' || !call) return null
@@ -132,9 +135,10 @@ export default function GroupCallOverlay() {
             {call.pendingRequests.map((uid) => (
               <PendingRequest
                 key={uid}
-                userId={uid}
-                onAccept={() => {}}
-                onReject={() => {}}
+                displayName={call.participants.get(uid)?.display_name || uid}
+                avatarUri={call.participants.get(uid)?.avatar_uri || ''}
+                onAccept={() => acceptJoinRequest(uid)}
+                onReject={() => rejectJoinRequest(uid)}
               />
             ))}
           </div>
@@ -145,18 +149,29 @@ export default function GroupCallOverlay() {
 }
 
 function PendingRequest({
-  userId,
+  displayName,
+  avatarUri,
   onAccept,
   onReject,
 }: {
-  userId: string
+  displayName: string
+  avatarUri: string
   onAccept: () => void
   onReject: () => void
 }) {
   const { t } = useTranslation()
   return (
     <div className={styles.pendingItem}>
-      <span className={styles.pendingName}>{userId}</span>
+      <div className={styles.pendingUser}>
+        {avatarUri ? (
+          <ExternalImage src={avatarUri} alt="" className={styles.pendingAvatar} />
+        ) : (
+          <div className={styles.pendingAvatarPlaceholder}>
+            {displayName[0]?.toUpperCase()}
+          </div>
+        )}
+        <span className={styles.pendingName}>{displayName}</span>
+      </div>
       <div className={styles.pendingActions}>
         <button
           className={styles.pendingAccept}

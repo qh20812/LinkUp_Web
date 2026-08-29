@@ -845,7 +845,16 @@
     "minimize": "Thu nhỏ",
     "expand": "Mở rộng",
     "callStarted": "đã bắt đầu cuộc gọi nhóm",
-    "callEnded": "cuộc gọi nhóm đã kết thúc"
+    "callEnded": "cuộc gọi nhóm đã kết thúc",
+    "selectMembers": "Chọn thành viên tham gia",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả",
+    "startVideoCall": "Gọi video",
+    "requestToJoin": "Tham gia",
+    "joinRequestConfirm": "Bạn muốn tham gia cuộc gọi video nhóm?",
+    "joinRequestSender": "{name} đang thực hiện cuộc gọi",
+    "participantsCount": "{count} người tham gia",
+    "sendRequest": "Gửi yêu cầu"
   },
   "errors": {
     "common.INTERNAL_ERROR": "Lỗi hệ thống",

@@ -19,6 +19,7 @@ import { useChatE2E } from '../../../hooks/useChatE2E'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
+import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
 import { getChatKey as getStoredChatKey } from '../../../utils/idb'
 import { decryptMessage } from '../../../utils/e2ee'
@@ -53,6 +54,7 @@ export default function MessagesPage() {
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
   const groupSocket = useGroupChatSocket()
+  const { call: groupCall } = useGroupCall()
 
   const activeConversation =
     conversations.find((c) => c.chat_id === activeChatId) ?? null
@@ -398,6 +400,8 @@ export default function MessagesPage() {
               typingUsers={groupRoom.typingUsers}
               memberNames={activeGroupMembers}
               onOpenGroupSettings={handleOpenGroupSettings}
+              groupCallHistory={groupRoom.callHistory}
+              activeGroupCallId={groupCall?.callId ?? null}
             />
           ) : activeChatType === 'direct' ? (
             <ChatWindow
