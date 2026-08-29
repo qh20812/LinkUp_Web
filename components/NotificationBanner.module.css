@@ -1,0 +1,132 @@
+.banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  min-width: 320px;
+  max-width: 480px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.bannerVisible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bannerLeaving {
+  transform: translateX(-50%) translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--color-bg-secondary);
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.125rem;
+}
+
+.iconLike {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.iconComment {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.iconFollow {
+  background: #dcfce7;
+  color: #22c55e;
+}
+
+.iconMessage {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.iconFriend {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+
+.iconCall {
+  background: #fce7f3;
+  color: #ec4899;
+}
+
+.iconCommunity {
+  background: #f3e8ff;
+  color: #a855f7;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.content {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.senderName {
+  font-weight: 600;
+}
+
+.time {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 150ms ease;
+}
+
+.closeBtn:hover {
+  background: var(--color-bg-secondary);
+}

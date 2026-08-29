@@ -33,6 +33,7 @@
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
   font-size: 1rem;
+  cursor: pointer;
 }
 
 .avatar img {
@@ -45,6 +46,7 @@
 .info {
   flex: 1;
   min-width: 0;
+  cursor: pointer;
 }
 
 .name {

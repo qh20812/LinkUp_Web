@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import { usePresence } from '../../contexts/PresenceContext'
@@ -28,6 +29,7 @@ export default function GroupMemberList({
 }: GroupMemberListProps) {
   const { t } = useTranslation()
   const { isOnline, prefetchPresence } = usePresence()
+  const router = useRouter()
 
   const memberIds = members.map((m) => m.user_id)
 
@@ -51,7 +53,13 @@ export default function GroupMemberList({
         const memberIsAdmin = member.role === 'CHAT_ADMIN'
         return (
           <div key={member.user_id} className={styles.row}>
-            <div className={styles.avatar}>
+            <div
+              className={styles.avatar}
+              onClick={() => router.push(`/profile/${member.user_id}`)}
+              role={!isSelf ? 'link' : undefined}
+              tabIndex={!isSelf ? 0 : undefined}
+              onKeyDown={!isSelf ? (e) => { if (e.key === 'Enter') router.push(`/profile/${member.user_id}`) } : undefined}
+            >
               {member.avatar_uri ? (
                 <ExternalImage src={member.avatar_uri} alt="" />
               ) : (
@@ -59,7 +67,13 @@ export default function GroupMemberList({
               )}
               <OnlineIndicator isOnline={isOnline(member.user_id)} />
             </div>
-            <div className={styles.info}>
+            <div
+              className={styles.info}
+              onClick={() => !isSelf && router.push(`/profile/${member.user_id}`)}
+              role={!isSelf ? 'link' : undefined}
+              tabIndex={!isSelf ? 0 : undefined}
+              onKeyDown={!isSelf ? (e) => { if (e.key === 'Enter') router.push(`/profile/${member.user_id}`) } : undefined}
+            >
               <span className={styles.name}>
                 {member.display_name || t('chat.unknown')}
                 {isSelf && <span className={styles.youBadge}> ({t('chat.you')})</span>}

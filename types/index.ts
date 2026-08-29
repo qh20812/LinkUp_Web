@@ -946,6 +946,37 @@ export interface GroupChatConversation {
   updated_at: string
 }
 
+// ===== Pinned Messages =====
+export interface PinnedMessage {
+  id: string
+  message_id: string
+  pinned_by: string
+  pinned_at: string
+  content: string
+  sender_id: string
+  sender_name: string
+}
+
+export interface WsPinMessagePayload {
+  chat_id: string
+  message_id: string
+}
+
+export interface WsMessagePinnedPayload {
+  id: string
+  message_id: string
+  pinned_by: string
+  pinned_at: string
+  content: string
+  sender_id: string
+  sender_name: string
+}
+
+export interface WsMessageUnpinnedPayload {
+  chat_id: string
+  message_id: string
+}
+
 export interface GroupChatListResponse {
   data: GroupChatConversation[]
 }

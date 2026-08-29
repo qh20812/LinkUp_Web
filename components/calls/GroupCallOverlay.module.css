@@ -1,0 +1,262 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  padding: var(--space-lg);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  max-height: 100%;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.groupName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.duration {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.participantCount {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.participantCount i {
+  font-size: 16px;
+}
+
+.minimizeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.minimizeBtn:hover {
+  background: var(--color-bg-hover);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  flex: 1;
+  min-height: 0;
+}
+
+.gridSingle {
+  grid-template-columns: 1fr;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.gridDouble {
+  grid-template-columns: 1fr 1fr;
+}
+
+.gridQuad {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.gridSix {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.gridNine {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.controlBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 26px;
+  color: #ffffff;
+  background: var(--color-bg-hover);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.controlBtn:hover {
+  transform: scale(1.08);
+}
+
+.controlBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.activeBtn {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.endBtn {
+  background: var(--color-danger);
+  width: 64px;
+  height: 64px;
+}
+
+.endBtn:hover {
+  background: var(--color-danger);
+}
+
+.pendingBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.pendingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.pendingUser {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pendingAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pendingAvatarPlaceholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
+.pendingName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.pendingActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.pendingAccept,
+.pendingReject {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: #ffffff;
+  transition: transform 0.15s ease;
+}
+
+.pendingAccept {
+  background: var(--color-success);
+}
+
+.pendingReject {
+  background: var(--color-danger);
+}
+
+.pendingAccept:hover,
+.pendingReject:hover {
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .backdrop {
+    padding: 0;
+  }
+
+  .panel {
+    border-radius: 0;
+    height: 100%;
+  }
+
+  .gridDouble,
+  .gridQuad,
+  .gridSix,
+  .gridNine {
+    grid-template-columns: 1fr 1fr;
+  }
+}

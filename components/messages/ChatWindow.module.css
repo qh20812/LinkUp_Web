@@ -1027,6 +1027,13 @@
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 150ms ease;
+}
+
+.senderLine:hover {
+  background: var(--color-bg-secondary);
 }
 
 .senderAvatar {
@@ -1054,6 +1061,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .systemMessage {
@@ -1146,4 +1154,169 @@
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
   font-style: italic;
+}
+
+/* ── Pin Message ────────────────────────────────────────────────────────── */
+
+.pinBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.msgRow:hover .pinBtn {
+  display: flex;
+}
+
+.pinBtn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.pinBtnActive {
+  display: flex;
+  color: var(--color-primary);
+}
+
+.pinBtnActive:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.pinBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-circle);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.625rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.msgRow {
+  position: relative;
+}
+
+.pinnedBar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.pinnedBarHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.pinnedBarItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pinnedBarItem:hover {
+  background: var(--color-hover);
+}
+
+.pinnedBarItemContent {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.pinnedBarItemSender {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pinnedBarItemText {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinnedBarRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pinnedBarRemove:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.callBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-success-light);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-success);
+}
+
+.callBanner i {
+  font-size: 18px;
+}
+
+.callBanner span {
+  flex: 1;
+  font-weight: 500;
+}
+
+.callBannerBtn {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-success);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.callBannerBtn:hover {
+  opacity: 0.9;
 }

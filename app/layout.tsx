@@ -5,7 +5,11 @@ import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { CallProvider } from '../contexts/CallContext'
+import { GroupCallProvider } from '../contexts/GroupCallContext'
 import CallOverlay from '../components/calls/CallOverlay'
+import GroupCallOverlay from '../components/calls/GroupCallOverlay'
+import GroupCallBubble from '../components/calls/GroupCallBubble'
+import GroupCallIncomingModal from '../components/calls/GroupCallIncomingModal'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -44,8 +48,13 @@ export default function RootLayout({
             <ThemeProvider>
               <ToastProvider>
                 <CallProvider>
-                  {children}
-                  <CallOverlay />
+                  <GroupCallProvider>
+                    {children}
+                    <CallOverlay />
+                    <GroupCallOverlay />
+                    <GroupCallBubble />
+                    <GroupCallIncomingModal />
+                  </GroupCallProvider>
                 </CallProvider>
               </ToastProvider>
             </ThemeProvider>

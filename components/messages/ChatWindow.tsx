@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
@@ -28,10 +29,16 @@ import type {
   ChatMessage,
   EmojiItem,
   GifItem,
+  PinnedMessage,
 } from '../../types'
+import type { GroupCallHistoryItem, GroupCallJoinRequestState } from '../../types/groupCall'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import { useCall, type CallPhase } from '../../contexts/CallContext'
+import { useGroupCall } from '../../contexts/GroupCallContext'
 import { usePresence } from '../../contexts/PresenceContext'
+import GroupCallMemberSelectModal from '../calls/GroupCallMemberSelectModal'
+import GroupCallRequestJoinModal from '../calls/GroupCallRequestJoinModal'
+import GroupCallMessage from './GroupCallMessage'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -80,6 +87,7 @@ interface ChatWindowProps {
   isEncrypted?: boolean
   onDeleteChat?: () => void
   mode?: 'direct' | 'group'
+  groupChatId?: string | null
   groupName?: string
   groupAvatarUri?: string
   memberCount?: number
@@ -87,6 +95,8 @@ interface ChatWindowProps {
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>
   onOpenGroupSettings?: () => void
   onGroupInviteAccepted?: (groupChatId: string) => void
+  groupCallHistory?: GroupCallHistoryItem[]
+  activeGroupCallId?: string | null
 }
 
 interface DeleteTarget {
@@ -96,6 +106,7 @@ interface DeleteTarget {
 type TimelineItem =
   | { kind: 'message'; msg: ChatMessage; created: number }
   | { kind: 'call'; item: CallHistoryItem; created: number }
+  | { kind: 'group_call'; call: GroupCallHistoryItem; created: number }
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 
@@ -160,6 +171,7 @@ export default function ChatWindow({
   isEncrypted = false,
   onDeleteChat,
   mode = 'direct',
+  groupChatId,
   groupName,
   groupAvatarUri,
   memberCount,
@@ -167,14 +179,24 @@ export default function ChatWindow({
   memberNames,
   onOpenGroupSettings,
   onGroupInviteAccepted,
+  groupCallHistory = [],
+  activeGroupCallId = null,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const router = useRouter()
   const {
     startCall,
     isInCall,
     phase: callPhase,
     call: activeCall,
   } = useCall()
+  const {
+    phase: groupCallPhase,
+    call: groupCall,
+    startGroupCall,
+    joinGroupCall,
+    isInGroupCall,
+  } = useGroupCall()
   const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
@@ -188,12 +210,33 @@ export default function ChatWindow({
   const [searchActive, setSearchActive] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [newMessagesCount, setNewMessagesCount] = useState(0)
+  const [showMemberSelectModal, setShowMemberSelectModal] = useState(false)
+  const [joinRequestState, setJoinRequestState] = useState<GroupCallJoinRequestState | null>(null)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const pinToBottomRef = useRef(true)
 
   const partnerUserId = conversation?.partner.user_id ?? null
+
+  const handleRequestJoin = useCallback(
+    (callId: string) => {
+      const gc = groupCallHistory.find((c) => c.call_id === callId)
+      if (!gc) return
+      setJoinRequestState({
+        callId,
+        callerId: gc.caller_id,
+        participantCount: gc.participants.length,
+      })
+    },
+    [groupCallHistory],
+  )
+
+  const handleConfirmJoinRequest = useCallback(() => {
+    if (!joinRequestState) return
+    void joinGroupCall(joinRequestState.callId)
+    setJoinRequestState(null)
+  }, [joinRequestState, joinGroupCall])
 
   useEffect(() => {
     if (partnerUserId) prefetchPresence([partnerUserId])
@@ -275,8 +318,13 @@ export default function ChatWindow({
       item,
       created: item.created_at,
     }))
-    return [...msgs, ...calls].sort((a, b) => a.created - b.created)
-  }, [room.messages, callHistory])
+    const groupCalls: TimelineItem[] = groupCallHistory.map((gc) => ({
+      kind: 'group_call',
+      call: gc,
+      created: new Date(gc.created_at).getTime(),
+    }))
+    return [...msgs, ...calls, ...groupCalls].sort((a, b) => a.created - b.created)
+  }, [room.messages, callHistory, groupCallHistory])
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -355,10 +403,19 @@ const prevTimelineLenRef = useRef(0)
     if (atBottom) setNewMessagesCount(0)
   }
 
-  const chatId = conversation?.chat_id ?? null
+  const chatId = conversation?.chat_id ?? groupChatId ?? null
   useEffect(() => {
     if (chatId) pinToBottomRef.current = true
   }, [chatId])
+
+  const handleStartGroupCall = useCallback(
+    (selectedIds: string[]) => {
+      if (chatId) {
+        void startGroupCall(chatId, selectedIds)
+      }
+    },
+    [chatId, startGroupCall],
+  )
 
   const scrollToMessage = useCallback((messageId: string) => {
     const el = timelineRef.current?.querySelector(`[data-message-id="${messageId}"]`)
@@ -387,6 +444,9 @@ const prevTimelineLenRef = useRef(0)
 
   const searchResults = room.searchResults
   const inSearch = searchResults !== null
+  const pinnedMessages = room.pinnedMessages
+  const pinMessage = room.pinMessage
+  const unpinMessage = room.unpinMessage
 
   const itemDate = (item: TimelineItem) =>
     formatChatDate(
@@ -451,15 +511,28 @@ const prevTimelineLenRef = useRef(0)
               <i className="bx bx-video" />
             </button>
           </>
-        ) : onOpenGroupSettings ? (
-          <button
-            className={styles.iconBtn}
-            onClick={onOpenGroupSettings}
-            aria-label={t('chat.groupSettings')}
-            title={t('chat.groupSettings')}
-          >
-            <i className="bx bx-cog" />
-          </button>
+        ) : mode === 'group' ? (
+          <>
+            <button
+              className={styles.iconBtn}
+              onClick={() => setShowMemberSelectModal(true)}
+              disabled={isInGroupCall || isInCall}
+              aria-label={t('call.videoCall')}
+              title={t('call.videoCall')}
+            >
+              <i className="bx bx-video" />
+            </button>
+            {onOpenGroupSettings && (
+              <button
+                className={styles.iconBtn}
+                onClick={onOpenGroupSettings}
+                aria-label={t('chat.groupSettings')}
+                title={t('chat.groupSettings')}
+              >
+                <i className="bx bx-cog" />
+              </button>
+            )}
+          </>
         ) : null}
         <button
           className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
@@ -479,6 +552,53 @@ const prevTimelineLenRef = useRef(0)
           </button>
         )}
       </div>
+
+      {mode === 'group' && groupCall && groupCall.chatId === chatId && (groupCallPhase === 'active' || groupCallPhase === 'minimized') && (
+        <div className={styles.callBanner}>
+          <i className="bx bx-video" />
+          <span>{t('groupCall.inCall')}</span>
+          <button
+            className={styles.callBannerBtn}
+            onClick={() => groupCallPhase === 'minimized' ? undefined : undefined}
+          >
+            {t('groupCall.expand')}
+          </button>
+        </div>
+      )}
+
+      {pinnedMessages.length > 0 && !inSearch && (
+        <div className={styles.pinnedBar}>
+          <div className={styles.pinnedBarHeader}>
+            <i className="bx bx-pin" />
+            <span>{t('chat.pinnedMessages')} ({pinnedMessages.length})</span>
+          </div>
+          {pinnedMessages.map((pin) => (
+            <div
+              key={pin.message_id}
+              className={styles.pinnedBarItem}
+              onClick={() => scrollToMessage(pin.message_id)}
+            >
+              <div className={styles.pinnedBarItemContent}>
+                <span className={styles.pinnedBarItemSender}>{pin.sender_name || t('chat.unknown')}</span>
+                <span className={styles.pinnedBarItemText}>
+                  {pin.content.length > 60 ? pin.content.slice(0, 60) + '...' : pin.content || t('chat.attachment')}
+                </span>
+              </div>
+              <button
+                className={styles.pinnedBarRemove}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  unpinMessage(pin.message_id)
+                }}
+                title={t('chat.unpin')}
+                aria-label={t('chat.unpin')}
+              >
+                <i className="bx bx-x" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {searchActive && (
         <div className={styles.searchRow}>
@@ -552,6 +672,22 @@ const prevTimelineLenRef = useRef(0)
                 <Fragment key={`call-${item.item.id}`}>
                   {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
                   <CallLogItem item={item.item} />
+                </Fragment>
+              )
+            }
+
+            if (item.kind === 'group_call') {
+              return (
+                <Fragment key={`gc-${item.call.call_id}`}>
+                  {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
+                  <GroupCallMessage
+                    call={item.call}
+                    myUserId={myUserId}
+                    memberNames={memberNames}
+                    isMine={item.call.caller_id === myUserId}
+                    isActive={activeGroupCallId === item.call.call_id}
+                    onRequestJoin={handleRequestJoin}
+                  />
                 </Fragment>
               )
             }
@@ -652,7 +788,7 @@ const prevTimelineLenRef = useRef(0)
                 ) : (
                 <>
                 {showSenderName && (
-                  <div className={styles.senderLine}>
+                  <div className={styles.senderLine} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
                     {senderMember?.avatar_uri ? (
                       <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
                     ) : (
@@ -664,6 +800,11 @@ const prevTimelineLenRef = useRef(0)
                   </div>
                 )}
                 <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`} data-message-id={msg.id}>
+                  {pinnedMessages.some((p) => p.message_id === msg.id) && (
+                    <span className={styles.pinBadge} title={t('chat.pinnedMessage')}>
+                      <i className="bx bx-pin" />
+                    </span>
+                  )}
                   {msg.deleted ? (
                     <div className={styles.bubble}>
                       <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
@@ -768,6 +909,25 @@ const prevTimelineLenRef = useRef(0)
                       >
                         <i className="bx bx-reply" />
                       </button>
+                      {pinnedMessages.some((p) => p.message_id === msg.id) ? (
+                        <button
+                          className={`${styles.pinBtn} ${styles.pinBtnActive}`}
+                          onClick={() => unpinMessage(msg.id)}
+                          aria-label={t('chat.unpin')}
+                          title={t('chat.unpin')}
+                        >
+                          <i className="bx bx-pin" />
+                        </button>
+                      ) : pinnedMessages.length < 2 ? (
+                        <button
+                          className={styles.pinBtn}
+                          onClick={() => pinMessage(msg.id)}
+                          aria-label={t('chat.pin')}
+                          title={t('chat.pin')}
+                        >
+                          <i className="bx bx-pin" />
+                        </button>
+                      ) : null}
                       <button
                         className={styles.deleteBtn}
                         onClick={() => setDeleteTarget({ message: msg })}
@@ -830,6 +990,26 @@ const prevTimelineLenRef = useRef(0)
           )}
         </div>
       </Modal>
+
+      <GroupCallMemberSelectModal
+        open={showMemberSelectModal}
+        onClose={() => setShowMemberSelectModal(false)}
+        members={memberNames ?? new Map()}
+        myUserId={myUserId}
+        onStartCall={handleStartGroupCall}
+      />
+
+      <GroupCallRequestJoinModal
+        open={joinRequestState !== null}
+        onClose={() => setJoinRequestState(null)}
+        onConfirm={handleConfirmJoinRequest}
+        callerName={
+          joinRequestState
+            ? (memberNames?.get(joinRequestState.callerId)?.display_name || t('chat.unknown'))
+            : ''
+        }
+        participantCount={joinRequestState?.participantCount ?? 0}
+      />
     </div>
   )
 }
