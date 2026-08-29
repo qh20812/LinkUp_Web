@@ -2,21 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  decryptMessage as e2eDecrypt,
-  deriveChatKey,
+  decryptChat,
   encryptMessage as e2eEncrypt,
-  generateChatKeyBase64,
-  getOrCreateIdentity,
-  unwrapChatKey,
-  wrapChatKey,
+  ensureChatKey,
 } from '../utils/e2ee'
-import { getChatKey as getStoredChatKey, setChatKey as persistChatKey } from '../utils/idb'
-import {
-  getChatKey as getRemoteChatKey,
-  getUserKey,
-  registerUserKey,
-  storeChatKeys,
-} from '../api/e2e'
 
 export type ChatE2EStatus = 'unavailable' | 'loading' | 'legacy' | 'ready'
 
@@ -57,58 +46,14 @@ export function useChatE2E({
 
     const run = async () => {
       try {
-        const identity = await getOrCreateIdentity(myUserId)
-        await registerUserKey(identity.publicKey)
-
-        // 1. Khóa đã lưu trên máy thì dùng luôn.
-        const localKey = await getStoredChatKey(chatId)
-        if (localKey) {
-          chatKeyRef.current = localKey
-          if (!cancelled) setStatus('ready')
-          return
-        }
-
-        // 2. Lấy public key của partner. Không có → fallback legacy (server mã hóa).
-        let partnerPub: string
-        try {
-          const res = await getUserKey(partnerUserId)
-          partnerPub = res.public_key
-        } catch {
-          if (!cancelled) setStatus('legacy')
-          return
-        }
-
-        const shared = await deriveChatKey(identity.privateKey, partnerPub)
-
-        // 3. Đã có khóa chat trên server thì lấy về giải mã.
-        const remote = await getRemoteChatKey(chatId)
-        if (remote?.wrapped_key) {
-          const key = await unwrapChatKey(shared, remote.wrapped_key, remote.nonce)
-          await persistChatKey(chatId, key)
+        const key = await ensureChatKey({ chatId, myUserId, partnerUserId })
+        if (key) {
           chatKeyRef.current = key
           if (!cancelled) setStatus('ready')
-          return
+        } else {
+          // Đối phương chưa đăng ký public key → chat fallback legacy.
+          if (!cancelled) setStatus('legacy')
         }
-
-        // 4. Chat mới chưa có khóa → sinh khóa, bọc cho cả hai rồi đăng ký.
-        const chatKey = generateChatKeyBase64()
-        const mine = await wrapChatKey(shared, chatKey)
-        const theirs = await wrapChatKey(shared, chatKey)
-        await storeChatKeys([
-          { chat_id: chatId, user_id: myUserId, wrapped_key: mine.wrapped, nonce: mine.nonce },
-          { chat_id: chatId, user_id: partnerUserId, wrapped_key: theirs.wrapped, nonce: theirs.nonce },
-        ])
-
-        // Reconciliation: nếu đối phương cũng vừa tạo khóa (đăng ký sau mình),
-        // server đã giữ khóa của họ → ưu tiên khóa trên server để hai bên khớp.
-        const afterPost = await getRemoteChatKey(chatId)
-        const finalKey =
-          (afterPost?.wrapped_key &&
-            (await unwrapChatKey(shared, afterPost.wrapped_key, afterPost.nonce))) ||
-          chatKey
-        await persistChatKey(chatId, finalKey)
-        chatKeyRef.current = finalKey
-        if (!cancelled) setStatus('ready')
       } catch {
         if (!cancelled) setStatus('legacy')
       }
@@ -131,11 +76,12 @@ export function useChatE2E({
 
   const decrypt = useCallback(
     async (cipher: string): Promise<string> => {
-      const key = chatKeyRef.current
-      if (!key) throw new Error('e2e not ready')
-      return e2eDecrypt(key, cipher)
+      if (!chatId) throw new Error('e2e not ready')
+      // Thử khóa chuẩn (server) rồi các khóa fallback để tin cũ của mình (mã
+      // hóa bằng khóa phân kỳ trước khi adopt) vẫn giải mã được.
+      return decryptChat(chatId, cipher)
     },
-    [],
+    [chatId],
   )
 
   return useMemo(

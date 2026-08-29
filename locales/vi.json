@@ -703,6 +703,8 @@
     "e2eBadge": "E2E",
     "e2eTitle": "Tin nhắn được mã hóa đầu cuối, chỉ người gửi và người nhận đọc được",
     "undecryptable": "Không thể giải mã tin nhắn",
+    "loadingOlder": "Đang tải tin nhắn cũ hơn...",
+    "scrollForOlder": "Cuộn lên để xem tin nhắn cũ hơn",
     "newChat": "Hội thoại mới",
     "emojiPicker": "Chọn biểu tượng cảm xúc",
     "attach": "Đính kèm tệp",

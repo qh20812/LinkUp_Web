@@ -15,16 +15,35 @@ import { useChatSocket } from '../../../hooks/useChatSocket'
 import { useChatRoom } from '../../../hooks/useChatRoom'
 import { useGroupChatSocket } from '../../../hooks/useGroupChatSocket'
 import { useGroupChatRoom } from '../../../hooks/useGroupChatRoom'
-import { useChatE2E } from '../../../hooks/useChatE2E'
+import { useChatE2E, type ChatE2EStatus } from '../../../hooks/useChatE2E'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
-import { getChatKey as getStoredChatKey } from '../../../utils/idb'
-import { decryptMessage } from '../../../utils/e2ee'
+import { decryptChat, ensureChatKey } from '../../../utils/e2ee'
 import type { ChatConversation, ChatInviteItem, GroupChatConversation } from '../../../types'
 import styles from './Messages.module.css'
+
+// Chạy fn trên từng item với độ đồng thời tối đa `limit`, giữ nguyên thứ tự.
+async function mapLimited<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let cursor = 0
+  const worker = async () => {
+    while (cursor < items.length) {
+      const i = cursor++
+      results[i] = await fn(items[i])
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  )
+  return results
+}
 
 export default function MessagesPage() {
   const { t } = useTranslation()
@@ -43,6 +62,7 @@ export default function MessagesPage() {
   const [invites, setInvites] = useState<ChatInviteItem[]>([])
   const [respondingInvite, setRespondingInvite] = useState<string | null>(null)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const e2eStatusRef = useRef<ChatE2EStatus>('unavailable')
 
   // Group chat state
   const [groupConversations, setGroupConversations] = useState<GroupChatConversation[]>([])
@@ -69,32 +89,56 @@ export default function MessagesPage() {
   })
 
   // Giải mã preview tin nhắn cuối của các hội thoại E2E. Nếu máy chưa có khóa
-  // (chưa mở hội thoại lần nào) thì đánh dấu rỗng để UI hiện placeholder khóa.
+  // (chưa mở hội thoại lần nào) thì tự set-up khóa E2E (lấy từ server / tạo
+  // mới) rồi giải mã. Không set-up được (đối phương chưa đăng ký khóa) → đánh
+  // dấu rỗng để UI hiện placeholder khóa.
   const hydrateConversations = useCallback(
     async (list: ChatConversation[]): Promise<ChatConversation[]> => {
-      return Promise.all(
-        list.map(async (conv) => {
-          if (
-            !conv.is_encrypted ||
-            !conv.last_message ||
-            !conv.last_message.content
-          ) {
-            return conv
-          }
-          const key = await getStoredChatKey(conv.chat_id)
-          if (!key) {
-            return { ...conv, last_message: { ...conv.last_message, content: '' } }
-          }
-          try {
-            const plain = await decryptMessage(key, conv.last_message.content)
-            return { ...conv, last_message: { ...conv.last_message, content: plain } }
-          } catch {
-            return { ...conv, last_message: { ...conv.last_message, content: '' } }
-          }
-        }),
-      )
+      const userId = myUserId
+      if (!userId) return list
+
+      const encryptedIndices: number[] = []
+      list.forEach((conv, i) => {
+        if (
+          conv.is_encrypted &&
+          conv.last_message &&
+          conv.last_message.content &&
+          conv.last_message.e2e_version === 1
+        ) {
+          encryptedIndices.push(i)
+        }
+      })
+      const encrypted = encryptedIndices.map((i) => list[i])
+
+      const hydrated = await mapLimited(encrypted, 4, async (conv) => {
+        let key: string | null = null
+        try {
+          key = await ensureChatKey({
+            chatId: conv.chat_id,
+            myUserId: userId,
+            partnerUserId: conv.partner.user_id,
+          })
+        } catch {
+          key = null
+        }
+        if (!key || !conv.last_message) {
+          return { ...conv, last_message: { ...conv.last_message!, content: '' } }
+        }
+        try {
+          const content = await decryptChat(conv.chat_id, conv.last_message.content)
+          return { ...conv, last_message: { ...conv.last_message, content } }
+        } catch {
+          return { ...conv, last_message: { ...conv.last_message, content: '' } }
+        }
+      })
+
+      const next = [...list]
+      encryptedIndices.forEach((idx, j) => {
+        next[idx] = hydrated[j]
+      })
+      return next
     },
-    [],
+    [myUserId],
   )
 
   const refreshList = useCallback(async () => {
@@ -138,6 +182,17 @@ export default function MessagesPage() {
     socket: groupSocket,
     onNewMessage,
   })
+
+  // Sau khi khóa E2E của hội thoại đang mở trở nên sẵn sàng, refresh danh sách
+  // để preview vừa giải mã hiển thị ngay (không phải chờ tin nhắn mới).
+  useEffect(() => {
+    if (e2eStatusRef.current === encryption.status) return
+    e2eStatusRef.current = encryption.status
+    if (encryption.status === 'ready') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      refreshList()
+    }
+  }, [encryption.status, refreshList])
 
   const navigateToChat = useCallback(
     (chatId: string | null, type: 'direct' | 'group' = 'direct') => {

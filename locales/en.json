@@ -703,6 +703,8 @@
     "e2eBadge": "E2E",
     "e2eTitle": "Messages are end-to-end encrypted; only sender and receiver can read them",
     "undecryptable": "Message can't be decrypted",
+    "loadingOlder": "Loading older messages...",
+    "scrollForOlder": "Scroll up to see older messages",
     "newChat": "New conversation",
     "emojiPicker": "Pick an emoji",
     "attach": "Attach file",

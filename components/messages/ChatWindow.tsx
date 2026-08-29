@@ -401,6 +401,10 @@ const prevTimelineLenRef = useRef(0)
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24
     pinToBottomRef.current = atBottom
     if (atBottom) setNewMessagesCount(0)
+    // Cuộn lên chạm đầu danh sách → tải thêm tin cũ hơn.
+    if (!room.loading && !room.loadingMore && room.hasMore && el.scrollTop <= 48) {
+      room.loadMoreMessages()
+    }
   }
 
   const chatId = conversation?.chat_id ?? groupChatId ?? null
@@ -662,6 +666,13 @@ const prevTimelineLenRef = useRef(0)
             </div>
           )}
 
+          {!room.loading && timeline.length > 0 && (room.hasMore || room.loadingMore) && (
+            <div className={styles.loadMore}>
+              {room.loadingMore && <i className="bx bx-loader-circle" />}
+              <span>{room.loadingMore ? t('chat.loadingOlder') : t('chat.scrollForOlder')}</span>
+            </div>
+          )}
+
           <div ref={timelineRef} className={styles.timelineContent}>
             {timeline.map((item, i) => {
             const prev = timeline[i - 1]
@@ -829,7 +840,9 @@ const prevTimelineLenRef = useRef(0)
                               <span className={styles.replySnippetName}>{msg.reply_to.sender_name || t('chat.unknown')}</span>
                             </div>
                             <span className={styles.replySnippetText}>
-                              {msg.reply_to.content || t('chat.attachment')}
+                              {msg.decrypt_failed
+                                ? t('chat.attachment')
+                                : msg.reply_to.content || t('chat.attachment')}
                             </span>
                           </div>
                         )}

@@ -25,6 +25,8 @@ export interface SendMessageOptions {
 export interface GroupChatRoom {
   messages: ChatMessage[]
   loading: boolean
+  hasMore: boolean
+  loadingMore: boolean
   typingUsers: Set<string>
   partnerTyping: boolean
   searchResults: ChatMessage[] | null
@@ -37,6 +39,7 @@ export interface GroupChatRoom {
   searchMessages: (keyword: string) => void
   pinMessage: (messageId: string) => void
   unpinMessage: (messageId: string) => void
+  loadMoreMessages: () => void
   callHistory: Array<{
     call_id: string
     chat_id: string
@@ -475,6 +478,8 @@ export function useGroupChatRoom({
   return {
     messages,
     loading,
+    hasMore: false,
+    loadingMore: false,
     typingUsers,
     partnerTyping: false,
     searchResults,
@@ -487,6 +492,7 @@ export function useGroupChatRoom({
     searchMessages,
     pinMessage,
     unpinMessage,
+    loadMoreMessages: () => {},
     callHistory,
   }
 }

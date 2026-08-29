@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage, PinnedMessage } from '../types'
+import type { ChatMessage, HistoryCursor, PinnedMessage } from '../types'
 import type { ChatSocket } from './useChatSocket'
 import type { ChatE2E } from './useChatE2E'
 import { useToast } from '../contexts/ToastContext'
@@ -27,6 +27,8 @@ export interface SendMessageOptions {
 export interface ChatRoom {
   messages: ChatMessage[]
   loading: boolean
+  hasMore: boolean
+  loadingMore: boolean
   partnerTyping: boolean
   searchResults: ChatMessage[] | null
   searchKeyword: string
@@ -38,6 +40,7 @@ export interface ChatRoom {
   searchMessages: (keyword: string) => void
   pinMessage: (messageId: string) => void
   unpinMessage: (messageId: string) => void
+  loadMoreMessages: () => void
 }
 
 function dedupeByID(list: ChatMessage[]): ChatMessage[] {
@@ -57,6 +60,52 @@ function sortByCreatedAt(list: ChatMessage[]): ChatMessage[] {
   )
 }
 
+// Chuyển tin E2E còn giữ bản mã hóa sang dạng "chờ giải mã": UI hiện placeholder
+// (decrypt_failed) thay vì lộ ciphertext; content vẫn giữ nguyên để retry khi
+// khóa sẵn sàng giải mã lại và thay bằng bản rõ.
+function markPendingDecrypt(list: ChatMessage[]): ChatMessage[] {
+  return list.map((msg) => {
+    if (msg.e2e_version === 1 && msg.content && !msg.deleted && !msg.decrypted) {
+      return { ...msg, decrypt_failed: true }
+    }
+    return msg
+  })
+}
+
+// Thay các tin trong prev bằng phiên bản đã giải mã (theo id), chỉ khi nội
+// dung thay đổi để tránh render thừa. Bỏ qua id không nằm trong prev — an toàn
+// khi user đổi hội thoại giữa chừng quá trình decode.
+function mergeDecrypted(prev: ChatMessage[], chunk: ChatMessage[]): ChatMessage[] {
+  if (chunk.length === 0) return prev
+  const byId = new Map(prev.map((m) => [m.id, m]))
+  let changed = false
+  for (const m of chunk) {
+    const cur = byId.get(m.id)
+    if (!cur) continue
+    if (
+      cur.content === m.content &&
+      cur.decrypt_failed === m.decrypt_failed &&
+      cur.decrypted === m.decrypted
+    ) {
+      continue
+    }
+    byId.set(m.id, m)
+    changed = true
+  }
+  return changed ? sortByCreatedAt([...byId.values()]) : prev
+}
+
+// Ghép trang tin cũ hơn vào đầu danh sách hiện tại; tin trùng id ưu tiên bản
+// mới (vừa tải từ server).
+function prependMessages(prev: ChatMessage[], older: ChatMessage[]): ChatMessage[] {
+  if (older.length === 0) return prev
+  const byId = new Map(older.map((m) => [m.id, m]))
+  for (const m of prev) {
+    if (!byId.has(m.id)) byId.set(m.id, m)
+  }
+  return sortByCreatedAt([...byId.values()])
+}
+
 export function useChatRoom({
   chatId,
   myUserId,
@@ -68,6 +117,8 @@ export function useChatRoom({
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -79,6 +130,10 @@ export function useChatRoom({
   const pendingIdsRef = useRef<string[]>([])
   const pendingSeqRef = useRef(0)
   const messagesRef = useRef<ChatMessage[]>([])
+  const hasMoreRef = useRef(false)
+  const nextCursorRef = useRef<HistoryCursor | null>(null)
+  const loadingMoreRef = useRef(false)
+  const e2eReadyChatRef = useRef<string | null>(null)
 
   const socketSubscribe = socket.subscribe
   const socketStatus = socket.status
@@ -103,12 +158,14 @@ export function useChatRoom({
       return Promise.all(
         list.map(async (msg) => {
           let updated = msg
-          if (msg.e2e_version === 1 && msg.content && !msg.deleted) {
+          // Chưa giải mã (còn giữ bản mã hóa) → thử giải mã. Thất bại khi khóa
+          // chưa sẵn sàng: giữ nguyên content để effect retry giải mã lại.
+          if (msg.e2e_version === 1 && msg.content && !msg.deleted && !msg.decrypted) {
             try {
               const plain = await encryption.decrypt(msg.content)
-              updated = { ...updated, content: plain }
+              updated = { ...updated, content: plain, decrypted: true, decrypt_failed: false }
             } catch {
-              return { ...msg, content: '', decrypt_failed: true }
+              return { ...updated, decrypt_failed: true }
             }
           }
           if (updated.reply_to && updated.reply_to.content && updated.e2e_version === 1) {
@@ -129,11 +186,53 @@ export function useChatRoom({
 
   const handleHistory = useCallback(
     async (payload: unknown) => {
-      const data = payload as { chat_id?: string; messages?: ChatMessage[] }
+      const data = payload as {
+        chat_id?: string
+        messages?: ChatMessage[]
+        has_more?: boolean
+        next_cursor?: HistoryCursor | null
+      }
       if (!data || data.chat_id !== activeChatIdRef.current) return
       setLoading(false)
-      const decrypted = await decryptIncoming(data.messages ?? [])
-      setMessages(sortByCreatedAt(dedupeByID(decrypted)))
+      setHasMore(Boolean(data.has_more))
+      hasMoreRef.current = Boolean(data.has_more)
+      nextCursorRef.current = data.next_cursor ?? null
+
+      const list = data.messages ?? []
+      // Render ngay lịch sử (tin E2E hiện placeholder), rồi giải mã dần từng
+      // cụm nhỏ để nội dung hiện sớm thay vì chờ cả trang.
+      setMessages(sortByCreatedAt(dedupeByID(markPendingDecrypt(list))))
+      const size = 10
+      for (let i = 0; i < list.length; i += size) {
+        const batch = list.slice(i, i + size)
+        const decrypted = await decryptIncoming(batch)
+        if (activeChatIdRef.current !== data.chat_id) return
+        setMessages((prev) => mergeDecrypted(prev, decrypted))
+      }
+    },
+    [decryptIncoming],
+  )
+
+  const handleHistoryMore = useCallback(
+    async (payload: unknown) => {
+      const data = payload as {
+        chat_id?: string
+        messages?: ChatMessage[]
+        has_more?: boolean
+        next_cursor?: HistoryCursor | null
+      }
+      if (!data || data.chat_id !== activeChatIdRef.current) return
+      setHasMore(Boolean(data.has_more))
+      hasMoreRef.current = Boolean(data.has_more)
+      nextCursorRef.current = data.next_cursor ?? null
+      try {
+        const decrypted = await decryptIncoming(data.messages ?? [])
+        if (activeChatIdRef.current !== data.chat_id) return
+        setMessages((prev) => prependMessages(prev, decrypted))
+      } finally {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
     },
     [decryptIncoming],
   )
@@ -233,6 +332,7 @@ export function useChatRoom({
   useEffect(() => {
     const unsubs = [
       socketSubscribe('message:history', handleHistory),
+      socketSubscribe('message:history_more', handleHistoryMore),
       socketSubscribe('message:new', handleNewMessage),
       socketSubscribe('typing', handleTyping),
       socketSubscribe('message:deleted', handleDeleted),
@@ -246,6 +346,7 @@ export function useChatRoom({
   }, [
     socketSubscribe,
     handleHistory,
+    handleHistoryMore,
     handleNewMessage,
     handleTyping,
     handleDeleted,
@@ -256,6 +357,20 @@ export function useChatRoom({
     handleError,
   ])
 
+  // Join không còn chờ khóa E2E → lịch sử có thể đến trước khi khóa setup
+  // xong, nên khi khóa trở nên sẵn sàng sẽ giải mã lại các tin còn giữ bản mã
+  // hóa (đang hiển thị placeholder). Giải mã một lần cho từng hội thoại.
+  useEffect(() => {
+    if (!encryption || e2eStatus !== 'ready') return
+    const chatID = activeChatIdRef.current
+    if (e2eReadyChatRef.current === chatID) return
+    e2eReadyChatRef.current = chatID
+    void decryptIncoming(messagesRef.current).then((decrypted) => {
+      if (activeChatIdRef.current !== chatID) return
+      setMessages((prev) => mergeDecrypted(prev, decrypted))
+    })
+  }, [e2eStatus, encryption, decryptIncoming])
+
   // Reset trạng thái khi chuyển hội thoại (React: adjust state during render).
   const [prevChatId, setPrevChatId] = useState<string | null>(chatId)
   if (prevChatId !== chatId) {
@@ -265,21 +380,28 @@ export function useChatRoom({
     setSearchResults(null)
     setSearchKeyword('')
     setPinnedMessages([])
+    setHasMore(false)
+    setLoadingMore(false)
   }
 
-  // Join chat khi mở hội thoại, socket kết nối lại, hoặc khóa E2E sẵn sàng
-  // (chờ E2E xong trước khi nhận history để có thể giải mã ngay). Không join
-  // khi E2E đang loading để tránh nhận lịch sử trước khi có khóa.
+  // Join chat ngay khi mở hội thoại hoặc socket kết nối lại (không chờ khóa
+  // E2E — lịch sử render tức thì, tin mã hóa được giải mã dần khi khóa sẵn
+  // sàng). Gửi limit để server chỉ trả 30 tin gần nhất, cũ hơn tải qua
+  // chat:history:more khi cuộn lên đầu.
   useEffect(() => {
     activeChatIdRef.current = chatId
     pendingIdsRef.current = []
-    const e2eResolved = !encryption || e2eStatus === 'ready' || e2eStatus === 'legacy'
-    if (chatId && socketStatus === 'open' && e2eResolved) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    hasMoreRef.current = false
+    nextCursorRef.current = null
+    loadingMoreRef.current = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasMore(false)
+    setLoadingMore(false)
+    if (chatId && socketStatus === 'open') {
       setLoading(true)
-      socketSend('chat:join', { chat_id: chatId })
+      socketSend('chat:join', { chat_id: chatId, limit: 30 })
     }
-  }, [chatId, socketStatus, socketSend, e2eStatus, encryption])
+  }, [chatId, socketStatus, socketSend])
 
   const sendMessage = useCallback(
     async (content: string, opts?: SendMessageOptions) => {
@@ -378,7 +500,7 @@ export function useChatRoom({
       if (encryption?.ready) {
         const needle = trimmed.toLowerCase()
         const results = messagesRef.current.filter(
-          (m) => !m.deleted && m.content.toLowerCase().includes(needle),
+          (m) => !m.deleted && !m.decrypt_failed && m.content.toLowerCase().includes(needle),
         )
         setSearchKeyword(trimmed)
         setSearchResults(sortByCreatedAt(results))
@@ -413,9 +535,20 @@ export function useChatRoom({
     [socket],
   )
 
+  const loadMoreMessages = useCallback(() => {
+    const chatID = activeChatIdRef.current
+    if (!chatID || socket.status !== 'open') return
+    if (loadingMoreRef.current || !hasMoreRef.current || !nextCursorRef.current) return
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    socketSend('chat:history:more', { chat_id: chatID, cursor: nextCursorRef.current })
+  }, [socket, socketSend])
+
   return {
     messages,
     loading,
+    hasMore,
+    loadingMore,
     partnerTyping,
     searchResults,
     searchKeyword,
@@ -427,5 +560,6 @@ export function useChatRoom({
     searchMessages,
     pinMessage,
     unpinMessage,
+    loadMoreMessages,
   }
 }

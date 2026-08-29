@@ -883,6 +883,8 @@ export interface ChatMessage {
   anonymous_name?: string | null
   e2e_version?: number
   decrypt_failed?: boolean
+  // Client-only — tin đã giải mã thành công (tránh giải mã lại khi retry).
+  decrypted?: boolean
   deleted?: boolean
   created_at: string
 }
@@ -915,6 +917,18 @@ export interface ChatConversation {
 
 export interface ChatListResponse {
   data: ChatConversation[]
+}
+
+export interface HistoryCursor {
+  created_at: string
+  id: string
+}
+
+export interface ChatHistoryPayload {
+  chat_id: string
+  messages: ChatMessage[]
+  has_more?: boolean
+  next_cursor?: HistoryCursor | null
 }
 
 export interface CreateDirectChatResponse {
