@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
@@ -173,6 +174,7 @@ export default function ChatWindow({
   onGroupInviteAccepted,
 }: ChatWindowProps) {
   const { t } = useTranslation()
+  const router = useRouter()
   const {
     startCall,
     isInCall,
@@ -725,7 +727,7 @@ const prevTimelineLenRef = useRef(0)
                 ) : (
                 <>
                 {showSenderName && (
-                  <div className={styles.senderLine}>
+                  <div className={styles.senderLine} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
                     {senderMember?.avatar_uri ? (
                       <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
                     ) : (

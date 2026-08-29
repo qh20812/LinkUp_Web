@@ -1027,6 +1027,13 @@
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 150ms ease;
+}
+
+.senderLine:hover {
+  background: var(--color-bg-secondary);
 }
 
 .senderAvatar {
@@ -1054,6 +1061,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .systemMessage {
