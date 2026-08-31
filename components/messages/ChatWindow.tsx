@@ -9,7 +9,7 @@ import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
-import { downloadMessageMedia, uploadMedia } from '../../api/chats'
+import { downloadMessageMedia, uploadChatMedia } from '../../api/chats'
 import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
@@ -977,7 +977,7 @@ const prevTimelineLenRef = useRef(0)
         )}
       </div>
 
-      <Composer room={room} replyingTo={replyingTo} onClearReply={() => setReplyingTo(null)} onScrollToMessage={scrollToMessage} />
+      <Composer room={room} chatId={chatId} replyingTo={replyingTo} onClearReply={() => setReplyingTo(null)} onScrollToMessage={scrollToMessage} />
 
       <Modal
         open={deleteTarget !== null}
@@ -1265,12 +1265,15 @@ async function fetchRemoteImage(url: string): Promise<File | null> {
 
 interface ComposerProps {
   room: ChatRoom
+  chatId: string | null
   replyingTo: ChatMessage | null
   onClearReply: () => void
   onScrollToMessage?: (messageId: string) => void
 }
 
-function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: ComposerProps) {
+const MAX_ATTACHMENTS = 10
+
+function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }: ComposerProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [value, setValue] = useState('')
@@ -1278,15 +1281,15 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
   const [emojiGroup, setEmojiGroup] = useState<EmojiGroup>('positive')
   const [gifOpen, setGifOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [attachment, setAttachment] = useState<File | null>(null)
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
-  const attachmentUrlRef = useRef<string | null>(null)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
+  const attachmentUrlsRef = useRef<string[]>([])
   const inputRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const toggleEmojiRef = useRef<HTMLButtonElement>(null)
-  const gifPickerRef = useRef<HTMLDivElement>(null)
   const toggleGifRef = useRef<HTMLButtonElement>(null)
+  const gifPickerRef = useRef<HTMLDivElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -1304,24 +1307,32 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
   useEffect(() => {
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
-      if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
+      attachmentUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+      attachmentUrlsRef.current = []
       sendTyping(false)
     }
   }, [sendTyping])
 
   const attachFile = (file: File) => {
-    if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
     const url = URL.createObjectURL(file)
-    attachmentUrlRef.current = url
-    setAttachment(file)
-    setAttachmentUrl(url)
+    attachmentUrlsRef.current = [...attachmentUrlsRef.current, url]
+    setAttachments((prev) => [...prev, file])
+    setAttachmentUrls((prev) => [...prev, url])
   }
 
-  const clearAttachment = () => {
-    if (attachmentUrlRef.current) URL.revokeObjectURL(attachmentUrlRef.current)
-    attachmentUrlRef.current = null
-    setAttachment(null)
-    setAttachmentUrl(null)
+  const removeAttachment = (index: number) => {
+    const revoked = attachmentUrlsRef.current[index]
+    if (revoked) URL.revokeObjectURL(revoked)
+    attachmentUrlsRef.current = attachmentUrlsRef.current.filter((_, i) => i !== index)
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
+    setAttachmentUrls((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const clearAttachments = () => {
+    attachmentUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+    attachmentUrlsRef.current = []
+    setAttachments([])
+    setAttachmentUrls([])
   }
 
   useEffect(() => {
@@ -1407,10 +1418,10 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
   }
 
   const sendFile = async (file: File, caption: string): Promise<boolean> => {
-    if (uploading) return false
+    if (uploading || !chatId) return false
     setUploading(true)
     try {
-      const res = await uploadMedia(file)
+      const res = await uploadChatMedia(file, chatId)
       room.sendMessage(caption, {
         mediaId: res.data.id,
         mediaUri: res.data.file_uri,
@@ -1426,18 +1437,43 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
     }
   }
 
+  const sendAttachmentBatch = async (files: File[], caption: string) => {
+    if (!chatId) return
+    setUploading(true)
+    try {
+      const results = await Promise.allSettled(files.map((file) => uploadChatMedia(file, chatId)))
+      const replyId = replyingTo?.id || undefined
+      let sentAny = false
+      for (let i = 0; i < results.length; i++) {
+        const res = results[i]
+        if (res.status !== 'fulfilled') {
+          toast({ type: 'error', title: t('chat.uploadFailed') })
+          continue
+        }
+        const msgCaption = i === 0 ? caption : ''
+        room.sendMessage(msgCaption, {
+          mediaId: res.value.data.id,
+          mediaUri: res.value.data.file_uri,
+          mediaType: res.value.data.file_type,
+          replyToMessageId: i === 0 ? replyId : undefined,
+        })
+        sentAny = true
+      }
+      if (sentAny) onClearReply()
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
-    if (!value.trim() && !opts?.emojiId && !opts?.mediaId && !attachment) return
+    if (!value.trim() && !opts?.emojiId && !opts?.mediaId && attachments.length === 0) return
     const text = value
     const replyId = replyingTo?.id || undefined
 
-    if (attachment) {
-      const ok = await sendFile(attachment, text)
-      if (ok) {
-        clearAttachment()
-        resetComposer()
-        onClearReply()
-      }
+    if (attachments.length > 0) {
+      await sendAttachmentBatch(attachments, text)
+      clearAttachments()
+      resetComposer()
       return
     }
 
@@ -1464,10 +1500,15 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file || uploading) return
-    attachFile(file)
+    if (files.length === 0 || uploading) return
+    const allowed = MAX_ATTACHMENTS - attachments.length
+    const toAdd = files.slice(0, Math.max(allowed, 0))
+    if (files.length > allowed) {
+      toast({ type: 'warning', title: t('chat.tooManyFiles') })
+    }
+    toAdd.forEach(attachFile)
   }
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -1502,26 +1543,39 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
 
   return (
     <div className={styles.composer}>
-      {attachment && (
+      {attachments.length > 0 && (
         <div className={styles.attachmentBar}>
-          {attachmentUrl && (
-            <span className={styles.attachmentThumb}>
-              {attachment.type.startsWith('video/') ? (
-                <video src={attachmentUrl} muted preload="metadata" />
-              ) : (
-                <ExternalImage src={attachmentUrl} alt="" />
-              )}
-            </span>
-          )}
-          <span className={styles.attachmentName}>{attachment.name}</span>
+          <div className={styles.attachmentGrid}>
+            {attachments.map((attachment, index) => {
+              const attachmentUrl = attachmentUrls[index]
+              return (
+                <span key={index} className={styles.attachmentThumb}>
+                  {attachment.type.startsWith('video/') ? (
+                    <video src={attachmentUrl} muted preload="metadata" />
+                  ) : (
+                    <ExternalImage src={attachmentUrl} alt="" />
+                  )}
+                  <button
+                    type="button"
+                    className={styles.attachmentRemove}
+                    onClick={() => removeAttachment(index)}
+                    title={t('chat.removeAttachment')}
+                    aria-label={t('chat.removeAttachment')}
+                  >
+                    <i className="bx bx-x" />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
           <button
             type="button"
-            className={styles.attachmentRemove}
-            onClick={clearAttachment}
-            title={t('chat.removeAttachment')}
-            aria-label={t('chat.removeAttachment')}
+            className={styles.attachmentClearAll}
+            onClick={clearAttachments}
+            title={t('chat.removeAll')}
+            aria-label={t('chat.removeAll')}
           >
-            <i className="bx bx-x" />
+            {t('chat.removeAll')}
           </button>
         </div>
       )}
@@ -1598,13 +1652,13 @@ function Composer({ room, replyingTo, onClearReply, onScrollToMessage }: Compose
         <button
           className={styles.sendBtn}
           onClick={() => send()}
-          disabled={(!value.trim() && !attachment) || uploading}
+          disabled={(!value.trim() && attachments.length === 0) || uploading}
           aria-label={t('chat.send')}
         >
           <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
         </button>
       </div>
-      <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={handleFile} />
+      <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFile} />
       {emojiOpen && (
         <div ref={pickerRef} className={styles.emojiPicker}>
           <div className={styles.emojiTabs}>

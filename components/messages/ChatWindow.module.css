@@ -533,15 +533,22 @@
 
 .attachmentBar {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-sm);
-  padding: 8px 10px;
+  padding: 10px;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
+.attachmentGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .attachmentThumb {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -571,24 +578,44 @@
 }
 
 .attachmentRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   padding: 0;
   border: none;
   border-radius: var(--radius-circle);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 1.1rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-inverse, #fff);
+  font-size: 0.9rem;
+  line-height: 1;
   cursor: pointer;
 }
 
 .attachmentRemove:hover {
-  background: var(--color-danger-light);
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.attachmentClearAll {
+  align-self: flex-end;
+  padding: 3px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.attachmentClearAll:hover {
   color: var(--color-danger);
+  text-decoration: underline;
 }
 
 /* Reply bar (composer preview) */

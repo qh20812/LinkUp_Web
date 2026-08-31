@@ -654,6 +654,8 @@
       "negative": "Sad"
     },
     "removeAttachment": "Remove attachment",
+    "removeAll": "Remove all",
+    "tooManyFiles": "You can send up to 10 images/videos at once",
     "search": "Search",
     "searchUsers": "Search users...",
     "searchFriends": "Search friends...",

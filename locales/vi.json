@@ -654,6 +654,8 @@
       "negative": "Buồn bực"
     },
     "removeAttachment": "Gỡ đính kèm",
+    "removeAll": "Xóa tất cả",
+    "tooManyFiles": "Chỉ gửi được tối đa 10 ảnh/video một lần",
     "search": "Tìm kiếm",
     "searchUsers": "Tìm kiếm người dùng...",
     "searchFriends": "Tìm kiếm bạn bè...",

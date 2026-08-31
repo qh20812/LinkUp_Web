@@ -105,6 +105,24 @@ export const uploadMedia = (file: File) => {
   })
 }
 
+export const uploadChatMedia = (file: File, chatId: string) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('chat_id', chatId)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+  return fetch('/api/chats/media', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(await extractErrorMessage(res))
+    }
+    return (await res.json()) as UploadMediaResponse
+  })
+}
+
 export const downloadMessageMedia = (messageId: string) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
