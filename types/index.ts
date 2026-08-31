@@ -868,6 +868,7 @@ export interface ChatMessage {
   content: string
   emoji_id?: string | null
   media_id?: string | null
+  media_group_id?: string | null
   reply_to_message_id?: string | null
   shared_post_id?: string | null
   shared_post?: SharedPostPreview | null

@@ -19,6 +19,7 @@ export interface SendMessageOptions {
   mediaId?: string
   mediaUri?: string
   mediaType?: string
+  mediaGroupId?: string
   gifUrl?: string
   sharedPostId?: string
   replyToMessageId?: string
@@ -426,6 +427,7 @@ export function useChatRoom({
             content: trimmed,
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
+            media_group_id: opts?.mediaGroupId ?? null,
             media_uri: opts?.mediaUri ?? null,
             media_type: opts?.mediaType ?? null,
             is_anonymized: false,
@@ -443,6 +445,7 @@ export function useChatRoom({
             e2e_version: 1,
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
+            media_group_id: opts?.mediaGroupId ?? null,
             gif_url: opts?.gifUrl ?? null,
             shared_post_id: opts?.sharedPostId ?? null,
             reply_to_message_id: opts?.replyToMessageId ?? null,
@@ -458,6 +461,7 @@ export function useChatRoom({
         content: trimmed,
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
+        media_group_id: opts?.mediaGroupId ?? null,
         gif_url: opts?.gifUrl ?? null,
         shared_post_id: opts?.sharedPostId ?? null,
         reply_to_message_id: opts?.replyToMessageId ?? null,

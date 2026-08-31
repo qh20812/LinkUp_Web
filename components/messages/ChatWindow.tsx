@@ -9,13 +9,18 @@ import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
-import { downloadMessageMedia, uploadChatMedia } from '../../api/chats'
+import { uploadChatMedia } from '../../api/chats'
 import { getCallHistory } from '../../api/calls'
 import { formatChatDate, formatChatTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
 import { extractVideoUrls } from '../../utils/videoLink'
+import { groupMediaTimeline } from '../../utils/chatMediaGroup'
+import {
+  useMessageMedia,
+  mediaRatioCache,
+} from './useMessageMedia'
 import {
   EMOTION_GROUPS,
   emojiByCode,
@@ -39,6 +44,7 @@ import { usePresence } from '../../contexts/PresenceContext'
 import GroupCallMemberSelectModal from '../calls/GroupCallMemberSelectModal'
 import GroupCallRequestJoinModal from '../calls/GroupCallRequestJoinModal'
 import GroupCallMessage from './GroupCallMessage'
+import ChatMediaLightbox from './ChatMediaLightbox'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -110,10 +116,66 @@ type TimelineItem =
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 
-// Cache media trong session: tránh tải lại blob khi mở lại hội thoại, và lưu
-// tỉ lệ ảnh để render lại reserve đúng chỗ, giảm layout shift.
-const mediaBlobCache = new Map<string, { url: string; isVideo: boolean }>()
-const mediaRatioCache = new Map<string, { width: number; height: number }>()
+// ── Media grouping (Messenger-style stacked media) ────────────────────────
+// Nhóm các media message liền kề từ cùng 1 người gửi thành một group. Chỉ
+// nhóm tin media-only (không text) hoặc tin đầu tiên trong group có caption.
+
+type GroupedTimelineItem =
+  | TimelineItem
+  | { kind: 'media_group'; msgs: ChatMessage[]; created: number }
+
+interface MediaStackProps {
+  msgs: ChatMessage[]
+  onOpen?: (msgs: ChatMessage[], index: number) => void
+}
+
+function MediaStack({ msgs, onOpen }: MediaStackProps) {
+  const count = msgs.length
+  const open = (index: number) => onOpen?.(msgs, index)
+
+  if (count === 1) {
+    return (
+      <div className={styles.mediaWrap}>
+        <MessageMedia message={msgs[0]} onClick={() => open(0)} />
+      </div>
+    )
+  }
+
+  if (count === 2) {
+    return (
+      <div className={styles.mediaStack2}>
+        {msgs.map((m, i) => (
+          <div key={m.id} className={styles.mediaWrap}>
+            <MessageMedia message={m} onClick={() => open(i)} />
+          </div>
+        ))}
+        <span className={styles.mediaCountBadge}>{count}</span>
+      </div>
+    )
+  }
+
+  // 3+ items: card stack
+  const visible = msgs.slice(0, 3)
+
+  return (
+    <div className={styles.mediaStack}>
+      {visible.map((m, idx) => (
+        <div
+          key={m.id}
+          className={styles.mediaStackItem}
+          onClick={() => open(idx)}
+          style={{
+            zIndex: 3 - idx,
+            transform: `translateY(${idx * 14}px) rotate(${idx === 1 ? 2 : idx === 2 ? -1.5 : 0}deg)`,
+          }}
+        >
+          <MessageMedia message={m} />
+        </div>
+      ))}
+      <span className={styles.mediaCountBadge}>{count}</span>
+    </div>
+  )
+}
 
 function formatCallDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -212,6 +274,10 @@ export default function ChatWindow({
   const [newMessagesCount, setNewMessagesCount] = useState(0)
   const [showMemberSelectModal, setShowMemberSelectModal] = useState(false)
   const [joinRequestState, setJoinRequestState] = useState<GroupCallJoinRequestState | null>(null)
+  const [lightbox, setLightbox] = useState<{ msgs: ChatMessage[]; index: number } | null>(null)
+  const openLightbox = useCallback((msgs: ChatMessage[], index: number) => {
+    setLightbox({ msgs, index })
+  }, [])
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
@@ -325,6 +391,11 @@ export default function ChatWindow({
     }))
     return [...msgs, ...calls, ...groupCalls].sort((a, b) => a.created - b.created)
   }, [room.messages, callHistory, groupCallHistory])
+
+  const groupedTimeline = useMemo<GroupedTimelineItem[]>(
+    () => (room.searchResults === null ? groupMediaTimeline(timeline) : timeline.map((t) => t)),
+    [timeline, room.searchResults],
+  )
 
   const clearSearch = room.clearSearch
   const searchMessages = room.searchMessages
@@ -452,11 +523,13 @@ const prevTimelineLenRef = useRef(0)
   const pinMessage = room.pinMessage
   const unpinMessage = room.unpinMessage
 
-  const itemDate = (item: TimelineItem) =>
+  const itemDate = (item: GroupedTimelineItem) =>
     formatChatDate(
       item.kind === 'message'
         ? item.msg.created_at
-        : new Date(item.created).toISOString(),
+        : item.kind === 'media_group'
+          ? item.msgs[0].created_at
+          : new Date(item.created).toISOString(),
       t,
     )
 
@@ -674,9 +747,59 @@ const prevTimelineLenRef = useRef(0)
           )}
 
           <div ref={timelineRef} className={styles.timelineContent}>
-            {timeline.map((item, i) => {
-            const prev = timeline[i - 1]
+            {groupedTimeline.map((item, i) => {
+            const prev = groupedTimeline[i - 1]
             const showDate = !prev || itemDate(prev) !== itemDate(item)
+
+            if (item.kind === 'media_group') {
+              const mine = item.msgs[0].sender_id === myUserId
+              const first = item.msgs[0]
+              const showSenderName = mode === 'group' && !mine
+              const mapMember = showSenderName ? memberNames?.get(first.sender_id) : null
+              const senderDisplayName = first.sender_name || mapMember?.display_name || null
+              const senderAvatarUri = first.sender_avatar || mapMember?.avatar_uri || null
+              const senderMember = showSenderName ? { display_name: senderDisplayName || '', avatar_uri: senderAvatarUri || '' } : null
+              return (
+                <Fragment key={`mg-${item.msgs.map((m) => m.id).join('-')}`}>
+                  {showDate && (
+                    <div className={styles.dateSep}>{itemDate(item)}</div>
+                  )}
+                  {showSenderName && (
+                    <div className={styles.senderLine} onClick={() => router.push(`/profile/${first.sender_id}`)}>
+                      {senderMember?.avatar_uri ? (
+                        <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
+                      ) : (
+                        <div className={styles.senderAvatarPlaceholder}>
+                          {(senderDisplayName || '?')[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
+                    </div>
+                  )}
+                  <div
+                    className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}
+                    data-message-id={first.id}
+                  >
+                    {item.msgs[0].content?.trim() ? (
+                      <div className={styles.msgStack}>
+                        <div className={`${styles.bubble} ${styles.bubblePlain}`}>
+                          <MediaStack msgs={item.msgs} onOpen={openLightbox} />
+                          {item.msgs[0].content?.trim() && (
+                            <div className={styles.msgText}>
+                              {!item.msgs[0].decrypt_failed &&
+                                renderEmojiContent(item.msgs[0].content ?? '', emojiCodeMap, `mg-${first.id}`, styles.emojiInline)}
+                            </div>
+                          )}
+                          <span className={styles.msgTime}>{formatChatTime(first.created_at, t)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <MediaStack msgs={item.msgs} onOpen={openLightbox} />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            }
 
             if (item.kind === 'call') {
               return (
@@ -825,7 +948,7 @@ const prevTimelineLenRef = useRef(0)
                     <div className={styles.msgStack}>
                       <div className={`${styles.bubble} ${styles.bubblePlain}`}>
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} />
+                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} />
                         </div>
                         <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
                       </div>
@@ -878,7 +1001,7 @@ const prevTimelineLenRef = useRef(0)
                       )}
                       {(msg.media_id || msg.media_uri) && (
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} />
+                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} />
                         </div>
                       )}
                       {msg.emoji_id && !msg.media_id && !msg.media_uri && (
@@ -1023,90 +1146,31 @@ const prevTimelineLenRef = useRef(0)
         }
         participantCount={joinRequestState?.participantCount ?? 0}
       />
+
+      {lightbox && (
+        <ChatMediaLightbox
+          msgs={lightbox.msgs}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   )
 }
 
 interface MessageMediaProps {
   message: ChatMessage
+  onClick?: () => void
 }
 
-function MessageMedia({ message }: MessageMediaProps) {
+function MessageMedia({ message, onClick }: MessageMediaProps) {
   const { t } = useTranslation()
-  const downloadRequired = !message.media_uri
-  const cached = mediaBlobCache.get(message.id)
+  const { src, isVideo, failed, loading, boxRef } = useMessageMedia(message)
   const cachedRatio = mediaRatioCache.get(message.id)
-  const [src, setSrc] = useState<string | null>(
-    message.media_uri ?? cached?.url ?? null,
-  )
-  const [isVideo, setIsVideo] = useState(
-    message.media_type?.startsWith('video/') ?? cached?.isVideo ?? false,
-  )
-  const [failed, setFailed] = useState(false)
-  const [loaded, setLoaded] = useState(() => !!(message.media_uri ?? cached?.url))
+  const [loaded, setLoaded] = useState(() => !message.media_uri && !!src)
   const [ratio, setRatio] = useState<{ width: number; height: number } | null>(
     cachedRatio ?? null,
   )
-  const objectUrlRef = useRef<string | null>(null)
-  const boxRef = useRef<HTMLSpanElement>(null)
-
-  const needsDownload = downloadRequired && !src
-
-  useEffect(() => {
-    if (!needsDownload) return
-    if (mediaBlobCache.has(message.id)) return
-    let cancelled = false
-    let started = false
-    let observer: IntersectionObserver | null = null
-    const runDownload = () => {
-      if (started || cancelled) return
-      started = true
-      downloadMessageMedia(message.id)
-        .then((blob) => {
-          if (cancelled) return
-          const url = URL.createObjectURL(blob)
-          const isVideoBlob = blob.type.startsWith('video/')
-          mediaBlobCache.set(message.id, { url, isVideo: isVideoBlob })
-          objectUrlRef.current = url
-          setSrc(url)
-          setIsVideo(isVideoBlob)
-        })
-        .catch(() => {
-          if (cancelled) return
-          setFailed(true)
-        })
-    }
-    if (typeof IntersectionObserver === 'undefined') {
-      runDownload()
-    } else {
-      const el = boxRef.current
-      if (!el) {
-        runDownload()
-      } else {
-        observer = new IntersectionObserver(
-          (entries) => {
-            if (entries.some((entry) => entry.isIntersecting)) {
-              runDownload()
-              observer?.disconnect()
-            }
-          },
-          { rootMargin: '200px' },
-        )
-        observer.observe(el)
-      }
-    }
-    return () => {
-      cancelled = true
-      observer?.disconnect()
-      if (
-        objectUrlRef.current &&
-        mediaBlobCache.get(message.id)?.url !== objectUrlRef.current
-      ) {
-        URL.revokeObjectURL(objectUrlRef.current)
-      }
-      objectUrlRef.current = null
-    }
-  }, [message.id, message.media_uri, needsDownload])
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setLoaded(true)
@@ -1118,7 +1182,15 @@ function MessageMedia({ message }: MessageMediaProps) {
     }
   }
 
-  const loading = !src && !failed
+  const wrap = (node: React.ReactNode) =>
+    onClick ? (
+      <span className={styles.mediaClickable} onClick={onClick} role="button" tabIndex={0}>
+        {node}
+      </span>
+    ) : (
+      node
+    )
+
   if (loading) {
     return (
       <span ref={boxRef} className={styles.mediaLoading}>
@@ -1130,7 +1202,7 @@ function MessageMedia({ message }: MessageMediaProps) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   if (isVideo) {
-    return (
+    return wrap(
       <video
         src={src}
         controls
@@ -1138,10 +1210,10 @@ function MessageMedia({ message }: MessageMediaProps) {
         playsInline
         preload="metadata"
         className={styles.mediaEl}
-      />
+      />,
     )
   }
-  return (
+  return wrap(
     <span
       ref={boxRef}
       className={`${styles.mediaBox}${loaded ? '' : ` ${styles.mediaBoxLoading}`}`}
@@ -1160,7 +1232,7 @@ function MessageMedia({ message }: MessageMediaProps) {
         decoding="async"
         style={ratio ? { aspectRatio: `${ratio.width} / ${ratio.height}` } : undefined}
       />
-    </span>
+    </span>,
   )
 }
 
@@ -1443,6 +1515,7 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
     try {
       const results = await Promise.allSettled(files.map((file) => uploadChatMedia(file, chatId)))
       const replyId = replyingTo?.id || undefined
+      const mediaGroupId = crypto.randomUUID()
       let sentAny = false
       for (let i = 0; i < results.length; i++) {
         const res = results[i]
@@ -1455,6 +1528,7 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
           mediaId: res.value.data.id,
           mediaUri: res.value.data.file_uri,
           mediaType: res.value.data.file_type,
+          mediaGroupId,
           replyToMessageId: i === 0 ? replyId : undefined,
         })
         sentAny = true
