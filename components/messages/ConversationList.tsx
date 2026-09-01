@@ -8,6 +8,7 @@ import { usePresence } from '../../contexts/PresenceContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
+import { mediaPreviewKey } from '../../utils/chatMediaPreview'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
 import type { ChatConversation, GroupChatConversation } from '../../types'
@@ -124,7 +125,11 @@ export default function ConversationList({
             <div className={styles.sectionHeader}>
               {t('chat.directMessages')}
             </div>
-            {filteredDirect.map((conv) => (
+            {filteredDirect.map((conv) => {
+              const mediaKey = conv.last_message
+                ? mediaPreviewKey(conv.last_message)
+                : null
+              return (
               <button
                 key={conv.chat_id}
                 className={`${styles.row} ${
@@ -157,17 +162,20 @@ export default function ConversationList({
                         {conv.last_message.sender_id === myUserId
                           ? t('chat.youPrefix')
                           : ''}
-                        {conv.last_message.media_id
-                          ? t('chat.mediaMessage')
-                          : conv.last_message.emoji_id
-                            ? t('chat.emojiMessage')
-                            : conv.is_encrypted && !conv.last_message.content
-                              ? t('chat.encryptedPreview')
-                              : renderEmojiContent(
-                                  conv.last_message.content || t('chat.mediaMessage'),
-                                  emojiCodeMap,
-                                  `pv-${conv.chat_id}`,
-                                )}
+                        {mediaKey
+                          ? t(mediaKey)
+                          : conv.last_message.media_id
+                            ? t('chat.mediaMessage')
+                            : conv.last_message.emoji_id
+                              ? t('chat.emojiMessage')
+                              : conv.is_encrypted && !conv.last_message.content
+                                ? t('chat.encryptedPreview')
+                                : renderEmojiContent(
+                                    conv.last_message.content ||
+                                      t('chat.mediaMessage'),
+                                    emojiCodeMap,
+                                    `pv-${conv.chat_id}`,
+                                  )}
                       </>
                     ) : (
                       t('chat.newChat')
@@ -175,7 +183,8 @@ export default function ConversationList({
                   </span>
                 </div>
               </button>
-            ))}
+              )
+            })}
           </>
         )}
 
@@ -184,7 +193,11 @@ export default function ConversationList({
             <div className={styles.sectionHeader}>
               {t('chat.groupChats')}
             </div>
-            {filteredGroups.map((group) => (
+            {filteredGroups.map((group) => {
+              const mediaKey = group.last_message
+                ? mediaPreviewKey(group.last_message)
+                : null
+              return (
               <button
                 key={group.chat_id}
                 className={`${styles.row} ${
@@ -211,12 +224,13 @@ export default function ConversationList({
                   <span className={styles.preview}>
                     {group.member_count} {t('chat.members')}
                     {group.last_message ? (
-                      <> &middot; {group.last_message.content || t('chat.mediaMessage')}</>
+                      <> &middot; {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}</>
                     ) : null}
                   </span>
                 </div>
               </button>
-            ))}
+              )
+            })}
           </>
         )}
       </div>

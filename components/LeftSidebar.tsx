@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
+import CreatePostModal from './CreatePostModal'
 import styles from './LeftSidebar.module.css'
   import { request, clearSession } from '../api/api'
   import { logout } from '../api/auth'
@@ -44,6 +45,7 @@ export default function LeftSidebar() {
   const { unreadCount, closeWs } = useNotification()
   const { resetPresence } = usePresence()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showCreatePost, setShowCreatePost] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -99,11 +101,13 @@ export default function LeftSidebar() {
 
       <button
         className={styles.createPost}
-        onClick={() => router.push('/create')}
+        onClick={() => setShowCreatePost(true)}
       >
         <i className="bx bx-plus" />
         <span>{t('sidebar.createPost')}</span>
       </button>
+
+      <CreatePostModal open={showCreatePost} onClose={() => setShowCreatePost(false)} />
 
       <div className={styles.userSection} ref={dropdownRef}>
         <button className={styles.userInfo} onClick={() => setDropdownOpen((prev) => !prev)}>

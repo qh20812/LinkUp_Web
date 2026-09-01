@@ -96,6 +96,15 @@ function FeedContent() {
     setHasMore(true)
   }, [tab])
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const post = (e as CustomEvent<FeedPost>).detail
+      setPosts((prev) => [post, ...prev])
+    }
+    window.addEventListener('post:created', handler as EventListener)
+    return () => window.removeEventListener('post:created', handler as EventListener)
+  }, [setPosts])
+
   const fetchNext = useCallback(async () => {
     if (loadingRef.current) return
     loadingRef.current = true
