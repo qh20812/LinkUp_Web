@@ -7,11 +7,13 @@ import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import { getFeedStories } from '../api/stories'
 import { getTokenPayload } from '../api/auth'
-import type { FeedPost, EmojiItem, StoryFeedItem } from '../types'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
 import StoryBar from './story/StoryBar'
+import StoryViewer from './story/StoryViewer'
+import CreateStoryModal from './story/CreateStoryModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 import { useToast } from '../contexts/ToastContext'
@@ -48,6 +50,8 @@ function FeedContent() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
+  const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
+  const [showCreateStory, setShowCreateStory] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -55,11 +59,15 @@ function FeedContent() {
 
   const filter = tab === 'following' ? 'following' : undefined
 
-  useEffect(() => {
+  const loadStories = useCallback(() => {
     getFeedStories()
       .then((res) => setStories(Array.isArray(res) ? res : []))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    loadStories()
+  }, [loadStories])
 
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
@@ -278,11 +286,8 @@ function FeedContent() {
       <StoryBar
         stories={stories}
         currentUserId={currentUserId}
-        onSelectStory={(userId) => {
-          const userStories = stories.find((item) => item.user.id === userId)
-          if (userStories) { /* TODO: open story viewer */ }
-        }}
-        onCreateStory={() => { /* TODO: open create story modal */ }}
+        onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
+        onCreateStory={() => setShowCreateStory(true)}
       />
       {posts.map((post) => (
         <PostCard
@@ -311,6 +316,22 @@ function FeedContent() {
       )}
 
       <div ref={sentinelRef} className={styles.sentinel} />
+
+      {storyViewer && (
+        <StoryViewer
+          stories={storyViewer}
+          onClose={() => setStoryViewer(null)}
+          onStoryViewed={loadStories}
+        />
+      )}
+
+      {showCreateStory && (
+        <CreateStoryModal
+          open={showCreateStory}
+          onClose={() => setShowCreateStory(false)}
+          onCreated={loadStories}
+        />
+      )}
 
       {detailPost && (
         <PostDetailModal

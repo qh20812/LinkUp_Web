@@ -122,6 +122,7 @@
     "commentPlaceholder": "Viết bình luận...",
     "commentButton": "Đăng bình luận",
     "reply": "Trả lời",
+    "postAuthorBadge": "Tác giả",
     "replyingTo": "Đang trả lời @{username}",
     "cancelReply": "Hủy trả lời",
     "sharePlaceholder": "Viết mô tả (tùy chọn)...",
@@ -1510,7 +1511,14 @@
     "replyPlaceholder": "Trả lời...",
     "noStory": "Chưa có tin nào",
     "stories": "Tin",
-    "viewers": "{count} người xem"
+    "viewers": "{count} người xem",
+    "createTitle": "Tạo tin mới",
+    "mediaPlaceholder": "Chọn ảnh hoặc video",
+    "mediaHint": "JPG, PNG, MP4, MOV",
+    "captionPlaceholder": "Nhập mô tả...",
+    "submit": "Đăng",
+    "created": "Đã đăng tin!",
+    "contentRequired": "Vui lòng chọn ảnh/video hoặc nhập mô tả"
   },
   "presence": {
     "online": "Online",

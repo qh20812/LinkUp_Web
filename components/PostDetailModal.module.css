@@ -555,6 +555,17 @@
   color: var(--color-text);
 }
 
+.postAuthorBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
 .commentTime {
   font-size: 11px;
   color: var(--color-text-secondary);

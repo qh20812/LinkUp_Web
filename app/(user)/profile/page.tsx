@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './Profile.module.css'
 import { getMyProfile, uploadAvatar, uploadCover } from '../../../api/profile'
-import { checkUserStory } from '../../../api/stories'
+import { checkUserStory, getUserStories } from '../../../api/stories'
 import { getTokenPayload } from '../../../api/auth'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
@@ -16,7 +16,8 @@ import ProfileTabs from '../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../components/profile/ProfileFollowersModal'
 import ProfileEditModal from '../../../components/profile/ProfileEditModal'
 import ProfileSkeleton from '../../../components/profile/ProfileSkeleton'
-import type { ViewProfileResponse } from '../../../types'
+import StoryViewer from '../../../components/story/StoryViewer'
+import type { ViewProfileResponse, StoryItem } from '../../../types'
 
 export default function MyProfilePage() {
   const { t } = useTranslation()
@@ -31,6 +32,7 @@ export default function MyProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [errorType, setErrorType] = useState<'network' | null>(null)
   const [hasStory, setHasStory] = useState(false)
+  const [myStories, setMyStories] = useState<StoryItem[] | null>(null)
 
   const { stats } = useFollowStats(userID)
 
@@ -108,6 +110,14 @@ export default function MyProfilePage() {
     toast({ type: 'success', title: t('common.save') })
   }
 
+  const handleViewStory = async () => {
+    if (!userID || !hasStory) return
+    try {
+      const res = await getUserStories(userID)
+      setMyStories(res.stories)
+    } catch { /* ignore */ }
+  }
+
   if (initializing) return <div className={styles.page} />
   if (!isAuthenticated) {
     router.push('/login')
@@ -148,8 +158,13 @@ export default function MyProfilePage() {
           onCoverChange={handleCoverChange}
           onSaved={handleProfileSaved}
           onEdit={() => setShowEditModal(true)}
+          onViewStory={handleViewStory}
           onViewAvatar={() => {/* TODO: open lightbox */}}
         />
+      )}
+
+      {myStories && (
+        <StoryViewer stories={myStories} onClose={() => setMyStories(null)} />
       )}
 
       {showEditModal && profile && (

@@ -78,17 +78,19 @@ export default function StoryViewer({
     const step = (interval / duration) * 100
 
     const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          goNext()
-          return 0
-        }
-        return prev + step
-      })
+      setProgress((prev) => prev + step)
     }, interval)
 
     return () => clearInterval(timer)
-  }, [story, isPaused, isVideo, goNext])
+  }, [story, isPaused, isVideo])
+
+  // Trigger advance at event phase when image progress reaches 100%
+  useEffect(() => {
+    if (!story || isVideo || isPaused) return
+    if (progress < 100) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    goNext()
+  }, [progress, story, isVideo, isPaused, goNext])
 
   // Video auto-advance
   useEffect(() => {
@@ -179,73 +181,75 @@ export default function StoryViewer({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Progress bars */}
-      <div className={styles.progressBar}>
-        {stories.map((s, i) => (
-          <div key={s.id} className={styles.progressSegment}>
-            <div
-              className={styles.progressFill}
-              style={{
-                width: i < currentIndex ? '100%' : i === currentIndex ? `${progress}%` : '0%',
-              }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Header */}
-      <div className={styles.header}>
-        <ExternalImage src={story.avatar_uri} alt="" className={styles.avatar} />
-        <span className={styles.username}>{story.display_name}</span>
-        <span className={styles.timeAgo}>{timeAgo(story.created_at)}</span>
-      </div>
-
-      {/* Close */}
-      <button className={styles.closeBtn} onClick={(e) => { e.stopPropagation(); onClose() }}>
-        <i className="bx bx-x" />
-      </button>
-
-      {/* Content */}
-      <div className={styles.content} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.navLeft} onClick={handleNavClick('left')}>
-          <i className="bx bx-chevron-left" />
+      <div className={styles.frame}>
+        {/* Progress bars */}
+        <div className={styles.progressBar}>
+          {stories.map((s, i) => (
+            <div key={s.id} className={styles.progressSegment}>
+              <div
+                className={styles.progressFill}
+                style={{
+                  width: i < currentIndex ? '100%' : i === currentIndex ? `${progress}%` : '0%',
+                }}
+              />
+            </div>
+          ))}
         </div>
 
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={story.media_uri}
-            className={styles.media}
-            autoPlay
-            muted
-            playsInline
-          />
-        ) : (
-          <ExternalImage src={story.media_uri} alt={story.caption} className={styles.media} />
+        {/* Header */}
+        <div className={styles.header}>
+          <ExternalImage src={story.avatar_uri} alt="" className={styles.avatar} />
+          <span className={styles.username}>{story.display_name}</span>
+          <span className={styles.timeAgo}>{timeAgo(story.created_at)}</span>
+        </div>
+
+        {/* Close */}
+        <button className={styles.closeBtn} onClick={(e) => { e.stopPropagation(); onClose() }}>
+          <i className="bx bx-x" />
+        </button>
+
+        {/* Content */}
+        <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.navLeft} onClick={handleNavClick('left')}>
+            <i className="bx bx-chevron-left" />
+          </div>
+
+          {isVideo ? (
+            <video
+              ref={videoRef}
+              src={story.media_uri}
+              className={styles.media}
+              autoPlay
+              muted
+              playsInline
+            />
+          ) : (
+            <ExternalImage src={story.media_uri} alt={story.caption} className={styles.media} />
+          )}
+
+          <div className={styles.navRight} onClick={handleNavClick('right')}>
+            <i className="bx bx-chevron-right" />
+          </div>
+        </div>
+
+        {/* Caption */}
+        {story.caption && (
+          <div className={styles.caption}>{story.caption}</div>
         )}
 
-        <div className={styles.navRight} onClick={handleNavClick('right')}>
-          <i className="bx bx-chevron-right" />
+        {/* Reply bar */}
+        <div className={styles.replyBar} onClick={(e) => e.stopPropagation()}>
+          <input
+            className={styles.replyInput}
+            placeholder={t('story.replyPlaceholder')}
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleReplySubmit() }}
+          />
+          <button className={styles.sendBtn} onClick={handleReplySubmit}>
+            <i className="bx bx-send" />
+          </button>
         </div>
-      </div>
-
-      {/* Caption */}
-      {story.caption && (
-        <div className={styles.caption}>{story.caption}</div>
-      )}
-
-      {/* Reply bar */}
-      <div className={styles.replyBar} onClick={(e) => e.stopPropagation()}>
-        <input
-          className={styles.replyInput}
-          placeholder={t('story.replyPlaceholder')}
-          value={replyText}
-          onChange={(e) => setReplyText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleReplySubmit() }}
-        />
-        <button className={styles.sendBtn} onClick={handleReplySubmit}>
-          <i className="bx bx-send" />
-        </button>
       </div>
     </div>
   )

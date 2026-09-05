@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getProfileByUserID } from '../../../../api/profile'
-import { checkUserStory } from '../../../../api/stories'
+import { checkUserStory, getUserStories } from '../../../../api/stories'
 import { startDirectChat, createChatInvite } from '../../../../api/chats'
 import { getTokenPayload } from '../../../../api/auth'
 import { useTranslation } from '../../../../hooks/useTranslation'
@@ -16,7 +16,8 @@ import ProfileFollowersModal from '../../../../components/profile/ProfileFollowe
 import ProfileSkeleton from '../../../../components/profile/ProfileSkeleton'
 import ProfileMenu from '../../../../components/profile/ProfileMenu'
 import MutualFriends from '../../../../components/profile/MutualFriends'
-import type { ViewProfileResponse } from '../../../../types'
+import StoryViewer from '../../../../components/story/StoryViewer'
+import type { ViewProfileResponse, StoryItem } from '../../../../types'
 import styles from './ProfilePage.module.css'
 
 export default function ProfilePage() {
@@ -40,6 +41,7 @@ function ProfileView({ userID }: { userID: string }) {
   const [inviteSent, setInviteSent] = useState(false)
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
   const [hasStory, setHasStory] = useState(false)
+  const [viewerStories, setViewerStories] = useState<StoryItem[] | null>(null)
 
   const { stats, following, followBusy, handleFollow } = useFollowStats(userID)
 
@@ -111,6 +113,14 @@ function ProfileView({ userID }: { userID: string }) {
     }
   }
 
+  const handleViewStory = async () => {
+    if (!hasStory) return
+    try {
+      const res = await getUserStories(userID)
+      setViewerStories(res.stories)
+    } catch { /* ignore */ }
+  }
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -149,6 +159,7 @@ function ProfileView({ userID }: { userID: string }) {
         onMessage={handleMessage}
         onOpenFollowers={() => setModalType('followers')}
         onOpenFollowing={() => setModalType('following')}
+        onViewStory={handleViewStory}
         onViewAvatar={() => {/* TODO: open lightbox */}}
         menuSlot={
           !isSelf && currentUserID ? (
@@ -178,6 +189,10 @@ function ProfileView({ userID }: { userID: string }) {
           userID={userID}
           onClose={() => setModalType(null)}
         />
+      )}
+
+      {viewerStories && (
+        <StoryViewer stories={viewerStories} onClose={() => setViewerStories(null)} />
       )}
     </div>
   )

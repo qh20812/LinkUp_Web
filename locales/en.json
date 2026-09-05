@@ -122,6 +122,7 @@
     "commentPlaceholder": "Write a comment...",
     "commentButton": "Post comment",
     "reply": "Reply",
+    "postAuthorBadge": "Author",
     "replyingTo": "Replying to @{username}",
     "cancelReply": "Cancel reply",
     "sharePlaceholder": "Add a caption (optional)...",
@@ -1517,7 +1518,14 @@
     "replyPlaceholder": "Reply...",
     "noStory": "No stories yet",
     "stories": "Stories",
-    "viewers": "{count} viewers"
+    "viewers": "{count} viewers",
+    "createTitle": "Create story",
+    "mediaPlaceholder": "Choose a photo or video",
+    "mediaHint": "JPG, PNG, MP4, MOV",
+    "captionPlaceholder": "Write a caption...",
+    "submit": "Post",
+    "created": "Story posted!",
+    "contentRequired": "Please add a photo/video or a caption"
   },
   "presence": {
     "online": "Online",

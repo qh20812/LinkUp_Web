@@ -402,6 +402,9 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           )}
         </div>
         <span className={styles.commentAuthor}>{node.comment.display_name}</span>
+        {current.user_id === node.comment.user_id && (
+          <span className={styles.postAuthorBadge}>{t('postDetail.postAuthorBadge')}</span>
+        )}
         <span className={styles.commentTime}>{formatRelativeTime(node.comment.created_at, t)}</span>
       </div>
       <p className={styles.commentContent}>
