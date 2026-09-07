@@ -198,7 +198,8 @@
 .ownerActions {
   position: absolute;
   top: 16px;
-  left: 16px;
+  right: 52px;
+  left: auto;
   display: flex;
   gap: var(--space-xs);
   z-index: 10;
