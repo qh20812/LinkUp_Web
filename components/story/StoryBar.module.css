@@ -52,6 +52,28 @@
   border: 2px solid var(--color-card);
 }
 
+.skeletonRing {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonLine {
+  width: 56px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
 .emptyBar {
   display: flex;
   align-items: center;
@@ -63,4 +85,78 @@
   color: var(--color-text-secondary);
   font: var(--text-caption);
   gap: var(--space-xs);
+}
+
+.wrap {
+  position: relative;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.menu {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-width: 180px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-xs);
+  z-index: 2001;
+}
+
+.menuTitle {
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-xs);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text);
+  font: var(--text-body);
+  border-radius: var(--radius-sm);
+}
+
+.menuItem:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-danger);
+}
+
+.scopeFilter {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md) 0;
+}
+
+.scopeBtn {
+  padding: 4px 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+  cursor: pointer;
+}
+
+.scopeBtnActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
 }

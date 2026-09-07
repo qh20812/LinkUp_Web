@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Modal from '../../../components/Modal'
 import ExternalImage from '../../../components/ExternalImage'
@@ -8,6 +8,9 @@ import ConversationList from '../../../components/messages/ConversationList'
 import UserPickerModal, {
   type UserSearchItem,
 } from '../../../components/messages/UserPickerModal'
+import ForwardPickerModal, {
+  type ForwardPickTarget,
+} from '../../../components/messages/ForwardPickerModal'
 import ChatWindow from '../../../components/messages/ChatWindow'
 import CreateGroupModal from '../../../components/messages/CreateGroupModal'
 import GroupSettingsPanel from '../../../components/messages/GroupSettingsPanel'
@@ -22,7 +25,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
 import { decryptChat, ensureChatKey } from '../../../utils/e2ee'
-import type { ChatConversation, ChatInviteItem, GroupChatConversation } from '../../../types'
+import type { ChatConversation, ChatInviteItem, ChatMessage, GroupChatConversation } from '../../../types'
 import styles from './Messages.module.css'
 
 // Chạy fn trên từng item với độ đồng thời tối đa `limit`, giữ nguyên thứ tự.
@@ -46,6 +49,14 @@ async function mapLimited<T, R>(
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className={styles.page} />}>
+      <MessagesContent />
+    </Suspense>
+  )
+}
+
+function MessagesContent() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const router = useRouter()
@@ -63,13 +74,21 @@ export default function MessagesPage() {
   const [respondingInvite, setRespondingInvite] = useState<string | null>(null)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const e2eStatusRef = useRef<ChatE2EStatus>('unavailable')
+  const autoSelectRef = useRef(false)
 
   // Group chat state
   const [groupConversations, setGroupConversations] = useState<GroupChatConversation[]>([])
   const [activeChatType, setActiveChatType] = useState<'direct' | 'group'>('direct')
   const [createGroupOpen, setCreateGroupOpen] = useState(false)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
-  const [activeGroupMembers, setActiveGroupMembers] = useState<Map<string, { display_name: string; avatar_uri: string }>>(new Map())
+  const [forwardPickerOpen, setForwardPickerOpen] = useState(false)
+  const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null)
+  const [forwardDraft, setForwardDraft] = useState<{
+    message: ChatMessage
+    targetChatId: string
+    targetType: 'direct' | 'group'
+  } | null>(null)
+  const [activeGroupMembers, setActiveGroupMembers] = useState<{ chatId: string; members: Map<string, { display_name: string; avatar_uri: string }> }>({ chatId: '', members: new Map() })
 
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
@@ -220,18 +239,21 @@ export default function MessagesPage() {
           setConversations(hydrated)
           setGroupConversations(groupRes.data ?? [])
 
-          const queryChat = searchParams.get('chat_id')
-          const queryType = searchParams.get('type') as 'direct' | 'group' | null
+          if (!autoSelectRef.current) {
+            autoSelectRef.current = true
+            const queryChat = searchParams.get('chat_id')
+            const queryType = searchParams.get('type') as 'direct' | 'group' | null
 
-          if (queryChat && queryType === 'group') {
-            setActiveChatId(queryChat)
-            setActiveChatType('group')
-          } else if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
-            setActiveChatId(queryChat)
-            setActiveChatType('direct')
-          } else if (!activeChatId && hydrated.length > 0) {
-            setActiveChatId(hydrated[0].chat_id)
-            setActiveChatType('direct')
+            if (queryChat && queryType === 'group') {
+              setActiveChatId(queryChat)
+              setActiveChatType('group')
+            } else if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
+              setActiveChatId(queryChat)
+              setActiveChatType('direct')
+            } else if (!activeChatId && hydrated.length > 0) {
+              setActiveChatId(hydrated[0].chat_id)
+              setActiveChatType('direct')
+            }
           }
         })
       })
@@ -245,10 +267,7 @@ export default function MessagesPage() {
   }, [hydrateConversations, searchParams, activeChatId])
 
   useEffect(() => {
-    if (activeChatType !== 'group' || !activeChatId) {
-      setActiveGroupMembers(new Map())
-      return
-    }
+    if (activeChatType !== 'group' || !activeChatId) return
     let cancelled = false
     getGroupSettings(activeChatId)
       .then((res) => {
@@ -258,7 +277,7 @@ export default function MessagesPage() {
         for (const m of settings.members ?? []) {
           memberMap.set(m.user_id, { display_name: m.display_name, avatar_uri: m.avatar_uri })
         }
-        setActiveGroupMembers(memberMap)
+        setActiveGroupMembers({ chatId: activeChatId, members: memberMap })
       })
       .catch(() => {})
     return () => {
@@ -277,6 +296,19 @@ export default function MessagesPage() {
       cancelled = true
     }
   }, [])
+
+  // Draft chuyển tiếp chỉ có ý nghĩa khi đang đứng trong hội thoại đích; rời đi
+  // (hoặc chọn hội thoại khác) là tự hủy để tránh chuyển tiếp nhầm.
+  useEffect(() => {
+    if (
+      forwardDraft &&
+      (forwardDraft.targetChatId !== activeChatId ||
+        forwardDraft.targetType !== activeChatType)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForwardDraft(null)
+    }
+  }, [forwardDraft, activeChatId, activeChatType])
 
   const handleRespondInvite = async (invite: ChatInviteItem, accept: boolean) => {
     if (respondingInvite) return
@@ -363,18 +395,34 @@ export default function MessagesPage() {
     setGroupSettingsOpen(true)
   }
 
+  const handleForwardMessage = (msg: ChatMessage) => {
+    setForwardTarget(msg)
+    setForwardPickerOpen(true)
+  }
+
+  const handleForwardPick = (target: ForwardPickTarget) => {
+    setForwardPickerOpen(false)
+    if (!forwardTarget) return
+    setForwardDraft({
+      message: forwardTarget,
+      targetChatId: target.chatId,
+      targetType: target.type,
+    })
+    navigateToChat(target.chatId, target.type)
+  }
+
   const handleGroupSettingsUpdated = (settings: { members: Array<{ user_id: string; display_name: string; avatar_uri: string }> }) => {
     const memberMap = new Map<string, { display_name: string; avatar_uri: string }>()
     for (const m of settings.members) {
       memberMap.set(m.user_id, { display_name: m.display_name, avatar_uri: m.avatar_uri })
     }
-    setActiveGroupMembers(memberMap)
+    setActiveGroupMembers({ chatId: activeChatId ?? '', members: memberMap })
     refreshGroupList()
   }
 
   const handleGroupLeave = () => {
     setGroupSettingsOpen(false)
-    setActiveGroupMembers(new Map())
+    setActiveGroupMembers({ chatId: '', members: new Map() })
     refreshGroupList()
     navigateToChat(null)
   }
@@ -427,7 +475,7 @@ export default function MessagesPage() {
           </div>
         </div>
       )}
-      <div className={styles.layout}>
+      <div className={`${styles.layout}${activeChatId ? ` ${styles.hasChat}` : ''}`}>
         <div className={styles.listPane}>
           <ConversationList
             conversations={conversations}
@@ -448,15 +496,20 @@ export default function MessagesPage() {
               myUserId={myUserId}
               room={groupRoom}
               mode="group"
+              onReact={groupRoom.reactToMessage}
+              onForward={handleForwardMessage}
+              forwarding={forwardDraft?.message ?? null}
+              onClearForward={() => setForwardDraft(null)}
               groupChatId={activeChatId}
               groupName={activeGroupConversation.name}
               groupAvatarUri={activeGroupConversation.avatar_uri}
               memberCount={activeGroupConversation.member_count}
               typingUsers={groupRoom.typingUsers}
-              memberNames={activeGroupMembers}
+              memberNames={activeChatType === 'group' && activeGroupMembers.chatId === activeChatId ? activeGroupMembers.members : undefined}
               onOpenGroupSettings={handleOpenGroupSettings}
               groupCallHistory={groupRoom.callHistory}
               activeGroupCallId={groupCall?.callId ?? null}
+              onBack={() => navigateToChat(null)}
             />
           ) : activeChatType === 'direct' ? (
             <ChatWindow
@@ -465,10 +518,15 @@ export default function MessagesPage() {
               room={room}
               isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
               mode="direct"
+              onReact={room.reactToMessage}
+              onForward={handleForwardMessage}
+              forwarding={forwardDraft?.message ?? null}
+              onClearForward={() => setForwardDraft(null)}
               onDeleteChat={
                 activeConversation ? () => setDeleteTarget(activeConversation) : undefined
               }
               onGroupInviteAccepted={handleGroupInviteAccepted}
+              onBack={() => navigateToChat(null)}
             />
           ) : (
             <div className={styles.center}>
@@ -489,6 +547,15 @@ export default function MessagesPage() {
         open={createGroupOpen}
         onClose={() => setCreateGroupOpen(false)}
         onCreated={handleGroupCreated}
+      />
+
+      <ForwardPickerModal
+        open={forwardPickerOpen}
+        source={forwardTarget}
+        onClose={() => setForwardPickerOpen(false)}
+        conversations={conversations}
+        groupConversations={groupConversations}
+        onPick={handleForwardPick}
       />
 
       {activeChatId && activeChatType === 'group' && (

@@ -5,6 +5,12 @@
   flex-direction: column;
 }
 
+@supports (height: 100dvh) {
+  .page {
+    height: 100dvh;
+  }
+}
+
 .inviteBanner {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-card);
@@ -169,7 +175,7 @@
 }
 
 .dangerBtn:hover {
-  opacity: 0.9;
+  background: #b71c1c;
 }
 
 .modalText {
@@ -198,15 +204,35 @@
 }
 
 @media (max-width: 768px) {
-  .page {
-    height: calc(100vh - 57px);
-  }
-
   .layout {
     grid-template-columns: 1fr;
   }
 
+  /* Chưa chọn chat: chỉ hiện list */
   .listPane {
+    display: flex;
+    height: 100%;
+  }
+
+  .windowPane {
     display: none;
+  }
+
+  /* Đã chọn chat: hiện window full, ẩn list → cần nút back */
+  .hasChat .listPane {
+    display: none;
+  }
+
+  .hasChat .windowPane {
+    display: flex;
+    height: 100%;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 768px) {
+    .page {
+      height: calc(100dvh - 57px);
+    }
   }
 }

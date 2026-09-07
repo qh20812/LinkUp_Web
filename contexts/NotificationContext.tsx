@@ -129,6 +129,9 @@ export function NotificationProvider({
         friend_request_enabled: true,
         community_enabled: true,
         voice_call_enabled: true,
+        story_react_enabled: true,
+        share_enabled: true,
+        media_enabled: true,
       }),
       ...prefs,
     }));

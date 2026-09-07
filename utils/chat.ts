@@ -14,6 +14,12 @@ export function formatChatTime(iso: string, t: TFunc): string {
   return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
 }
 
+export function formatClockTime(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function formatChatDate(iso: string, t: TFunc): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''

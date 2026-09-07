@@ -138,7 +138,7 @@
 
 .caption {
   position: absolute;
-  bottom: 60px;
+  bottom: 112px;
   left: 16px;
   right: 16px;
   color: #fff;
@@ -193,6 +193,330 @@
 
 .paused .progressFill {
   animation-play-state: paused;
+}
+
+.ownerActions {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: var(--space-xs);
+  z-index: 10;
+}
+
+.ownerBtn {
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.ownerBtn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.tapHeart {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  color: var(--color-heart);
+  font-size: 72px;
+  opacity: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.tapHeartShow {
+  animation: tapHeartAnim 0.9s ease-out forwards;
+}
+
+@keyframes tapHeartAnim {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+}
+
+.actionRow {
+  position: absolute;
+  bottom: 64px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: var(--space-md);
+  z-index: 10;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.75;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.actionBtn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.reactWrap {
+  position: relative;
+}
+
+.reactPicker {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(20, 20, 20, 0.92);
+  border-radius: var(--radius-pill);
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.reactOption {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.reactImg {
+  width: 34px;
+  height: 34px;
+  display: block;
+  transition: transform 0.15s;
+}
+
+.reactOption:hover .reactImg {
+  transform: scale(1.25);
+}
+
+.statsOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: var(--space-md);
+  backdrop-filter: blur(2px);
+}
+
+.statsModal {
+  width: 340px;
+  max-width: 100%;
+  max-height: 80%;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.statsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.statsTitle {
+  font: var(--text-body);
+  font-weight: 700;
+}
+
+.statsClose {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.statsLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+  font-size: 22px;
+}
+
+.summaryRow {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.summaryItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.summaryNum {
+  font: var(--text-title);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.summaryLabel {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.statsTabs {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md) var(--space-sm);
+}
+
+.statsTab {
+  flex: 1;
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+  cursor: pointer;
+}
+
+.statsTabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.statsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xs) var(--space-md) var(--space-md);
+}
+
+.statsRow {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.statsRowAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.statsRowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statsRow:last-child {
+  border-bottom: none;
+}
+
+.statsRowName {
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.statsRowSub {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.statsReply {
+  font: var(--text-body);
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+}
+
+.statsEmpty {
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+}
+
+.reactFilter {
+  display: flex;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.reactFilterBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font: var(--text-caption);
+  cursor: pointer;
+}
+
+.reactFilterActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.reactFilterImg {
+  width: 18px;
+  height: 18px;
 }
 
 @media (max-width: 600px) {

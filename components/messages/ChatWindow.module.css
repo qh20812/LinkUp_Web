@@ -6,6 +6,31 @@
   background: var(--color-bg-secondary);
 }
 
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.backBtn:hover {
+  background: var(--color-bg-hover);
+}
+
+@media (min-width: 769px) {
+  .backBtn {
+    display: none;
+  }
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -173,6 +198,7 @@
   align-items: flex-end;
   gap: var(--space-sm);
   max-width: 72%;
+  position: relative;
 }
 
 .msgRow.highlight {
@@ -192,6 +218,12 @@
 .msgRow.mine {
   align-self: flex-end;
   flex-direction: row-reverse;
+}
+
+@media (max-width: 576px) {
+  .msgRow {
+    max-width: 85%;
+  }
 }
 
 .bubble {
@@ -230,6 +262,19 @@
   align-items: flex-end;
 }
 
+.msgLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 4px 6px;
+}
+
+.msgLine .msgText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .msgText {
   font-size: 0.9rem;
   line-height: 1.45;
@@ -247,6 +292,156 @@
   font-size: 0.6875rem;
   opacity: 0.75;
   align-self: flex-end;
+}
+
+.seenTicks {
+  font-size: 0.6875rem;
+  margin-left: 4px;
+  align-self: flex-end;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.seenTicks.seenOn {
+  opacity: 1;
+}
+
+.reactionsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  position: relative;
+  margin-top: 4px;
+}
+
+.reactionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-primary);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.reactionChip:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.reactionChipMine {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.reactionChipEmoji {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.reactionChipCount {
+  font-weight: 600;
+  line-height: 1;
+}
+
+.reactionAddBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.reactionAddBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.reactionPicker {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+  will-change: transform;
+}
+
+.reactionPickerFlip {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.reactionPickBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.reactionPickBtn:hover {
+  background: var(--color-bg-hover);
+}
+
+.reactionPickBtnMine {
+  background: var(--color-primary-light);
+}
+
+.reactionPickEmoji {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.mine .reactionsRow {
+  justify-content: flex-end;
+}
+
+.mine .reactionPicker {
+  left: auto;
+  right: 0;
+}
+
+.reactionChipMine:hover {
+  background: color-mix(in srgb, var(--color-primary) 28%, var(--color-bg-primary));
+  border-color: var(--color-primary-hover);
+}
+
+.mine .reactionAddBtn {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.mine .reactionAddBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
 
 .deleteBtn {
@@ -681,6 +876,69 @@
   color: var(--color-danger);
 }
 
+/* Forward bar (composer preview khi chuyển tiếp tin nhắn) */
+.forwardBar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 10px 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.forwardBarContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.forwardBarLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.forwardBarLabel i {
+  font-size: 0.85rem;
+}
+
+.forwardBarSnippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.forwardBarCancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.forwardBarCancel:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
 /* Reply bubble preview (inside message bubble) — Messenger style */
 .replySnippet {
   display: flex;
@@ -690,14 +948,14 @@
   margin-bottom: 4px;
   border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--color-bg-secondary);
   cursor: pointer;
   transition: background 0.15s;
   overflow: hidden;
 }
 
 .replySnippet:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-hover);
 }
 
 .replySnippetHeader {
@@ -803,7 +1061,7 @@
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   width: 260px;
   z-index: 20;
 }
@@ -919,8 +1177,8 @@
 }
 
 .mediaEl {
-  max-width: 260px;
-  max-height: 320px;
+  max-width: min(320px, 70vw);
+  max-height: min(400px, 60vh);
   border-radius: var(--radius-md);
   display: block;
   object-fit: cover;
@@ -994,8 +1252,9 @@
 .mediaStack {
   position: relative;
   cursor: pointer;
-  width: 240px;
-  height: 216px;
+  width: min(240px, 65vw);
+  height: auto;
+  aspect-ratio: 10 / 9;
   padding-bottom: 8px;
   box-sizing: border-box;
 }
@@ -1004,8 +1263,9 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 240px;
-  height: 180px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-bg);
@@ -1089,6 +1349,13 @@
   line-height: 1.4;
 }
 
+.composerWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
 .composerInput {
   flex: 1;
   min-width: 0;
@@ -1108,15 +1375,20 @@
   cursor: text;
 }
 
+.composerPlaceholder {
+  position: absolute;
+  left: 14px;
+  top: 10px;
+  pointer-events: none;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .composerInput:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.composerInput:empty::before {
-  content: attr(data-placeholder);
-  color: var(--color-text-secondary);
-  pointer-events: none;
 }
 
 .composerInput img {
@@ -1193,8 +1465,7 @@
 }
 
 .dangerBtn:hover {
-  background: var(--color-danger);
-  opacity: 0.9;
+  background: #b71c1c;
 }
 
 .deleteText {
@@ -1385,6 +1656,46 @@
   color: var(--color-primary);
 }
 
+/* Forward Message */
+.forwardBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.msgRow:hover .forwardBtn {
+  display: flex;
+}
+
+.forwardBtn:hover {
+  background: var(--color-accent-light, var(--color-primary-light));
+  color: var(--color-accent);
+}
+
+.forwardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-basis: 100%;
+}
+
+.forwardBadge i {
+  font-size: 0.8rem;
+}
+
 .pinBadge {
   position: absolute;
   top: -4px;
@@ -1400,10 +1711,6 @@
   font-size: 0.625rem;
   z-index: 1;
   pointer-events: none;
-}
-
-.msgRow {
-  position: relative;
 }
 
 .pinnedBar {
@@ -1512,4 +1819,161 @@
 
 .callBannerBtn:hover {
   opacity: 0.9;
+}
+
+/* ── Tin nhắn thoại (voice notes) ─────────────────────────────────────── */
+
+.voiceBubble {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  width: 220px;
+  max-width: 220px;
+  color: var(--color-text);
+}
+
+.voicePlayBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.voicePlayBtn:hover {
+  background: var(--color-primary-hover);
+}
+
+.voiceTrack {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.voiceProgress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 150ms linear;
+}
+
+.voiceDuration {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.voiceInput {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  height: 40px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.recordingPulse {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: var(--radius-circle);
+  background: var(--color-danger);
+  animation: voicePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+.recordingTimer {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.voiceStopBtn,
+.voiceCancelBtn,
+.voiceSendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+  font-size: 1.125rem;
+  transition: background 150ms ease;
+}
+
+.voiceStopBtn {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.voiceStopBtn:hover {
+  opacity: 0.9;
+}
+
+.voiceCancelBtn {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.voiceCancelBtn:hover {
+  background: var(--color-border);
+}
+
+.voiceSendBtn {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.voiceSendBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.voiceSendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (hover: none) {
+  .deleteBtn,
+  .replyBtn,
+  .pinBtn,
+  .forwardBtn {
+    display: flex;
+    opacity: 0.4;
+  }
+
+  .deleteBtn:active,
+  .replyBtn:active,
+  .pinBtn:active,
+  .forwardBtn:active {
+    opacity: 1;
+  }
 }

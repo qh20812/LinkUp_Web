@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage, HistoryCursor, PinnedMessage } from '../types'
+import type { ChatMessage, HistoryCursor, MessageReaction, PinnedMessage } from '../types'
 import type { ChatSocket } from './useChatSocket'
 import type { ChatE2E } from './useChatE2E'
 import { useToast } from '../contexts/ToastContext'
@@ -19,10 +19,12 @@ export interface SendMessageOptions {
   mediaId?: string
   mediaUri?: string
   mediaType?: string
+  durationSeconds?: number
   mediaGroupId?: string
   gifUrl?: string
   sharedPostId?: string
   replyToMessageId?: string
+  forwardedFrom?: string
 }
 
 export interface ChatRoom {
@@ -37,6 +39,8 @@ export interface ChatRoom {
   clearSearch: () => void
   sendMessage: (content: string, opts?: SendMessageOptions) => void
   sendTyping: (isTyping: boolean) => void
+  sendRead: (messageId: string) => void
+  reactToMessage: (messageId: string, emojiId: string) => void
   deleteMessage: (messageId: string, mode: 'all' | 'me') => void
   searchMessages: (keyword: string) => void
   pinMessage: (messageId: string) => void
@@ -203,6 +207,12 @@ export function useChatRoom({
       // Render ngay lịch sử (tin E2E hiện placeholder), rồi giải mã dần từng
       // cụm nhỏ để nội dung hiện sớm thay vì chờ cả trang.
       setMessages(sortByCreatedAt(dedupeByID(markPendingDecrypt(list))))
+
+      // Tự động đánh dấu đã đọc: marker mới nhất = toàn bộ tin ≤ nó đã đọc.
+      if (list.length > 0 && socketStatus === 'open') {
+        socketSend('message:read', { chat_id: data.chat_id, last_message_id: list[0].id })
+      }
+
       const size = 10
       for (let i = 0; i < list.length; i += size) {
         const batch = list.slice(i, i + size)
@@ -211,7 +221,7 @@ export function useChatRoom({
         setMessages((prev) => mergeDecrypted(prev, decrypted))
       }
     },
-    [decryptIncoming],
+    [decryptIncoming, socketSend, socketStatus],
   )
 
   const handleHistoryMore = useCallback(
@@ -242,8 +252,9 @@ export function useChatRoom({
     async (payload: unknown) => {
       const msg = payload as ChatMessage
       if (!msg || !msg.id || !msg.chat_id) return
+      let resolved = msg
       if (msg.chat_id === activeChatIdRef.current) {
-        const resolved = (await decryptIncoming([msg]))[0]
+        resolved = (await decryptIncoming([msg]))[0]
         const pending = pendingIdsRef.current
         if (pending.length > 0 && resolved.sender_id === myUserIdRef.current) {
           const tempID = pending[0]
@@ -256,10 +267,20 @@ export function useChatRoom({
         } else {
           setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, resolved])))
         }
+        // Tự động đánh dấu tin nhắn mới nhất đã đọc (khác mình gửi).
+        if (
+          resolved.sender_id !== myUserIdRef.current &&
+          socket.status === 'open'
+        ) {
+          socketSend('message:read', {
+            chat_id: resolved.chat_id,
+            last_message_id: resolved.id,
+          })
+        }
       }
       onNewMessageRef.current?.(msg)
     },
-    [decryptIncoming],
+    [decryptIncoming, socket, socketSend],
   )
 
   const handleTyping = useCallback((payload: unknown) => {
@@ -318,6 +339,42 @@ export function useChatRoom({
     setPinnedMessages((prev) => prev.filter((p) => p.message_id !== data.message_id))
   }, [])
 
+  const handleReadState = useCallback((payload: unknown) => {
+    const data = payload as { chat_id?: string; user_id?: string; last_read_at?: string }
+    if (!data || data.chat_id !== activeChatIdRef.current || !data.user_id || !data.last_read_at) return
+    if (data.user_id === myUserIdRef.current) return
+    const readAt = new Date(data.last_read_at).getTime()
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.sender_id === data.user_id) return m
+        if (new Date(m.created_at).getTime() > readAt) return m
+        if (m.seen_by?.includes(data.user_id!)) return m
+        return { ...m, seen_by: [...(m.seen_by ?? []), data.user_id!] }
+      }),
+    )
+  }, [])
+
+  const handleReacted = useCallback((payload: unknown) => {
+    const data = payload as {
+      chat_id?: string
+      message_id?: string
+      reactions?: MessageReaction[]
+    }
+    if (!data || data.chat_id !== activeChatIdRef.current || !data.message_id) return
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === data.message_id ? { ...m, reactions: data.reactions ?? [] } : m,
+      ),
+    )
+    setSearchResults((prev) =>
+      prev
+        ? prev.map((m) =>
+            m.id === data.message_id ? { ...m, reactions: data.reactions ?? [] } : m,
+          )
+        : prev,
+    )
+  }, [])
+
   const handleError = useCallback((payload: unknown) => {
     const data = payload as { message?: string }
     if (!data || !data.message) return
@@ -341,6 +398,8 @@ export function useChatRoom({
       socketSubscribe('message:pinned_list', handlePinnedList),
       socketSubscribe('message:pinned', handlePinned),
       socketSubscribe('message:unpinned', handleUnpinned),
+      socketSubscribe('message:read', handleReadState),
+      socketSubscribe('message:reacted', handleReacted),
       socketSubscribe('error', handleError),
     ]
     return () => unsubs.forEach((u) => u())
@@ -355,6 +414,8 @@ export function useChatRoom({
     handlePinnedList,
     handlePinned,
     handleUnpinned,
+    handleReadState,
+    handleReacted,
     handleError,
   ])
 
@@ -430,6 +491,8 @@ export function useChatRoom({
             media_group_id: opts?.mediaGroupId ?? null,
             media_uri: opts?.mediaUri ?? null,
             media_type: opts?.mediaType ?? null,
+            duration_seconds: opts?.durationSeconds ?? 0,
+            forwarded_from: opts?.forwardedFrom ?? null,
             is_anonymized: false,
             created_at: new Date().toISOString(),
           },
@@ -446,9 +509,11 @@ export function useChatRoom({
             emoji_id: opts?.emojiId ?? null,
             media_id: opts?.mediaId ?? null,
             media_group_id: opts?.mediaGroupId ?? null,
+            duration_seconds: opts?.durationSeconds ?? 0,
             gif_url: opts?.gifUrl ?? null,
             shared_post_id: opts?.sharedPostId ?? null,
             reply_to_message_id: opts?.replyToMessageId ?? null,
+            forwarded_from: opts?.forwardedFrom ?? null,
           })
           return
         } catch {
@@ -462,9 +527,11 @@ export function useChatRoom({
         emoji_id: opts?.emojiId ?? null,
         media_id: opts?.mediaId ?? null,
         media_group_id: opts?.mediaGroupId ?? null,
+        duration_seconds: opts?.durationSeconds ?? 0,
         gif_url: opts?.gifUrl ?? null,
         shared_post_id: opts?.sharedPostId ?? null,
         reply_to_message_id: opts?.replyToMessageId ?? null,
+        forwarded_from: opts?.forwardedFrom ?? null,
       })
     },
     [socket, toast, encryption],
@@ -475,6 +542,24 @@ export function useChatRoom({
       const chatID = activeChatIdRef.current
       if (!chatID || socket.status !== 'open') return
       socket.send(isTyping ? 'typing:start' : 'typing:stop', { chat_id: chatID })
+    },
+    [socket],
+  )
+
+  const sendRead = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open') return
+      socket.send('message:read', { chat_id: chatID, last_message_id: messageId })
+    },
+    [socket],
+  )
+
+  const reactToMessage = useCallback(
+    (messageId: string, emojiId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || socket.status !== 'open' || !emojiId || !messageId) return
+      socket.send('message:react', { chat_id: chatID, message_id: messageId, emoji_id: emojiId })
     },
     [socket],
   )
@@ -560,6 +645,8 @@ export function useChatRoom({
     clearSearch,
     sendMessage,
     sendTyping,
+    sendRead,
+    reactToMessage,
     deleteMessage,
     searchMessages,
     pinMessage,

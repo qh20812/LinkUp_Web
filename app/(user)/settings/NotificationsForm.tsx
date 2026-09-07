@@ -10,7 +10,7 @@ import styles from './Settings.module.css'
 
 type PrefKey = keyof NotificationPreferences
 
-const PREF_ROWS: { key: PrefKey; labelKey: string }[] = [
+const PREF_ROWS: { key: PrefKey; labelKey: string; hintKey?: string }[] = [
   { key: 'like_enabled', labelKey: 'notifications.prefLike' },
   { key: 'comment_enabled', labelKey: 'notifications.prefComment' },
   { key: 'follow_enabled', labelKey: 'notifications.prefFollow' },
@@ -18,6 +18,9 @@ const PREF_ROWS: { key: PrefKey; labelKey: string }[] = [
   { key: 'friend_request_enabled', labelKey: 'notifications.prefFriendRequest' },
   { key: 'community_enabled', labelKey: 'notifications.prefCommunity' },
   { key: 'voice_call_enabled', labelKey: 'notifications.prefVoiceCall' },
+  { key: 'story_react_enabled', labelKey: 'notifications.prefStoryReact', hintKey: 'notifications.prefStoryReactHint' },
+  { key: 'share_enabled', labelKey: 'notifications.prefShare', hintKey: 'notifications.prefShareHint' },
+  { key: 'media_enabled', labelKey: 'notifications.prefMedia', hintKey: 'notifications.prefMediaHint' },
 ]
 
 const DEFAULT_PREFS: NotificationPreferences = {
@@ -28,6 +31,9 @@ const DEFAULT_PREFS: NotificationPreferences = {
   friend_request_enabled: true,
   community_enabled: true,
   voice_call_enabled: true,
+  story_react_enabled: true,
+  share_enabled: true,
+  media_enabled: true,
 }
 
 export default function NotificationsForm() {
@@ -106,6 +112,9 @@ export default function NotificationsForm() {
         <div key={row.key} className={styles.settingRow}>
           <div className={styles.settingInfo}>
             <span className={styles.settingLabel}>{t(row.labelKey)}</span>
+            {row.hintKey ? (
+              <span className={styles.settingHint}>{t(row.hintKey)}</span>
+            ) : null}
           </div>
           <label className={styles.toggle}>
             <input

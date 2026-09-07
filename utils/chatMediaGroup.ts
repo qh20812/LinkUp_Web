@@ -19,8 +19,14 @@ export function isMediaMessage(msg: ChatMessage): boolean {
   const mt = msg.type || 'text'
   if (mt !== 'text') return false
   if (!(msg.media_id || msg.media_uri)) return false
+  if (msg.media_type?.startsWith('audio/')) return false
   if (extractVideoUrls(msg.content ?? '').length) return false
   return true
+}
+
+export function isVoiceMessage(msg: ChatMessage): boolean {
+  if (msg.deleted || msg.decrypt_failed || msg.emoji_id || msg.shared_post_id) return false
+  return msg.media_type?.startsWith('audio/') === true && msg.media_id != null
 }
 
 interface LooseItem {

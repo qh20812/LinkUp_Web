@@ -162,6 +162,9 @@ export default function ConversationList({
                         {conv.last_message.sender_id === myUserId
                           ? t('chat.youPrefix')
                           : ''}
+                        {conv.last_message.forwarded_from
+                          ? t('chat.forwardedPreview') + ' · '
+                          : ''}
                         {mediaKey
                           ? t(mediaKey)
                           : conv.last_message.media_id
@@ -224,7 +227,13 @@ export default function ConversationList({
                   <span className={styles.preview}>
                     {group.member_count} {t('chat.members')}
                     {group.last_message ? (
-                      <> &middot; {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}</>
+                      <>
+                        {' '}&middot;{' '}
+                        {group.last_message.forwarded_from
+                          ? t('chat.forwardedPreview') + ' · '
+                          : ''}
+                        {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}
+                      </>
                     ) : null}
                   </span>
                 </div>

@@ -78,6 +78,7 @@ export interface UploadMediaResponse {
     file_uri: string
     file_type: string
     file_size: number
+    duration_seconds?: number
     status: string
     available_storage?: number
   }
@@ -105,10 +106,13 @@ export const uploadMedia = (file: File) => {
   })
 }
 
-export const uploadChatMedia = (file: File, chatId: string) => {
+export const uploadChatMedia = (file: File, chatId: string, durationSeconds?: number) => {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('chat_id', chatId)
+  if (durationSeconds && durationSeconds > 0) {
+    formData.append('duration_seconds', String(Math.round(durationSeconds)))
+  }
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
   return fetch('/api/chats/media', {

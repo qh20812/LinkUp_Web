@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
-import { getFeedStories } from '../api/stories'
+import { getFeedStories, toggleMuteStoryUser, type StoryFeedScope } from '../api/stories'
 import { getTokenPayload } from '../api/auth'
 import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
@@ -13,7 +13,7 @@ import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
 import StoryBar from './story/StoryBar'
 import StoryViewer from './story/StoryViewer'
-import CreateStoryModal from './story/CreateStoryModal'
+import StoryEditorModal from './story/StoryEditorModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 import { useToast } from '../contexts/ToastContext'
@@ -50,8 +50,10 @@ function FeedContent() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
+  const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
+  const [storyScope, setStoryScope] = useState<StoryFeedScope>('all')
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -60,10 +62,11 @@ function FeedContent() {
   const filter = tab === 'following' ? 'following' : undefined
 
   const loadStories = useCallback(() => {
-    getFeedStories()
+    getFeedStories(storyScope)
       .then((res) => setStories(Array.isArray(res) ? res : []))
       .catch(() => {})
-  }, [])
+      .finally(() => setStoryLoading(false))
+  }, [storyScope])
 
   useEffect(() => {
     loadStories()
@@ -285,9 +288,23 @@ function FeedContent() {
       <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
       <StoryBar
         stories={stories}
+        loading={storyLoading}
         currentUserId={currentUserId}
+        scope={storyScope}
+        onScopeChange={(next) => {
+          setStoryScope(next)
+          setStoryLoading(true)
+        }}
         onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
         onCreateStory={() => setShowCreateStory(true)}
+        onMuteUser={(userId) => {
+          toggleMuteStoryUser(userId)
+            .then(() => loadStories())
+            .catch((err) => toast({
+              type: 'error',
+              title: err instanceof Error ? err.message : t('common.error'),
+            }))
+        }}
       />
       {posts.map((post) => (
         <PostCard
@@ -320,13 +337,15 @@ function FeedContent() {
       {storyViewer && (
         <StoryViewer
           stories={storyViewer}
+          currentUserId={currentUserId}
           onClose={() => setStoryViewer(null)}
           onStoryViewed={loadStories}
+          onStoryDeleted={() => loadStories()}
         />
       )}
 
       {showCreateStory && (
-        <CreateStoryModal
+        <StoryEditorModal
           open={showCreateStory}
           onClose={() => setShowCreateStory(false)}
           onCreated={loadStories}

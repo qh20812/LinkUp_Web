@@ -578,6 +578,7 @@ export interface AdminModerationLogListResponse {
 // ===== Notifications =====
 export type NotificationType =
   | 'like' | 'comment' | 'follow' | 'message' | 'share'
+  | 'story_react'
   | 'friend_request' | 'friend_accepted'
   | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
   | 'community_role_changed' | 'community_member_left' | 'community_member_kicked'
@@ -630,6 +631,9 @@ export interface NotificationPreferences {
   friend_request_enabled: boolean
   community_enabled: boolean
   voice_call_enabled: boolean
+  story_react_enabled: boolean
+  share_enabled: boolean
+  media_enabled: boolean
 }
 
 // ===== Shared =====
@@ -873,9 +877,12 @@ export interface ChatMessage {
   shared_post_id?: string | null
   shared_post?: SharedPostPreview | null
   reply_to?: ReplyPreview | null
+  forwarded_from?: string | null
+  forwards_count?: number
   // Optimistic (client-only) — gắn vào temp message để hiện media ngay khi gửi.
   media_uri?: string | null
   media_type?: string | null
+  duration_seconds?: number
   sender_name?: string
   sender_avatar?: string
   type?: string
@@ -887,6 +894,15 @@ export interface ChatMessage {
   // Client-only — tin đã giải mã thành công (tránh giải mã lại khi retry).
   decrypted?: boolean
   deleted?: boolean
+  seen_by?: string[]
+  reactions?: MessageReaction[]
+  created_at: string
+}
+
+export interface MessageReaction {
+  message_id: string
+  user_id: string
+  emoji_id: string
   created_at: string
 }
 
@@ -1135,6 +1151,26 @@ export interface StoryFeedItem {
     avatar_uri: string
   }
   stories: StoryItem[]
+}
+
+export interface StoryAnalyticsViewer {
+  user_id: string
+  display_name?: string
+  avatar_uri?: string
+  viewed_at: string
+  react_type?: string
+  emoji_id?: string
+  click_count: number
+  messages: string[]
+}
+
+export interface StoryAnalytics {
+  story_id: string
+  total_views: number
+  total_reacts: number
+  total_replies: number
+  total_shares: number
+  viewers: StoryAnalyticsViewer[]
 }
 
 // ===== Presence =====

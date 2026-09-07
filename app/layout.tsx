@@ -1,5 +1,5 @@
 import React from 'react'
-import { Montserrat, Open_Sans } from 'next/font/google'
+import { Outfit, DM_Sans } from 'next/font/google'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
@@ -12,16 +12,16 @@ import GroupCallBubble from '../components/calls/GroupCallBubble'
 import GroupCallIncomingModal from '../components/calls/GroupCallIncomingModal'
 import './globals.css'
 
-const montserrat = Montserrat({
+const outfit = Outfit({
   subsets: ['latin'],
   variable: '--font-family-heading',
-  weight: ['400', '600', '700'],
+  weight: ['500', '600', '700'],
 })
 
-const openSans = Open_Sans({
+const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-family-body',
-  weight: ['300', '400'],
+  weight: ['400', '500', '600'],
 })
 
 export const metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi" className={`${montserrat.variable} ${openSans.variable}`}>
+    <html lang="vi" className={`${outfit.variable} ${dmSans.variable}`}>
       <head>
         <link
           rel="stylesheet"

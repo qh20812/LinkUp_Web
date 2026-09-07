@@ -1,8 +1,10 @@
 import { request, extractErrorMessage } from './api'
-import type { StoryFeedItem, StoryItem } from '../types'
+import type { StoryAnalytics, StoryFeedItem, StoryItem } from '../types'
 
-export const getFeedStories = () =>
-  request<StoryFeedItem[]>('/stories/feed')
+export type StoryFeedScope = 'all' | 'following'
+
+export const getFeedStories = (scope?: StoryFeedScope) =>
+  request<StoryFeedItem[]>(`/stories/feed${scope === 'following' ? '?scope=following' : ''}`)
 
 export const checkUserStory = (userID: string) =>
   request<{ has_story: boolean }>(`/stories/user/${userID}/active`)
@@ -13,10 +15,35 @@ export const getUserStories = (userID: string) =>
 export const viewStory = (storyID: string) =>
   request<StoryItem>(`/stories/${storyID}`)
 
-export const createStory = (file: File | null, caption: string) => {
+export const deleteStory = (storyID: string) =>
+  request<{ message: string }>(`/stories/${storyID}`, { method: 'DELETE' })
+
+export const getStoryAnalytics = (storyID: string) =>
+  request<StoryAnalytics>(`/stories/${storyID}/analytics`)
+
+export const toggleMuteStoryUser = (targetUserID: string) =>
+  request<{ muted: boolean }>(`/stories/mutes/${targetUserID}`, { method: 'PUT' })
+
+export interface StoryDraftItem {
+  file: File | null
+  caption: string
+}
+
+export const createStory = async ({ file, caption }: StoryDraftItem) => {
+  const res = await createStories([{ file, caption }])
+  return res[0]
+}
+
+export const createStories = (items: StoryDraftItem[]) => {
   const formData = new FormData()
-  if (file) formData.append('file', file)
-  formData.append('caption', caption)
+  const fileItems = items.filter((item) => item.file !== null)
+  fileItems.forEach((item) => {
+    formData.append('file', item.file as File)
+    formData.append('captions', item.caption)
+  })
+  if (fileItems.length === 0) {
+    formData.append('caption', items[0]?.caption ?? '')
+  }
 
   return fetch('/api/stories', {
     method: 'POST',
@@ -28,7 +55,9 @@ export const createStory = (file: File | null, caption: string) => {
     if (!res.ok) {
       throw new Error(await extractErrorMessage(res))
     }
-    return res.json()
+    const data: unknown = await res.json()
+    if (Array.isArray(data)) return data as StoryItem[]
+    return [data] as StoryItem[]
   })
 }
 
@@ -37,3 +66,9 @@ export const interactStory = (storyID: string, type: string, emojiId?: string, c
     method: 'POST',
     body: JSON.stringify({ type, emoji_id: emojiId, content }),
   })
+
+export const reactStory = (storyID: string, emojiId: string) =>
+  interactStory(storyID, 'react', emojiId)
+
+export const shareStory = (storyID: string) =>
+  interactStory(storyID, 'share')

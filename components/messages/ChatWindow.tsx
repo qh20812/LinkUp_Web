@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
@@ -10,8 +10,9 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
 import { uploadChatMedia } from '../../api/chats'
+import { useAudioRecorder, type VoiceRecording } from '../../hooks/useAudioRecorder'
 import { getCallHistory } from '../../api/calls'
-import { formatChatDate, formatChatTime } from '../../utils/chat'
+import { formatChatDate, formatChatTime, formatClockTime } from '../../utils/chat'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
@@ -91,6 +92,10 @@ interface ChatWindowProps {
   myUserId: string
   room: ChatRoom
   isEncrypted?: boolean
+  onReact?: (messageId: string, emojiId: string) => void
+  onForward?: (message: ChatMessage) => void
+  forwarding?: ChatMessage | null
+  onClearForward?: () => void
   onDeleteChat?: () => void
   mode?: 'direct' | 'group'
   groupChatId?: string | null
@@ -103,6 +108,7 @@ interface ChatWindowProps {
   onGroupInviteAccepted?: (groupChatId: string) => void
   groupCallHistory?: GroupCallHistoryItem[]
   activeGroupCallId?: string | null
+  onBack?: () => void
 }
 
 interface DeleteTarget {
@@ -231,6 +237,10 @@ export default function ChatWindow({
   myUserId,
   room,
   isEncrypted = false,
+  onReact,
+  onForward,
+  forwarding,
+  onClearForward,
   onDeleteChat,
   mode = 'direct',
   groupChatId,
@@ -243,6 +253,7 @@ export default function ChatWindow({
   onGroupInviteAccepted,
   groupCallHistory = [],
   activeGroupCallId = null,
+  onBack,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -536,6 +547,11 @@ const prevTimelineLenRef = useRef(0)
   return (
     <div className={styles.window}>
       <div className={styles.header}>
+        {onBack && (
+          <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('chat.back')}>
+            <i className="bx bx-arrow-back" />
+          </button>
+        )}
         <div className={styles.avatar}>
           {mode === 'group' ? (
             groupAvatarUri ? (
@@ -784,13 +800,33 @@ const prevTimelineLenRef = useRef(0)
                       <div className={styles.msgStack}>
                         <div className={`${styles.bubble} ${styles.bubblePlain}`}>
                           <MediaStack msgs={item.msgs} onOpen={openLightbox} />
-                          {item.msgs[0].content?.trim() && (
-                            <div className={styles.msgText}>
-                              {!item.msgs[0].decrypt_failed &&
-                                renderEmojiContent(item.msgs[0].content ?? '', emojiCodeMap, `mg-${first.id}`, styles.emojiInline)}
-                            </div>
-                          )}
-                          <span className={styles.msgTime}>{formatChatTime(first.created_at, t)}</span>
+                          <div className={styles.msgLine}>
+                            {item.msgs[0].content?.trim() && (
+                              <div className={styles.msgText}>
+                                {!item.msgs[0].decrypt_failed &&
+                                  renderEmojiContent(item.msgs[0].content ?? '', emojiCodeMap, `mg-${first.id}`, styles.emojiInline)}
+                              </div>
+                            )}
+                            <span className={styles.msgTime}>{formatClockTime(first.created_at)}</span>
+                            {mine && (
+                              <SeenIndicator
+                                msg={first}
+                                myUserId={myUserId}
+                                mode={mode}
+                                conversation={conversation}
+                                memberNames={memberNames}
+                                t={t}
+                              />
+                            )}
+                          </div>
+                          <ReactionsRow
+                            msg={first}
+                            myUserId={myUserId}
+                            emojis={emojis}
+                            onReact={onReact}
+                            t={t}
+                            boundaryRef={scrollRef}
+                          />
                         </div>
                       </div>
                     ) : (
@@ -916,7 +952,25 @@ const prevTimelineLenRef = useRef(0)
                         <span>{t('chat.postNotAvailable')}</span>
                       </div>
                     )}
-                    <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                    <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                    {mine && (
+                      <SeenIndicator
+                        msg={msg}
+                        myUserId={myUserId}
+                        mode={mode}
+                        conversation={conversation}
+                        memberNames={memberNames}
+                        t={t}
+                      />
+                    )}
+                    <ReactionsRow
+                      msg={msg}
+                      myUserId={myUserId}
+                      emojis={emojis}
+                      onReact={onReact}
+                      t={t}
+                      boundaryRef={scrollRef}
+                    />
                   </div>
                 </div>
                 ) : (
@@ -941,8 +995,10 @@ const prevTimelineLenRef = useRef(0)
                   )}
                   {msg.deleted ? (
                     <div className={styles.bubble}>
-                      <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
-                      <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                      <div className={styles.msgLine}>
+                        <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
+                        <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                      </div>
                     </div>
                   ) : msg.media_id && msg.content ? (
                     <div className={styles.msgStack}>
@@ -950,7 +1006,17 @@ const prevTimelineLenRef = useRef(0)
                         <div className={styles.mediaWrap}>
                           <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} />
                         </div>
-                        <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                        <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                        {mine && (
+                          <SeenIndicator
+                            msg={msg}
+                            myUserId={myUserId}
+                            mode={mode}
+                            conversation={conversation}
+                            memberNames={memberNames}
+                            t={t}
+                          />
+                        )}
                       </div>
                       <div className={styles.bubble}>
                         {msg.reply_to && (
@@ -969,16 +1035,36 @@ const prevTimelineLenRef = useRef(0)
                             </span>
                           </div>
                         )}
-                        {msg.decrypt_failed ? (
-                          <span className={styles.deletedText}>
-                            <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                          </span>
-                        ) : (
-                          <span className={styles.msgText}>
-                            {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
-                          </span>
+                        <div className={styles.msgLine}>
+                          {msg.decrypt_failed ? (
+                            <span className={styles.deletedText}>
+                              <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                            </span>
+                          ) : (
+                            <span className={styles.msgText}>
+                              {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
+                            </span>
+                          )}
+                        <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                        {mine && (
+                          <SeenIndicator
+                            msg={msg}
+                            myUserId={myUserId}
+                            mode={mode}
+                            conversation={conversation}
+                            memberNames={memberNames}
+                            t={t}
+                          />
                         )}
-                        <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                      </div>
+                        <ReactionsRow
+                          msg={msg}
+                          myUserId={myUserId}
+                          emojis={emojis}
+                          onReact={onReact}
+                          t={t}
+                          boundaryRef={scrollRef}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -1007,24 +1093,51 @@ const prevTimelineLenRef = useRef(0)
                       {msg.emoji_id && !msg.media_id && !msg.media_uri && (
                         <EmojiBubble message={msg} emojis={emojis} />
                       )}
-                      {msg.decrypt_failed ? (
-                        <span className={styles.deletedText}>
-                          <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                        </span>
-                      ) : isSingleVideo ? (
-                        <VideoLinkPreview url={videoUrls[0]} />
-                      ) : msg.content ? (
-                        singleEmoji ? (
-                          <EmojiImage
-                            emoji={emojiCodeMap.get(singleEmoji)!}
-                            className={styles.emojiMsg}
-                          />
-                        ) : (
-                          <span className={styles.msgText}>
-                            {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
-                          </span>
-                        )
-                      ) : null}
+                      {msg.decrypt_failed || (msg.content && !isSingleVideo && !singleEmoji) ? (
+                        <div className={styles.msgLine}>
+                          {msg.decrypt_failed ? (
+                            <span className={styles.deletedText}>
+                              <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                            </span>
+                          ) : (
+                            <span className={styles.msgText}>
+                              {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
+                            </span>
+                          )}
+                          <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                          {mine && (
+                            <SeenIndicator
+                              msg={msg}
+                              myUserId={myUserId}
+                              mode={mode}
+                              conversation={conversation}
+                              memberNames={memberNames}
+                              t={t}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {isSingleVideo && <VideoLinkPreview url={videoUrls[0]} />}
+                          {msg.content && singleEmoji && (
+                            <EmojiImage
+                              emoji={emojiCodeMap.get(singleEmoji)!}
+                              className={styles.emojiMsg}
+                            />
+                          )}
+                          <span className={styles.msgTime}>{formatClockTime(msg.created_at)}</span>
+                          {mine && (
+                            <SeenIndicator
+                              msg={msg}
+                              myUserId={myUserId}
+                              mode={mode}
+                              conversation={conversation}
+                              memberNames={memberNames}
+                              t={t}
+                            />
+                          )}
+                        </>
+                      )}
                       {videoUrls.length > 0 && !isSingleVideo && (
                         <div className={styles.videoPreviewStack}>
                           {videoUrls.map((vUrl) => (
@@ -1032,7 +1145,14 @@ const prevTimelineLenRef = useRef(0)
                           ))}
                         </div>
                       )}
-                      <span className={styles.msgTime}>{formatChatTime(msg.created_at, t)}</span>
+                      <ReactionsRow
+                        msg={msg}
+                        myUserId={myUserId}
+                        emojis={emojis}
+                        onReact={onReact}
+                        t={t}
+                        boundaryRef={scrollRef}
+                      />
                     </div>
                   )}
                   {!msg.deleted && (
@@ -1064,6 +1184,16 @@ const prevTimelineLenRef = useRef(0)
                           <i className="bx bx-pin" />
                         </button>
                       ) : null}
+                      {onForward && msg.message_category !== 'system' && !msg.is_anonymized && (
+                        <button
+                          className={styles.forwardBtn}
+                          onClick={() => onForward(msg)}
+                          aria-label={t('chat.forward')}
+                          title={t('chat.forward')}
+                        >
+                          <i className="bx bx-arrow-forward" />
+                        </button>
+                      )}
                       <button
                         className={styles.deleteBtn}
                         onClick={() => setDeleteTarget({ message: msg })}
@@ -1100,7 +1230,7 @@ const prevTimelineLenRef = useRef(0)
         )}
       </div>
 
-      <Composer room={room} chatId={chatId} replyingTo={replyingTo} onClearReply={() => setReplyingTo(null)} onScrollToMessage={scrollToMessage} />
+      <Composer room={room} chatId={chatId} replyingTo={replyingTo} forwarding={forwarding ?? null} onClearReply={() => setReplyingTo(null)} onClearForward={onClearForward ?? (() => {})} onScrollToMessage={scrollToMessage} />
 
       <Modal
         open={deleteTarget !== null}
@@ -1163,15 +1293,280 @@ interface MessageMediaProps {
   onClick?: () => void
 }
 
+// VoicePlayer — thành phần play/pause, thanh tiến trình và thời lượng chung cho
+// tin nhắn thoại (message) lẫn preview trong khung soạn (composer).
+function VoicePlayer({ src, duration }: { src: string; duration?: number }) {
+  const { t } = useTranslation()
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+
+  const toggle = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playing) {
+      audio.pause()
+    } else {
+      void audio.play().catch(() => setPlaying(false))
+    }
+  }
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onTime = () => {
+      const d = audio.duration || 0
+      setElapsed(audio.currentTime)
+      setProgress(d > 0 ? audio.currentTime / d : 0)
+    }
+    const onEnd = () => {
+      setPlaying(false)
+      setElapsed(0)
+      setProgress(0)
+    }
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('ended', onEnd)
+    audio.addEventListener('play', () => setPlaying(true))
+    audio.addEventListener('pause', () => setPlaying(false))
+    return () => {
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('ended', onEnd)
+      audio.removeEventListener('play', () => setPlaying(true))
+      audio.removeEventListener('pause', () => setPlaying(false))
+    }
+  }, [])
+
+  const shown = duration && duration > 0
+    ? Math.max(Math.round(elapsed), duration)
+    : Math.round(elapsed)
+
+  return (
+    <span className={styles.voiceBubble} role="group" aria-label={t('chat.voiceMessage')}>
+      <button
+        type="button"
+        className={styles.voicePlayBtn}
+        onClick={toggle}
+        aria-label={playing ? t('chat.pause') : t('chat.play')}
+        title={playing ? t('chat.pause') : t('chat.play')}
+      >
+        <i className={playing ? 'bx bx-pause' : 'bx bx-play'} />
+      </button>
+      <span className={styles.voiceTrack}>
+        <span className={styles.voiceProgress} style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+      </span>
+      <span className={styles.voiceDuration}>{formatCallDuration(shown)}</span>
+      <audio ref={audioRef} src={src} preload="metadata" />
+    </span>
+  )
+}
+
+// VoiceBubble — tin nhắn thoại trong hội thoại.
+function VoiceBubble({ message, src }: { message: ChatMessage; src: string | null }) {
+  const { t } = useTranslation()
+  if (!src) {
+    return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
+  }
+  const duration = message.duration_seconds && message.duration_seconds > 0
+    ? message.duration_seconds
+    : undefined
+  return <VoicePlayer src={src} duration={duration} />
+}
+
+interface SeenIndicatorProps {
+  msg: ChatMessage
+  myUserId: string
+  mode?: string
+  conversation?: ChatConversation | null
+  memberNames?: Map<string, { display_name?: string; avatar_uri?: string }>
+  t: (key: string, params?: Record<string, string>) => string
+}
+
+function SeenIndicator({
+  msg,
+  myUserId,
+  mode,
+  conversation,
+  memberNames,
+  t,
+}: SeenIndicatorProps) {
+  if (msg.sender_id !== myUserId || msg.deleted) return null
+  const seen = msg.seen_by ?? []
+  if (mode === 'group') {
+    const isGroupSeen = seen.length > 0
+    const names = seen
+      .slice(0, 3)
+      .map((id) => memberNames?.get(id)?.display_name || t('chat.unknown'))
+      .join(', ')
+    return (
+      <span
+        className={isGroupSeen ? `${styles.seenTicks} ${styles.seenOn}` : styles.seenTicks}
+        title={isGroupSeen ? t('chat.seenBy', { names }) : t('chat.sent')}
+      >
+        {isGroupSeen ? `✓✓ ${seen.length}` : '✓'}
+      </span>
+    )
+  }
+  const isSeen = Boolean(conversation?.partner.user_id && seen.includes(conversation.partner.user_id))
+  return (
+    <span
+      className={isSeen ? `${styles.seenTicks} ${styles.seenOn}` : styles.seenTicks}
+      title={isSeen ? t('chat.seen') : t('chat.sent')}
+    >
+      {isSeen ? '✓✓' : '✓'}
+    </span>
+  )
+}
+
+// ── Message reactions: chips bày tỏ cảm xúc + bộ chọn nhanh ─────────────────
+interface ReactionsRowProps {
+  msg: ChatMessage
+  myUserId: string
+  emojis: Map<string, EmojiItem>
+  onReact?: (messageId: string, emojiId: string) => void
+  t: (key: string, params?: Record<string, string>) => string
+  boundaryRef?: React.RefObject<HTMLDivElement | null>
+}
+
+function ReactionsRow({ msg, myUserId, emojis, onReact, t, boundaryRef }: ReactionsRowProps) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerShift, setPickerShift] = useState(0)
+  const [pickerFlipped, setPickerFlipped] = useState(false)
+  const pickerElRef = useRef<HTMLDivElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const isBlocked = msg.deleted || msg.decrypt_failed
+  const showBadge = !!msg.forwarded_from && !isBlocked
+
+  // Giữ picker luôn nằm gọn trong vùng hiển thị chat: kẹp ngang khi tràn mép
+  // phải/trái, và lật xuống dưới khi không đủ chỗ phía trên (tin nhắn đầu tiên).
+  useLayoutEffect(() => {
+    if (!pickerOpen) return
+    const el = pickerElRef.current
+    const bound = boundaryRef?.current
+    if (!el || !bound) return
+    const rect = el.getBoundingClientRect()
+    const bRect = bound.getBoundingClientRect()
+    let shift = 0
+    const overRight = rect.right - bRect.right + 8
+    const overLeft = bRect.left + 8 - rect.left
+    if (overRight > 0) shift = -overRight
+    if (overLeft > 0) shift = Math.max(shift, overLeft)
+    setPickerShift(shift)
+    setPickerFlipped(rect.top - bRect.top < 8)
+  }, [pickerOpen, boundaryRef])
+
+  // Đóng picker khi click ra ngoài.
+  useEffect(() => {
+    if (!pickerOpen) return
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (pickerElRef.current?.contains(target)) return
+      if (toggleRef.current?.contains(target)) return
+      setPickerOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [pickerOpen])
+
+  if (isBlocked || !emojis || (!onReact && !showBadge)) return null
+
+  const reactions = msg.reactions ?? []
+  const mineReactions = reactions.filter((r) => r.user_id === myUserId)
+  const quickEmojis = [...emojis.values()].slice(0, 8)
+
+  const chips: Array<{ emoji: EmojiItem; count: number; mine: boolean }> = []
+  for (const r of reactions) {
+    const item = emojis.get(r.emoji_id)
+    if (!item) continue
+    const existing = chips.find((c) => c.emoji.id === r.emoji_id)
+    if (existing) {
+      existing.count += 1
+      if (r.user_id === myUserId) existing.mine = true
+    } else {
+      chips.push({ emoji: item, count: 1, mine: r.user_id === myUserId })
+    }
+  }
+  // Ưu tiên emoji mình đã chọn lên đầu.
+  chips.sort((a, b) => Number(b.mine) - Number(a.mine))
+
+  const react = (emojiId: string) => {
+    setPickerOpen(false)
+    if (onReact) onReact(msg.id, emojiId)
+  }
+
+  const myNames = mineReactions.length
+    ? reactions
+        .filter((r) => r.user_id === myUserId)
+        .map((r) => emojis.get(r.emoji_id)?.code || r.emoji_id)
+        .join(', ')
+    : t('chat.noReactionYet')
+
+  return (
+    <div className={styles.reactionsRow}>
+      {showBadge && (
+        <span className={styles.forwardBadge} title={t('chat.forwarded')}>
+          <i className="bx bx-arrow-forward" />
+          {t('chat.forwarded')}
+          {msg.forwards_count && msg.forwards_count > 1 ? ` · ${msg.forwards_count}` : ''}
+        </span>
+      )}
+      {onReact && (
+        <>
+          {chips.map((chip) => (
+            <button
+              key={chip.emoji.id}
+              className={chip.mine ? `${styles.reactionChip} ${styles.reactionChipMine}` : styles.reactionChip}
+              onClick={() => react(chip.emoji.id)}
+              title={`${myNames}`}
+            >
+              <EmojiImage emoji={chip.emoji} className={styles.reactionChipEmoji} />
+              <span className={styles.reactionChipCount}>{chip.count}</span>
+            </button>
+          ))}
+          <button
+            ref={toggleRef}
+            className={styles.reactionAddBtn}
+            onClick={() => setPickerOpen((v) => !v)}
+            aria-label={t('chat.addReaction')}
+            title={t('chat.addReaction')}
+          >
+            <i className="bx bx-smile" />
+          </button>
+          {pickerOpen && (
+            <div
+              ref={pickerElRef}
+              className={`${styles.reactionPicker}${pickerFlipped ? ` ${styles.reactionPickerFlip}` : ''}`}
+              style={pickerShift !== 0 ? { transform: `translateX(${pickerShift}px)` } : undefined}
+            >
+              {quickEmojis.map((item) => {
+                const mineReacted = mineReactions.some((r) => r.emoji_id === item.id)
+                return (
+                  <button
+                    key={item.id}
+                    className={mineReacted ? `${styles.reactionPickBtn} ${styles.reactionPickBtnMine}` : styles.reactionPickBtn}
+                    onClick={() => react(item.id)}
+                    title={item.code}
+                  >
+                    <EmojiImage emoji={item} className={styles.reactionPickEmoji} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function MessageMedia({ message, onClick }: MessageMediaProps) {
   const { t } = useTranslation()
-  const { src, isVideo, failed, loading, boxRef } = useMessageMedia(message)
+  const { src, isVideo, isAudio, failed, loading, boxRef } = useMessageMedia(message)
   const cachedRatio = mediaRatioCache.get(message.id)
   const [loaded, setLoaded] = useState(() => !message.media_uri && !!src)
   const [ratio, setRatio] = useState<{ width: number; height: number } | null>(
     cachedRatio ?? null,
   )
-
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setLoaded(true)
     const img = e.currentTarget
@@ -1212,6 +1607,9 @@ function MessageMedia({ message, onClick }: MessageMediaProps) {
         className={styles.mediaEl}
       />,
     )
+  }
+  if (isAudio) {
+    return <VoiceBubble message={message} src={src} />
   }
   return wrap(
     <span
@@ -1339,13 +1737,15 @@ interface ComposerProps {
   room: ChatRoom
   chatId: string | null
   replyingTo: ChatMessage | null
+  forwarding: ChatMessage | null
   onClearReply: () => void
+  onClearForward: () => void
   onScrollToMessage?: (messageId: string) => void
 }
 
 const MAX_ATTACHMENTS = 10
 
-function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }: ComposerProps) {
+function Composer({ room, chatId, replyingTo, forwarding, onClearReply, onClearForward, onScrollToMessage }: ComposerProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [value, setValue] = useState('')
@@ -1364,6 +1764,17 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
   const gifPickerRef = useRef<HTMLDivElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const {
+    supported: voiceSupported,
+    recording: voiceRecording,
+    elapsed: voiceElapsed,
+    error: voiceError,
+    start: startVoice,
+    stop: stopVoice,
+    cancel: cancelVoice,
+  } = useAudioRecorder()
+  const [pendingVoice, setPendingVoice] = useState<VoiceRecording | null>(null)
+  const [voiceUploading, setVoiceUploading] = useState(false)
 
   const emotions = useMemo(() => getEmotionEmojis(), [])
   const emotionGroups = useMemo(() => {
@@ -1376,6 +1787,8 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
 
   const sendTyping = room.sendTyping
 
+  const hasContent = Boolean(value.trim())
+
   useEffect(() => {
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
@@ -1384,6 +1797,25 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
       sendTyping(false)
     }
   }, [sendTyping])
+
+  // Forward: khi có tin chuyển tiếp được chọn, điền sẵn nội dung vào khung soạn
+  // để người dùng có thể sửa trước khi gửi. Gắn forwarded_from khi click gửi.
+  useEffect(() => {
+    if (!forwarding || !inputRef.current) return
+    const el = inputRef.current
+    el.innerHTML = ''
+    if (forwarding.content) {
+      el.appendChild(document.createTextNode(forwarding.content))
+      el.focus()
+      const sel = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+    }
+    setValue(forwarding.content || '')
+  }, [forwarding])
 
   const attachFile = (file: File) => {
     const url = URL.createObjectURL(file)
@@ -1509,6 +1941,55 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
     }
   }
 
+  const handleVoiceMic = async () => {
+    if (voiceRecording) {
+      const rec = await stopVoice()
+      if (rec) setPendingVoice(rec)
+      return
+    }
+    if (pendingVoice) {
+      URL.revokeObjectURL(pendingVoice.url)
+      setPendingVoice(null)
+    }
+    await startVoice()
+    if (voiceError) {
+      toast({ type: 'error', title: t(`chat.${voiceError}`) })
+    }
+  }
+
+  const handleVoiceCancel = () => {
+    cancelVoice()
+    if (pendingVoice) {
+      URL.revokeObjectURL(pendingVoice.url)
+      setPendingVoice(null)
+    }
+  }
+
+  const sendVoice = async () => {
+    if (!pendingVoice || voiceUploading || !chatId) return
+    setVoiceUploading(true)
+    const { blob, url, duration } = pendingVoice
+    try {
+      const ext = blob.type.includes('mp4') || blob.type.includes('aac') ? 'm4a' : 'webm'
+      const file = new File([blob], `voice.${ext}`, { type: blob.type })
+      const res = await uploadChatMedia(file, chatId, duration)
+      room.sendMessage('', {
+        mediaId: res.data.id,
+        mediaUri: res.data.file_uri,
+        mediaType: res.data.file_type,
+        durationSeconds: res.data.duration_seconds ?? duration,
+        replyToMessageId: replyingTo?.id || undefined,
+      })
+      URL.revokeObjectURL(url)
+      setPendingVoice(null)
+      onClearReply()
+    } catch {
+      toast({ type: 'error', title: t('chat.uploadFailed') })
+    } finally {
+      setVoiceUploading(false)
+    }
+  }
+
   const sendAttachmentBatch = async (files: File[], caption: string) => {
     if (!chatId) return
     setUploading(true)
@@ -1540,19 +2021,22 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
   }
 
   const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
-    if (!value.trim() && !opts?.emojiId && !opts?.mediaId && attachments.length === 0) return
+    const canAutoEmoji = Boolean(!value.trim() && forwarding?.emoji_id)
+    if (!value.trim() && !canAutoEmoji && !opts?.emojiId && !opts?.mediaId && attachments.length === 0) return
     const text = value
     const replyId = replyingTo?.id || undefined
+    const forwardedId = forwarding?.id
 
     if (attachments.length > 0) {
       await sendAttachmentBatch(attachments, text)
       clearAttachments()
       resetComposer()
+      onClearForward()
       return
     }
 
     // Toàn bộ tin là một URL duy nhất → thử tải ảnh về rồi gửi dạng media.
-    if (!opts && !replyId && isSingleImageUrl(text)) {
+    if (!opts && !replyId && !forwardedId && isSingleImageUrl(text)) {
       const file = await fetchRemoteImage(text)
       if (file) {
         resetComposer()
@@ -1568,9 +2052,15 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
       }
     }
 
-    room.sendMessage(text, { ...opts, replyToMessageId: replyId })
+    room.sendMessage(text, {
+      ...opts,
+      replyToMessageId: replyId,
+      forwardedFrom: forwardedId,
+      emojiId: opts?.emojiId ?? (canAutoEmoji ? (forwarding?.emoji_id ?? undefined) : undefined),
+    })
     resetComposer()
     onClearReply()
+    onClearForward()
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1675,6 +2165,28 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
           </button>
         </div>
       )}
+      {forwarding && (
+        <div className={styles.forwardBar}>
+          <div className={styles.forwardBarContent}>
+            <div className={styles.forwardBarLabel}>
+              <i className="bx bx-arrow-forward" />
+              {t('chat.forwarding')}
+            </div>
+            <span className={styles.forwardBarSnippet}>
+              {forwarding.content || t('chat.attachment')}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.forwardBarCancel}
+            onClick={onClearForward}
+            title={t('chat.cancelForward')}
+            aria-label={t('chat.cancelForward')}
+          >
+            <i className="bx bx-x" />
+          </button>
+        </div>
+      )}
       <div className={styles.composerRow}>
         <div className={styles.composerActions}>
           <button
@@ -1710,27 +2222,85 @@ function Composer({ room, chatId, replyingTo, onClearReply, onScrollToMessage }:
           >
             <i className="bx bx-paperclip" />
           </button>
+          <button
+            className={`${styles.iconBtn} ${voiceRecording ? styles.iconBtnActive : ''}`}
+            onClick={() => void handleVoiceMic()}
+            disabled={voiceUploading || !voiceSupported || uploading}
+            aria-label={t('chat.recordVoice')}
+            title={t('chat.recordVoice')}
+          >
+            <i className="bx bx-microphone" />
+          </button>
         </div>
-        <div
-          ref={inputRef}
-          contentEditable
-          suppressContentEditableWarning
-          role="textbox"
-          aria-label={t('chat.placeholder')}
-          className={styles.composerInput}
-          data-placeholder={t('chat.placeholder')}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-        />
-        <button
-          className={styles.sendBtn}
-          onClick={() => send()}
-          disabled={(!value.trim() && attachments.length === 0) || uploading}
-          aria-label={t('chat.send')}
-        >
-          <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
-        </button>
+        {voiceRecording ? (
+          <div className={styles.voiceInput}>
+            <span className={styles.recordingPulse} />
+            <span className={styles.recordingTimer}>{formatCallDuration(voiceElapsed)}</span>
+          </div>
+        ) : pendingVoice ? (
+          <div className={styles.voiceInput}>
+            <VoicePlayer src={pendingVoice.url} duration={pendingVoice.duration} />
+          </div>
+        ) : (
+          <div className={styles.composerWrap}>
+            <div
+              ref={inputRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-label={t('chat.placeholder')}
+              className={styles.composerInput}
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+            />
+            {!hasContent && (
+              <span className={styles.composerPlaceholder}>{t('chat.placeholder')}</span>
+            )}
+          </div>
+        )}
+        {voiceRecording ? (
+          <button
+            type="button"
+            className={styles.voiceStopBtn}
+            onClick={() => void handleVoiceMic()}
+            aria-label={t('chat.recordingStopped')}
+            title={t('chat.recordingStopped')}
+          >
+            <i className="bx bx-stop" />
+          </button>
+        ) : pendingVoice ? (
+          <>
+            <button
+              type="button"
+              className={styles.voiceCancelBtn}
+              onClick={handleVoiceCancel}
+              aria-label={t('chat.cancelVoice')}
+              title={t('chat.cancelVoice')}
+            >
+              <i className="bx bx-x" />
+            </button>
+            <button
+              type="button"
+              className={styles.voiceSendBtn}
+              onClick={() => void sendVoice()}
+              disabled={voiceUploading}
+              aria-label={t('chat.sendVoice')}
+              title={t('chat.sendVoice')}
+            >
+              <i className={voiceUploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
+            </button>
+          </>
+        ) : (
+          <button
+            className={styles.sendBtn}
+            onClick={() => send()}
+            disabled={(!value.trim() && !forwarding?.emoji_id && attachments.length === 0) || uploading}
+            aria-label={t('chat.send')}
+          >
+            <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
+          </button>
+        )}
       </div>
       <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFile} />
       {emojiOpen && (
