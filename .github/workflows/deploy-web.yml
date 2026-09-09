@@ -72,7 +72,7 @@ jobs:
             git fetch origin main && git reset --hard origin/main
             docker load -i /tmp/web.tar.gz
             cd /opt/linkup
-            docker compose up -d web
+            docker compose up -d --no-build web
             echo "Waiting for web (up to 60s)..."
             for i in $(seq 1 20); do
               if curl -sf -o /dev/null http://localhost:3000/; then
