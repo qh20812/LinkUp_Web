@@ -42,6 +42,7 @@ jobs:
           tags: linkup-web:latest
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=server:8080
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=580467482346-dvs47i380uasmohcf5uc3sh0ttiifk74.apps.googleusercontent.com
 
       - name: Save image
         run: |
