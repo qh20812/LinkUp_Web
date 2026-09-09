@@ -110,6 +110,8 @@ export default function CallOverlay() {
             : t('call.inCallVoice')
           : ''
 
+  const showFullscreenVideo = isVideo && isActive
+
   if (minimized && isActive) {
     return (
       <div
@@ -179,41 +181,96 @@ export default function CallOverlay() {
     )
   }
 
+  if (showFullscreenVideo) {
+    return (
+      <div className={styles.backdropVideo} role="dialog" aria-modal="true">
+        {/* Remote video / avatar fallback */}
+        {remoteStream && remoteVideoOn ? (
+          <VideoFeed stream={remoteStream} className={styles.remoteVideo} />
+        ) : (
+          <div className={styles.remoteOffOverlay}>
+            <span className={styles.bigAvatar}>
+              {call.peer.avatar_uri ? (
+                <ExternalImage src={call.peer.avatar_uri} alt="" />
+              ) : (
+                <i className="bx bxs-user" />
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Self preview PiP */}
+        {localStream && localVideoOn && (
+          <div className={styles.selfPreviewOverlay}>
+            <VideoFeed stream={localStream} muted mirrored />
+          </div>
+        )}
+
+        {/* Info overlay — top center */}
+        <div className={styles.infoOverlay}>
+          <div className={styles.infoOverlayName}>{peerName}</div>
+          <div className={styles.infoOverlayStatus}>
+            {statusLabel}
+            {remoteMuted && (
+              <i className={`bx bx-microphone-off ${styles.remoteMutedIcon}`} />
+            )}
+          </div>
+          <div className={styles.infoOverlayDuration}>
+            {formatDuration(duration)}
+          </div>
+        </div>
+
+        {/* Controls overlay — bottom center pill */}
+        <div className={styles.controlsOverlay}>
+          <button
+            className={`${styles.controlBtn} ${localMuted ? styles.activeBtn : ''}`}
+            onClick={toggleMute}
+            aria-label={localMuted ? t('call.unmute') : t('call.mute')}
+            title={localMuted ? t('call.unmute') : t('call.mute')}
+          >
+            <i className={localMuted ? 'bx bx-microphone-off' : 'bx bx-microphone'} />
+          </button>
+          <button
+            className={`${styles.controlBtn} ${!localVideoOn ? styles.activeBtn : ''}`}
+            onClick={toggleVideo}
+            aria-label={localVideoOn ? t('call.videoOff') : t('call.videoOn')}
+            title={localVideoOn ? t('call.videoOff') : t('call.videoOn')}
+          >
+            <i className={localVideoOn ? 'bx bx-video' : 'bx bx-video-off'} />
+          </button>
+          <button
+            className={styles.controlBtn}
+            onClick={() => setMinimized(true)}
+            aria-label={t('call.minimize')}
+            title={t('call.minimize')}
+          >
+            <i className="bx bx-chevrons-down" />
+          </button>
+          <button
+            className={`${styles.controlBtn} ${styles.endBtn}`}
+            onClick={endCall}
+            aria-label={t('call.end')}
+            title={t('call.end')}
+          >
+            <i className="bx bx-phone-off" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
       <div className={styles.panel}>
-        {isVideo && isActive && remoteStream ? (
-          <div className={styles.videoStage}>
-            {remoteVideoOn ? (
-              <VideoFeed stream={remoteStream} className={styles.remoteVideo} />
-            ) : (
-              <div className={styles.remoteOff}>
-                <span className={styles.bigAvatar}>
-                  {call.peer.avatar_uri ? (
-                    <ExternalImage src={call.peer.avatar_uri} alt="" />
-                  ) : (
-                    <i className="bx bxs-user" />
-                  )}
-                </span>
-              </div>
-            )}
-            {isActive && localStream && localVideoOn && (
-              <div className={styles.selfPreview}>
-                <VideoFeed stream={localStream} muted mirrored />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={styles.avatarWrap}>
-            {call.peer.avatar_uri ? (
-              <ExternalImage src={call.peer.avatar_uri} alt="" className={styles.avatar} />
-            ) : (
-              <span className={styles.avatarFallback}>
-                <i className="bx bxs-user" />
-              </span>
-            )}
-          </div>
-        )}
+        <div className={styles.avatarWrap}>
+          {call.peer.avatar_uri ? (
+            <ExternalImage src={call.peer.avatar_uri} alt="" className={styles.avatar} />
+          ) : (
+            <span className={styles.avatarFallback}>
+              <i className="bx bxs-user" />
+            </span>
+          )}
+        </div>
 
         <div className={styles.name}>{peerName}</div>
         <div className={styles.status}>

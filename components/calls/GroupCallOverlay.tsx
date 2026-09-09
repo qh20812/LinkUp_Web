@@ -46,7 +46,6 @@ export default function GroupCallOverlay() {
   const remoteParticipants = participants.filter(
     (p) => p.user_id !== call.callerId || remoteStreams.has(p.user_id),
   )
-  // Always show local user
   const localParticipant: GroupCallParticipant = {
     user_id: '',
     display_name: 'Bạn',
@@ -62,7 +61,8 @@ export default function GroupCallOverlay() {
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
       <div className={styles.panel}>
-        <div className={styles.header}>
+        {/* Header overlay — top */}
+        <div className={styles.headerOverlay}>
           <div className={styles.headerInfo}>
             <span className={styles.groupName}>
               {t('groupCall.groupCall')}
@@ -85,6 +85,7 @@ export default function GroupCallOverlay() {
           </button>
         </div>
 
+        {/* Video grid */}
         <div className={`${styles.grid} ${gridClass}`}>
           {allParticipants.map((p, idx) => {
             const isLocal = idx === 0
@@ -101,7 +102,8 @@ export default function GroupCallOverlay() {
           })}
         </div>
 
-        <div className={styles.controls}>
+        {/* Controls overlay — bottom center pill */}
+        <div className={styles.controlsOverlay}>
           <button
             className={`${styles.controlBtn} ${localMuted ? styles.activeBtn : ''}`}
             onClick={toggleMute}
@@ -130,8 +132,9 @@ export default function GroupCallOverlay() {
           </button>
         </div>
 
+        {/* Pending requests overlay */}
         {isCreator && call.pendingRequests.length > 0 && (
-          <div className={styles.pendingBar}>
+          <div className={styles.pendingOverlay}>
             {call.pendingRequests.map((uid) => (
               <PendingRequest
                 key={uid}
