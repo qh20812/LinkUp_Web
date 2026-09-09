@@ -69,7 +69,7 @@ jobs:
           script: |
             set -e
             cd /opt/linkup/web
-            git pull origin main
+            git fetch origin main && git reset --hard origin/main
             docker load -i /tmp/web.tar.gz
             cd /opt/linkup
             docker compose up -d web
