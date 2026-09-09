@@ -10,13 +10,13 @@
 }
 
 /* Fabric.js sets inline style.width/height (CSS pixels) on the <canvas> via
-   setCSSDimensions (fabric/dist/.../DOMManagers/util.mjs). These !important
-   declarations are required so the stage-fill sizing wins over the inline px. */
+   setCSSDimensions. We let Fabric manage those dimensions so the internal
+   coordinate system stays in sync with the rendered size (setDimensions
+   updates both the drawing buffer and CSS). position:absolute + inset:0
+   keeps the canvas inside .stage when the two happen to differ. */
 .canvas {
   position: absolute;
   inset: 0;
-  width: 100% !important;
-  height: 100% !important;
   touch-action: none;
 }
 

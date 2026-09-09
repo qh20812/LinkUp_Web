@@ -221,8 +221,8 @@ export default function StoryCanvas({
     if (!canvasEl) return
 
     const fabric = new FabricCanvas(canvasEl, {
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
+      width: stageSize?.width ?? CANVAS_WIDTH,
+      height: stageSize?.height ?? CANVAS_HEIGHT,
     })
     fabric.freeDrawingBrush = new PencilBrush(fabric)
     fabricRef.current = fabric
@@ -406,11 +406,13 @@ export default function StoryCanvas({
           const canvas = fabricRef.current
           const bg = bgRef.current
           if (!canvas || !bg) return
+          const cw = canvas.getWidth()
+          const ch = canvas.getHeight()
           bg.set({
             originX: 'center',
             originY: 'center',
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
+            left: cw / 2,
+            top: ch / 2,
           })
           bg.setCoords()
           canvas.requestRenderAll()
@@ -465,15 +467,19 @@ export default function StoryCanvas({
         setBackgroundGradient: (from: string, to: string) => {
           const canvas = fabricRef.current
           if (!canvas) return
-          void buildGradientBackground(from, to, CANVAS_WIDTH, CANVAS_HEIGHT)
+          const cw = canvas.getWidth()
+          const ch = canvas.getHeight()
+          void buildGradientBackground(from, to, cw, ch)
             .then((imgEl) => {
               const currentCanvas = fabricRef.current
               if (!currentCanvas) return
+              const cw = currentCanvas.getWidth()
+              const ch = currentCanvas.getHeight()
               const old = bgRef.current
               const fill = fillRef.current
               const bg = new FabricImage(imgEl, {
-                left: CANVAS_WIDTH / 2,
-                top: CANVAS_HEIGHT / 2,
+                left: cw / 2,
+                top: ch / 2,
                 originX: 'center',
                 originY: 'center',
                 selectable: false,
@@ -506,12 +512,14 @@ export default function StoryCanvas({
         fabric.sendObjectToBack(fill)
         lockBackground(fill)
       }
+      const cw = fabric.getWidth()
+      const ch = fabric.getHeight()
       fabric.add(crisp)
       crisp.set({
         originX: 'center',
         originY: 'center',
-        left: CANVAS_WIDTH / 2,
-        top: CANVAS_HEIGHT / 2,
+        left: cw / 2,
+        top: ch / 2,
       })
       crisp.setCoords()
       configureMedia(crisp, variantRef.current === 'media' && activeToolRef.current === 'select')
@@ -539,9 +547,11 @@ export default function StoryCanvas({
       void buildGradientBackground(g.from, g.to, CANVAS_WIDTH, CANVAS_HEIGHT)
         .then((imgEl) => {
           if (!fabricRef.current) return
+          const cw = fabricRef.current.getWidth()
+          const ch = fabricRef.current.getHeight()
           const bg = new FabricImage(imgEl, {
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
+            left: cw / 2,
+            top: ch / 2,
             originX: 'center',
             originY: 'center',
             selectable: false,
@@ -568,14 +578,16 @@ export default function StoryCanvas({
         if (!fabricRef.current || !videoEl) return
         const vw = videoEl.videoWidth || CANVAS_WIDTH
         const vh = videoEl.videoHeight || CANVAS_HEIGHT
-        const scale = Math.min(CANVAS_WIDTH / vw, CANVAS_HEIGHT / vh)
+        const cw = fabricRef.current.getWidth()
+        const ch = fabricRef.current.getHeight()
+        const scale = Math.min(cw / vw, ch / vh)
         void (async () => {
           let fill: FabricImage | null = null
           try {
-            const fillEl = await buildBlurredBackground(videoEl, CANVAS_WIDTH, CANVAS_HEIGHT)
+            const fillEl = await buildBlurredBackground(videoEl, cw, ch)
             fill = new FabricImage(fillEl, {
-              left: CANVAS_WIDTH / 2,
-              top: CANVAS_HEIGHT / 2,
+              left: cw / 2,
+              top: ch / 2,
               originX: 'center',
               originY: 'center',
               selectable: false,
@@ -585,8 +597,8 @@ export default function StoryCanvas({
             fill = null
           }
           const bg = new FabricImage(videoEl, {
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
+            left: cw / 2,
+            top: ch / 2,
             originX: 'center',
             originY: 'center',
             scaleX: scale,
@@ -610,16 +622,18 @@ export default function StoryCanvas({
       loadBackgroundImage(mediaUrl ?? '')
         .then(async (imgEl) => {
           if (!fabricRef.current) return
+          const cw = fabricRef.current.getWidth()
+          const ch = fabricRef.current.getHeight()
           const scale = Math.min(
-            CANVAS_WIDTH / imgEl.width,
-            CANVAS_HEIGHT / imgEl.height,
+            cw / imgEl.width,
+            ch / imgEl.height,
           )
           let fill: FabricImage | null = null
           try {
-            const fillEl = await buildBlurredBackground(imgEl, CANVAS_WIDTH, CANVAS_HEIGHT)
+            const fillEl = await buildBlurredBackground(imgEl, cw, ch)
             fill = new FabricImage(fillEl, {
-              left: CANVAS_WIDTH / 2,
-              top: CANVAS_HEIGHT / 2,
+              left: cw / 2,
+              top: ch / 2,
               originX: 'center',
               originY: 'center',
               selectable: false,
@@ -629,8 +643,8 @@ export default function StoryCanvas({
             fill = null
           }
           const bg = new FabricImage(imgEl, {
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
+            left: cw / 2,
+            top: ch / 2,
             originX: 'center',
             originY: 'center',
             scaleX: scale,
@@ -753,6 +767,53 @@ export default function StoryCanvas({
     if (!canvas) return
     canvas.isDrawingMode = activeTool === 'brush' && !isEraser
   }, [activeTool, isEraser])
+
+  // ---- sync canvas internal dimensions with stageSize ----
+  useEffect(() => {
+    const canvas = fabricRef.current
+    if (!canvas) return
+
+    const targetW = stageSize?.width ?? CANVAS_WIDTH
+    const targetH = stageSize?.height ?? CANVAS_HEIGHT
+    if (targetW === canvas.getWidth() && targetH === canvas.getHeight()) return
+
+    canvas.setDimensions({ width: targetW, height: targetH })
+
+    const bg = bgRef.current
+    if (bg && bgLoadedRef.current) {
+      const el = bg.getElement?.() ?? (bg as unknown as { _element: HTMLImageElement | HTMLVideoElement })._element
+      const origW = el instanceof HTMLVideoElement
+        ? (el.videoWidth || el.width || targetW)
+        : (el.width || targetW)
+      const origH = el instanceof HTMLVideoElement
+        ? (el.videoHeight || el.height || targetH)
+        : (el.height || targetH)
+      const scale = Math.min(targetW / origW, targetH / origH)
+      bg.set({
+        scaleX: scale,
+        scaleY: scale,
+        left: targetW / 2,
+        top: targetH / 2,
+        originX: 'center',
+        originY: 'center',
+      })
+      bg.setCoords()
+      configureMedia(bg, variantRef.current === 'media' && activeToolRef.current === 'select')
+    }
+
+    const fill = fillRef.current
+    if (fill) {
+      fill.set({
+        left: targetW / 2,
+        top: targetH / 2,
+        originX: 'center',
+        originY: 'center',
+      })
+      fill.setCoords()
+    }
+
+    canvas.requestRenderAll()
+  }, [stageSize])
 
   return (
     <div
