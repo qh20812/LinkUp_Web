@@ -1,0 +1,123 @@
+.centered {
+  text-align: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.logoImg {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.logoText {
+  font: var(--text-h2);
+  color: var(--color-primary);
+}
+
+.iconWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.icon {
+  font-size: 3rem;
+  color: var(--color-primary);
+}
+
+.title {
+  font: var(--text-body);
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+
+.message {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  word-break: break-word;
+}
+
+.button {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-top: var(--space-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #ffffff;
+  font: var(--text-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  text-align: center;
+  line-height: 40px;
+}
+
+.button:hover {
+  background: var(--color-primary-hover);
+}
+
+.buttonSecondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.buttonSecondary:hover {
+  background: var(--color-bg-secondary);
+}
+
+.appStoreBtn {
+  composes: button;
+  background: #000000;
+}
+
+.appStoreBtn:hover {
+  background: #333333;
+}
+
+.playStoreBtn {
+  composes: button;
+  background: #01875f;
+}
+
+.playStoreBtn:hover {
+  background: #016c4d;
+}
+
+.footer {
+  margin-top: var(--space-lg);
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}

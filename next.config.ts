@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   images: {
     dangerouslyAllowSVG: true,
-    contentDispositionType: "attachment",
+    contentDispositionType: "inline",
     remotePatterns: [
       {
         protocol: "https",
@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.dicebear.com",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
     ],
   },
   async rewrites() {
@@ -22,10 +26,6 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         destination: `http://${backendUrl}/api/:path*`,
-      },
-      {
-        source: "/ads-management/:path*",
-        destination: `http://${backendUrl}/ads-management/:path*`,
       },
       {
         source: "/health",

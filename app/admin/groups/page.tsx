@@ -242,7 +242,7 @@ export default function GroupsPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={group.avatar_uri || "/default-avatar.png"}
+                          src={group.avatar_uri || "/default-avatar.svg"}
                           alt=""
                           width={36}
                           height={36}
@@ -434,7 +434,7 @@ export default function GroupsPage() {
                   marginBottom: "var(--space-lg)",
                 }}>
                 <Image
-                  src={detailTarget.avatar_uri || "/default-avatar.png"}
+                  src={detailTarget.avatar_uri || "/default-avatar.svg"}
                   alt=""
                   width={64}
                   height={64}

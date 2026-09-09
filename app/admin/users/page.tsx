@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import Image from 'next/image'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getUsers, updateUserStatus, banUser } from '../../../api/admin'
+import { updateUserStatus, banUser } from '../../../api/admin'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminUserListItem, AdminUserListResponse } from '../../../types'
 import styles from './Users.module.css'
@@ -252,7 +252,7 @@ export default function UsersPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={user.avatar_uri || '/default-avatar.png'}
+                          src={user.avatar_uri || '/default-avatar.svg'}
                           alt=""
                           width={36}
                           height={36}
@@ -377,7 +377,7 @@ export default function UsersPage() {
             <div className={styles.modalBody}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
                 <Image
-                  src={detailTarget.avatar_uri || '/default-avatar.png'}
+                  src={detailTarget.avatar_uri || '/default-avatar.svg'}
                   alt=""
                   width={64}
                   height={64}

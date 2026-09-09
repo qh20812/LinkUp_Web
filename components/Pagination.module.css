@@ -50,3 +50,17 @@
   color: var(--color-text-secondary);
   margin: 0 var(--space-sm);
 }
+
+@media (max-width: 576px) {
+  .pagination {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+  }
+
+  .pageBtn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+}

@@ -12,12 +12,19 @@ export interface UseAuthResult {
   isSuperAdmin: boolean
   isPartner: boolean
   isUser: boolean
+  initializing: boolean
 }
 
 export function useAuth(): UseAuthResult {
-  const [payload, setPayload] = useState<TokenPayload | null>(() => getTokenPayload())
+  const [payload, setPayload] = useState<TokenPayload | null>(null)
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
+    // localStorage is read after mount so server and client first renders match.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPayload(getTokenPayload())
+    queueMicrotask(() => setInitializing(false))
+
     const handleStorage = () => setPayload(getTokenPayload())
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
@@ -34,5 +41,6 @@ export function useAuth(): UseAuthResult {
     isSuperAdmin: role === 'SUPER_ADMIN',
     isPartner: role === 'PARTNER',
     isUser: role === 'USER',
+    initializing,
   }
 }

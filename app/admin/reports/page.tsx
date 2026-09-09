@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getReports, getReport, reviewReport } from '../../../api/admin'
+import { getReport, reviewReport } from '../../../api/admin'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminReportListItem, AdminReportDetailResponse, AdminReportListResponse } from '../../../types'
 import Pagination from '../../../components/Pagination'
@@ -306,8 +306,8 @@ export default function ReportsPage() {
                                 try {
                                   const detail = await getReport(report.id)
                                   setDetailTarget(detail)
-                                } catch {
-                                  toast({ title: t('common.error'), type: 'error' })
+                                } catch (err) {
+                                  toast({ title: err instanceof Error ? err.message : t('reports.detailLoadError'), type: 'error' })
                                 } finally {
                                   setDetailLoading(false)
                                 }

@@ -1,0 +1,87 @@
+.stage {
+  position: relative;
+  width: min(100%, calc(100cqh * 9 / 16));
+  aspect-ratio: 9 / 16;
+  max-width: 100%;
+  background: var(--color-story-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+/* Fabric.js sets inline style.width/height (CSS pixels) on the <canvas> via
+   setCSSDimensions. We let Fabric manage those dimensions so the internal
+   coordinate system stays in sync with the rendered size (setDimensions
+   updates both the drawing buffer and CSS). position:absolute + inset:0
+   keeps the canvas inside .stage when the two happen to differ. */
+.canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.statusOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-story-bg);
+  z-index: 1;
+}
+
+.skeletonShimmer {
+  width: 60%;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  animation: canvasShimmer 1.5s ease-in-out infinite;
+}
+
+.errorBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+}
+
+.errorBox i {
+  font-size: 32px;
+}
+
+.retryBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.retryBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+@keyframes canvasShimmer {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonShimmer {
+    animation: none;
+  }
+}

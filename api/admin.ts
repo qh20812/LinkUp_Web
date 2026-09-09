@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { request, extractErrorMessage } from "./api";
 import type {
   AdminAdListResponse,
   AdPerformance,
@@ -22,6 +22,8 @@ import type {
   AdminMediaGroupedResponse,
   AdminModerationLogListResponse,
   ViewProfileResponse,
+  AdminSettingsResponse,
+  AdminSettingsInput,
 } from "../types";
 
 // Dashboard
@@ -284,10 +286,18 @@ export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`/ads-management/${id}/analytics`, { headers })
+  const res = await fetch(`/api/ads-management/${id}/analytics`, { headers })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }))
-    throw new Error(err.message || `HTTP ${res.status}`)
+    throw new Error(await extractErrorMessage(res))
   }
   return res.json()
 }
+
+export const getAdminSettings = () =>
+  request<AdminSettingsResponse>('/admin/settings')
+
+export const updateAdminSettings = (input: AdminSettingsInput) =>
+  request<{ message: string }>('/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })

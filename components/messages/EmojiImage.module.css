@@ -1,0 +1,8 @@
+.emojiFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}

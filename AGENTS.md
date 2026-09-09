@@ -21,8 +21,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Build | `npm run build` | `output: "standalone"` — required for Docker |
 | Start (prod) | `npm run start` | |
 | Lint | `npm run lint` | runs `eslint` directly, not `next lint` |
+| Typecheck | `npx tsc --noEmit` | |
+| Test | `npm test` | Jest (`jest --passWithNoTests`), config in `jest.config.ts`, tests in `__tests__/` |
+| Verify all | `npm run lint ; if ($?) { npx tsc --noEmit } ; if ($?) { npm test }` | PowerShell — run before committing |
 
-No test runner (no deps). No CI/CD. No commit hooks.
+CI/CD: `deploy-web.yml` runs on push to `main` — `npm ci` → lint → test → Docker buildx → SCP → deploy to VPS.
 
 # Architecture
 
@@ -31,61 +34,70 @@ No test runner (no deps). No CI/CD. No commit hooks.
 - **Styling:** CSS Modules (`*.module.css`). `globals.css` is reset + design tokens only (light + dark mode via `[data-theme="dark"]`). See `DESIGN.md` for the complete design system.
 - **Path alias:** `@/*` → repo root
 - **ESLint:** `eslint.config.mjs` — `eslint-config-next` (core-web-vitals + TypeScript). No `.eslintrc.*`.
-- **API proxy:** `next.config.ts` rewrites `/api/*` → `http://{NEXT_PUBLIC_API_BASE_URL}/api/*` and `/health` → backend health endpoint. Defaults to `localhost:8080` from `.env`.
+- **API proxy:** `next.config.ts` rewrites `/api/*` → `http://{NEXT_PUBLIC_API_BASE_URL}/api/*`, `/ads-management/*`, and `/health` → backend. Defaults to `localhost:8080` from `.env`.
 - **Icons:** Boxicons CDN (`<link>` in root layout head).
-- **API layer:** `/api/api.ts` provides `request<T>()` — attaches JWT from `localStorage`, prepends `/api`, throws on non-ok.
+- **API layer:** `api/api.ts` provides `request<T>()` — attaches JWT from `localStorage`, prepends `/api`, throws on non-ok.
 - **Token storage:** JWT stored in `localStorage` key `token`. No cookies.
+
+# Environment
+
+- **`.env.local`** is the real env file (`.gitignore`d). Keys: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
+- **`.env`** exists but contains the wrong key (`API_BASE_URL` instead of `NEXT_PUBLIC_API_BASE_URL`). It is never read by Next.js. Ignore it.
+- `NEXT_PUBLIC_API_BASE_URL` is **baked at build time** — changing it requires a rebuild, not just a runtime env swap.
 
 # Layout hierarchy
 
-Root layout (`app/layout.tsx`) provides fonts, Boxicons CDN, `<LanguageProvider>`, `<ToastProvider>`. **No Navbar/Footer at this level.**
+Root layout (`app/layout.tsx`) provides fonts, Boxicons CDN, `<GoogleOAuthProvider>`, `<LanguageProvider>`, `<ThemeProvider>`, `<ToastProvider>`. **No Navbar/Footer at this level.**
 
-| Route | Layout | Navbar | Footer |
-|-------|--------|--------|--------|
-| `/` (home) | inline in `page.tsx` | Navbar (public) | Footer |
-| `/login` | `app/login/layout.tsx` | Navbar (public) | Footer |
-| `/admin/*` | `app/admin/layout.tsx` | AdminNavbar + AdminSidebar | **none** |
+| Route group | Layout | Chrome |
+|-------------|--------|--------|
+| `(auth)/*` | `app/(auth)/layout.tsx` → `AuthLayout` | Auth-specific layout (no Navbar/Footer) |
+| `(user)/*` | `app/(user)/layout.tsx` → `UserLayout` | Navbar + Footer |
+| `/admin/*` | `app/admin/layout.tsx` | AdminNavbar + AdminSidebar, no Footer |
 
-The public Navbar and admin chrome (AdminNavbar + AdminSidebar) are independent — they share no layout component.
+The three layout groups are independent — they share no chrome components.
+
+# Key conventions
+
+- **Use CSS variables** from `globals.css` — never hardcode colors, spacing, or radii. See `DESIGN.md` for the full token reference.
+- **Login route is `/login`** (inside `(auth)` group), not `/admin/login`.
+- **Navbar height** is 56px (+1px border). Subtract 57px total for viewport calculations.
+- **Theme:** `ThemeContext` reads/writes `data-theme` attribute on `<html>` + `localStorage` key `theme`.
+- **Toast:** `useToast()` hook, 4 types (`success`/`error`/`warning`/`info`), auto-dismiss 4s.
+- **Notifications:** `NotificationContext` manages WebSocket connection (`/api/ws?token=...`), unread count, dropdown list, and preferences. Supports notification grouping (`groupNotifications` util). Exponential backoff reconnection.
+- **`next.config.ts` sets `output: "standalone"`** — conditionalize or remove for `next dev`.
+- **Translation:** `useTranslation()` returns `{ t, language, setLanguage }`. Keys via dot-notation `t('key')`. Always add keys to both `locales/vi.json` and `locales/en.json`.
+- **`PLAN.md`** — implementation roadmap, gitignored. Follow it for new features.
 
 # Implemented pages
 
 | Route | Status | Notes |
 |-------|--------|-------|
-| `/` (home) | ✅ Done | Health-check landing page |
-| `/login` | ✅ Done | LoginForm with validation, toast errors, redirect to `/admin/dashboard` |
-| `/admin/dashboard` | ✅ Done | recharts (LineChart + PieChart), StatCard, date-range period selector |
-| `/admin/users` | ✅ Done | Table, search, status filter, pagination, ban modal, detail modal |
-| `/admin/posts` | ✅ Done | Table, search, status filter, pagination, hide/reveal/status toggle |
-| `/admin/reports` | ✅ Done | Table, search, status/target-type filters, detail modal, review modal |
-| `/admin/media` | ✅ Done | Tabs (grouped/flagged/rejected), review modal, cleanup-rejected |
-| `/admin/groups` | ✅ Done | Table, search, status filter, hide/unhide/archive/delete actions |
-| `/admin/communities` | ✅ Done | Table, search, status/privacy filters, actions, logs |
-| `/admin/notifications` | ✅ Done | List with read/unread filter, pagination, mark-read, preferences |
-| `/admin/profile` | ⬜ Stub | Coming soon |
-| `/admin/ads` | ⬜ Stub | Coming soon |
+| `/` (home) | Done | Health-check landing page |
+| `/login` | Done | LoginForm with validation, toast errors, Google OAuth |
+| `/register` | Done | Registration form |
+| `/verify-email` | Done | Email verification |
+| `/forgot-password` | Done | Password reset request |
+| `/reset-password` | Done | Password reset form |
+| `/onboarding` | Done | Post-registration onboarding |
+| `/notifications` | Done | Grouped notifications, mark-as-read, preferences, real-time via WS |
+| `/messages` | Done | Direct messaging, E2E encryption, conversation list, user picker |
+| `/friends` | Done | Friend list, suggestions, requests |
+| `/search` | Done | Tabbed search (users, posts, hashtags) |
+| `/saved` | Done | Saved/bookmarked posts |
+| `/posts/[id]` | Done | Single post detail |
+| `/profile/[userID]` | Done | User profile page |
+| `/settings` | Done | User settings (appearance, privacy, sessions) |
+| `/admin/dashboard` | Done | recharts (LineChart + PieChart), StatCard, date-range period selector |
+| `/admin/users` | Done | Table, search, status filter, pagination, ban modal, detail modal |
+| `/admin/posts` | Done | Table, search, status filter, pagination, hide/reveal/status toggle |
+| `/admin/reports` | Done | Table, search, status/target-type filters, detail modal, review modal |
+| `/admin/media` | Done | Tabs (grouped/flagged/rejected), review modal, cleanup-rejected |
+| `/admin/groups` | Done | Table, search, status filter, hide/unhide/archive/delete actions |
+| `/admin/communities` | Done | Table, search, status/privacy filters, actions, logs |
+| `/admin/notifications` | Done | List with read/unread filter, pagination, mark-read, preferences |
+| `/admin/ads` | Done | Ad management, analytics, status toggle |
+| `/admin/settings` | Done | Site settings management |
+| `/admin/profile` | Stub | Coming soon |
 
 **Shared components:** `Modal`, `Pagination`, `StatCard` in `components/` — reuse instead of inlining.
-
-# Translation system
-
-- **Context:** `contexts/LanguageContext.tsx` — dynamic `import()` of `locales/{lang}.json`
-- **Hook:** `useTranslation()` returns `{ t, language, setLanguage }`
-- **Keys:** dot-notation via `t()`, e.g. `t('users.title')`. Supports `{param}` interpolation.
-- **Locale files have grown to ~300+ keys each** — always add keys to both `vi.json` and `en.json`.
-- **Persisted in** `localStorage` key `language`. Defaults to `vi`.
-- **Hydration mismatch:** server defaults `vi`, client reads `localStorage`. Use `suppressHydrationWarning` on toggle buttons.
-
-# Key conventions
-
-- **Use CSS variables** from `globals.css` — never hardcode colors, spacing, or radii. See `DESIGN.md` for the full token reference.
-- **Footer is NOT in root layout.** Include `<Footer>` directly in page/layout components that need it.
-- **Login route is `/login`**, not `/admin/login`.
-- **Navbar height** is 56px (+1px border). When calculating remaining viewport height, subtract 57px total.
-- **Theme:** reads/writes `data-theme` attribute on `<html>` + `localStorage` key `theme`.
-- **Toast:** `useToast()` hook, 4 types (`success`/`error`/`warning`/`info`), auto-dismiss 4s.
-- **Notifications:** `NotificationContext` manages WebSocket connection (`/api/ws?token=...`), unread count, dropdown list, and preferences. Exponential backoff reconnection.
-- **`next.config.ts` sets `output: "standalone"`** — conditionalize or remove for `next dev`.
-- **`AdminNavbar` search input has `readOnly`** — search not yet implemented there.
-- **`PLAN.md`** — implementation roadmap, gitignored. Follow it for new features.
-- **`CLAUDE.md`** delegates to this file via `@AGENTS.md`.

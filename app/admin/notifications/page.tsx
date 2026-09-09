@@ -11,6 +11,7 @@ import {
   markAllAsRead as apiMarkAllAsRead,
 } from "../../../api/notifications";
 import type { NotificationItem, NotificationListResponse, NotificationType } from "../../../types";
+import ExternalImage from '../../../components/ExternalImage'
 import styles from "./Notifications.module.css";
 
 export default function NotificationsPage() {
@@ -22,8 +23,8 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const notifParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  if (filter === 'unread') notifParams.set('unread_only', 'true')
+  const notifParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (filter === 'unread') notifParams.set('unreadOnly', 'true')
   const swrKey = `/notifications?${notifParams}`
   const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<NotificationListResponse>(url))
   let items: NotificationItem[] = []
@@ -44,8 +45,8 @@ export default function NotificationsPage() {
       refreshUnreadCount();
       invalidate('/notifications');
       toast({ title: t("notifications.markRead"), type: "success" });
-    } catch {
-      toast({ title: t("common.error"), type: "error" });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t("notifications.markReadError"), type: "error" });
     }
   };
 
@@ -55,8 +56,8 @@ export default function NotificationsPage() {
       refreshUnreadCount();
       invalidate('/notifications');
       toast({ title: t("notifications.markAllRead"), type: "success" });
-    } catch {
-      toast({ title: t("common.error"), type: "error" });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t("notifications.markAllReadError"), type: "error" });
     }
   };
 
@@ -92,8 +93,12 @@ export default function NotificationsPage() {
     switch (type) {
       case "like":
         return "bx bx-heart " + styles.iconLike;
+      case "story_react":
+        return "bx bx-heart " + styles.iconFollow;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
+      case "share":
+        return "bx bx-share-alt " + styles.iconLike;
       case "follow":
         return "bx bx-user-plus " + styles.iconFollow;
       case "message":
@@ -179,7 +184,7 @@ export default function NotificationsPage() {
                     <td>
                       <div className={styles.iconWrapper}>
                         {item.sender_avatar ? (
-                          <img
+                          <ExternalImage
                             src={item.sender_avatar}
                             alt=""
                             className={styles.senderAvatar}

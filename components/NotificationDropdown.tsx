@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../contexts/NotificationContext";
 import { useTranslation } from "../hooks/useTranslation";
-import type { NotificationItem, NotificationType } from "../types";
+import type { NotificationGroup, NotificationType } from "../types";
+import ExternalImage from "./ExternalImage";
 import styles from "./NotificationDropdown.module.css";
 
 interface NotificationDropdownProps {
@@ -26,6 +27,8 @@ export default function NotificationDropdown({
         return "bx bx-heart " + styles.iconLike;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
+      case "share":
+        return "bx bx-share-alt " + styles.iconLike;
       case "follow":
         return "bx bx-user-plus " + styles.iconFollow;
       case "message":
@@ -70,9 +73,13 @@ export default function NotificationDropdown({
     return t("notifications.daysAgo").replace("{days}", String(diffDays));
   };
 
-  const handleItemClick = async (item: NotificationItem) => {
+  const handleItemClick = async (item: NotificationGroup) => {
     if (!item.is_read) {
-      await markAsRead(item.id);
+      try {
+        await markAsRead(item);
+      } catch {
+        /* ignore */
+      }
     }
     onClose();
 
@@ -80,6 +87,8 @@ export default function NotificationDropdown({
       router.push("/admin/posts");
     } else if (item.redirect_user_id) {
       router.push("/admin/users");
+    } else {
+      router.push("/admin/notifications");
     }
   };
 
@@ -114,14 +123,14 @@ export default function NotificationDropdown({
         ) : (
           notifications.map((item) => (
             <div
-              key={item.id}
+              key={item.key}
               className={`${styles.item} ${
                 !item.is_read ? styles.itemUnread : ""
               }`}
               onClick={() => handleItemClick(item)}>
               <div className={styles.iconWrapper}>
                 {item.sender_avatar ? (
-                  <img
+                  <ExternalImage
                     src={item.sender_avatar}
                     alt=""
                     className={styles.senderAvatar}
@@ -141,6 +150,9 @@ export default function NotificationDropdown({
                   {formatTime(item.created_at)}
                 </span>
               </div>
+              {item.count > 1 && (
+                <span className={styles.countBadge}>+{item.count}</span>
+              )}
               {!item.is_read && <span className={styles.unreadDot} />}
             </div>
           ))

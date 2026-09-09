@@ -1,14 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
-import type { FeedPost, EmojiItem } from '../types'
+import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
+import { getTokenPayload } from '../api/auth'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
+import PostComposer from './PostComposer'
+import PostDetailModal from './PostDetailModal'
+import StoryBar from './story/StoryBar'
+import StoryViewer from './story/StoryViewer'
+import StoryEditorModal from './story/StoryEditorModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
+import { useToast } from '../contexts/ToastContext'
 
 const PAGE_SIZE = 10
 
@@ -22,7 +30,16 @@ async function ensureLikeEmojiId(): Promise<string | undefined> {
 }
 
 export default function Feed() {
+  return (
+    <Suspense fallback={null}>
+      <FeedContent />
+    </Suspense>
+  )
+}
+
+function FeedContent() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const searchParams = useSearchParams()
   const { followedUserIds, followUser: ctxFollowUser } = useFollowContext()
   const tab = searchParams.get('tab') || 'explore'
@@ -31,11 +48,28 @@ export default function Feed() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [stories, setStories] = useState<StoryFeedItem[]>([])
+  const [storyLoading, setStoryLoading] = useState(true)
+  const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
+  const [showCreateStory, setShowCreateStory] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
+  const currentUserId = getTokenPayload()?.user_id
 
   const filter = tab === 'following' ? 'following' : undefined
+
+  const loadStories = useCallback(() => {
+    getFeedStories()
+      .then((res) => setStories(Array.isArray(res) ? res : []))
+      .catch(() => {})
+      .finally(() => setStoryLoading(false))
+  }, [])
+
+  useEffect(() => {
+    loadStories()
+  }, [loadStories])
 
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
@@ -72,6 +106,15 @@ export default function Feed() {
     setHasMore(true)
   }, [tab])
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const post = (e as CustomEvent<FeedPost>).detail
+      setPosts((prev) => [post, ...prev])
+    }
+    window.addEventListener('post:created', handler as EventListener)
+    return () => window.removeEventListener('post:created', handler as EventListener)
+  }, [setPosts])
+
   const fetchNext = useCallback(async () => {
     if (loadingRef.current) return
     loadingRef.current = true
@@ -80,7 +123,11 @@ export default function Feed() {
     const isFirst = cursorRef.current === null
     try {
       const res = await getFeedPosts(cursorRef.current, PAGE_SIZE, filter)
-      setPosts((prev) => (isFirst ? res.data : [...prev, ...res.data]))
+      setPosts((prev) => {
+        const list = isFirst ? res.data : [...prev, ...res.data]
+        const seen = new Set<string>()
+        return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+      })
       cursorRef.current = res.next_cursor
       setHasMore(res.next_cursor !== null)
     } catch (err) {
@@ -147,21 +194,22 @@ export default function Feed() {
 
     try {
       await savePost(postId)
-    } catch {
+    } catch (e) {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId ? { ...p, is_saved: !p.is_saved } : p,
         ),
       )
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     }
   }
 
   const handleComment = (postId: string) => {
-    window.location.href = `/posts/${postId}`
+    setSelectedPostId(postId)
   }
 
   const handleShare = (postId: string) => {
-    window.location.href = `/posts/${postId}`
+    setSelectedPostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -232,8 +280,26 @@ export default function Feed() {
     )
   }
 
+  const detailPost = selectedPostId ? posts.find((p) => p.id === selectedPostId) ?? null : null
+
   return (
     <div className={styles.container}>
+      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+      <StoryBar
+        stories={stories}
+        loading={storyLoading}
+        currentUserId={currentUserId}
+        onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
+        onCreateStory={() => setShowCreateStory(true)}
+        onMuteUser={(userId) => {
+          toggleMuteStoryUser(userId)
+            .then(() => loadStories())
+            .catch((err) => toast({
+              type: 'error',
+              title: err instanceof Error ? err.message : t('common.error'),
+            }))
+        }}
+      />
       {posts.map((post) => (
         <PostCard
           key={post.id}
@@ -243,6 +309,7 @@ export default function Feed() {
           onComment={handleComment}
           onShare={handleShare}
           onFollow={handleFollow}
+          onOpenDetail={setSelectedPostId}
         />
       ))}
 
@@ -260,6 +327,35 @@ export default function Feed() {
       )}
 
       <div ref={sentinelRef} className={styles.sentinel} />
+
+      {storyViewer && (
+        <StoryViewer
+          stories={storyViewer}
+          currentUserId={currentUserId}
+          onClose={() => setStoryViewer(null)}
+          onStoryViewed={loadStories}
+          onStoryDeleted={() => loadStories()}
+        />
+      )}
+
+      {showCreateStory && (
+        <StoryEditorModal
+          open={showCreateStory}
+          onClose={() => setShowCreateStory(false)}
+          onCreated={loadStories}
+        />
+      )}
+
+      {detailPost && (
+        <PostDetailModal
+          key={detailPost.id}
+          post={detailPost}
+          open
+          onClose={() => setSelectedPostId(null)}
+          onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
+          onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+        />
+      )}
     </div>
   )
 }

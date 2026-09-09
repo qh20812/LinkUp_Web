@@ -41,9 +41,94 @@
   color: var(--color-text-secondary);
 }
 
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.backButton:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.menuBtn:hover {
+  color: var(--color-primary-hover);
+}
+
+.collapseBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: color 0.15s;
+}
+
+.collapseBtn:hover {
+  color: var(--color-primary-hover);
+}
+
+.pageTitle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (min-width: 1025px) {
   .searchForm {
     display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .collapseBtn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .menuBtn {
+    display: inline-flex;
   }
 }
 
@@ -74,10 +159,10 @@
 .tabActive {
   color: var(--color-primary);
   font-weight: 600;
-  background: var(--color-bg-primary-transparent, rgba(64, 224, 208, 0.1));
+  background: var(--color-primary-light);
 }
 
 .tabActive:hover {
   color: var(--color-primary);
-  background: var(--color-bg-primary-transparent, rgba(64, 224, 208, 0.1));
+  background: var(--color-primary-light);
 }

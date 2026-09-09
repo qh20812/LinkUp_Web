@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.2s ease;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -19,6 +20,7 @@
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.25s ease;
+  overscroll-behavior: contain;
 }
 
 .header {
@@ -77,4 +79,25 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 576px) {
+  .modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .header {
+    padding: var(--space-md);
+  }
+
+  .body {
+    padding: var(--space-md);
+  }
+
+  .footer {
+    padding: var(--space-md);
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
 }

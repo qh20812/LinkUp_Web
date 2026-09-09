@@ -1,12 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useTranslation } from '../hooks/useTranslation'
-import { logout } from '../api/auth'
-import styles from './AdminSidebar.module.css'
+  import { useTranslation } from '../hooks/useTranslation'
+  import { logout } from '../api/auth'
+  import { clearSession } from '../api/api'
+  import { clearSWRCache } from '../api/swr'
+  import { useNotification } from '../contexts/NotificationContext'
+  import styles from './AdminSidebar.module.css'
 
 interface AdminSidebarProps {
   collapsed: boolean
@@ -28,11 +31,25 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   const { t } = useTranslation()
   const pathname = usePathname()
   const router = useRouter()
+  const { closeWs } = useNotification()
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token')
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserRole(payload.role || null)
+      }
+    } catch { /* ignore */ }
+  }, [])
 
   const handleLogout = async () => {
+    closeWs()
     await logout().catch(() => {})
-    localStorage.removeItem('token')
-    localStorage.removeItem('admin_profile')
+    clearSession()
+    clearSWRCache()
     router.push('/login')
   }
 
@@ -66,12 +83,14 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
             <span>{t('nav.profile')}</span>
           </Link>
         </li>
-        <li className={pathname === '/admin/settings' ? styles.active : ''}>
-          <Link href="/admin/settings">
-            <i className="bx bx-cog" />
-            <span>{t('nav.settings')}</span>
-          </Link>
-        </li>
+        {userRole === 'SUPER_ADMIN' && (
+          <li className={pathname === '/admin/settings' ? styles.active : ''}>
+            <Link href="/admin/settings">
+              <i className="bx bx-cog" />
+              <span>{t('nav.settings')}</span>
+            </Link>
+          </li>
+        )}
       </ul>
 
       <ul className={styles.logoutMenu}>

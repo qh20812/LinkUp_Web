@@ -1,0 +1,238 @@
+.page {
+  height: 100vh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@supports (height: 100dvh) {
+  .page {
+    height: 100dvh;
+  }
+}
+
+.inviteBanner {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.inviteHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  padding-bottom: var(--space-sm);
+}
+
+.inviteHeader i {
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.inviteList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.inviteItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.inviteAvatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-circle);
+  background: var(--color-bg-secondary);
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.inviteAvatar i {
+  font-size: 18px;
+}
+
+.inviteName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.inviteActions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.inviteAcceptBtn,
+.inviteDeclineBtn {
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inviteAcceptBtn {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.inviteAcceptBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.inviteDeclineBtn {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.inviteDeclineBtn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+
+.inviteAcceptBtn:disabled,
+.inviteDeclineBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.layout {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+}
+
+.listPane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.windowPane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.ghostBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghostBtn:hover {
+  background: var(--color-bg-secondary);
+}
+
+.dangerBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerBtn:hover {
+  background: #b71c1c;
+}
+
+.modalText {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.center i {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.center p {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Chưa chọn chat: chỉ hiện list */
+  .listPane {
+    display: flex;
+    height: 100%;
+  }
+
+  .windowPane {
+    display: none;
+  }
+
+  /* Đã chọn chat: hiện window full, ẩn list → cần nút back */
+  .hasChat .listPane {
+    display: none;
+  }
+
+  .hasChat .windowPane {
+    display: flex;
+    height: 100%;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 768px) {
+    .page {
+      height: calc(100dvh - 57px);
+    }
+  }
+}

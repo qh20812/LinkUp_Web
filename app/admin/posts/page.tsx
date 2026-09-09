@@ -5,7 +5,7 @@ import useSWR from "swr";
 import Image from "next/image";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { useToast } from "../../../contexts/ToastContext";
-import { getPosts, updatePostStatus, hidePost } from "../../../api/admin";
+import { updatePostStatus, hidePost } from "../../../api/admin";
 import { swrFetcher, invalidate } from "../../../api/swr";
 import type {
   AdminPostListItem,
@@ -245,7 +245,7 @@ export default function PostsPage() {
                     <td>
                       <div className={styles.cellUser}>
                         <Image
-                          src={post.avatar_uri || "/default-avatar.png"}
+                          src={post.avatar_uri || "/default-avatar.svg"}
                           alt=""
                           width={36}
                           height={36}
