@@ -75,13 +75,13 @@ jobs:
             docker compose up -d --no-build web
             echo "Waiting for web (up to 60s)..."
             for i in $(seq 1 20); do
-              if curl -sf -o /dev/null http://localhost:3000/; then
+              if curl -skf -o /dev/null https://localhost/ 2>/dev/null; then
                 echo "WEB OK after ${i}x3s"
                 break
               fi
               sleep 3
             done
-            curl -sf -o /dev/null http://localhost:3000/ || exit 1
+            curl -skf -o /dev/null https://localhost/ || exit 1
 
       - name: Notify Telegram
         if: always()
