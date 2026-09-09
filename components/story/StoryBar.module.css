@@ -293,31 +293,6 @@
   color: var(--color-danger);
 }
 
-.scopeFilter {
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md) 0;
-}
-
-.scopeBtn {
-  padding: 10px 14px;
-  min-height: 44px;
-  background: var(--color-bg-secondary);
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
-  font: var(--text-caption);
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.scopeBtnActive {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .skeletonCard {
     animation: none;

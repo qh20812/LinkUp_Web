@@ -58,7 +58,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   const [step, setStep] = useState<Step>('pick')
   const [items, setItems] = useState<PickedFile[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [caption, setCaption] = useState('')
   const [filterId, setFilterId] = useState<FilterPresetId>('original')
   const [filterIntensity, setFilterIntensity] = useState(1)
   const [activeTool, setActiveTool] = useState<EditorTool>('select')
@@ -107,7 +106,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     setCurrentIndex(0)
     setMusicTrackId(null)
     setMusicVolume(100)
-    setCaption('')
     setFilterId('original')
     setFilterIntensity(1)
     setActiveTool('select')
@@ -219,7 +217,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     setItems(nextItems)
     setCurrentIndex(0)
     setError(null)
-    setCaption('')
     setFilterId('original')
     setFilterIntensity(1)
     setSelectedText(null)
@@ -266,7 +263,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     ])
     setCurrentIndex(0)
     setError(null)
-    setCaption('')
     setFilterId('original')
     setFilterIntensity(1)
     setSelectedText(null)
@@ -376,8 +372,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const handleSubmit = async () => {
     if (submitting) return
-    const trimmedCaption = caption.trim()
-    if (items.length === 0 && trimmedCaption === '') {
+    if (items.length === 0) {
       setError(t('story.contentRequired'))
       return
     }
@@ -387,7 +382,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
       await createStories(
         items.map((item) => ({
           file: toUploadFile(item),
-          caption: trimmedCaption,
+          caption: '',
         })),
       )
       toast({ type: 'success', title: t('story.created') })
@@ -420,7 +415,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   return createPortal(
     <div className={styles.overlay} onClick={handleClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={`${styles.modal} ${step === 'edit' ? styles.modalEdit : ''}`} onClick={(e) => e.stopPropagation()}>
         <div
           className={styles.stepIndicator}
           role="progressbar"
@@ -598,6 +593,14 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 ) : (
                   <span className={styles.headerSpacer} />
                 )}
+                <button
+                  type="button"
+                  className={styles.doneBtn}
+                  onClick={handleDoneEditing}
+                >
+                  <span>{t('story.editor.done')}</span>
+                  <i className="bx bx-chevron-right" />
+                </button>
               </div>
             </div>
 
@@ -731,15 +734,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                   </>
                 )}
 
-                <button
-                  type="button"
-                  className={styles.doneBtn}
-                  onClick={handleDoneEditing}
-                >
-                  <span>{t('story.editor.done')}</span>
-                  <i className="bx bx-chevron-right" />
-                </button>
-
                 <EditorToolbar
                   activeTool={activeTool}
                   onToolChange={handleToolChange}
@@ -833,17 +827,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                   ))}
                 </div>
               )}
-
-              <textarea
-                className={styles.captionInput}
-                value={caption}
-                onChange={(e) => {
-                  setCaption(e.target.value)
-                  setError(null)
-                }}
-                maxLength={500}
-                placeholder={t('story.captionPlaceholder')}
-              />
 
               {error && <p className={styles.errorText}>{error}</p>}
             </div>

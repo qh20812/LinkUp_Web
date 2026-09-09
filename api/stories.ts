@@ -1,10 +1,8 @@
 import { request, extractErrorMessage } from './api'
 import type { StoryAnalytics, StoryFeedItem, StoryItem } from '../types'
 
-export type StoryFeedScope = 'all' | 'following'
-
-export const getFeedStories = (scope?: StoryFeedScope) =>
-  request<StoryFeedItem[]>(`/stories/feed${scope === 'following' ? '?scope=following' : ''}`)
+export const getFeedStories = () =>
+  request<StoryFeedItem[]>('/stories/feed')
 
 export const checkUserStory = (userID: string) =>
   request<{ has_story: boolean }>(`/stories/user/${userID}/active`)

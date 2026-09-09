@@ -10,6 +10,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { useEmojis } from '../../hooks/useEmojis'
 import StoryStatsModal, { timeAgo } from './StoryStatsModal'
+import Modal from '../Modal'
 import type { StoryItem, StoryAnalytics, EmojiItem } from '../../types'
 
 function currentTime(): number {
@@ -44,6 +45,7 @@ export default function StoryViewer({
   const [analytics, setAnalytics] = useState<StoryAnalytics | null>(null)
   const [statsError, setStatsError] = useState(false)
   const [videoMuted, setVideoMuted] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { t } = useTranslation()
   const { toast } = useToast()
   const { emojis } = useEmojis()
@@ -297,10 +299,12 @@ export default function StoryViewer({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
     if (!story) return
-    const confirmed = window.confirm(t('story.confirmDelete'))
-    if (!confirmed) return
     try {
       await deleteStory(story.id)
       toast({ type: 'success', title: t('story.deleted') })
@@ -505,6 +509,25 @@ export default function StoryViewer({
           onClose={() => { setShowAnalytics(false); setAnalytics(null); setStatsError(false) }}
         />
       )}
+
+      <Modal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title={t('story.delete')}
+        footer={
+          <>
+            <button className={styles.ghostBtn} onClick={() => setShowDeleteConfirm(false)}>
+              {t('common.cancel')}
+            </button>
+            <button className={styles.dangerBtn} onClick={confirmDelete}>
+              <i className="bx bx-trash" />
+              {t('story.delete')}
+            </button>
+          </>
+        }
+      >
+        <p className={styles.modalText}>{t('story.confirmDelete')}</p>
+      </Modal>
     </div>
   )
 }

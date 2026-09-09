@@ -710,6 +710,50 @@
   }
 }
 
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ghostBtn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.dangerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerBtn:hover {
+  opacity: 0.9;
+}
+
+.modalText {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tapHeartShow {
     animation: none;

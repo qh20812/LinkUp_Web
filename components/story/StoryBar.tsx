@@ -10,8 +10,6 @@ interface StoryBarProps {
   stories: StoryFeedItem[]
   loading?: boolean
   currentUserId?: string
-  scope: 'all' | 'following'
-  onScopeChange: (scope: 'all' | 'following') => void
   onSelectStory: (userId: string, stories: StoryItem[]) => void
   onCreateStory: () => void
   onMuteUser: (userId: string) => void
@@ -53,8 +51,6 @@ export default function StoryBar({
   stories,
   loading = false,
   currentUserId,
-  scope,
-  onScopeChange,
   onSelectStory,
   onCreateStory,
   onMuteUser,
@@ -208,23 +204,6 @@ export default function StoryBar({
               </button>
             )}
           </div>
-        </div>
-      )}
-
-      {currentUserId && (
-        <div className={styles.scopeFilter}>
-          <button
-            className={`${styles.scopeBtn} ${scope === 'all' ? styles.scopeBtnActive : ''}`}
-            onClick={() => onScopeChange('all')}
-          >
-            {t('story.scopeAll')}
-          </button>
-          <button
-            className={`${styles.scopeBtn} ${scope === 'following' ? styles.scopeBtnActive : ''}`}
-            onClick={() => onScopeChange('following')}
-          >
-            {t('story.scopeFollowing')}
-          </button>
         </div>
       )}
     </div>

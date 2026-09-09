@@ -17,11 +17,14 @@
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 560px;
-  height: min(96vh, 900px);
   max-height: min(96vh, 900px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.modalEdit {
+  height: min(96vh, 900px);
 }
 
 .header {
@@ -134,14 +137,16 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 20px;
+  padding: 6px 14px;
+  margin-left: 4px;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-primary);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  min-height: 44px;
   transition: opacity 0.15s;
 }
 
@@ -424,29 +429,6 @@
   display: none;
 }
 
-.captionInput {
-  width: 100%;
-  min-height: 56px;
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  font-size: 14px;
-  font-family: inherit;
-  resize: none;
-  line-height: 1.5;
-  transition: border-color 0.2s;
-}
-
-.captionInput:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.captionInput:focus {
-  border-color: var(--color-primary);
-}
-
 .errorText {
   color: var(--color-danger);
   font-size: 13px;
@@ -457,7 +439,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-lg);
   border-top: 1px solid var(--color-divider);
   flex-shrink: 0;
 }

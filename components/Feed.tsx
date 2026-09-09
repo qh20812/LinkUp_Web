@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
-import { getFeedStories, toggleMuteStoryUser, type StoryFeedScope } from '../api/stories'
+import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
 import { getTokenPayload } from '../api/auth'
 import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
@@ -53,7 +53,6 @@ function FeedContent() {
   const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
-  const [storyScope, setStoryScope] = useState<StoryFeedScope>('all')
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -62,11 +61,11 @@ function FeedContent() {
   const filter = tab === 'following' ? 'following' : undefined
 
   const loadStories = useCallback(() => {
-    getFeedStories(storyScope)
+    getFeedStories()
       .then((res) => setStories(Array.isArray(res) ? res : []))
       .catch(() => {})
       .finally(() => setStoryLoading(false))
-  }, [storyScope])
+  }, [])
 
   useEffect(() => {
     loadStories()
@@ -290,11 +289,6 @@ function FeedContent() {
         stories={stories}
         loading={storyLoading}
         currentUserId={currentUserId}
-        scope={storyScope}
-        onScopeChange={(next) => {
-          setStoryScope(next)
-          setStoryLoading(true)
-        }}
         onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
         onCreateStory={() => setShowCreateStory(true)}
         onMuteUser={(userId) => {
