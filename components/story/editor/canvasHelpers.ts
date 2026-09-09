@@ -282,6 +282,72 @@ export function loadBackgroundImage(
   return util.loadImage(url)
 }
 
+const BLUR_SOURCE_OVERSCAN = 1.15
+
+export async function buildBlurredBackground(
+  src: HTMLImageElement | HTMLVideoElement | string,
+  w: number,
+  h: number,
+  blurPx = 40,
+): Promise<HTMLImageElement> {
+  let el: HTMLImageElement | HTMLVideoElement
+  if (typeof src === 'string') {
+    el = await util.loadImage(src)
+  } else {
+    el = src
+  }
+  const srcW =
+    el instanceof HTMLVideoElement ? el.videoWidth || el.width || w : el.width || w
+  const srcH =
+    el instanceof HTMLVideoElement ? el.videoHeight || el.height || h : el.height || h
+
+  const cv = document.createElement('canvas')
+  cv.width = w
+  cv.height = h
+  const ctx = cv.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D is not supported')
+
+  const scale = Math.max(w / srcW, h / srcH) * BLUR_SOURCE_OVERSCAN
+  const dw = srcW * scale
+  const dh = srcH * scale
+  ctx.filter = `blur(${blurPx}px)`
+  ctx.drawImage(el, (w - dw) / 2, (h - dh) / 2, dw, dh)
+  return util.loadImage(cv.toDataURL('image/png'))
+}
+
+export interface TextStoryGradient {
+  from: string
+  to: string
+}
+
+export const TEXT_STORY_GRADIENTS: TextStoryGradient[] = [
+  { from: '#833AB4', to: '#FD1D1D' },
+  { from: '#0F2027', to: '#2C5364' },
+  { from: '#FF512F', to: '#DD2476' },
+  { from: '#11998E', to: '#38EF7D' },
+]
+
+export const DEFAULT_TEXT_STORY_GRADIENT: TextStoryGradient = TEXT_STORY_GRADIENTS[0]
+
+export async function buildGradientBackground(
+  from: string,
+  to: string,
+  w: number,
+  h: number,
+): Promise<HTMLImageElement> {
+  const cv = document.createElement('canvas')
+  cv.width = w
+  cv.height = h
+  const ctx = cv.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D is not supported')
+  const grad = ctx.createLinearGradient(0, 0, 0, h)
+  grad.addColorStop(0, from)
+  grad.addColorStop(1, to)
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, h)
+  return util.loadImage(cv.toDataURL('image/png'))
+}
+
 export async function exportCanvasBlob(
   canvas: Canvas,
   multiplier = 2,

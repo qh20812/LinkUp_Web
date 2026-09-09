@@ -2,17 +2,21 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ExternalImage from '../ExternalImage'
+import { EmojiImage } from '../messages/EmojiImage'
+import { getEmotionEmojis } from '../../utils/emojis'
 import { viewStory, interactStory, reactStory, shareStory, deleteStory, getStoryAnalytics } from '../../api/stories'
 import styles from './StoryViewer.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { useEmojis } from '../../hooks/useEmojis'
 import StoryStatsModal, { timeAgo } from './StoryStatsModal'
-import type { StoryItem, StoryAnalytics } from '../../types'
+import type { StoryItem, StoryAnalytics, EmojiItem } from '../../types'
 
 function currentTime(): number {
   return Date.now()
 }
+
+const REACTION_CODES = [':like:', ':love:', ':haha:', ':wow:', ':sad:', ':angry:']
 
 interface StoryViewerProps {
   stories: StoryItem[]
@@ -35,9 +39,11 @@ export default function StoryViewer({
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [replyText, setReplyText] = useState('')
-  const [reactOpen, setReactOpen] = useState(false)
+  const [replyFocused, setReplyFocused] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [analytics, setAnalytics] = useState<StoryAnalytics | null>(null)
+  const [statsError, setStatsError] = useState(false)
+  const [videoMuted, setVideoMuted] = useState(true)
   const { t } = useTranslation()
   const { toast } = useToast()
   const { emojis } = useEmojis()
@@ -46,12 +52,24 @@ export default function StoryViewer({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const lastTapRef = useRef<number>(0)
   const [tapHeartVisible, setTapHeartVisible] = useState(false)
+  const [burst, setBurst] = useState<{ emoji: EmojiItem; seq: number } | null>(null)
 
   const story = stories[currentIndex]
   const isVideo = story?.media_type === 'video'
   const isOwner = !!currentUserId && story?.user_id === currentUserId
 
-  const emojiList = useMemo(() => Array.from(emojis.values()), [emojis])
+  const emojiList = useMemo(() => {
+    const server = Array.from(emojis.values())
+    return server.length ? server : getEmotionEmojis()
+  }, [emojis])
+
+  const primaryEmojis = useMemo(
+    () =>
+      REACTION_CODES
+        .map((code) => emojiList.find((e) => e.code === code))
+        .filter((e): e is NonNullable<typeof e> => Boolean(e)),
+    [emojiList],
+  )
 
   const goNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
@@ -80,7 +98,7 @@ export default function StoryViewer({
 
   // Auto-advance for images
   useEffect(() => {
-    if (!story || isPaused || isVideo) return
+    if (!story || isPaused || replyFocused || isVideo) return
 
     const duration = 5000
     const interval = 50
@@ -91,20 +109,20 @@ export default function StoryViewer({
     }, interval)
 
     return () => clearInterval(timer)
-  }, [story, isPaused, isVideo])
+  }, [story, isPaused, replyFocused, isVideo])
 
   // Trigger advance at event phase when image progress reaches 100%
   useEffect(() => {
-    if (!story || isVideo || isPaused) return
+    if (!story || isVideo || isPaused || replyFocused) return
     if (progress < 100) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     goNext()
-  }, [progress, story, isVideo, isPaused, goNext])
+  }, [progress, story, isVideo, isPaused, replyFocused, goNext])
 
   // Video auto-advance
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !isVideo || isPaused) return
+    if (!video || !isVideo || isPaused || replyFocused) return
 
     const handleTimeUpdate = () => {
       if (video.duration > 0) {
@@ -123,24 +141,32 @@ export default function StoryViewer({
       video.removeEventListener('timeupdate', handleTimeUpdate)
       video.removeEventListener('ended', handleEnded)
     }
-  }, [isVideo, isPaused, goNext])
+  }, [isVideo, isPaused, replyFocused, goNext])
 
-  // Pause/play video when isPaused changes
+  // Pause/play video when isPaused or replyFocused changes
   useEffect(() => {
     const video = videoRef.current
     if (!video || !isVideo) return
-    if (isPaused) {
+    if (isPaused || replyFocused) {
       video.pause()
     } else {
       video.play().catch(() => {})
     }
-  }, [isPaused, isVideo])
+  }, [isPaused, replyFocused, isVideo])
 
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowLeft') goPrev()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      const typing =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        replyFocused
+      if (typing) return
+      if (e.key === 'ArrowLeft') goPrev()
       else if (e.key === 'ArrowRight') goNext()
       else if (e.key === ' ') {
         e.preventDefault()
@@ -149,7 +175,7 @@ export default function StoryViewer({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose, goPrev, goNext])
+  }, [onClose, goPrev, goNext, replyFocused])
 
   // Focus dialog + trap Tab inside + restore focus on close
   useEffect(() => {
@@ -189,6 +215,10 @@ export default function StoryViewer({
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (replyFocused) {
+      touchStartRef.current = null
+      return
+    }
     if (!touchStartRef.current) return
     const dx = e.changedTouches[0].clientX - touchStartRef.current.x
     const dy = e.changedTouches[0].clientY - touchStartRef.current.y
@@ -224,8 +254,11 @@ export default function StoryViewer({
     } catch { /* ignore */ }
   }
 
-  const handleReactPick = async (emojiId: string) => {
-    setReactOpen(false)
+  const handleReact = async (emojiId: string) => {
+    const emoji = emojiList.find((e) => e.id === emojiId)
+    if (emoji) {
+      setBurst((prev) => ({ emoji, seq: (prev ? prev.seq : 0) + 1 }))
+    }
     await ensureReact(emojiId)
   }
 
@@ -253,11 +286,13 @@ export default function StoryViewer({
   const openAnalytics = async () => {
     if (!story) return
     setShowAnalytics(true)
+    setAnalytics(null)
+    setStatsError(false)
     try {
       const data = await getStoryAnalytics(story.id)
       setAnalytics(data)
     } catch (err) {
-      setAnalytics(null)
+      setStatsError(true)
       toast({ type: 'error', title: err instanceof Error ? err.message : t('common.error') })
     }
   }
@@ -289,6 +324,13 @@ export default function StoryViewer({
       if (side === 'left') goPrev()
       else goNext()
     }
+  }
+
+  const toggleVideoMute = () => {
+    const video = videoRef.current
+    const next = !videoMuted
+    setVideoMuted(next)
+    if (video) video.muted = next
   }
 
   if (!story) return null
@@ -323,7 +365,18 @@ export default function StoryViewer({
         <div className={styles.header}>
           <ExternalImage src={story.avatar_uri} alt="" className={styles.avatar} />
           <span className={styles.username}>{story.display_name}</span>
-          <span className={styles.timeAgo}>{timeAgo(story.created_at)}</span>
+          <span className={styles.timeAgo}>{timeAgo(story.created_at, t)}</span>
+          {isVideo && (
+            <button
+              type="button"
+              className={styles.volumeBtn}
+              onClick={(e) => { e.stopPropagation(); toggleVideoMute() }}
+              aria-label={videoMuted ? t('story.unmute') : t('story.mute')}
+              title={videoMuted ? t('story.unmute') : t('story.mute')}
+            >
+              <i className={videoMuted ? 'bx bx-volume-mute' : 'bx bx-volume-full'} />
+            </button>
+          )}
         </div>
 
         {/* Close */}
@@ -362,7 +415,7 @@ export default function StoryViewer({
               src={story.media_uri}
               className={styles.media}
               autoPlay
-              muted
+              muted={videoMuted}
               playsInline
             />
           ) : (
@@ -388,6 +441,18 @@ export default function StoryViewer({
           </div>
         )}
 
+        {/* Reaction burst */}
+        {burst && (
+          <div
+            key={burst.seq}
+            className={styles.reactionBurst}
+            aria-hidden
+            onAnimationEnd={() => setBurst(null)}
+          >
+            <EmojiImage emoji={burst.emoji} className={styles.reactionBurstImg} />
+          </div>
+        )}
+
         {/* Caption */}
         {story.caption && (
           <div className={styles.caption}>{story.caption}</div>
@@ -395,32 +460,20 @@ export default function StoryViewer({
 
         {/* Action row */}
         <div className={styles.actionRow} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.reactWrap}>
-            <button
-              className={styles.actionBtn}
-              onClick={() => setReactOpen((o) => !o)}
-              title={t('story.react')}
-              aria-label={t('story.react')}
-            >
-              <i className="bx bxs-heart" />
-            </button>
-            {reactOpen && (
-              <div className={styles.reactPicker}>
-                {emojiList.map((e) => (
-                  <button
-                    key={e.id}
-                    className={styles.reactOption}
-                    onClick={() => handleReactPick(e.id)}
-                    title={e.code}
-                    aria-label={e.code}
-                  >
-                    <ExternalImage src={e.image_uri} alt={e.code} className={styles.reactImg} />
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className={styles.reactionBar} role="group" aria-label={t('story.react')}>
+            {primaryEmojis.map((e) => (
+              <button
+                key={e.id}
+                className={styles.reactOption}
+                onClick={() => handleReact(e.id)}
+                title={e.code}
+                aria-label={e.code}
+              >
+                <EmojiImage emoji={e} className={styles.reactImg} />
+              </button>
+            ))}
           </div>
-          <button className={styles.actionBtn} onClick={handleShare} title={t('story.share')} aria-label={t('story.share')}>
+          <button className={`${styles.actionBtn} ${styles.shareBtn}`} onClick={handleShare} title={t('story.share')} aria-label={t('story.share')}>
             <i className="bx bx-share-alt" />
           </button>
         </div>
@@ -433,6 +486,8 @@ export default function StoryViewer({
             aria-label={t('story.replyPlaceholder')}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
+            onFocus={() => setReplyFocused(true)}
+            onBlur={() => setReplyFocused(false)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleReplySubmit() }}
           />
           <button className={styles.sendBtn} onClick={handleReplySubmit} aria-label={t('story.sendReply')}>
@@ -444,9 +499,10 @@ export default function StoryViewer({
       {showAnalytics && (
         <StoryStatsModal
           analytics={analytics}
-          loading={!analytics}
+          loading={!analytics && !statsError}
+          error={statsError}
           emojiList={emojiList}
-          onClose={() => { setShowAnalytics(false); setAnalytics(null) }}
+          onClose={() => { setShowAnalytics(false); setAnalytics(null); setStatsError(false) }}
         />
       )}
     </div>

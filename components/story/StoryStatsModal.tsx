@@ -1,22 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
+import { EmojiImage } from '../messages/EmojiImage'
 import styles from './StoryViewer.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { StoryAnalytics, StoryAnalyticsViewer } from '../../types'
 
-export function timeAgo(dateStr: string): string {
+export function timeAgo(dateStr: string, t: (key: string) => string): string {
   const now = Date.now()
   const then = new Date(dateStr).getTime()
   const diffMs = now - then
   const mins = Math.floor(diffMs / 60000)
-  if (mins < 1) return 'now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 1) return t('post.justNow')
+  if (mins < 60) return t('post.minutesAgo').replace('{minutes}', String(mins))
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
+  if (hrs < 24) return t('post.hoursAgo').replace('{hours}', String(hrs))
   const days = Math.floor(hrs / 24)
-  return `${days}d`
+  return t('post.daysAgo').replace('{days}', String(days))
 }
 
 function viewerName(v: StoryAnalyticsViewer): string {
@@ -29,7 +30,7 @@ function ViewerAvatar({ src, name }: { src?: string; name: string }) {
   }
   return (
     <div className={styles.statsRowAvatar}>
-      <i className="bx bxs-user" />
+      <i className="bx bxs-user" aria-hidden="true" />
     </div>
   )
 }
@@ -37,18 +38,59 @@ function ViewerAvatar({ src, name }: { src?: string; name: string }) {
 interface StoryStatsModalProps {
   analytics: StoryAnalytics | null
   loading: boolean
+  error: boolean
   emojiList: { id: string; code: string; image_uri: string }[]
   onClose: () => void
 }
 
-export default function StoryStatsModal({ analytics, loading, emojiList, onClose }: StoryStatsModalProps) {
+export default function StoryStatsModal({ analytics, loading, error, emojiList, onClose }: StoryStatsModalProps) {
   const { t } = useTranslation()
+  const overlayRef = useRef<HTMLDivElement>(null)
   const [tab, setTab] = useState<'views' | 'reacts' | 'replies'>('views')
   const [reactTab, setReactTab] = useState<string | null>(null)
 
-  if (loading || !analytics) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  useEffect(() => {
+    const overlay = overlayRef.current
+    if (!overlay) return
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    overlay.focus()
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const focusables = Array.from(
+        overlay.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])'),
+      ).filter((el) => !el.hasAttribute('disabled'))
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (e.shiftKey && (active === first || !overlay.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !overlay.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    overlay.addEventListener('keydown', handleTab)
+
+    return () => {
+      overlay.removeEventListener('keydown', handleTab)
+      previouslyFocused?.focus?.()
+    }
+  }, [])
+
+  if (loading) {
     return (
-      <div className={styles.statsOverlay} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('story.analytics')}>
+      <div ref={overlayRef} tabIndex={-1} className={styles.statsOverlay} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('story.analytics')}>
         <div className={styles.statsModal} onClick={(e) => e.stopPropagation()}>
           <div className={styles.statsHeader}>
             <h3 className={styles.statsTitle}>{t('story.analytics')}</h3>
@@ -56,9 +98,33 @@ export default function StoryStatsModal({ analytics, loading, emojiList, onClose
               <i className="bx bx-x" />
             </button>
           </div>
-          <div className={styles.statsLoading}>
-            <i className="bx bx-loader-circle bx-spin" />
+          <div className={styles.statsList}>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className={styles.statsRow} aria-hidden="true">
+                <div className={`${styles.statsRowAvatar} ${styles.skeletonBlock}`} />
+                <div className={styles.statsRowBody}>
+                  <div className={`${styles.skeletonLine} ${styles.skeletonWide}`} />
+                  <div className={`${styles.skeletonLine} ${styles.skeletonNarrow}`} />
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !analytics) {
+    return (
+      <div ref={overlayRef} tabIndex={-1} className={styles.statsOverlay} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('story.analytics')}>
+        <div className={styles.statsModal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.statsHeader}>
+            <h3 className={styles.statsTitle}>{t('story.analytics')}</h3>
+            <button className={styles.statsClose} onClick={onClose} aria-label={t('common.close')}>
+              <i className="bx bx-x" />
+            </button>
+          </div>
+          <div className={styles.statsEmpty}>{t('story.analyticsError')}</div>
         </div>
       </div>
     )
@@ -76,7 +142,7 @@ export default function StoryStatsModal({ analytics, loading, emojiList, onClose
   }
 
   return (
-    <div className={styles.statsOverlay} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('story.analytics')}>
+    <div ref={overlayRef} tabIndex={-1} className={styles.statsOverlay} onClick={onClose} role="dialog" aria-modal="true" aria-label={t('story.analytics')}>
       <div className={styles.statsModal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.statsHeader}>
           <h3 className={styles.statsTitle}>{t('story.analytics')}</h3>
@@ -96,10 +162,12 @@ export default function StoryStatsModal({ analytics, loading, emojiList, onClose
           </div>
         </div>
 
-        <div className={styles.statsTabs}>
+        <div className={styles.statsTabs} role="tablist" aria-label={t('story.analytics')}>
           {(['views', 'reacts', 'replies'] as const).map((k) => (
             <button
               key={k}
+              role="tab"
+              aria-selected={tab === k}
               className={`${styles.statsTab} ${tab === k ? styles.statsTabActive : ''}`}
               onClick={() => setTab(k)}
             >
@@ -116,7 +184,7 @@ export default function StoryStatsModal({ analytics, loading, emojiList, onClose
                 <div className={styles.statsRowBody}>
                   <span className={styles.statsRowName}>{viewerName(v)}</span>
                   <span className={styles.statsRowSub}>
-                    {timeAgo(v.viewed_at)}
+                    {timeAgo(v.viewed_at, t)}
                     {Boolean(v.emoji_id) && ' · ' + (emojiList.find((e) => e.id === v.emoji_id)?.code ?? '')}
                   </span>
                 </div>
@@ -140,7 +208,7 @@ export default function StoryStatsModal({ analytics, loading, emojiList, onClose
                       className={`${styles.reactFilterBtn} ${reactTab === e.id ? styles.reactFilterActive : ''}`}
                       onClick={() => setReactTab(e.id)}
                     >
-                      <ExternalImage src={e.image_uri} alt={e.code} className={styles.reactFilterImg} />
+                      <EmojiImage emoji={e} className={styles.reactFilterImg} />
                       <span>{reactCounts.get(e.id)}</span>
                     </button>
                   ))}

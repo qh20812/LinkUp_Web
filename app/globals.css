@@ -81,6 +81,7 @@ table {
   --color-card: #FFFFFF;
   --color-border: #E0E0E0;
   --color-divider: #EEEEEE;
+  --color-story-bg: #000000;
 
   /* Semantic Colors */
   --color-success: #388E3C;
@@ -122,6 +123,12 @@ table {
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.15);
   --fast: 150ms ease;
 
+  /* Z-index scale */
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-popover: 1200;
+  --z-toast: 1300;
+
   /* Story */
   --story-ring-gradient: linear-gradient(135deg, #12A5A1, #0A1F44);
   --color-heart: #D32F2F;
@@ -148,6 +155,7 @@ table {
   --color-card: #1E1E1E;
   --color-border: #333333;
   --color-divider: #2A2A2A;
+  --color-story-bg: #0A0A0A;
 
   --color-success-light: #064E3B;
   --color-warning-light: #78350F;

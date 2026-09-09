@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Canvas as FabricCanvas,
   FabricImage,
@@ -12,11 +12,15 @@ import {
   type TPointerEventInfo,
 } from 'fabric'
 import styles from './StoryCanvas.module.css'
+import { useTranslation } from '../../hooks/useTranslation'
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  DEFAULT_TEXT_STORY_GRADIENT,
   GradientPencilBrush,
   applyFilterToImage,
+  buildBlurredBackground,
+  buildGradientBackground,
   ensureTextFont,
   exportCanvasBlob,
   exportVideoBlob,
@@ -24,10 +28,12 @@ import {
   type BrushGradientStyle,
   type FilterPresetId,
   type TextPanelStyle,
+  type TextStoryGradient,
 } from './editor/canvasHelpers'
 
 export type EditorTool = 'select' | 'text' | 'sticker' | 'brush' | 'filter' | 'music'
 export type EditorMode = 'image' | 'video'
+export type EditorVariant = 'media' | 'text'
 
 export type EditorSelection =
   | { kind: 'text'; text: string; style: TextPanelStyle }
@@ -46,11 +52,16 @@ export interface StoryCanvasApi {
   exportBlob: (multiplier?: number) => Promise<Blob | null>
   exportVideo: (audioStream?: MediaStream) => Promise<Blob | null>
   hasDrawings: () => boolean
+  setBackgroundGradient: (from: string, to: string) => void
+  resetPosition: () => void
 }
 
 interface StoryCanvasProps {
-  mediaUrl: string
+  mediaUrl?: string | null
   mode: EditorMode
+  variant?: EditorVariant
+  textBg?: TextStoryGradient | null
+  stageSize?: { width: number; height: number } | null
   filterId: FilterPresetId
   filterIntensity: number
   brushColor: string
@@ -64,6 +75,8 @@ interface StoryCanvasProps {
 
 const HISTORY_LIMIT = 20
 const HISTORY_DEBOUNCE_MS = 500
+const CANVAS_DEFAULT_FILL = '#FFFFFF'
+const CANVAS_TEXT_SHADOW_COLOR = 'rgba(0, 0, 0, 0.45)'
 
 interface GradientLike {
   colorStops?: Array<{ offset: number; color: string }>
@@ -94,6 +107,9 @@ function makeTextGradient(width: number, height: number, from: string, to: strin
 export default function StoryCanvas({
   mediaUrl,
   mode,
+  variant = 'media',
+  textBg = null,
+  stageSize = null,
   filterId,
   filterIntensity,
   brushColor,
@@ -104,9 +120,11 @@ export default function StoryCanvas({
   onApiReady,
   onSelectionChange,
 }: StoryCanvasProps) {
+  const { t } = useTranslation()
   const canvasElRef = useRef<HTMLCanvasElement>(null)
   const fabricRef = useRef<FabricCanvas | null>(null)
   const bgRef = useRef<FabricImage | null>(null)
+  const fillRef = useRef<FabricImage | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const historyRef = useRef<{ snapshots: string[]; index: number }>({
     snapshots: [],
@@ -117,6 +135,11 @@ export default function StoryCanvas({
   const apiEmittedRef = useRef(false)
   const eraserRef = useRef(isEraser)
   const modeRef = useRef(mode)
+  const variantRef = useRef(variant)
+  const activeToolRef = useRef(activeTool)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [reloadCount, setReloadCount] = useState(0)
 
   useEffect(() => {
     eraserRef.current = isEraser
@@ -126,6 +149,10 @@ export default function StoryCanvas({
     modeRef.current = mode
   }, [mode])
 
+  useEffect(() => {
+    variantRef.current = variant
+  }, [variant])
+
   // ---- history helpers ----
   const pushHistory = () => {
     const canvas = fabricRef.current
@@ -134,9 +161,13 @@ export default function StoryCanvas({
     h.snapshots = h.snapshots.slice(0, h.index + 1)
     const serialized = canvas
       .getObjects()
-      .filter((o) => o !== bgRef.current)
+      .filter((o) => o !== bgRef.current && o !== fillRef.current)
       .map((o) => o.toObject())
-    h.snapshots.push(JSON.stringify(serialized))
+    const bg = bgRef.current
+    const bgTransform = bg
+      ? { left: bg.left ?? 0, top: bg.top ?? 0, scaleX: bg.scaleX ?? 1, scaleY: bg.scaleY ?? 1 }
+      : null
+    h.snapshots.push(JSON.stringify({ objects: serialized, bgTransform }))
     if (h.snapshots.length > HISTORY_LIMIT) h.snapshots.shift()
     h.index = h.snapshots.length - 1
   }
@@ -146,18 +177,43 @@ export default function StoryCanvas({
     historyTimerRef.current = window.setTimeout(pushHistory, HISTORY_DEBOUNCE_MS)
   }
 
-  const protectBackground = (canvas: FabricCanvas, target?: FabricImage) => {
-    const first = target ?? canvas.getObjects()[0]
-    if (!first) return
-    first.selectable = false
-    first.evented = false
-    first.lockMovementX = true
-    first.lockMovementY = true
-    first.lockRotation = true
-    first.lockScalingX = true
-    first.lockScalingY = true
-    canvas.sendObjectToBack(first)
+  const lockBackground = (target: FabricImage) => {
+    target.selectable = false
+    target.evented = false
+    target.lockMovementX = true
+    target.lockMovementY = true
+    target.lockRotation = true
+    target.lockScalingX = true
+    target.lockScalingY = true
   }
+
+  const configureMedia = (target: FabricObject, interactive: boolean) => {
+    target.selectable = interactive
+    target.evented = interactive
+    target.lockMovementX = !interactive
+    target.lockMovementY = !interactive
+    target.lockScalingX = !interactive
+    target.lockScalingY = !interactive
+    target.lockRotation = true
+    ;(target as FabricObject & { lockUniScaling?: boolean }).lockUniScaling = true
+    if (interactive) {
+      target.hasBorders = true
+      target.hasControls = true
+      target.transparentCorners = false
+      target.cornerSize = 12
+    }
+  }
+
+  useEffect(() => {
+    activeToolRef.current = activeTool
+    const bg = bgRef.current
+    if (!bg) return
+    configureMedia(bg, variantRef.current === 'media' && activeTool === 'select')
+    if (activeTool !== 'select' && fabricRef.current?.getActiveObject() === bg) {
+      fabricRef.current.discardActiveObject()
+    }
+    fabricRef.current?.requestRenderAll()
+  }, [activeTool, mode])
 
   // ---- init canvas + load media ----
   useEffect(() => {
@@ -171,15 +227,19 @@ export default function StoryCanvas({
     fabric.freeDrawingBrush = new PencilBrush(fabric)
     fabricRef.current = fabric
     modeRef.current = mode
+    variantRef.current = variant
+    setLoading(true)
+    setLoadError(false)
 
-    const handleChange = () => {
+    const handleChange = (opt?: { target?: FabricObject; path?: FabricObject }) => {
       if (!bgLoadedRef.current) return
+      if (opt?.target === fillRef.current) return
       scheduleHistory()
     }
 
     const emitSelection = () => {
       const active = fabric.getActiveObject()
-      if (!active) {
+      if (!active || active === bgRef.current || active === fillRef.current) {
         onSelectionChange(null)
         return
       }
@@ -191,7 +251,7 @@ export default function StoryCanvas({
           style: {
             fontFamily: active.fontFamily,
             fontSize: active.fontSize ?? 40,
-            fill: typeof active.fill === 'string' ? active.fill : '#FFFFFF',
+            fill: typeof active.fill === 'string' ? active.fill : CANVAS_DEFAULT_FILL,
             fontWeight: active.fontWeight === 'bold' ? 'bold' : 'normal',
             fontStyle: active.fontStyle === 'italic' ? 'italic' : 'normal',
             textAlign:
@@ -252,7 +312,7 @@ export default function StoryCanvas({
             textAlign: style.textAlign,
             underline: style.underline,
             shadow: new Shadow({
-              color: 'rgba(0, 0, 0, 0.45)',
+              color: CANVAS_TEXT_SHADOW_COLOR,
               blur: 6,
               offsetX: 0,
               offsetY: 2,
@@ -319,7 +379,7 @@ export default function StoryCanvas({
                 patch.gradient.to,
               )
             } else {
-              active.fill = patch.fill ?? '#FFFFFF'
+              active.fill = patch.fill ?? CANVAS_DEFAULT_FILL
             }
           } else if (patch.fill !== undefined) {
             active.fill = patch.fill
@@ -338,9 +398,23 @@ export default function StoryCanvas({
         deleteSelected: () => {
           const canvas = fabricRef.current
           const active = canvas?.getActiveObject()
-          if (!canvas || !active) return
+          if (!canvas || !active || active === bgRef.current || active === fillRef.current) return
           canvas.remove(active)
           canvas.requestRenderAll()
+        },
+        resetPosition: () => {
+          const canvas = fabricRef.current
+          const bg = bgRef.current
+          if (!canvas || !bg) return
+          bg.set({
+            originX: 'center',
+            originY: 'center',
+            left: CANVAS_WIDTH / 2,
+            top: CANVAS_HEIGHT / 2,
+          })
+          bg.setCoords()
+          canvas.requestRenderAll()
+          pushHistory()
         },
         clearDrawings: () => {
           const canvas = fabricRef.current
@@ -388,22 +462,70 @@ export default function StoryCanvas({
           if (!canvas) return false
           return canvas.getObjects().some((o) => o.isType('Path'))
         },
+        setBackgroundGradient: (from: string, to: string) => {
+          const canvas = fabricRef.current
+          if (!canvas) return
+          void buildGradientBackground(from, to, CANVAS_WIDTH, CANVAS_HEIGHT)
+            .then((imgEl) => {
+              const currentCanvas = fabricRef.current
+              if (!currentCanvas) return
+              const old = bgRef.current
+              const fill = fillRef.current
+              const bg = new FabricImage(imgEl, {
+                left: CANVAS_WIDTH / 2,
+                top: CANVAS_HEIGHT / 2,
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                evented: false,
+              })
+              if (old) currentCanvas.remove(old)
+              bgRef.current = bg
+              lockBackground(bg)
+              if (fill) {
+                currentCanvas.add(fill)
+                currentCanvas.sendObjectToBack(fill)
+                currentCanvas.add(bg)
+              } else {
+                currentCanvas.add(bg)
+                currentCanvas.sendObjectToBack(bg)
+              }
+              currentCanvas.requestRenderAll()
+            })
+            .catch(() => {
+              /* keep current background on failure */
+            })
+        },
       })
     }
 
-    const finalizeBg = (bg: FabricImage) => {
+    const finalizeBackgrounds = (fill: FabricImage | null, crisp: FabricImage) => {
       if (!fabricRef.current) return
-      fabric.add(bg)
-      fabric.sendObjectToBack(bg)
-      protectBackground(fabric, bg)
-      if (modeRef.current === 'image') {
-        applyFilterToImage(bg, filterId, filterIntensity)
+      if (fill) {
+        fabric.add(fill)
+        fabric.sendObjectToBack(fill)
+        lockBackground(fill)
       }
-      bgRef.current = bg
+      fabric.add(crisp)
+      crisp.set({
+        originX: 'center',
+        originY: 'center',
+        left: CANVAS_WIDTH / 2,
+        top: CANVAS_HEIGHT / 2,
+      })
+      crisp.setCoords()
+      configureMedia(crisp, variantRef.current === 'media' && activeToolRef.current === 'select')
+      if (modeRef.current === 'image' && variantRef.current === 'media') {
+        applyFilterToImage(crisp, filterId, filterIntensity)
+      }
+      fillRef.current = fill
+      bgRef.current = crisp
       bgLoadedRef.current = true
       pushHistory()
       fabric.requestRenderAll()
       emitApi()
+      setLoadError(false)
+      setLoading(false)
     }
 
     let videoEl: HTMLVideoElement | null = null
@@ -412,44 +534,100 @@ export default function StoryCanvas({
       if (c) c.requestRenderAll()
     }
 
-    if (mode === 'video') {
+    if (variantRef.current === 'text') {
+      const g = textBg ?? DEFAULT_TEXT_STORY_GRADIENT
+      void buildGradientBackground(g.from, g.to, CANVAS_WIDTH, CANVAS_HEIGHT)
+        .then((imgEl) => {
+          if (!fabricRef.current) return
+          const bg = new FabricImage(imgEl, {
+            left: CANVAS_WIDTH / 2,
+            top: CANVAS_HEIGHT / 2,
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+            lockMovementX: true,
+            lockMovementY: true,
+          })
+          finalizeBackgrounds(null, bg)
+        })
+        .catch(() => {
+          /* gradient failed to render, editor stays empty */
+          setLoading(false)
+          setLoadError(true)
+        })
+    } else if (mode === 'video') {
       videoEl = document.createElement('video')
       videoEl.muted = true
       videoEl.playsInline = true
       videoEl.loop = true
-      videoEl.src = mediaUrl
+      videoEl.src = mediaUrl ?? ''
       videoRef.current = videoEl
       videoEl.addEventListener('timeupdate', onVideoFrame)
       const onLoadedData = () => {
         if (!fabricRef.current || !videoEl) return
         const vw = videoEl.videoWidth || CANVAS_WIDTH
         const vh = videoEl.videoHeight || CANVAS_HEIGHT
-        const scale = Math.max(CANVAS_WIDTH / vw, CANVAS_HEIGHT / vh)
-        const bg = new FabricImage(videoEl, {
-          left: CANVAS_WIDTH / 2,
-          top: CANVAS_HEIGHT / 2,
-          originX: 'center',
-          originY: 'center',
-          scaleX: scale,
-          scaleY: scale,
-          selectable: false,
-          evented: false,
-          lockMovementX: true,
-          lockMovementY: true,
-        })
-        finalizeBg(bg)
-        void videoEl.play().catch(() => {})
+        const scale = Math.min(CANVAS_WIDTH / vw, CANVAS_HEIGHT / vh)
+        void (async () => {
+          let fill: FabricImage | null = null
+          try {
+            const fillEl = await buildBlurredBackground(videoEl, CANVAS_WIDTH, CANVAS_HEIGHT)
+            fill = new FabricImage(fillEl, {
+              left: CANVAS_WIDTH / 2,
+              top: CANVAS_HEIGHT / 2,
+              originX: 'center',
+              originY: 'center',
+              selectable: false,
+              evented: false,
+            })
+          } catch {
+            fill = null
+          }
+          const bg = new FabricImage(videoEl, {
+            left: CANVAS_WIDTH / 2,
+            top: CANVAS_HEIGHT / 2,
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false,
+            lockMovementX: true,
+            lockMovementY: true,
+          })
+          finalizeBackgrounds(fill, bg)
+          void videoEl.play().catch(() => {})
+        })()
       }
       videoEl.addEventListener('loadeddata', onLoadedData, { once: true })
+      videoEl.addEventListener('error', () => {
+        setLoading(false)
+        setLoadError(true)
+      })
       videoEl.load()
     } else {
-      loadBackgroundImage(mediaUrl)
-        .then((imgEl) => {
+      loadBackgroundImage(mediaUrl ?? '')
+        .then(async (imgEl) => {
           if (!fabricRef.current) return
-          const scale = Math.max(
+          const scale = Math.min(
             CANVAS_WIDTH / imgEl.width,
             CANVAS_HEIGHT / imgEl.height,
           )
+          let fill: FabricImage | null = null
+          try {
+            const fillEl = await buildBlurredBackground(imgEl, CANVAS_WIDTH, CANVAS_HEIGHT)
+            fill = new FabricImage(fillEl, {
+              left: CANVAS_WIDTH / 2,
+              top: CANVAS_HEIGHT / 2,
+              originX: 'center',
+              originY: 'center',
+              selectable: false,
+              evented: false,
+            })
+          } catch {
+            fill = null
+          }
           const bg = new FabricImage(imgEl, {
             left: CANVAS_WIDTH / 2,
             top: CANVAS_HEIGHT / 2,
@@ -462,10 +640,12 @@ export default function StoryCanvas({
             lockMovementX: true,
             lockMovementY: true,
           })
-          finalizeBg(bg)
+          finalizeBackgrounds(fill, bg)
         })
         .catch(() => {
           /* media failed to load, editor stays empty */
+          setLoading(false)
+          setLoadError(true)
         })
     }
 
@@ -476,13 +656,33 @@ export default function StoryCanvas({
       canvas.isDrawingMode = false
       bgLoadedRef.current = false
       try {
-        const objects = JSON.parse(snapshot)
+        const data = JSON.parse(snapshot)
+        const objects = Array.isArray(data) ? data : data.objects
+        const bgTransform = Array.isArray(data) ? null : data.bgTransform
+        const fill = fillRef.current
         const bg = bgRef.current
         await canvas.loadFromJSON({ objects })
+        if (fill) {
+          canvas.add(fill)
+          canvas.sendObjectToBack(fill)
+          lockBackground(fill)
+        }
         if (bg) {
           canvas.add(bg)
-          canvas.sendObjectToBack(bg)
-          protectBackground(canvas, bg)
+          if (bgTransform) {
+            bg.set({
+              originX: 'center',
+              originY: 'center',
+              left: bgTransform.left,
+              top: bgTransform.top,
+              scaleX: bgTransform.scaleX,
+              scaleY: bgTransform.scaleY,
+            })
+            bg.setCoords()
+          } else {
+            bg.set({ originX: 'center', originY: 'center' })
+          }
+          configureMedia(bg, variantRef.current === 'media' && activeToolRef.current === 'select')
         }
       } catch {
         /* ignore restore errors */
@@ -502,23 +702,24 @@ export default function StoryCanvas({
       apiEmittedRef.current = false
       bgLoadedRef.current = false
       bgRef.current = null
+      fillRef.current = null
       videoRef.current = null
       fabric.dispose()
       fabricRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaUrl, mode])
+  }, [mediaUrl, mode, variant, reloadCount])
 
   // ---- apply filter to background when filterId / intensity changes ----
   useEffect(() => {
     const canvas = fabricRef.current
-    if (!canvas || !bgLoadedRef.current || mode !== 'image') return
-    const bg = canvas.getObjects().find((o) => o.isType('Image') && !o.selectable)
+    if (!canvas || !bgLoadedRef.current || mode !== 'image' || variant !== 'media') return
+    const bg = bgRef.current
     if (bg && bg instanceof FabricImage) {
       applyFilterToImage(bg, filterId, filterIntensity)
       canvas.requestRenderAll()
     }
-  }, [filterId, filterIntensity, mode])
+  }, [filterId, filterIntensity, mode, variant])
 
   // ---- brush setup ----
   useEffect(() => {
@@ -554,8 +755,32 @@ export default function StoryCanvas({
   }, [activeTool, isEraser])
 
   return (
-    <div className={styles.stage}>
-      <canvas ref={canvasElRef} className={styles.canvas} />
+    <div
+      className={styles.stage}
+      style={stageSize ? { width: stageSize.width, height: stageSize.height } : undefined}
+    >
+      <canvas ref={canvasElRef} className={styles.canvas} aria-label={t('story.editor.canvas')} />
+      {loading && (
+        <div className={styles.statusOverlay} aria-hidden="true">
+          <div className={styles.skeletonShimmer} />
+        </div>
+      )}
+      {loadError && (
+        <div className={styles.statusOverlay}>
+          <div className={styles.errorBox}>
+            <i className="bx bx-image-alt" aria-hidden="true" />
+            <p>{t('story.editor.mediaLoadFailed')}</p>
+            <button
+              type="button"
+              className={styles.retryBtn}
+              onClick={() => setReloadCount((c) => c + 1)}
+            >
+              <i className="bx bx-revision" aria-hidden="true" />
+              <span>{t('common.retry')}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

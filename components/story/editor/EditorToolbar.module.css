@@ -39,3 +39,9 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+@media (max-width: 600px) {
+  .toolbar {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}

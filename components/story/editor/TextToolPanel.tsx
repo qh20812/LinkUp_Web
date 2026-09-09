@@ -123,7 +123,7 @@ export default function TextToolPanel({
                 key={color}
                 type="button"
                 className={`${styles.swatch} ${style.fill === color ? styles.swatchActive : ''}`}
-                style={{ background: color }}
+                style={{ backgroundColor: color }}
                 onClick={() => onStyleChange({ fill: color })}
                 aria-label={color}
               />
@@ -213,7 +213,7 @@ export default function TextToolPanel({
                     key={color}
                     type="button"
                     className={`${styles.swatch} ${style.stroke === color ? styles.swatchActive : ''}`}
-                    style={{ background: color }}
+                    style={{ backgroundColor: color }}
                     onClick={() => onStyleChange({ stroke: color })}
                     aria-label={color}
                   />
@@ -244,7 +244,7 @@ export default function TextToolPanel({
                   key={color}
                   type="button"
                   className={`${styles.swatch} ${style.highlight === color ? styles.swatchActive : ''}`}
-                  style={{ background: color }}
+                  style={{ backgroundColor: color }}
                   onClick={() => onStyleChange({ highlight: color })}
                   aria-label={color}
                 />

@@ -50,3 +50,11 @@
   flex: 1;
   accent-color: var(--color-primary);
 }
+
+@media (max-width: 600px) {
+  .panel {
+    max-height: 180px;
+    padding: var(--space-sm);
+    overflow-y: auto;
+  }
+}

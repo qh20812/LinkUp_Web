@@ -121,7 +121,7 @@ export default function BrushPanel({
               key={color}
               type="button"
               className={`${styles.swatch} ${brushColor === color && !isEraser ? styles.swatchActive : ''}`}
-              style={{ background: color }}
+              style={{ backgroundColor: color }}
               onClick={() => {
                 onBrushColorChange(color)
                 onEraserChange(false)

@@ -8,6 +8,7 @@ import StoryCanvas, {
   type EditorMode,
   type EditorSelection,
   type EditorTool,
+  type EditorVariant,
   type StoryCanvasApi,
 } from './StoryCanvas'
 import EditorToolbar from './editor/EditorToolbar'
@@ -20,7 +21,9 @@ import { musicEngine } from './editor/music'
 import styles from './StoryEditorModal.module.css'
 import {
   DEFAULT_BRUSH_GRADIENT,
+  DEFAULT_TEXT_STORY_GRADIENT,
   DEFAULT_TEXT_STYLE,
+  TEXT_STORY_GRADIENTS,
   type FilterPresetId,
   type TextPanelStyle,
 } from './editor/canvasHelpers'
@@ -36,13 +39,17 @@ interface StoryEditorModalProps {
 }
 
 interface PickedFile {
-  file: File
-  url: string
+  file: File | null
+  url: string | null
+  gradient: { from: string; to: string } | null
   previewUrl: string | null
   editedBlob: Blob | null
 }
 
 const MAX_MEDIA_COUNT = 10
+
+const isVideoItem = (item: PickedFile | null): boolean =>
+  !!item?.file && item.file.type.startsWith('video/')
 
 export default function StoryEditorModal({ open, onClose, onCreated }: StoryEditorModalProps) {
   const { t } = useTranslation()
@@ -72,11 +79,16 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   const fileInputRef = useRef<HTMLInputElement>(null)
   const createdUrlsRef = useRef<string[]>([])
   const apiRef = useRef<StoryCanvasApi | null>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const canvasWrapRef = useRef<HTMLDivElement>(null)
+  const [overlayHeight, setOverlayHeight] = useState(0)
+  const [stageSize, setStageSize] = useState<{ width: number; height: number } | null>(null)
 
   const current = items[currentIndex] ?? null
-  const mode: EditorMode =
-    current !== null && current.file.type.startsWith('video/') ? 'video' : 'image'
+  const mode: EditorMode = isVideoItem(current) ? 'video' : 'image'
   const isImage = mode === 'image'
+  const variant: EditorVariant = current?.gradient ? 'text' : 'media'
+  const isTextStory = variant === 'text'
 
   const trackUrl = useCallback((url: string) => {
     createdUrlsRef.current.push(url)
@@ -134,6 +146,27 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   useEffect(() => () => releaseUrls(), [releaseUrls])
 
   useEffect(() => {
+    if (!open || step !== 'edit') return
+    const overlayEl = overlayRef.current
+    const wrapEl = canvasWrapRef.current
+    if (!overlayEl || !wrapEl) return
+    const update = () => {
+      const padBottom = overlayEl.offsetHeight
+      setOverlayHeight(padBottom)
+      const visibleH = Math.max(0, wrapEl.clientHeight - padBottom)
+      const visibleW = Math.max(0, wrapEl.clientWidth)
+      const w = Math.min(visibleW, (visibleH * 9) / 16)
+      const h = (w * 16) / 9
+      setStageSize(h > 0 && w > 0 ? { width: Math.round(w), height: Math.round(h) } : null)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(overlayEl)
+    ro.observe(wrapEl)
+    return () => ro.disconnect()
+  }, [open, step])
+
+  useEffect(() => {
     if (!open || step !== 'edit') musicEngine.stop()
   }, [open, step])
 
@@ -180,7 +213,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     const nextItems: PickedFile[] = selected.map((f) => {
       const url = URL.createObjectURL(f)
       trackUrl(url)
-      return { file: f, url, previewUrl: null, editedBlob: null }
+      return { file: f, url, gradient: null, previewUrl: null, editedBlob: null }
     })
 
     setItems(nextItems)
@@ -205,6 +238,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const removeMedia = () => {
     releaseUrls()
+    musicEngine.stop()
     setItems([])
     setCurrentIndex(0)
     setFilterId('original')
@@ -216,6 +250,31 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     setHasDrawings(false)
     setStep('pick')
     setError(null)
+  }
+
+  const startTextStory = () => {
+    releaseUrls()
+    musicEngine.stop()
+    setItems([
+      {
+        file: null,
+        url: null,
+        gradient: DEFAULT_TEXT_STORY_GRADIENT,
+        previewUrl: null,
+        editedBlob: null,
+      },
+    ])
+    setCurrentIndex(0)
+    setError(null)
+    setCaption('')
+    setFilterId('original')
+    setFilterIntensity(1)
+    setSelectedText(null)
+    setSelectionKind(null)
+    setBrushGradient(DEFAULT_BRUSH_GRADIENT)
+    setIsEraser(false)
+    setActiveTool('select')
+    setStep('edit')
   }
 
   const handleApiReady = useCallback((api: StoryCanvasApi) => {
@@ -297,7 +356,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     if (nextIndex < 0 || nextIndex >= items.length || nextIndex === currentIndex) return
     await exportCurrentItem()
     const nextItem = items[nextIndex]
-    if (nextItem && !nextItem.file.type.startsWith('video/')) musicEngine.stop()
+    if (nextItem && !isVideoItem(nextItem)) musicEngine.stop()
     setCurrentIndex(nextIndex)
     setSelectedText(null)
     setSelectionKind(null)
@@ -362,6 +421,28 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   return createPortal(
     <div className={styles.overlay} onClick={handleClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={styles.stepIndicator}
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={3}
+          aria-valuenow={['pick', 'edit', 'post'].indexOf(step) + 1}
+          aria-label={t('story.editor.step')}
+        >
+          {(['pick', 'edit', 'post']).map((s, i) => {
+            const current = ['pick', 'edit', 'post'].indexOf(step)
+            return (
+              <span
+                key={s}
+                className={`${styles.stepDot} ${step === s ? styles.stepActive : ''} ${
+                  current > i ? styles.stepDone : ''
+                }`}
+              >
+                {current > i ? <i className="bx bx-check" /> : null}
+              </span>
+            )
+          })}
+        </div>
         {step === 'pick' && (
           <>
             <div className={styles.header}>
@@ -377,14 +458,23 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
             </div>
 
             <div className={styles.body}>
-              <div className={styles.pickPreview}>
+              <div className={styles.storyFrame}>
                 {current ? (
                   <div className={styles.selectedMedia}>
-                    {isImage ? (
-                      <ExternalImage src={current.url} alt="" className={styles.mediaEl} />
+                    {isTextStory ? (
+                      <div
+                        className={styles.textStoryPreview}
+                        role="img"
+                        aria-label={t('story.textStory')}
+                        style={{
+                          background: `linear-gradient(180deg, ${current.gradient?.from ?? ''}, ${current.gradient?.to ?? ''})`,
+                        }}
+                      />
+                    ) : isImage ? (
+                      <ExternalImage src={current.url ?? ''} alt="" className={styles.mediaEl} />
                     ) : (
                       <video
-                        src={current.url}
+                        src={current.url ?? ''}
                         muted
                         playsInline
                         preload="metadata"
@@ -395,32 +485,37 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                       type="button"
                       className={styles.removeMediaBtn}
                       onClick={removeMedia}
-                      aria-label={t('common.cancel')}
+                      aria-label={t('story.editor.delete')}
                     >
-                      <i className="bx bx-x" />
+                      <i className="bx bx-trash" />
                     </button>
-                    <button
-                      type="button"
-                      className={styles.editAgainBtn}
-                      onClick={() => setStep('edit')}
-                    >
-                      <i className="bx bx-edit" />
-                      <span>{t('story.editor.editAgain')}</span>
-                    </button>
+                    {!isTextStory && (
+                      <button
+                        type="button"
+                        className={styles.editAgainBtn}
+                        onClick={() => setStep('edit')}
+                      >
+                        <i className="bx bx-edit" />
+                        <span>{t('story.editor.editAgain')}</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <div
-                    className={styles.dropzone}
-                    onClick={() => fileInputRef.current?.click()}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click()
-                    }}
-                  >
-                    <i className={`bx bx-image-add ${styles.dropzoneIcon}`} />
-                    <span className={styles.dropzoneText}>{t('story.mediaPlaceholder')}</span>
-                    <span className={styles.dropzoneHint}>{t('story.mediaHint')}</span>
+                  <div className={styles.pickTiles}>
+                    <button
+                      type="button"
+                      className={styles.pickTileMain}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <i className="bx bx-camera" />
+                      <span className={styles.pickTileLabel}>{t('story.mediaPlaceholder')}</span>
+                      <span className={styles.pickTileHint}>{t('story.mediaHint')}</span>
+                    </button>
+                    <button type="button" className={styles.pickTileSub} onClick={startTextStory}>
+                      <i className="bx bx-text" />
+                      <span className={styles.pickTileLabel}>{t('story.textStory')}</span>
+                      <span className={styles.pickTileHint}>{t('story.textStoryHint')}</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -434,17 +529,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 onChange={handleFileChange}
               />
 
-              <textarea
-                className={styles.captionInput}
-                value={caption}
-                onChange={(e) => {
-                  setCaption(e.target.value)
-                  setError(null)
-                }}
-                maxLength={500}
-                placeholder={t('story.captionPlaceholder')}
-              />
-
               {error && <p className={styles.errorText}>{error}</p>}
             </div>
 
@@ -456,15 +540,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 disabled={submitting}
               >
                 {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                className={styles.submitBtn}
-                onClick={handleSubmit}
-                disabled={submitting || (items.length === 0 && caption.trim() === '')}
-              >
-                {submitting && <i className="bx bx-loader-circle bx-spin" />}
-                <span>{t('story.submit')}</span>
               </button>
             </div>
           </>
@@ -483,6 +558,16 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
               </button>
               <span className={styles.title}>{t('story.editor.title')}</span>
               <div className={styles.headerActions}>
+                {variant === 'media' && (
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => apiRef.current?.resetPosition()}
+                    aria-label={t('story.editor.resetPosition')}
+                  >
+                    <i className="bx bx-current-location" />
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.iconBtn}
@@ -517,10 +602,17 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
             </div>
 
             <div className={styles.editorStage}>
-              <div className={styles.canvasWrap}>
+              <div
+                className={styles.canvasWrap}
+                ref={canvasWrapRef}
+                style={overlayHeight ? { paddingBottom: overlayHeight } : undefined}
+              >
                 <StoryCanvas
                   mediaUrl={current.url}
                   mode={mode}
+                  variant={variant}
+                  textBg={current.gradient ?? DEFAULT_TEXT_STORY_GRADIENT}
+                  stageSize={stageSize}
                   filterId={filterId}
                   filterIntensity={filterIntensity}
                   activeTool={activeTool}
@@ -533,97 +625,134 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 />
               </div>
 
-              {items.length > 1 && (
-                <div className={styles.navRow}>
-                  <button
-                    type="button"
-                    className={styles.navBtn}
-                    onClick={() => goToItem(currentIndex - 1)}
-                    disabled={currentIndex === 0}
-                    aria-label={t('story.editor.back')}
-                  >
-                    <i className="bx bx-chevron-left" />
-                  </button>
-                  <span className={styles.navCount}>
-                    {currentIndex + 1}/{items.length}
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.navBtn}
-                    onClick={() => goToItem(currentIndex + 1)}
-                    disabled={currentIndex === items.length - 1}
-                    aria-label={t('story.editor.select')}
-                  >
-                    <i className="bx bx-chevron-right" />
-                  </button>
-                </div>
-              )}
+              <div className={styles.editorOverlay} ref={overlayRef}>
+                {activeTool === 'text' && (
+                  <TextToolPanel
+                    style={textStyle}
+                    selectedText={selectedText}
+                    onStyleChange={handleTextStyleChange}
+                    onAddText={handleAddText}
+                  />
+                )}
+                {activeTool === 'filter' && isImage && !isTextStory && (
+                  <FilterPanel
+                    imageUrl={current.url ?? ''}
+                    activeFilter={filterId}
+                    intensity={filterIntensity}
+                    onIntensityChange={setFilterIntensity}
+                    onSelect={setFilterId}
+                  />
+                )}
+                {activeTool === 'sticker' && (
+                  <StickerPanel
+                    onSelect={(src) => {
+                      apiRef.current?.addSticker(src)
+                    }}
+                  />
+                )}
+                {activeTool === 'music' && (
+                  <MusicPanel
+                    trackId={musicTrackId}
+                    volume={musicVolume}
+                    onTrackChange={handleMusicTrackChange}
+                    onVolumeChange={handleMusicVolumeChange}
+                  />
+                )}
+                {activeTool === 'brush' && (
+                  <BrushPanel
+                    brushColor={brushColor}
+                    onBrushColorChange={setBrushColor}
+                    brushSize={brushSize}
+                    onBrushSizeChange={setBrushSize}
+                    gradient={brushGradient}
+                    onGradientChange={setBrushGradient}
+                    isEraser={isEraser}
+                    onEraserChange={setIsEraser}
+                    hasDrawings={hasDrawings}
+                    onClear={() => {
+                      apiRef.current?.clearDrawings()
+                      setHasDrawings(false)
+                    }}
+                  />
+                )}
 
-              <button
-                type="button"
-                className={styles.doneBtn}
-                onClick={handleDoneEditing}
-              >
-                <span>{t('story.editor.done')}</span>
-                <i className="bx bx-chevron-right" />
-              </button>
+                {items.length > 1 && (
+                  <div className={styles.navRow}>
+                    <button
+                      type="button"
+                      className={styles.navBtn}
+                      onClick={() => goToItem(currentIndex - 1)}
+                      disabled={currentIndex === 0}
+                      aria-label={t('story.editor.back')}
+                    >
+                      <i className="bx bx-chevron-left" />
+                    </button>
+                    <span className={styles.navCount}>
+                      {currentIndex + 1}/{items.length}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.navBtn}
+                      onClick={() => goToItem(currentIndex + 1)}
+                      disabled={currentIndex === items.length - 1}
+                      aria-label={t('story.editor.select')}
+                    >
+                      <i className="bx bx-chevron-right" />
+                    </button>
+                  </div>
+                )}
+
+                {isTextStory && (
+                  <>
+                    <div className={styles.gradientRow} role="group" aria-label={t('story.background')}>
+                      {TEXT_STORY_GRADIENTS.map((g, i) => {
+                        const active =
+                          current.gradient?.from === g.from && current.gradient?.to === g.to
+                        return (
+                          <button
+                            key={`${g.from}:${g.to}`}
+                            type="button"
+                            className={styles.gradientSwatch}
+                            style={{ background: `linear-gradient(180deg, ${g.from}, ${g.to})` }}
+                            aria-label={`${t('story.background')} ${i + 1}`}
+                            aria-pressed={active}
+                            title={`${g.from} → ${g.to}`}
+                            onClick={() => {
+                              patchItem(currentIndex, { gradient: g })
+                              apiRef.current?.setBackgroundGradient(g.from, g.to)
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
+                    <span className={styles.gradientLabel}>
+                      {current.gradient ? `${current.gradient.from} → ${current.gradient.to}` : ''}
+                    </span>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  className={styles.doneBtn}
+                  onClick={handleDoneEditing}
+                >
+                  <span>{t('story.editor.done')}</span>
+                  <i className="bx bx-chevron-right" />
+                </button>
+
+                <EditorToolbar
+                  activeTool={activeTool}
+                  onToolChange={handleToolChange}
+                  hiddenTools={
+                    isTextStory
+                      ? ['filter', 'music']
+                      : mode === 'video'
+                        ? ['filter']
+                        : ['music']
+                  }
+                />
+              </div>
             </div>
-
-            {activeTool === 'text' && (
-              <TextToolPanel
-                style={textStyle}
-                selectedText={selectedText}
-                onStyleChange={handleTextStyleChange}
-                onAddText={handleAddText}
-              />
-            )}
-            {activeTool === 'filter' && isImage && (
-              <FilterPanel
-                imageUrl={current.url}
-                activeFilter={filterId}
-                intensity={filterIntensity}
-                onIntensityChange={setFilterIntensity}
-                onSelect={setFilterId}
-              />
-            )}
-            {activeTool === 'sticker' && (
-              <StickerPanel
-                onSelect={(src) => {
-                  apiRef.current?.addSticker(src)
-                }}
-              />
-            )}
-            {activeTool === 'music' && (
-              <MusicPanel
-                trackId={musicTrackId}
-                volume={musicVolume}
-                onTrackChange={handleMusicTrackChange}
-                onVolumeChange={handleMusicVolumeChange}
-              />
-            )}
-            {activeTool === 'brush' && (
-              <BrushPanel
-                brushColor={brushColor}
-                onBrushColorChange={setBrushColor}
-                brushSize={brushSize}
-                onBrushSizeChange={setBrushSize}
-                gradient={brushGradient}
-                onGradientChange={setBrushGradient}
-                isEraser={isEraser}
-                onEraserChange={setIsEraser}
-                hasDrawings={hasDrawings}
-                onClear={() => {
-                  apiRef.current?.clearDrawings()
-                  setHasDrawings(false)
-                }}
-              />
-            )}
-
-            <EditorToolbar
-              activeTool={activeTool}
-              onToolChange={handleToolChange}
-              hiddenTools={mode === 'video' ? ['filter'] : ['music']}
-            />
           </>
         )}
 
@@ -638,7 +767,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
               >
                 <i className="bx bx-chevron-left" />
               </button>
-              <span className={styles.title}>{t('story.editor.title')}</span>
+              <span className={styles.title}>{t('story.postTitle')}</span>
               <button
                 type="button"
                 className={styles.iconBtn}
@@ -650,26 +779,26 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
             </div>
 
             <div className={styles.body}>
-              <div className={styles.previewMedia}>
+              <div className={styles.storyFrame}>
                 {isImage ? (
                   current.previewUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={current.previewUrl}
                       alt=""
-                      className={styles.mediaEl}
+                      className={styles.storyFrameMedia}
                     />
                   ) : (
-                    <ExternalImage src={current.url} alt="" className={styles.mediaEl} />
+                    <ExternalImage src={current.url ?? ''} alt="" className={styles.storyFrameMedia} />
                   )
                 ) : (
                   <video
-                    src={current.previewUrl ?? current.url}
+                    src={current.previewUrl ?? current.url ?? ''}
                     muted
                     playsInline
                     controls
                     preload="metadata"
-                    className={styles.mediaEl}
+                    className={styles.storyFrameMedia}
                   />
                 )}
               </div>
@@ -678,22 +807,22 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 <div className={styles.stripRow}>
                   {items.map((item, i) => (
                     <button
-                      key={item.url}
+                      key={item.url ?? item.previewUrl ?? i}
                       type="button"
                       className={`${styles.stripThumb} ${i === currentIndex ? styles.stripThumbActive : ''}`}
                       onClick={() => setCurrentIndex(i)}
                       aria-label={t('story.editor.select')}
                     >
-                      {item.file.type.startsWith('image/') ? (
+                      {!isVideoItem(item) ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={item.previewUrl ?? item.url}
+                          src={item.previewUrl ?? item.url ?? ''}
                           alt=""
                           className={styles.stripThumbImg}
                         />
                       ) : (
                         <video
-                          src={item.previewUrl ?? item.url}
+                          src={item.previewUrl ?? item.url ?? ''}
                           muted
                           playsInline
                           preload="metadata"
@@ -722,20 +851,28 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
             <div className={styles.footer}>
               <button
                 type="button"
-                className={styles.cancelBtn}
-                onClick={handleClose}
+                className={styles.secondaryBtn}
+                onClick={() => setStep('edit')}
                 disabled={submitting}
               >
-                {t('common.cancel')}
+                <i className="bx bx-edit" />
+                <span>{t('story.editor.editAgain')}</span>
               </button>
               <button
                 type="button"
                 className={styles.submitBtn}
                 onClick={handleSubmit}
                 disabled={submitting}
+                aria-busy={submitting}
               >
-                {submitting && <i className="bx bx-loader-circle bx-spin" />}
-                <span>{t('story.submit')}</span>
+                {submitting ? (
+                  <span className={styles.submitPulse}>{t('story.posting')}</span>
+                ) : (
+                  <>
+                    <i className="bx bx-send" />
+                    <span>{t('story.submit')}</span>
+                  </>
+                )}
               </button>
             </div>
           </>
