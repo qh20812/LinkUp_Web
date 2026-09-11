@@ -7,6 +7,7 @@ import OnlineIndicator from '../OnlineIndicator'
 import Modal from '../Modal'
 import GifPicker from '../GifPicker'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
 import { useToast } from '../../contexts/ToastContext'
 import { uploadChatMedia } from '../../api/chats'
@@ -51,6 +52,64 @@ import ChatDetailSidebar from './ChatDetailSidebar'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
+
+// ── Voice waveform helpers ──────────────────────────────────────────────
+const WAVEFORM_BAR_COUNT = 35
+
+function generateHashWaveform(seed: string): number[] {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0
+  }
+  const bars: number[] = []
+  for (let i = 0; i < WAVEFORM_BAR_COUNT; i++) {
+    hash = ((hash * 16807) + 12345) | 0
+    const h = 0.2 + (Math.abs(hash) % 80) / 100
+    bars.push(h)
+  }
+  return bars
+}
+
+function useWaveform(src: string): number[] {
+  const [heights, setHeights] = useState<number[]>(() =>
+    generateHashWaveform(src || 'default'),
+  )
+
+  useEffect(() => {
+    if (!src) return
+    let cancelled = false
+    const ctx = new AudioContext()
+    fetch(src)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((audioBuffer) => {
+        if (cancelled) return
+        const raw = audioBuffer.getChannelData(0)
+        const step = Math.floor(raw.length / WAVEFORM_BAR_COUNT)
+        const bars: number[] = []
+        for (let i = 0; i < WAVEFORM_BAR_COUNT; i++) {
+          let sum = 0
+          const start = i * step
+          for (let j = 0; j < step; j++) {
+            sum += Math.abs(raw[start + j])
+          }
+          bars.push(sum / step)
+        }
+        const max = Math.max(...bars)
+        setHeights(bars.map((b) => Math.max(0.2, max > 0 ? b / max : 0.5)))
+      })
+      .catch(() => {
+        if (!cancelled) setHeights(generateHashWaveform(src))
+      })
+    return () => {
+      cancelled = true
+      void ctx.close()
+    }
+  }, [src])
+
+  return heights
+}
+// ─────────────────────────────────────────────────────────────────────────
 
 function singleEmojiCode(content: string, map: Map<string, EmojiItem>): string | null {
   const trimmed = content.trim()
@@ -1512,14 +1571,15 @@ interface MessageMediaProps {
   onClick?: () => void
 }
 
-// VoicePlayer — thành phần play/pause, thanh tiến trình và thời lượng chung cho
+// VoicePlayer — thành phần play/pause, waveform bars và thời lượng chung cho
 // tin nhắn thoại (message) lẫn preview trong khung soạn (composer).
-function VoicePlayer({ src, duration }: { src: string; duration?: number }) {
+function VoicePlayer({ src, duration, mine }: { src: string; duration?: number; mine?: boolean }) {
   const { t } = useTranslation()
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [elapsed, setElapsed] = useState(0)
+  const waveformHeights = useWaveform(src)
 
   const toggle = () => {
     const audio = audioRef.current
@@ -1561,7 +1621,11 @@ function VoicePlayer({ src, duration }: { src: string; duration?: number }) {
     : Math.round(elapsed)
 
   return (
-    <span className={styles.voiceBubble} role="group" aria-label={t('chat.voiceMessage')}>
+    <span
+      className={`${styles.voiceBubble} ${mine ? styles.voiceMine : ''}`}
+      role="group"
+      aria-label={t('chat.voiceMessage')}
+    >
       <button
         type="button"
         className={styles.voicePlayBtn}
@@ -1571,8 +1635,17 @@ function VoicePlayer({ src, duration }: { src: string; duration?: number }) {
       >
         <i className={playing ? 'bx bx-pause' : 'bx bx-play'} />
       </button>
-      <span className={styles.voiceTrack}>
-        <span className={styles.voiceProgress} style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+      <span className={styles.voiceWaveform}>
+        {waveformHeights.map((h, i) => {
+          const played = i / waveformHeights.length <= progress
+          return (
+            <span
+              key={i}
+              className={`${styles.voiceWaveBar} ${played ? styles.voiceWaveBarPlayed : ''}`}
+              style={{ height: `${h * 100}%` }}
+            />
+          )
+        })}
       </span>
       <span className={styles.voiceDuration}>{formatCallDuration(shown)}</span>
       <audio ref={audioRef} src={src} preload="metadata" />
@@ -1583,13 +1656,14 @@ function VoicePlayer({ src, duration }: { src: string; duration?: number }) {
 // VoiceBubble — tin nhắn thoại trong hội thoại.
 function VoiceBubble({ message, src }: { message: ChatMessage; src: string | null }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   if (!src) {
     return <span className={styles.deletedText}>{t('chat.mediaFailed')}</span>
   }
   const duration = message.duration_seconds && message.duration_seconds > 0
     ? message.duration_seconds
     : undefined
-  return <VoicePlayer src={src} duration={duration} />
+  return <VoicePlayer src={src} duration={duration} mine={message.sender_id === user?.user_id} />
 }
 
 interface SeenIndicatorProps {

@@ -1939,58 +1939,93 @@
 .voiceBubble {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
-  width: 220px;
-  max-width: 220px;
+  min-width: 200px;
+  max-width: 280px;
   color: var(--color-text);
+}
+
+.voiceMine {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .voicePlayBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border: none;
   border-radius: var(--radius-circle);
   background: var(--color-primary);
   color: #ffffff;
-  font-size: 1.125rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms ease, transform 100ms ease;
 }
 
 .voicePlayBtn:hover {
   background: var(--color-primary-hover);
+  transform: scale(1.05);
 }
 
-.voiceTrack {
-  position: relative;
+.voicePlayBtn:active {
+  transform: scale(0.95);
+}
+
+.voiceMine .voicePlayBtn {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary);
+}
+
+.voiceMine .voicePlayBtn:hover {
+  background: #fff;
+}
+
+.voiceWaveform {
   flex: 1;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--color-border);
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  min-width: 0;
 }
 
-.voiceProgress {
-  position: absolute;
-  inset: 0 auto 0 0;
+.voiceWaveBar {
+  flex: 1;
+  min-width: 2px;
+  max-width: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  transition: background 0.1s ease;
+}
+
+.voiceWaveBarPlayed {
   background: var(--color-primary);
-  border-radius: var(--radius-pill);
-  transition: width 150ms linear;
+}
+
+.voiceMine .voiceWaveBar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.voiceMine .voiceWaveBarPlayed {
+  background: #fff;
 }
 
 .voiceDuration {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.voiceMine .voiceDuration {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .voiceInput {
