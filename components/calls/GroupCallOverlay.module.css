@@ -19,75 +19,10 @@
   overflow: hidden;
 }
 
-.headerOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
-  z-index: 10;
-}
-
-.headerInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.groupName {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-}
-
-.duration {
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.8);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.participantCount {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.participantCount i {
-  font-size: 16px;
-}
-
-.minimizeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 20px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  transition: background 0.15s ease;
-}
-
-.minimizeBtn:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
 .grid {
   display: grid;
   gap: var(--space-sm);
   padding: var(--space-md);
-  padding-top: 60px;
   padding-bottom: 80px;
   flex: 1;
   min-height: 0;
@@ -119,6 +54,8 @@
   grid-template-rows: 1fr 1fr 1fr;
 }
 
+/* ── Controls pill ── */
+
 .controlsOverlay {
   position: absolute;
   bottom: var(--space-xl);
@@ -132,6 +69,39 @@
   backdrop-filter: blur(12px);
   border-radius: 999px;
   z-index: 10;
+}
+
+.controlsInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-right: var(--space-md);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.controlsDuration {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  font-weight: 500;
+}
+
+.controlsCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.controlsCount i {
+  font-size: 16px;
+}
+
+.controlsActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .controlBtn {
@@ -177,6 +147,8 @@
 .endBtn:hover {
   background: var(--color-danger);
 }
+
+/* ── Pending requests overlay ── */
 
 .pendingOverlay {
   position: absolute;
@@ -270,18 +242,9 @@
 }
 
 @media (max-width: 768px) {
-  .headerOverlay {
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  .groupName {
-    font-size: 1rem;
-  }
-
   .grid {
     gap: 4px;
     padding: var(--space-sm);
-    padding-top: 52px;
     padding-bottom: 72px;
   }
 
@@ -296,6 +259,18 @@
     bottom: var(--space-md);
     padding: var(--space-xs) var(--space-md);
     gap: var(--space-sm);
+  }
+
+  .controlsInfo {
+    padding-right: var(--space-sm);
+  }
+
+  .controlsDuration {
+    font-size: 0.8125rem;
+  }
+
+  .controlsCount {
+    font-size: 0.75rem;
   }
 
   .controlBtn {

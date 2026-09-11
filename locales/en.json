@@ -863,7 +863,8 @@
     "historyIncoming": "Incoming call",
     "historyMissed": "Missed call",
     "minimize": "Minimize call",
-    "expand": "Expand call"
+    "expand": "Expand call",
+    "noAnswer": "No answer"
   },
   "groupCall": {
     "groupCall": "Group Call",

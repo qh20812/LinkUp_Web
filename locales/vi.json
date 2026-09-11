@@ -863,7 +863,8 @@
     "historyIncoming": "Cuộc gọi đến",
     "historyMissed": "Cuộc gọi nhỡ",
     "minimize": "Thu nhỏ cuộc gọi",
-    "expand": "Mở rộng cuộc gọi"
+    "expand": "Mở rộng cuộc gọi",
+    "noAnswer": "Không có ai nghe máy"
   },
   "groupCall": {
     "groupCall": "Cuộc gọi nhóm",

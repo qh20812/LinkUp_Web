@@ -91,6 +91,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const iceServersRef = useRef<RTCIceServer[]>([])
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const endedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const setPhaseBoth = (p: CallPhase) => {
     phaseRef.current = p
@@ -158,6 +159,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(endedTimerRef.current)
       endedTimerRef.current = null
     }
+    if (outgoingTimerRef.current) {
+      clearTimeout(outgoingTimerRef.current)
+      outgoingTimerRef.current = null
+    }
     setActiveCall(null)
     setPhaseBoth('idle')
     setLastStatus(null)
@@ -176,6 +181,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     pendingSignalsRef.current = { ice: [] }
     callIdRef.current = null
     clearDuration()
+    if (outgoingTimerRef.current) {
+      clearTimeout(outgoingTimerRef.current)
+      outgoingTimerRef.current = null
+    }
     setPhaseBoth('ended')
     setLastStatus(status)
     setRemoteStream(null)
@@ -212,6 +221,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }
 
   const handleStatus = (payload: CallStatusPayload) => {
+    // Fix race: call:status may arrive before call:initiated sets callIdRef.
+    // When status is 'calling' and we're in outgoing phase with no callId yet,
+    // accept the payload's call_id so the caller sees the ringing state.
+    if (callIdRef.current === null && payload.status === 'calling' && phaseRef.current === 'outgoing') {
+      callIdRef.current = payload.call_id
+    }
     if (callIdRef.current !== payload.call_id) return
     switch (payload.status) {
       case 'calling':
@@ -366,6 +381,28 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ]
     return () => unsubscribers.forEach((unsub) => unsub())
   }, [subscribe])
+
+  // Auto-reset: if stuck in outgoing for 30s without call:initiated, reset to idle.
+  useEffect(() => {
+    if (outgoingTimerRef.current) {
+      clearTimeout(outgoingTimerRef.current)
+      outgoingTimerRef.current = null
+    }
+    if (phase === 'outgoing') {
+      outgoingTimerRef.current = setTimeout(() => {
+        if (phaseRef.current === 'outgoing') {
+          resetToIdle()
+          toast({ type: 'warning', title: t('call.noAnswer') })
+        }
+      }, 30000)
+    }
+    return () => {
+      if (outgoingTimerRef.current) {
+        clearTimeout(outgoingTimerRef.current)
+        outgoingTimerRef.current = null
+      }
+    }
+  }, [phase, t, toast])
 
   useEffect(() => {
     return () => {

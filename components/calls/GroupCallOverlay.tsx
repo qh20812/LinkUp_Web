@@ -61,30 +61,6 @@ export default function GroupCallOverlay() {
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
       <div className={styles.panel}>
-        {/* Header overlay — top */}
-        <div className={styles.headerOverlay}>
-          <div className={styles.headerInfo}>
-            <span className={styles.groupName}>
-              {t('groupCall.groupCall')}
-            </span>
-            <span className={styles.duration}>
-              {formatDuration(duration)}
-            </span>
-            <span className={styles.participantCount}>
-              <i className="bx bx-group" />
-              {allParticipants.length}
-            </span>
-          </div>
-          <button
-            className={styles.minimizeBtn}
-            onClick={minimize}
-            aria-label={t('groupCall.minimize')}
-            title={t('groupCall.minimize')}
-          >
-            <i className="bx bx-chevrons-down" />
-          </button>
-        </div>
-
         {/* Video grid */}
         <div className={`${styles.grid} ${gridClass}`}>
           {allParticipants.map((p, idx) => {
@@ -102,34 +78,55 @@ export default function GroupCallOverlay() {
           })}
         </div>
 
-        {/* Controls overlay — bottom center pill */}
+        {/* Controls overlay — pill with info + buttons */}
         <div className={styles.controlsOverlay}>
-          <button
-            className={`${styles.controlBtn} ${localMuted ? styles.activeBtn : ''}`}
-            onClick={toggleMute}
-            aria-label={localMuted ? t('groupCall.unmute') : t('groupCall.mute')}
-            title={localMuted ? t('groupCall.unmute') : t('groupCall.mute')}
-          >
-            <i className={localMuted ? 'bx bx-microphone-off' : 'bx bx-microphone'} />
-          </button>
+          <div className={styles.controlsInfo}>
+            <span className={styles.controlsDuration}>
+              {formatDuration(duration)}
+            </span>
+            <span className={styles.controlsCount}>
+              <i className="bx bx-group" />
+              {allParticipants.length}
+            </span>
+          </div>
 
-          <button
-            className={`${styles.controlBtn} ${!localVideoOn ? styles.activeBtn : ''}`}
-            onClick={toggleVideo}
-            aria-label={localVideoOn ? t('groupCall.videoOff') : t('groupCall.videoOn')}
-            title={localVideoOn ? t('groupCall.videoOff') : t('groupCall.videoOn')}
-          >
-            <i className={localVideoOn ? 'bx bx-video' : 'bx bx-video-off'} />
-          </button>
+          <div className={styles.controlsActions}>
+            <button
+              className={`${styles.controlBtn} ${localMuted ? styles.activeBtn : ''}`}
+              onClick={toggleMute}
+              aria-label={localMuted ? t('groupCall.unmute') : t('groupCall.mute')}
+              title={localMuted ? t('groupCall.unmute') : t('groupCall.mute')}
+            >
+              <i className={localMuted ? 'bx bx-microphone-off' : 'bx bx-microphone'} />
+            </button>
 
-          <button
-            className={`${styles.controlBtn} ${styles.endBtn}`}
-            onClick={endGroupCall}
-            aria-label={t('groupCall.end')}
-            title={t('groupCall.end')}
-          >
-            <i className="bx bx-phone-off" />
-          </button>
+            <button
+              className={`${styles.controlBtn} ${!localVideoOn ? styles.activeBtn : ''}`}
+              onClick={toggleVideo}
+              aria-label={localVideoOn ? t('groupCall.videoOff') : t('groupCall.videoOn')}
+              title={localVideoOn ? t('groupCall.videoOff') : t('groupCall.videoOn')}
+            >
+              <i className={localVideoOn ? 'bx bx-video' : 'bx bx-video-off'} />
+            </button>
+
+            <button
+              className={styles.controlBtn}
+              onClick={minimize}
+              aria-label={t('groupCall.minimize')}
+              title={t('groupCall.minimize')}
+            >
+              <i className="bx bx-chevrons-down" />
+            </button>
+
+            <button
+              className={`${styles.controlBtn} ${styles.endBtn}`}
+              onClick={endGroupCall}
+              aria-label={t('groupCall.end')}
+              title={t('groupCall.end')}
+            >
+              <i className="bx bx-phone-off" />
+            </button>
+          </div>
         </div>
 
         {/* Pending requests overlay */}

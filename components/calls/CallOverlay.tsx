@@ -206,22 +206,17 @@ export default function CallOverlay() {
           </div>
         )}
 
-        {/* Info overlay — top center */}
-        <div className={styles.infoOverlay}>
-          <div className={styles.infoOverlayName}>{peerName}</div>
-          <div className={styles.infoOverlayStatus}>
-            {statusLabel}
+        {/* Controls overlay — bottom center pill */}
+        <div className={styles.controlsOverlay}>
+          <div className={styles.controlsInfo}>
+            <span className={styles.controlsDuration}>
+              {formatDuration(duration)}
+            </span>
             {remoteMuted && (
               <i className={`bx bx-microphone-off ${styles.remoteMutedIcon}`} />
             )}
           </div>
-          <div className={styles.infoOverlayDuration}>
-            {formatDuration(duration)}
-          </div>
-        </div>
 
-        {/* Controls overlay — bottom center pill */}
-        <div className={styles.controlsOverlay}>
           <button
             className={`${styles.controlBtn} ${localMuted ? styles.activeBtn : ''}`}
             onClick={toggleMute}
