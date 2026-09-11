@@ -24,6 +24,9 @@ interface ConversationListProps {
   onSelectGroup?: (group: GroupChatConversation) => void
   onNewChat: () => void
   onCreateGroup?: () => void
+  onPinChat?: (chatId: string) => void
+  onMuteChat?: (chatId: string) => void
+  onArchiveChat?: (chatId: string) => void
 }
 
 export default function ConversationList({
@@ -36,6 +39,9 @@ export default function ConversationList({
   onSelectGroup,
   onNewChat,
   onCreateGroup,
+  onPinChat,
+  onMuteChat,
+  onArchiveChat,
 }: ConversationListProps) {
   const { t } = useTranslation()
   const { emojis } = useEmojis()
@@ -185,6 +191,35 @@ export default function ConversationList({
                     )}
                   </span>
                 </div>
+                <div className={styles.actions}>
+                  {onPinChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onPinChat(conv.chat_id) }}
+                      title={t('chat.pin')}
+                    >
+                      <i className="bx bx-pin" />
+                    </button>
+                  )}
+                  {onMuteChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onMuteChat(conv.chat_id) }}
+                      title={t('chat.mute')}
+                    >
+                      <i className="bx bx-bell" />
+                    </button>
+                  )}
+                  {onArchiveChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onArchiveChat(conv.chat_id) }}
+                      title={t('chat.archive')}
+                    >
+                      <i className="bx bx-archive" />
+                    </button>
+                  )}
+                </div>
               </button>
               )
             })}
@@ -236,6 +271,35 @@ export default function ConversationList({
                       </>
                     ) : null}
                   </span>
+                </div>
+                <div className={styles.actions}>
+                  {onPinChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onPinChat(group.chat_id) }}
+                      title={t('chat.pin')}
+                    >
+                      <i className="bx bx-pin" />
+                    </button>
+                  )}
+                  {onMuteChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onMuteChat(group.chat_id) }}
+                      title={t('chat.mute')}
+                    >
+                      <i className="bx bx-bell" />
+                    </button>
+                  )}
+                  {onArchiveChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onArchiveChat(group.chat_id) }}
+                      title={t('chat.archive')}
+                    >
+                      <i className="bx bx-archive" />
+                    </button>
+                  )}
                 </div>
               </button>
               )

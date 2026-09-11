@@ -7,6 +7,7 @@ import type {
   GroupChatListResponse,
   GroupChatSettings,
   MessageResponse,
+  SharedContent,
 } from '../types'
 
 export const listChats = () => request<ChatListResponse>('/chats')
@@ -210,3 +211,48 @@ export const rejectGroupChatInvite = (chatId: string, requestId: string) =>
   request<{ message?: string }>(`/group-chats/${chatId}/member-requests/${requestId}/reject`, {
     method: 'POST',
   })
+
+// ===== Chat Background =====
+export const getChatBackground = (chatId: string) =>
+  request<{ data: { type: string; value: string } }>(`/chats/${chatId}/background`)
+
+export const updateChatBackground = (chatId: string, type: string, value: string) =>
+  request<{ data: { type: string; value: string } }>(`/chats/${chatId}/background`, {
+    method: 'PUT',
+    body: JSON.stringify({ type, value }),
+  })
+
+export const deleteChatBackground = (chatId: string) =>
+  request<{ message: string }>(`/chats/${chatId}/background`, { method: 'DELETE' })
+
+export const getGroupChatBackground = (chatId: string) =>
+  request<{ data: { type: string; value: string } }>(`/group-chats/${chatId}/background`)
+
+export const updateGroupChatBackground = (chatId: string, type: string, value: string) =>
+  request<{ data: { type: string; value: string } }>(`/group-chats/${chatId}/background`, {
+    method: 'PUT',
+    body: JSON.stringify({ type, value }),
+  })
+
+export const deleteGroupChatBackground = (chatId: string) =>
+  request<{ message: string }>(`/group-chats/${chatId}/background`, { method: 'DELETE' })
+
+export const getSharedContent = (
+  chatId: string,
+  tab: 'media' | 'files' | 'links' | 'posts' | 'all' = 'all',
+  offset = 0,
+  limit = 30,
+) =>
+  request<{ data: SharedContent }>(
+    `/chats/${chatId}/shared-content?tab=${tab}&offset=${offset}&limit=${limit}`,
+  )
+
+export const getGroupSharedContent = (
+  chatId: string,
+  tab: 'media' | 'files' | 'links' | 'posts' | 'all' = 'all',
+  offset = 0,
+  limit = 30,
+) =>
+  request<{ data: SharedContent }>(
+    `/group-chats/${chatId}/shared-content?tab=${tab}&offset=${offset}&limit=${limit}`,
+  )

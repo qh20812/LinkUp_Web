@@ -930,6 +930,8 @@ export interface ChatConversation {
   last_message?: ChatMessage | null
   is_encrypted?: boolean
   updated_at: string
+  background_type?: string
+  background_value?: string
 }
 
 export interface ChatListResponse {
@@ -967,6 +969,14 @@ export interface ChatInviteResponse {
   message: string
 }
 
+// ===== Chat Background =====
+export type ChatBackgroundType = 'solid' | 'gradient' | 'preset' | 'custom'
+
+export interface ChatBackground {
+  type: ChatBackgroundType
+  value: string
+}
+
 // ===== Group Chat =====
 export interface GroupChatConversation {
   chat_id: string
@@ -975,6 +985,8 @@ export interface GroupChatConversation {
   member_count: number
   last_message?: ChatMessage | null
   updated_at: string
+  background_type?: string
+  background_value?: string
 }
 
 // ===== Pinned Messages =====
@@ -1030,6 +1042,8 @@ export interface GroupChatSettings {
     notifications_enabled: boolean
   }
   members: GroupChatMember[]
+  background_type?: string
+  background_value?: string
 }
 
 // ===== Group Chat Invite (message type) =====
@@ -1298,4 +1312,47 @@ export interface CallHistoryListResponse {
   total: number
   limit: number
   offset: number
+}
+
+// ===== Shared Content (Chat Detail Sidebar) =====
+export interface SharedMediaItem {
+  message_id: string
+  media_id: string
+  file_uri: string
+  file_type: string
+  file_size: number
+  duration_seconds: number
+  created_at: string
+}
+
+export interface SharedFileItem {
+  message_id: string
+  media_id: string
+  file_uri: string
+  file_type: string
+  file_name: string
+  file_size: number
+  created_at: string
+}
+
+export interface SharedLinkItem {
+  message_id: string
+  url: string
+  sender_id: string
+  created_at: string
+}
+
+export interface SharedPostItem {
+  message_id: string
+  post_id: string
+  post_content: string
+  post_author_id: string
+  created_at: string
+}
+
+export interface SharedContent {
+  media: SharedMediaItem[]
+  files: SharedFileItem[]
+  links: SharedLinkItem[]
+  posts: SharedPostItem[]
 }

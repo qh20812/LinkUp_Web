@@ -36,6 +36,7 @@ import type {
   EmojiItem,
   GifItem,
   PinnedMessage,
+  ChatBackground,
 } from '../../types'
 import type { GroupCallHistoryItem, GroupCallJoinRequestState } from '../../types/groupCall'
 import type { ChatRoom } from '../../hooks/useChatRoom'
@@ -46,6 +47,7 @@ import GroupCallMemberSelectModal from '../calls/GroupCallMemberSelectModal'
 import GroupCallRequestJoinModal from '../calls/GroupCallRequestJoinModal'
 import GroupCallMessage from './GroupCallMessage'
 import ChatMediaLightbox from './ChatMediaLightbox'
+import ChatDetailSidebar from './ChatDetailSidebar'
 import styles from './ChatWindow.module.css'
 
 const EMOTION_EMOJI_MAP = emojiByCode(getEmotionEmojis())
@@ -87,6 +89,165 @@ function serializeContent(el: HTMLElement): string {
   return out.replace(/\n{3,}/g, '\n\n')
 }
 
+// ── Floating action toolbar (Messenger-style, appears on hover) ────────────
+const QUICK_REACT_EMOJI_IDS = ['👍', '❤️', '😂', '😮', '😢', '😡', '👏', '🔥']
+
+interface MessageToolbarProps {
+  msg: ChatMessage
+  mine: boolean
+  visible: boolean
+  emojis: Map<string, EmojiItem>
+  onReact?: (messageId: string, emojiId: string) => void
+  onReply: () => void
+  onForward?: () => void
+  onPin: () => void
+  onUnpin: () => void
+  onDelete: () => void
+  isPinned: boolean
+  canForward: boolean
+  onToolbarMouseEnter: () => void
+  onToolbarMouseLeave: () => void
+}
+
+function MessageToolbar({
+  msg,
+  mine,
+  visible,
+  emojis,
+  onReact,
+  onReply,
+  onForward,
+  onPin,
+  onUnpin,
+  onDelete,
+  isPinned,
+  canForward,
+  onToolbarMouseEnter,
+  onToolbarMouseLeave,
+}: MessageToolbarProps) {
+  const { t } = useTranslation()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [reactionOpen, setReactionOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const moreBtnRef = useRef<HTMLButtonElement>(null)
+  const reactionRef = useRef<HTMLDivElement>(null)
+  const reactionBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!moreOpen && !reactionOpen) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (moreRef.current?.contains(target) || moreBtnRef.current?.contains(target)) return
+      if (reactionRef.current?.contains(target) || reactionBtnRef.current?.contains(target)) return
+      setMoreOpen(false)
+      setReactionOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [moreOpen, reactionOpen])
+
+  const quickEmojis = useMemo(() => {
+    const result: EmojiItem[] = []
+    for (const code of QUICK_REACT_EMOJI_IDS) {
+      const item = emojis.get(code)
+      if (item) result.push(item)
+    }
+    return result
+  }, [emojis])
+
+  const handleReact = (emojiId: string) => {
+    setReactionOpen(false)
+    onReact?.(msg.id, emojiId)
+  }
+
+  return (
+    <div
+      className={`${styles.messageToolbar} ${mine ? styles.toolbarMine : styles.toolbarTheirs} ${visible ? styles.toolbarVisible : ''}`}
+      onMouseEnter={onToolbarMouseEnter}
+      onMouseLeave={onToolbarMouseLeave}
+    >
+      {onReact && (
+        <div className={styles.toolbarReactWrap} ref={reactionRef}>
+          <button
+            ref={reactionBtnRef}
+            className={`${styles.toolbarActionBtn} ${reactionOpen ? styles.toolbarActionBtnActive : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setReactionOpen((v) => !v)
+              setMoreOpen(false)
+            }}
+            aria-label={t('chat.addReaction')}
+            title={t('chat.addReaction')}
+          >
+            <i className="bx bx-smile" />
+          </button>
+          {reactionOpen && (
+            <div className={styles.toolbarReactionPicker}>
+              {quickEmojis.map((item) => (
+                <button
+                  key={item.id}
+                  className={styles.toolbarReactionPickBtn}
+                  onClick={() => handleReact(item.id)}
+                  title={item.code}
+                >
+                  <EmojiImage emoji={item} className={styles.toolbarReactionPickEmoji} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <button
+        className={styles.toolbarActionBtn}
+        onClick={onReply}
+        aria-label={t('chat.reply')}
+        title={t('chat.reply')}
+      >
+        <i className="bx bx-reply" />
+      </button>
+      <div className={styles.toolbarMoreWrap} ref={moreRef}>
+        <button
+          ref={moreBtnRef}
+          className={`${styles.toolbarActionBtn} ${moreOpen ? styles.toolbarActionBtnActive : ''}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            setMoreOpen((v) => !v)
+            setReactionOpen(false)
+          }}
+          aria-label={t('chat.more')}
+          title={t('chat.more')}
+        >
+          <i className="bx bx-dots-horizontal-rounded" />
+        </button>
+        {moreOpen && (
+          <div className={styles.toolbarMoreMenu} onClick={(e) => e.stopPropagation()}>
+            {isPinned ? (
+              <button onClick={() => { onUnpin(); setMoreOpen(false) }}>
+                <i className="bx bx-pin" /> {t('chat.unpin')}
+              </button>
+            ) : (
+              <button onClick={() => { onPin(); setMoreOpen(false) }}>
+                <i className="bx bx-pin" /> {t('chat.pin')}
+              </button>
+            )}
+            {canForward && (
+              <button onClick={() => { onForward?.(); setMoreOpen(false) }}>
+                <i className="bx bx-arrow-forward" /> {t('chat.forward')}
+              </button>
+            )}
+            <button
+              className={styles.moreMenuDanger}
+              onClick={() => { onDelete(); setMoreOpen(false) }}
+            >
+              <i className="bx bx-trash" /> {t('chat.deleteForMe')}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface ChatWindowProps {
   conversation: ChatConversation | null
   myUserId: string
@@ -109,6 +270,8 @@ interface ChatWindowProps {
   groupCallHistory?: GroupCallHistoryItem[]
   activeGroupCallId?: string | null
   onBack?: () => void
+  chatBackground?: ChatBackground | null
+  onOpenBackgroundPicker?: () => void
 }
 
 interface DeleteTarget {
@@ -121,6 +284,16 @@ type TimelineItem =
   | { kind: 'group_call'; call: GroupCallHistoryItem; created: number }
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
+
+function highlightKeyword(text: string, keyword: string): React.ReactNode {
+  if (!keyword.trim()) return text
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  const parts = text.split(regex)
+  return parts.map((part, i) =>
+    regex.test(part) ? <mark key={i}>{part}</mark> : part,
+  )
+}
 
 // ── Media grouping (Messenger-style stacked media) ────────────────────────
 // Nhóm các media message liền kề từ cùng 1 người gửi thành một group. Chỉ
@@ -254,6 +427,8 @@ export default function ChatWindow({
   groupCallHistory = [],
   activeGroupCallId = null,
   onBack,
+  chatBackground,
+  onOpenBackgroundPicker,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -277,6 +452,64 @@ export default function ChatWindow({
     for (const e of emojis.values()) map.set(e.code, e)
     return map
   }, [emojis])
+
+  const chatBgStyle = useMemo(() => {
+    if (!chatBackground) return {}
+    switch (chatBackground.type) {
+      case 'solid':
+        return { backgroundColor: chatBackground.value }
+      case 'gradient':
+        return { backgroundImage: chatBackground.value }
+      case 'preset':
+        return {
+          backgroundImage: `url(/presets/chat-bg/${chatBackground.value})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }
+      case 'custom':
+        return {
+          backgroundImage: `url(${chatBackground.value})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }
+      default:
+        return {}
+    }
+  }, [chatBackground])
+
+  const chatHeaderStyle = useMemo(() => {
+    if (!chatBackground) return {}
+    switch (chatBackground.type) {
+      case 'solid':
+        return {
+          backgroundColor: chatBackground.value,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }
+      case 'gradient':
+        return {
+          backgroundImage: chatBackground.value,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }
+      case 'preset':
+      case 'custom': {
+        const url = chatBackground.type === 'preset'
+          ? `/presets/chat-bg/${chatBackground.value}`
+          : chatBackground.value
+        return {
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${url})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }
+      }
+      default:
+        return {}
+    }
+  }, [chatBackground])
+
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null)
@@ -286,9 +519,13 @@ export default function ChatWindow({
   const [showMemberSelectModal, setShowMemberSelectModal] = useState(false)
   const [joinRequestState, setJoinRequestState] = useState<GroupCallJoinRequestState | null>(null)
   const [lightbox, setLightbox] = useState<{ msgs: ChatMessage[]; index: number } | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null)
+  const [toolbarHoveredId, setToolbarHoveredId] = useState<string | null>(null)
   const openLightbox = useCallback((msgs: ChatMessage[], index: number) => {
     setLightbox({ msgs, index })
   }, [])
+
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
@@ -521,9 +758,9 @@ const prevTimelineLenRef = useRef(0)
     )
   }
 
-  const confirmDelete = (mode: 'all' | 'me') => {
+  const confirmDelete = () => {
     if (deleteTarget) {
-      room.deleteMessage(deleteTarget.message.id, mode)
+      room.deleteMessage(deleteTarget.message.id, 'me')
     }
     setDeleteTarget(null)
   }
@@ -546,7 +783,10 @@ const prevTimelineLenRef = useRef(0)
 
   return (
     <div className={styles.window}>
-      <div className={styles.header}>
+      <div
+        className={`${styles.header}${chatBackground ? ` ${styles.headerWithBg}` : ''}`}
+        style={chatHeaderStyle}
+      >
         {onBack && (
           <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('chat.back')}>
             <i className="bx bx-arrow-back" />
@@ -615,35 +855,15 @@ const prevTimelineLenRef = useRef(0)
             >
               <i className="bx bx-video" />
             </button>
-            {onOpenGroupSettings && (
-              <button
-                className={styles.iconBtn}
-                onClick={onOpenGroupSettings}
-                aria-label={t('chat.groupSettings')}
-                title={t('chat.groupSettings')}
-              >
-                <i className="bx bx-cog" />
-              </button>
-            )}
           </>
         ) : null}
         <button
-          className={`${styles.iconBtn} ${searchActive ? styles.iconBtnActive : ''}`}
-          onClick={toggleSearch}
-          aria-label={t('chat.searchMessages')}
+          className={styles.iconBtn}
+          onClick={() => setSidebarOpen(true)}
+          title={t('chat.chatDetail')}
         >
-          <i className="bx bx-search" />
+          <i className="bx bx-info-circle" />
         </button>
-        {onDeleteChat && (
-          <button
-            className={styles.iconBtn}
-            onClick={onDeleteChat}
-            aria-label={t('chat.deleteChat')}
-            title={t('chat.deleteChat')}
-          >
-            <i className="bx bx-trash" />
-          </button>
-        )}
       </div>
 
       {mode === 'group' && groupCall && groupCall.chatId === chatId && (groupCallPhase === 'active' || groupCallPhase === 'minimized') && (
@@ -711,10 +931,12 @@ const prevTimelineLenRef = useRef(0)
       )}
 
       {inSearch ? (
-        <div className={styles.searchResults}>
+        <div className={styles.searchResults} style={chatBgStyle}>
           <div className={styles.searchResultsHeader}>
             <span>
-              {t('chat.searchResults', { keyword: room.searchKeyword })}
+              {searchResults.length === 0
+                ? t('chat.noResults')
+                : t('chat.searchResultCount', { count: searchResults.length, keyword: room.searchKeyword })}
             </span>
             <button className={styles.clearBtn} onClick={room.clearSearch}>
               <i className="bx bx-x" />
@@ -724,27 +946,39 @@ const prevTimelineLenRef = useRef(0)
             <div className={styles.center}>{t('chat.noResults')}</div>
           ) : (
             searchResults.map((msg) => (
-              <div key={msg.id} className={styles.searchResultItem}>
+              <div
+                key={msg.id}
+                className={styles.searchResultItem}
+                onClick={() => {
+                  room.clearSearch()
+                  setSearchActive(false)
+                  scrollToMessage(msg.id)
+                  setHighlightedMsgId(msg.id)
+                }}
+              >
                 <span className={styles.searchResultSender}>
                   {msg.sender_id === myUserId
                     ? t('chat.you')
                     : mode === 'group'
                       ? (memberNames?.get(msg.sender_id)?.display_name || t('chat.unknown'))
                       : (conversation?.partner.display_name || t('chat.unknown'))}
+                  <span className={styles.searchResultTime}>
+                    · {formatChatDate(msg.created_at, t)}
+                  </span>
                 </span>
                 <span className={styles.searchResultContent}>
                   {msg.media_id
                     ? t('chat.mediaMessage')
                     : msg.emoji_id
                       ? emojis.get(msg.emoji_id)?.code || t('chat.emojiMessage')
-                      : renderEmojiContent(msg.content, emojiCodeMap, `s-${msg.id}`, styles.emojiInline)}
+                      : highlightKeyword(msg.content, room.searchKeyword)}
                 </span>
               </div>
             ))
           )}
         </div>
       ) : (
-        <div className={styles.messages} ref={scrollRef} onScroll={handleMessagesScroll}>
+        <div className={styles.messages} ref={scrollRef} onScroll={handleMessagesScroll} style={chatBgStyle}>
           {room.loading && (
             <div className={styles.center}>{t('common.loading')}</div>
           )}
@@ -825,7 +1059,7 @@ const prevTimelineLenRef = useRef(0)
                             emojis={emojis}
                             onReact={onReact}
                             t={t}
-                            boundaryRef={scrollRef}
+                            
                           />
                         </div>
                       </div>
@@ -969,7 +1203,7 @@ const prevTimelineLenRef = useRef(0)
                       emojis={emojis}
                       onReact={onReact}
                       t={t}
-                      boundaryRef={scrollRef}
+                      
                     />
                   </div>
                 </div>
@@ -987,7 +1221,12 @@ const prevTimelineLenRef = useRef(0)
                     <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                   </div>
                 )}
-                <div className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`} data-message-id={msg.id}>
+                <div
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`}
+                  data-message-id={msg.id}
+                  onMouseEnter={() => setHoveredMsgId(msg.id)}
+                  onMouseLeave={() => setHoveredMsgId(null)}
+                >
                   {pinnedMessages.some((p) => p.message_id === msg.id) && (
                     <span className={styles.pinBadge} title={t('chat.pinnedMessage')}>
                       <i className="bx bx-pin" />
@@ -1063,7 +1302,7 @@ const prevTimelineLenRef = useRef(0)
                           emojis={emojis}
                           onReact={onReact}
                           t={t}
-                          boundaryRef={scrollRef}
+                          
                         />
                       </div>
                     </div>
@@ -1151,57 +1390,27 @@ const prevTimelineLenRef = useRef(0)
                         emojis={emojis}
                         onReact={onReact}
                         t={t}
-                        boundaryRef={scrollRef}
+                        
                       />
                     </div>
                   )}
-                  {!msg.deleted && (
-                    <>
-                      <button
-                        className={styles.replyBtn}
-                        onClick={() => setReplyingTo(msg)}
-                        aria-label={t('chat.reply')}
-                        title={t('chat.reply')}
-                      >
-                        <i className="bx bx-reply" />
-                      </button>
-                      {pinnedMessages.some((p) => p.message_id === msg.id) ? (
-                        <button
-                          className={`${styles.pinBtn} ${styles.pinBtnActive}`}
-                          onClick={() => unpinMessage(msg.id)}
-                          aria-label={t('chat.unpin')}
-                          title={t('chat.unpin')}
-                        >
-                          <i className="bx bx-pin" />
-                        </button>
-                      ) : pinnedMessages.length < 2 ? (
-                        <button
-                          className={styles.pinBtn}
-                          onClick={() => pinMessage(msg.id)}
-                          aria-label={t('chat.pin')}
-                          title={t('chat.pin')}
-                        >
-                          <i className="bx bx-pin" />
-                        </button>
-                      ) : null}
-                      {onForward && msg.message_category !== 'system' && !msg.is_anonymized && (
-                        <button
-                          className={styles.forwardBtn}
-                          onClick={() => onForward(msg)}
-                          aria-label={t('chat.forward')}
-                          title={t('chat.forward')}
-                        >
-                          <i className="bx bx-arrow-forward" />
-                        </button>
-                      )}
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => setDeleteTarget({ message: msg })}
-                        aria-label={t('chat.delete')}
-                      >
-                        <i className="bx bx-trash" />
-                      </button>
-                    </>
+                   {!msg.deleted && (
+                    <MessageToolbar
+                      msg={msg}
+                      mine={mine}
+                      visible={hoveredMsgId === msg.id || toolbarHoveredId === msg.id}
+                      emojis={emojis}
+                      onReact={onReact}
+                      onReply={() => setReplyingTo(msg)}
+                      onForward={onForward ? () => onForward(msg) : undefined}
+                      onPin={() => pinMessage(msg.id)}
+                      onUnpin={() => unpinMessage(msg.id)}
+                      onDelete={() => setDeleteTarget({ message: msg })}
+                      isPinned={pinnedMessages.some((p) => p.message_id === msg.id)}
+                      canForward={Boolean(onForward && msg.message_category !== 'system' && !msg.is_anonymized)}
+                      onToolbarMouseEnter={() => setToolbarHoveredId(msg.id)}
+                      onToolbarMouseLeave={() => setToolbarHoveredId(null)}
+                    />
                   )}
                 </div>
                 </>
@@ -1244,16 +1453,10 @@ const prevTimelineLenRef = useRef(0)
       >
         <p className={styles.deleteText}>{t('chat.deleteConfirm')}</p>
         <div className={styles.deleteActions}>
-          <button className={styles.ghostBtn} onClick={() => confirmDelete('me')}>
+          <button className={styles.dangerBtn} onClick={confirmDelete}>
             <i className="bx bx-trash" />
             {t('chat.deleteForMe')}
           </button>
-          {deleteTarget && deleteTarget.message.sender_id === myUserId && (
-            <button className={styles.dangerBtn} onClick={() => confirmDelete('all')}>
-              <i className="bx bx-trash" />
-              {t('chat.deleteForAll')}
-            </button>
-          )}
         </div>
       </Modal>
 
@@ -1284,6 +1487,22 @@ const prevTimelineLenRef = useRef(0)
           onClose={() => setLightbox(null)}
         />
       )}
+
+      <ChatDetailSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        chatId={chatId}
+        mode={mode}
+        partner={mode === 'direct' ? conversation?.partner ?? null : null}
+        groupName={groupName}
+        groupAvatarUri={groupAvatarUri}
+        memberCount={memberCount}
+        members={memberNames}
+        onSearch={toggleSearch}
+        onBackground={onOpenBackgroundPicker}
+        onGroupSettings={onOpenGroupSettings}
+        onDeleteChat={onDeleteChat}
+      />
     </div>
   )
 }
@@ -1418,61 +1637,23 @@ function SeenIndicator({
   )
 }
 
-// ── Message reactions: chips bày tỏ cảm xúc + bộ chọn nhanh ─────────────────
+// ── Message reactions: chips bày tỏ cảm xúc (hiển thị bên dưới bubble) ─────
 interface ReactionsRowProps {
   msg: ChatMessage
   myUserId: string
   emojis: Map<string, EmojiItem>
   onReact?: (messageId: string, emojiId: string) => void
   t: (key: string, params?: Record<string, string>) => string
-  boundaryRef?: React.RefObject<HTMLDivElement | null>
 }
 
-function ReactionsRow({ msg, myUserId, emojis, onReact, t, boundaryRef }: ReactionsRowProps) {
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [pickerShift, setPickerShift] = useState(0)
-  const [pickerFlipped, setPickerFlipped] = useState(false)
-  const pickerElRef = useRef<HTMLDivElement>(null)
-  const toggleRef = useRef<HTMLButtonElement>(null)
+function ReactionsRow({ msg, myUserId, emojis, onReact, t }: ReactionsRowProps) {
   const isBlocked = msg.deleted || msg.decrypt_failed
   const showBadge = !!msg.forwarded_from && !isBlocked
-
-  // Giữ picker luôn nằm gọn trong vùng hiển thị chat: kẹp ngang khi tràn mép
-  // phải/trái, và lật xuống dưới khi không đủ chỗ phía trên (tin nhắn đầu tiên).
-  useLayoutEffect(() => {
-    if (!pickerOpen) return
-    const el = pickerElRef.current
-    const bound = boundaryRef?.current
-    if (!el || !bound) return
-    const rect = el.getBoundingClientRect()
-    const bRect = bound.getBoundingClientRect()
-    let shift = 0
-    const overRight = rect.right - bRect.right + 8
-    const overLeft = bRect.left + 8 - rect.left
-    if (overRight > 0) shift = -overRight
-    if (overLeft > 0) shift = Math.max(shift, overLeft)
-    setPickerShift(shift)
-    setPickerFlipped(rect.top - bRect.top < 8)
-  }, [pickerOpen, boundaryRef])
-
-  // Đóng picker khi click ra ngoài.
-  useEffect(() => {
-    if (!pickerOpen) return
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (pickerElRef.current?.contains(target)) return
-      if (toggleRef.current?.contains(target)) return
-      setPickerOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [pickerOpen])
 
   if (isBlocked || !emojis || (!onReact && !showBadge)) return null
 
   const reactions = msg.reactions ?? []
   const mineReactions = reactions.filter((r) => r.user_id === myUserId)
-  const quickEmojis = [...emojis.values()].slice(0, 8)
 
   const chips: Array<{ emoji: EmojiItem; count: number; mine: boolean }> = []
   for (const r of reactions) {
@@ -1490,7 +1671,6 @@ function ReactionsRow({ msg, myUserId, emojis, onReact, t, boundaryRef }: Reacti
   chips.sort((a, b) => Number(b.mine) - Number(a.mine))
 
   const react = (emojiId: string) => {
-    setPickerOpen(false)
     if (onReact) onReact(msg.id, emojiId)
   }
 
@@ -1510,51 +1690,17 @@ function ReactionsRow({ msg, myUserId, emojis, onReact, t, boundaryRef }: Reacti
           {msg.forwards_count && msg.forwards_count > 1 ? ` · ${msg.forwards_count}` : ''}
         </span>
       )}
-      {onReact && (
-        <>
-          {chips.map((chip) => (
-            <button
-              key={chip.emoji.id}
-              className={chip.mine ? `${styles.reactionChip} ${styles.reactionChipMine}` : styles.reactionChip}
-              onClick={() => react(chip.emoji.id)}
-              title={`${myNames}`}
-            >
-              <EmojiImage emoji={chip.emoji} className={styles.reactionChipEmoji} />
-              <span className={styles.reactionChipCount}>{chip.count}</span>
-            </button>
-          ))}
-          <button
-            ref={toggleRef}
-            className={styles.reactionAddBtn}
-            onClick={() => setPickerOpen((v) => !v)}
-            aria-label={t('chat.addReaction')}
-            title={t('chat.addReaction')}
-          >
-            <i className="bx bx-smile" />
-          </button>
-          {pickerOpen && (
-            <div
-              ref={pickerElRef}
-              className={`${styles.reactionPicker}${pickerFlipped ? ` ${styles.reactionPickerFlip}` : ''}`}
-              style={pickerShift !== 0 ? { transform: `translateX(${pickerShift}px)` } : undefined}
-            >
-              {quickEmojis.map((item) => {
-                const mineReacted = mineReactions.some((r) => r.emoji_id === item.id)
-                return (
-                  <button
-                    key={item.id}
-                    className={mineReacted ? `${styles.reactionPickBtn} ${styles.reactionPickBtnMine}` : styles.reactionPickBtn}
-                    onClick={() => react(item.id)}
-                    title={item.code}
-                  >
-                    <EmojiImage emoji={item} className={styles.reactionPickEmoji} />
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </>
-      )}
+      {onReact && chips.map((chip) => (
+        <button
+          key={chip.emoji.id}
+          className={chip.mine ? `${styles.reactionChip} ${styles.reactionChipMine}` : styles.reactionChip}
+          onClick={() => react(chip.emoji.id)}
+          title={`${myNames}`}
+        >
+          <EmojiImage emoji={chip.emoji} className={styles.reactionChipEmoji} />
+          <span className={styles.reactionChipCount}>{chip.count}</span>
+        </button>
+      ))}
     </div>
   )
 }

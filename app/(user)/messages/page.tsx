@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Modal from '../../../components/Modal'
 import ExternalImage from '../../../components/ExternalImage'
@@ -14,6 +14,7 @@ import ForwardPickerModal, {
 import ChatWindow from '../../../components/messages/ChatWindow'
 import CreateGroupModal from '../../../components/messages/CreateGroupModal'
 import GroupSettingsPanel from '../../../components/messages/GroupSettingsPanel'
+import ChatBackgroundPicker from '../../../components/messages/ChatBackgroundPicker'
 import { useChatSocket } from '../../../hooks/useChatSocket'
 import { useChatRoom } from '../../../hooks/useChatRoom'
 import { useGroupChatSocket } from '../../../hooks/useGroupChatSocket'
@@ -25,7 +26,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
 import { decryptChat, ensureChatKey } from '../../../utils/e2ee'
-import type { ChatConversation, ChatInviteItem, ChatMessage, GroupChatConversation } from '../../../types'
+import type { ChatConversation, ChatInviteItem, ChatMessage, GroupChatConversation, ChatBackground } from '../../../types'
 import styles from './Messages.module.css'
 
 // Chạy fn trên từng item với độ đồng thời tối đa `limit`, giữ nguyên thứ tự.
@@ -89,6 +90,7 @@ function MessagesContent() {
     targetType: 'direct' | 'group'
   } | null>(null)
   const [activeGroupMembers, setActiveGroupMembers] = useState<{ chatId: string; members: Map<string, { display_name: string; avatar_uri: string }> }>({ chatId: '', members: new Map() })
+  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false)
 
   const myUserId = user?.user_id ?? ''
   const socket = useChatSocket()
@@ -100,6 +102,14 @@ function MessagesContent() {
 
   const activeGroupConversation =
     groupConversations.find((c) => c.chat_id === activeChatId) ?? null
+
+  const chatBackground = useMemo<ChatBackground | null>(() => {
+    if (!activeChatId) return null
+    const list = activeChatType === 'group' ? groupConversations : conversations
+    const conv = list.find((c) => c.chat_id === activeChatId)
+    if (!conv?.background_type || !conv?.background_value) return null
+    return { type: conv.background_type as ChatBackground['type'], value: conv.background_value }
+  }, [activeChatId, activeChatType, conversations, groupConversations])
 
   const encryption = useChatE2E({
     chatId: activeChatType === 'direct' ? activeChatId : null,
@@ -510,6 +520,8 @@ function MessagesContent() {
               groupCallHistory={groupRoom.callHistory}
               activeGroupCallId={groupCall?.callId ?? null}
               onBack={() => navigateToChat(null)}
+              chatBackground={chatBackground}
+              onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
             />
           ) : activeChatType === 'direct' ? (
             <ChatWindow
@@ -527,6 +539,8 @@ function MessagesContent() {
               }
               onGroupInviteAccepted={handleGroupInviteAccepted}
               onBack={() => navigateToChat(null)}
+              chatBackground={chatBackground}
+              onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
             />
           ) : (
             <div className={styles.center}>
@@ -566,6 +580,37 @@ function MessagesContent() {
           myUserId={myUserId}
           onSettingsUpdated={handleGroupSettingsUpdated}
           onLeave={handleGroupLeave}
+          onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
+          currentBackground={chatBackground}
+        />
+      )}
+
+      {activeChatId && (
+        <ChatBackgroundPicker
+          open={backgroundPickerOpen}
+          onClose={() => setBackgroundPickerOpen(false)}
+          chatId={activeChatId}
+          currentBackground={chatBackground}
+          onApplied={(bg) => {
+            if (activeChatType === 'group') {
+              setGroupConversations((prev) =>
+                prev.map((c) =>
+                  c.chat_id === activeChatId
+                    ? { ...c, background_type: bg?.type ?? null, background_value: bg?.value ?? null }
+                    : c,
+                ),
+              )
+            } else {
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.chat_id === activeChatId
+                    ? { ...c, background_type: bg?.type ?? null, background_value: bg?.value ?? null }
+                    : c,
+                ),
+              )
+            }
+          }}
+          mode={activeChatType}
         />
       )}
 
