@@ -596,7 +596,7 @@ function MessagesContent() {
               setGroupConversations((prev) =>
                 prev.map((c) =>
                   c.chat_id === activeChatId
-                    ? { ...c, background_type: bg?.type ?? null, background_value: bg?.value ?? null }
+                    ? { ...c, background_type: bg?.type ?? undefined, background_value: bg?.value ?? undefined }
                     : c,
                 ),
               )
@@ -604,7 +604,7 @@ function MessagesContent() {
               setConversations((prev) =>
                 prev.map((c) =>
                   c.chat_id === activeChatId
-                    ? { ...c, background_type: bg?.type ?? null, background_value: bg?.value ?? null }
+                    ? { ...c, background_type: bg?.type ?? undefined, background_value: bg?.value ?? undefined }
                     : c,
                 ),
               )
