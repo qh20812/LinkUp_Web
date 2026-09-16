@@ -25,8 +25,8 @@ const dmSans = DM_Sans({
 })
 
 export const metadata = {
-  title: 'Trang chủ - LinkUp',
-  description: 'Admin dashboard for LinkUp social network',
+  title: process.env.APP_NAME || 'LinkUp',
+  description: 'Ứng dụng kết nối và trò chuyện trực tuyến',
 }
 
 export default function RootLayout({

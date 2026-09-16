@@ -14,6 +14,7 @@ import GoogleAuthButton from '../../../components/auth/GoogleAuthButton'
 import styles from './RegisterForm.module.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+const DISPLAY_NAME_REGEX = /^[\p{L}\p{M}\d ]+$/u
 
 interface FieldErrors {
   displayName?: string
@@ -44,6 +45,8 @@ export default function RegisterForm() {
       errors.displayName = t('register.displayNameTooShort')
     } else if (Array.from(displayName.trim()).length > 55) {
       errors.displayName = t('register.displayNameTooLong')
+    } else if (!DISPLAY_NAME_REGEX.test(displayName.trim())) {
+      errors.displayName = t('register.displayNameInvalid')
     }
 
     if (!email.trim()) {

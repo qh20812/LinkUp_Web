@@ -728,6 +728,9 @@ export default function ChatWindow({
                         />
                       </button>
                     )}
+                    {!callMine && !isFirstInGroup && (
+                      <div className={styles.avatarSpacer} />
+                    )}
                     <div className={`${styles.bubble} ${styles.callBubble} ${styles[callDirection]}`}>
                       <i className={`bx ${callIcon}`} />
                       <div className={styles.callContent}>
@@ -795,6 +798,9 @@ export default function ChatWindow({
                           className={styles.msgAvatarImg}
                         />
                       </button>
+                    )}
+                    {!gcMine && !isFirstInGroup && (
+                      <div className={styles.avatarSpacer} />
                     )}
                     <div className={`${styles.bubble} ${styles.callBubble} ${styles[gcDirection]}`}>
                       <i className={`bx ${gcIcon}`} />
@@ -869,7 +875,7 @@ export default function ChatWindow({
                   onMouseEnter={() => setHoveredMsgId(msg.id)}
                   onMouseLeave={() => setHoveredMsgId(null)}
                 >
-                  {!mine && (
+                  {!mine && isFirstInGroup && (
                     <button
                       className={styles.msgAvatar}
                       onClick={() => router.push(`/profile/${msg.sender_id}`)}
@@ -881,6 +887,9 @@ export default function ChatWindow({
                         className={styles.msgAvatarImg}
                       />
                     </button>
+                  )}
+                  {!mine && !isFirstInGroup && (
+                    <div className={styles.avatarSpacer} />
                   )}
                   <div className={styles.bubble}>
                     <div className={styles.sharedPostHeader}>
