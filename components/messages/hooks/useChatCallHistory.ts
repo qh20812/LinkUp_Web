@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getCallHistory } from '../../../api/calls'
-import type { CallHistoryItem, CallPhase } from '../../../types'
+import type { CallHistoryItem } from '../../../types'
+import type { CallPhase } from '../../../contexts/CallContext'
 
 const EMPTY_CALL_HISTORY: CallHistoryItem[] = []
 

@@ -922,6 +922,7 @@ export interface ChatPartner {
   user_id: string
   display_name: string
   avatar_uri: string
+  is_online?: boolean
 }
 
 export interface ChatConversation {
