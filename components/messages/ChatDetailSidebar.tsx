@@ -17,7 +17,7 @@ import styles from './ChatDetailSidebar.module.css'
 interface ChatDetailSidebarProps {
   open: boolean
   onClose: () => void
-  chatId: string
+  chatId: string | null
   mode: 'direct' | 'group'
   partner?: ChatPartner | null
   groupName?: string
@@ -85,7 +85,7 @@ export default function ChatDetailSidebar({
 
   const fetchContent = useCallback(
     async (tab: TabKey, pageNum: number, append: boolean) => {
-      if (tab === 'members') return
+      if (tab === 'members' || !chatId) return
       setLoading(true)
       try {
         const fetcher = mode === 'group' ? getGroupSharedContent : getSharedContent
@@ -164,9 +164,35 @@ export default function ChatDetailSidebar({
     ? (memberCount != null ? `${memberCount} ${t('chat.members')}` : '')
     : (partner?.is_online ? t('chat.online') : t('chat.offline'))
 
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const sidebar = sidebarRef.current
+    if (!sidebar) return
+    const focusable = sidebar.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    if (focusable.length > 0) focusable[0].focus()
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open])
+
   return (
     <div className={`${styles.overlay} ${open ? styles.overlayOpen : ''}`} onClick={onClose}>
-      <div className={styles.sidebar} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.sidebar} ref={sidebarRef} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('chat.chatDetail')}>
         <div className={styles.sidebarHeader}>
           <button className={styles.backBtn} onClick={onClose}>
             <i className="bx bx-x" />

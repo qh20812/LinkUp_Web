@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 150ms ease;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
 .checkbox:hover {
@@ -162,4 +162,14 @@
 
 .addBtnDisabled:hover {
   background: var(--color-primary);
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-md);
+  }
 }

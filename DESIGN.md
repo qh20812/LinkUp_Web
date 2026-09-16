@@ -25,7 +25,7 @@ The interface breathes. Sidebars are generous, feed cards have room to stretch, 
 
 Light mode is the default — crisp white surfaces with soft shadows. Dark mode shifts to deep charcoal with muted turquoise accents, like a nighttime cafe. Both modes feel cohesive, never jarring.
 
-**Overall impression:** Modern Vietnamese social platform — not模仿 Facebook or Instagram, but its own identity. Clean enough for daily use, distinctive enough to remember.
+**Overall impression:** Modern Vietnamese social platform — not imitating Facebook or Instagram, but its own identity. Clean enough for daily use, distinctive enough to remember.
 
 ---
 
@@ -35,11 +35,11 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 
 | Name | Hex | Role |
 |------|-----|------|
-| **Fresh Turquoise** | `#12A5A1` | Primary brand. Links, active nav states, follow buttons, focus rings, primary icons. The signature color — appears in logo, sidebar accents, and interactive highlights. |
+| **Fresh Turquoise** | `#12A5A1` | Primary brand accent. Links, active nav states, focus rings, primary icons, outgoing message bubbles. The signature color — appears in logo, sidebar accents, and interactive highlights. |
 | **Turquoise Hover** | `#0C918D` | Primary interactive hover state |
 | **Turquoise Active** | `#0A7D79` | Primary pressed/active state |
 | **Turquoise Wash** | `rgba(18,165,161,0.12)` | Hover background highlights, selected row tints, focus ring halos |
-| **Deep Navy** | `#0A1F44` | CTA buttons (solid fill), dark backgrounds, footer, admin sidebar. Provides weight and contrast against turquoise. |
+| **Deep Navy** | `#0A1F44` | Primary CTA buttons (solid fill), dark backgrounds, footer, admin sidebar. Provides weight and contrast against turquoise. |
 | **Navy Hover** | `#0D2A5A` | CTA button hover |
 | **Navy Active** | `#0F3570` | CTA button pressed |
 | **Signal Orange** | `#FF6F00` | Notifications, badges, unread counts, warning highlights, live indicators. High-energy accent — used sparingly for attention-drawing elements only. |
@@ -104,7 +104,15 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 ### Color Rules
 
 - **Primary CTA buttons** use Deep Navy (`#0A1F44`) fill + white text — high contrast, authoritative
-- **Fresh Turquoise** is reserved for links, active states, pill/outline buttons, focus rings, and borders — NOT large filled button surfaces
+- **Fresh Turquoise** is allowed for:
+  - Compact accent buttons (Follow, Create Post, Send) — `padding` ≤ `12px 24px`
+  - Outgoing message bubbles (chat)
+  - Links, active nav states, focus rings, borders
+  - Pill/badge variants
+- **Fresh Turquoise** is NOT allowed for:
+  - Large filled button surfaces (full-width buttons, large CTAs)
+  - Decorative background fills
+  - Card backgrounds
 - **Signal Orange** appears only on notification badges, live dots, and urgent call-to-action — never on general UI chrome
 - Maximum 1 accent color per context. Turquoise is the brand accent; Orange is the alert accent. They never compete on the same element
 - Never use pure black (`#000000`) — always `#1A1A1A` (light) or `#E5E7EB` (dark)
@@ -161,6 +169,20 @@ Apply via `<html className={`${outfit.variable} ${dmSans.variable}`}>` on `<html
 - All numbers in dashboard stat cards use `--font-family-body` at `600` weight for clarity
 - Vietnamese diacritics require generous line-height (`1.5` minimum for body) to avoid clipping
 
+### Messaging Typography
+
+Message content uses slightly tighter typography than long-form social content:
+
+```
+Message text:           14–15px, line-height: 1.45–1.55
+Sender name:            12px, font-weight: 600
+Message timestamp:      11–12px, muted
+Chat header name:       15–16px, font-weight: 600
+Chat status:            12–13px, muted
+```
+
+Do not make chat messages visually oversized. Do not make message text smaller than necessary for readability.
+
 ### Banned Fonts
 
 - `Inter` — overused, lacks character. Banned everywhere
@@ -178,17 +200,20 @@ Apply via `<html className={`${outfit.variable} ${dmSans.variable}`}>` on `<html
 - Border-radius: `8px`, padding: `10px 20px`, font-weight: 600
 - Hover: `#0D2A5A` background. Active: `translateY(-1px)` tactile push
 - Disabled: `opacity: 0.5`, cursor: `not-allowed`
+- Use for: primary page-level CTAs, form submissions, major actions
 
 **Secondary (Ghost/Outline):**
 - Background: transparent, border: `1px solid var(--color-border)`, text: `var(--color-text)`
 - Hover: `var(--color-bg-secondary)` background
 - Same radius and padding as primary
 
-**Accent (Turquoise fill):**
+**Accent (Turquoise fill — compact buttons only):**
 - Background: `#12A5A1`, text: `#FFFFFF`
-- Used for: Follow buttons, "Create Post", positive action CTAs
+- Border-radius: `8px` or `9999px` (pill variant)
+- Padding: ≤ `12px 24px` (must be compact)
 - Hover: `#0C918D`. Active: `translateY(-1px)`
-- Pill variant (`border-radius: 9999px`) for follow/unfollow badges
+- Use for: Follow buttons, Create Post, Send (chat), positive compact actions
+- Do NOT use for: full-width buttons, large hero CTAs, card-level actions
 
 **Danger (Crimson fill):**
 - Background: `#D32F2F`, text: `#FFFFFF`
@@ -203,6 +228,7 @@ Apply via `<html className={`${outfit.variable} ${dmSans.variable}`}>` on `<html
 - 36x36px minimum, border-radius: `50%`, background: transparent
 - Hover: `var(--color-bg-secondary)`
 - Contains a single Boxicon glyph
+- Must have: `aria-label`, keyboard accessible, visible focus state
 
 ### Cards
 
@@ -235,7 +261,7 @@ Apply via `<html className={`${outfit.variable} ${dmSans.variable}`}>` on `<html
 ### Avatars
 
 - Circular (`border-radius: 50%`)
-- Sizes: `28px` (table rows, comments), `32px` (nav), `40px` (post cards, suggestions), `56px` (profile headers)
+- Sizes: `28px` (table rows, comments), `32px` (nav), `34px` (message groups), `40px` (post cards, suggestions), `42–46px` (chat header), `56px` (profile headers)
 - Fallback: initials on `var(--color-bg-secondary)` background with `var(--color-text-secondary)` color
 - No border ring by default. Online indicator: `8px` green dot at bottom-right
 
@@ -326,7 +352,7 @@ The landing page is the first impression for unauthenticated visitors.
 
 ## 6. Layout Principles
 
-LinkUp has **four distinct layout tracks** — each screen type has its own spatial architecture.
+LinkUp has **five distinct layout tracks** — each screen type has its own spatial architecture.
 
 ### Track 1: Public Landing
 
@@ -370,7 +396,7 @@ LinkUp has **four distinct layout tracks** — each screen type has its own spat
 │ (260px)  │   Feed / Page Content    │   (360px)    │
 │ sticky   │                          │   sticky     │
 │          │                          │              │
-└──────────┴──────────────────────────┴──────────────┘
+└──────────┴──────────────────────────┘
 ```
 - **Left Sidebar (260px):** Logo, nav items (Home, Explore, Notifications, Messages, Friends, Groups, Saved, Profile), Create Post button, user profile dropdown at bottom. Sticky, full height, scrollable
 - **Center Content:** `UserNavbar` (search + tabs) at top, then page content below. Flex-grow, scrollable
@@ -395,6 +421,29 @@ LinkUp has **four distinct layout tracks** — each screen type has its own spat
 - **AdminNavbar:** Hamburger toggle, search input (placeholder, readOnly), language toggle, theme toggle, notification bell with unread badge, profile dropdown
 - **Content area:** `max-height: calc(100vh - 56px)`, scrollable, padding `32px 24px`
 - Sidebar width transitions: `230px ↔ 60px` with `0.3s ease` margin-left transition
+
+### Track 5: Messaging
+
+Messaging is a dedicated workspace with its own spatial architecture:
+
+```
+┌────────────────┬────────────────────────────────────┐
+│                │ Chat Header (68–76px)              │
+│ Conversation   ├────────────────────────────────────┤
+│ List           │                                    │
+│                │ Message List                       │
+│ 280–360px      │ (independently scrollable)         │
+│                │                                    │
+│                ├────────────────────────────────────┤
+│                │ Message Composer (48–56px)         │
+└────────────────┴────────────────────────────────────┘
+```
+
+- Conversation List: `280–360px`, fixed left panel
+- Chat Header: `68–76px`, fixed at top
+- Message Composer: `48–56px`, fixed at bottom
+- Message area: independently scrollable, fills remaining height
+- When an active conversation is open, DO NOT create additional page-level vertical scroll
 
 ### Spacing System
 
@@ -463,6 +512,7 @@ Use native CSS Grid — never flexbox percentage math:
 - Nav items in left sidebar become a slide-in drawer (hamburger trigger)
 - Cards maintain `16px` internal padding
 - Modals become near-fullscreen on mobile (`width: 95%`, `max-height: 90vh`)
+- Messaging becomes full-screen conversation view on mobile
 
 ### Desktop Enhancements
 
@@ -475,20 +525,30 @@ Use native CSS Grid — never flexbox percentage math:
 
 ## 8. Motion & Interaction
 
-> **Note:** Stitch generates static screens. This section documents intended motion so the coding agent implements correct animations.
+> **Note:** This section documents intended motion so the coding agent implements correct animations.
 
-### Physics
+### Motion Philosophy
 
-- **Spring-based exclusively:** `stiffness: 100, damping: 20` for interactive elements
-- **No linear easing** anywhere — everything has natural deceleration
-- **Entrance animations:** `opacity 0 → 1` + `translateY(8px → 0)`, `200ms ease-out`
+Motion in LinkUp uses two approaches:
+
+1. **React/Framer Motion** — for interactive, physics-based animations (reactions, page transitions, gesture-driven UI). Use spring physics: `stiffness: 100, damping: 20`.
+2. **CSS transitions** — for simple state changes (hover, focus, visibility). Use `ease-out` for entrances, `ease-in` for exits, `ease-in-out` for continuous state changes.
+
+Do NOT use `linear` easing for UI interactions — it feels robotic and unnatural.
+
+### Timing Guidelines
+
+- Micro-interactions: `120–250ms`
+- Larger transitions: `250–350ms`
+- Entrance animations: `opacity 0 → 1` + `translateY(8px → 0)`, `200ms ease-out`
+- Respect `prefers-reduced-motion` — disable all non-essential animations when set
 
 ### Micro-Interactions
 
 - **Button press:** `translateY(-1px)` on active, `150ms ease-out`
 - **Card hover:** shadow elevation `sm → md`, `150ms ease`
 - **Nav item hover:** background wash `transparent → var(--color-bg-secondary)`, `150ms ease`
-- **Like heart:** scale `1 → 1.3 → 1` with color change to `#e74c3c`, `300ms spring`
+- **Like heart:** scale `1 → 1.3 → 1` with color change, `300ms spring` (Framer Motion)
 - **Follow button:** text morphs "Follow" → "Following" with width transition, `200ms ease`
 - **Toast entrance:** slide up from bottom + fade in, `200ms ease-out`
 - **Toast exit:** fade out + slide down, `150ms ease-in`
@@ -514,7 +574,7 @@ Use native CSS Grid — never flexbox percentage math:
 
 ### Visual
 
-- No emojis anywhere in UI, code, or alt text
+- No emojis in UI chrome (user-generated message content MAY contain emojis)
 - No `Inter` font — use `Outfit` + `DM Sans`
 - No generic serif fonts (`Times New Roman`, `Georgia`, `Garamond`)
 - No pure black (`#000000`) — always `#1A1A1A` or `var(--color-text)`
@@ -523,7 +583,7 @@ Use native CSS Grid — never flexbox percentage math:
 - No excessive gradient text on large headers
 - No custom mouse cursors
 - No overlapping elements — clean spatial separation always
-- No `z-index` spam — use only for Navbar, Modal, Overlay layer contexts
+- No `z-index` spam — use only for intentional stacking contexts (Navbar, Modal, Overlay, messaging layers)
 - No `h-screen` — always `min-height: 100dvh`
 
 ### Layout
@@ -592,6 +652,14 @@ Use native CSS Grid — never flexbox percentage math:
 **Right sidebar:** Search input, trending hashtags (top 5), follow suggestions (top 5 with follow buttons)
 **Left sidebar:** Navigation with active state highlighting, create post button (turquoise pill), user dropdown at bottom
 
+### Messages (`/messages`)
+
+**Purpose:** Focused private/group communication. Conversation-first experience.
+**Layout:** Conversation List + Chat Window (Track 5)
+**Conversation List:** Search, recent conversations, unread indicators, participant avatar, conversation preview, timestamp
+**Chat Window:** ChatHeader, customizable background, MessageList with grouping, MessageComposer
+**Messaging MUST follow the Messaging Design System defined in Section 11.**
+
 ### Admin Dashboard (`/admin/dashboard`)
 
 **Purpose:** Platform overview. Key metrics at a glance.
@@ -613,7 +681,368 @@ Use native CSS Grid — never flexbox percentage math:
 
 ---
 
-## 11. Icon System
+## 11. Messaging Design System
+
+Messaging is one of LinkUp's primary product experiences. The messaging UI should feel personal, focused, fluid, premium, readable, and fast.
+
+### 11.1 Messaging Principles
+
+1. Conversation first
+2. Readability first
+3. Compact message grouping
+4. Clear sender hierarchy
+5. Minimal chrome
+6. Background personalization
+7. Fast interaction
+8. Strong accessibility
+9. Realtime-friendly layout
+10. Mobile-first behavior
+
+### 11.2 Chat Window Architecture
+
+```
+ChatWindow
+├── ChatHeader
+├── ChatBackgroundLayer
+│   ├── Background
+│   └── ReadabilityOverlay
+├── MessageList
+│   ├── DateSeparator
+│   ├── MessageGroup
+│   │   ├── Avatar
+│   │   └── MessageItems
+│   └── NewMessagesIndicator
+└── MessageComposer
+```
+
+The background is a visual layer. It must NOT be coupled to message layout, message grouping, message scrolling, or composer logic.
+
+### 11.3 Chat Header
+
+- Height: `68–76px`
+- Avatar: `42–46px`, border-radius: `50%`
+- Display name: `15–16px`, font-weight: `600`
+- Status: `12–13px`, muted color
+- Actions: voice call, video call, conversation info, more
+- Icon hit area: minimum `40px` (desktop), `44px` (mobile)
+- Header must remain readable regardless of selected chat background
+- Use semi-transparent surface + backdrop blur OR solid surface depending on design system
+
+### 11.4 Message Area
+
+- Desktop padding: `24px`
+- Large desktop: `24–32px`
+- Mobile: `16px`
+- Message area is independently scrollable
+- Messages should not stretch full width — use max-width constraints
+
+### 11.5 Message Grouping
+
+Messages from the same sender that occur consecutively should visually form a group.
+
+**Default grouping threshold:** 5 minutes (or reuse existing application grouping rule if present)
+
+A new group starts when:
+- Sender changes
+- Grouping threshold is exceeded
+- Date separator interrupts
+- System message interrupts
+- Application-specific grouping rule requires it
+
+### 11.6 Incoming Message Group
+
+Incoming messages MUST use this pattern:
+
+```
+[Avatar] [Message]
+         [Message]
+         [Message]
+```
+
+**Avatar rules:**
+- Positioned on the LEFT
+- Appears only once per group
+- Positioned at the TOP of the group (flex-start)
+- Vertically aligned with the FIRST message
+- Never vertically centered against the entire group
+- Never repeated for every message
+- Never placed at the bottom of the group
+
+**CSS concept:**
+```css
+.messageGroup {
+  display: flex;
+  align-items: flex-start;  /* NOT center */
+  gap: 8px;
+}
+
+.messageAvatar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  align-self: flex-start;
+}
+
+.messageGroupContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+```
+
+### 11.7 Message Group Spacing
+
+- Within same group: `2–4px`
+- Between separate groups: `16–20px`
+- This creates clear visual distinction between same-group and different-group messages
+
+### 11.8 Group Chat
+
+For group conversations, show sender name only at the beginning of the group:
+
+```
+[Avatar] Nguyễn Văn A
+         [Message]
+         [Message]
+```
+
+Sender name: `12px`, font-weight: `600`, muted or subtle accent color. Do not repeat sender name for every message.
+
+### 11.9 Direct Chat
+
+In one-to-one conversations, do not show sender names above every message. The Chat Header already identifies the participant.
+
+### 11.10 Outgoing Message Group
+
+Current user's messages align RIGHT:
+
+```
+                         [Message]
+                         [Message]
+                         [Message]
+```
+
+- Do not reserve space for an incoming avatar
+- Do not display the current user's avatar by default in direct conversations
+- Outgoing messages should align naturally to the right edge
+
+### 11.11 Message Bubble
+
+**Incoming:**
+- Dark neutral surface (dark mode) / light neutral surface (light mode)
+- High-contrast text
+- Subtle border
+- Minimal shadow
+
+**Outgoing:**
+- LinkUp turquoise (`var(--color-primary)`)
+- High-contrast text (white)
+- Optional subtle gradient if appropriate
+- No neon treatment
+
+**Bubble Dimensions:**
+- Padding: `10–12px` vertical, `14–16px` horizontal
+- Border-radius: `14–16px`
+- Max-width: `65–70%` desktop, `80–85%` mobile
+- Message text: `14–15px`, line-height: `1.45–1.55`
+
+### 11.12 Timestamp
+
+Timestamp should remain secondary:
+- `11–12px`, muted color
+- May appear: on hover, on focus, after message, or per existing behavior
+- Do not let timestamps dominate the conversation
+
+### 11.13 Date Separator
+
+Preferred style: `──────── Hôm qua ────────` or centered `Hôm qua`
+
+Typography: `11–12px`, font-weight: `500`, muted text, subtle surface, border-radius: `9999px`
+
+Do not use a large dark rectangle.
+
+### 11.14 Message Hover Actions (Desktop)
+
+Desktop hover may expose compact floating toolbar:
+- Reaction (quick emoji picker)
+- Reply
+- More (pin, forward, delete)
+
+Toolbar: compact, floating, rounded, subtle surface, subtle shadow, non-blocking.
+
+Mobile must NOT depend on hover — use tap/long-press interaction.
+
+### 11.15 Reactions
+
+If reactions exist, use compact reaction pills attached to the message. Do not make reaction UI oversized.
+
+### 11.16 Reply
+
+If reply exists, show compact reply preview above the current message with sender name and original content preview.
+
+### 11.17 Voice Message
+
+Do not use browser-native audio UI. Preferred: `[Play] ━━━━━ waveform ━━━━━ 0:23`
+
+Include: Play/Pause, waveform visualization, progress, duration. Reuse existing audio playback logic.
+
+### 11.18 Call Activity
+
+Call messages are dedicated activity cards with states: outgoing, incoming, completed, missed, declined.
+
+Card should be: compact, modern, readable, visually distinct. NOT giant black rectangles.
+
+Reuse existing call actions.
+
+### 11.19 Image / Video / File Messages
+
+- Images: `border-radius: 14–16px`, reasonable max-width, `object-fit: cover`
+- Video: reuse existing playback logic, redesign wrapper only
+- Files: compact card with file icon, filename, size, download button
+
+Do not invent backend functionality.
+
+### 11.20 New Message Indicator
+
+If user is reading older messages and new message arrives:
+- DO NOT auto-scroll to bottom
+- Show floating indicator: `↓ Tin nhắn mới`
+- Click/tap scrolls to latest message
+- If user is already near bottom, auto-scroll is allowed
+
+### 11.21 Scroll Behavior
+
+- When opening conversation: scroll to latest message per existing behavior
+- When new messages arrive: auto-scroll if near bottom, otherwise show indicator
+- Do not break existing pagination or infinite scroll
+
+### 11.22 Chat Background System
+
+Chat backgrounds are a first-class personalization feature.
+
+**Supported types:**
+1. Solid Color
+2. Gradient
+3. Preset Image
+4. Custom Uploaded Image
+
+### 11.23 Background Architecture
+
+Layer order (bottom to top):
+```
+Background (z-index: 0)
+↓
+Readability Overlay (z-index: 1)
+↓
+Messages (z-index: 2)
+↓
+Floating Actions (z-index: 3)
+↓
+Composer (z-index: 4)
+↓
+Header (z-index: 5)
+```
+
+Do not scatter arbitrary z-index values throughout the application.
+
+### 11.24 Solid Color Background
+
+Support existing LinkUp background color presets. Use visual swatches with selected state (accent ring, check indicator).
+
+### 11.25 Gradient Background
+
+Preferred gradients: Turquoise → Blue, Blue → Purple, Purple → Pink, Dark → Turquoise, Dark → Purple.
+
+Gradients must remain tasteful — avoid excessive saturation, harsh transitions, or distracting patterns.
+
+### 11.26 Preset Image Background
+
+Use thumbnail grid: `3–4` columns desktop, `3` columns mobile. Thumbnails: `border-radius: 10–12px`, `object-fit: cover`.
+
+Hover: subtle scale + overlay. Selected: accent ring + check icon.
+
+Reuse existing preset data if available.
+
+### 11.27 Custom Background Upload
+
+Allow upload using existing application storage system. Supported formats follow existing backend contract (typically JPG, JPEG, PNG, WEBP).
+
+Do not create fake upload flow. After upload: show preview, apply immediately, persist using existing logic.
+
+### 11.28 Background Image Display
+
+```css
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+```
+
+Never distort images. Crop naturally with cover.
+
+### 11.29 Background Readability
+
+Background personalization must NEVER compromise message readability.
+
+Bright backgrounds may use stronger overlay. Dark backgrounds may use lighter overlay. Overlay must remain subtle — background should still be clearly visible.
+
+### 11.30 Background Customization Panel
+
+Entry point: Chat Header → More / Conversation Info → Chat Background
+
+Panel tabs: `[Màu]` `[Gradient]` `[Ảnh]` `[Tải lên]`
+
+Always provide: `[ Khôi phục mặc định ]` button.
+
+If changes apply in realtime, do not add unnecessary Apply button.
+
+### 11.31 Chat Composer
+
+The composer should feel like a floating messaging control:
+- Height: `48–56px`
+- Border-radius: `14–18px`
+- Semi-transparent surface where appropriate
+- Subtle border, optional backdrop blur
+- Strong contrast on all backgrounds
+
+Structure: `[Emoji] [Attachment] [GIF] [Input] [Voice] [Send]`
+
+Input: transparent, no heavy inner border. Placeholder: "Nhập tin nhắn..."
+
+When text is empty: show voice action. When text exists: activate Send button.
+
+### 11.32 Composer Accessibility
+
+Every icon button must have `aria-label`. Minimum touch target: `44px` mobile. Visible focus state required.
+
+### 11.33 Attachment Menu
+
+Compact popover with only supported functions (image, file, location — only what backend actually supports). Never create fake buttons.
+
+### 11.34 Voice Recording State
+
+If voice recording exists, composer changes to recording mode with waveform, timer, cancel and send buttons. Reuse existing microphone and recording logic.
+
+### 11.35 Messaging Responsive Behavior
+
+**Desktop:** Conversation list + Chat Window. Hover interactions enabled.
+**Tablet:** Reduce horizontal spacing. Conversation list may remain.
+**Mobile:** Conversation list becomes full-screen. Opening conversation makes Chat Window full-screen. Header includes `← Back`. Composer remains accessible above mobile keyboard. No horizontal overflow.
+
+### 11.36 Messaging Accessibility
+
+All interactive controls require: accessible labels, keyboard support, visible focus, adequate hit area. Do not rely on color alone for selected state. Messages must remain readable over all supported backgrounds.
+
+### 11.37 Messaging Performance
+
+- Changing background must NOT rerender entire MessageList unnecessarily
+- Media should be lazy-loaded where appropriate
+- Infinite scroll must remain functional
+- Realtime updates must remain functional
+
+---
+
+## 12. Icon System
 
 **Library:** Boxicons CDN (`https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css`)
 
@@ -639,18 +1068,33 @@ Use native CSS Grid — never flexbox percentage math:
 | Close | `bx-x` |
 | Menu | `bx-menu` |
 | Logout | `bx-log-out` |
+| Phone (call) | `bx-phone` |
+| Video call | `bx-video` |
+| Info | `bx-info-circle` |
+| Attachment | `bx-paperclip` |
+| Microphone | `bx-microphone` |
+| Send | `bx-send` |
+| Emoji | `bx-smile` |
+| Reply | `bx-reply` |
+| More | `bx-dots-horizontal-rounded` |
+| Play | `bx-play` |
+| Pause | `bx-pause` |
+| Download | `bx-download` |
+| Image | `bx-image` |
 
 **Size convention:** `18px` (inline with text), `22px` (nav items), `24px` (action buttons)
 
+Do not replace interface icons with decorative emojis. User-generated emoji content is allowed inside messages.
+
 ---
 
-## 12. Implementation Notes
+## 13. Implementation Notes
 
 ### CSS Architecture
 
 - **CSS Modules** (`*.module.css`) for all component and page styles
 - **`globals.css`** contains ONLY the CSS reset + design tokens — no component styles
-- **No Tailwind** (removed). No CSS-in-JJS. Plain CSS with custom properties
+- **No Tailwind**. No CSS-in-JS. Plain CSS with custom properties
 - **Dark mode** via `[data-theme="dark"]` attribute selector on `<html>`, persisted in `localStorage`
 
 ### Token Usage
@@ -661,6 +1105,7 @@ Use native CSS Grid — never flexbox percentage math:
 - `var(--text-*)` for font shorthand
 - `var(--shadow-*)` for all box-shadows
 - `var(--color-*)` for all colors
+- Hard-coded values acceptable only for component-specific measurements not covered by tokens (e.g., message avatar `34px`, chat header `68–76px`)
 
 ### Provider Hierarchy
 
@@ -693,3 +1138,54 @@ User layout adds:
 - Hook: `useTranslation()` returns `{ t, language, setLanguage }`
 - Keys: dot-notation `t('users.title')`, supports `{param}` interpolation
 - Always add keys to **both** `vi.json` and `en.json`
+
+### Data & Backend Preservation
+
+UI redesign must not unnecessarily change: database schema, API contracts, authentication, message data structures, realtime protocols, storage architecture, pagination, or message ordering.
+
+Existing data structures are authoritative. Presentation should adapt to existing data.
+
+### Messaging Implementation Rules
+
+When modifying messaging:
+1. Inspect existing codebase first
+2. Identify existing Chat components, hooks, API calls, WebSocket logic
+3. Reuse existing functionality
+4. Refactor presentation separately from business logic
+5. Never replace working functionality with mock functionality
+
+---
+
+## 14. Final Design Principle
+
+LinkUp should feel like one coherent product. Different surfaces may have different layouts, but they must share: typography, color language, spacing philosophy, interaction language, iconography, accessibility principles, and motion principles.
+
+- **Messaging** is intentionally more focused and compact than the Feed
+- **Feed** is content-first
+- **Messaging** is conversation-first
+- **Admin** is information-first
+- **Auth** is task-first
+
+Each surface has its own spatial architecture while remaining unmistakably LinkUp.
+
+When a component-specific requirement conflicts with a generic rule, the more specific component requirement takes precedence. For Messaging, Section 11 is authoritative.
+
+---
+
+## 15. Vibe Coding Instructions
+
+When an AI coding agent works on LinkUp:
+
+1. **DO NOT** immediately rewrite components
+2. First inspect: existing architecture, current implementation, design tokens, functionality, data flow
+3. Then make the smallest clean refactor required to achieve the design
+4. Prioritize: (1) existing functionality, (2) design system consistency, (3) accessibility, (4) responsive behavior, (5) maintainability, (6) visual polish, (7) performance
+
+**Do not:**
+- Invent functionality that does not exist
+- Replace real data with mock data
+- Introduce new libraries when existing stack can solve the problem
+- Create a second design system or duplicate theme/token system
+- Break working API calls, WebSocket logic, or data persistence
+
+**Use this document as the authoritative visual and interaction specification for LinkUp.**

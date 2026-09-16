@@ -87,12 +87,17 @@ table {
   --color-success: #388E3C;
   --color-warning: #FBC02D;
   --color-danger: #D32F2F;
+  --color-danger-hover: #B71616;
   --color-info: #1976D2;
 
   --color-success-light: #E8F5E9;
   --color-warning-light: #FFF8E1;
   --color-danger-light: #FFEBEE;
   --color-info-light: #E3F2FD;
+
+  /* Text on colored backgrounds */
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-secondary: #FFFFFF;
 
   /* Typography */
   --font-family-heading: 'Outfit', sans-serif;
@@ -124,6 +129,11 @@ table {
   --fast: 150ms ease;
 
   /* Z-index scale */
+  --z-base: 0;
+  --z-above: 1;
+  --z-toolbar: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
   --z-overlay: 1000;
   --z-modal: 1100;
   --z-popover: 1200;
@@ -132,6 +142,30 @@ table {
   /* Story */
   --story-ring-gradient: linear-gradient(135deg, #12A5A1, #0A1F44);
   --color-heart: #D32F2F;
+
+  /* Chat Semantic Tokens */
+  --chat-bg: var(--color-bg-secondary);
+  --chat-surface: var(--color-card);
+  --chat-surface-elevated: var(--color-bg);
+  --chat-surface-hover: var(--color-bg-hover);
+  --chat-border: var(--color-border);
+  --chat-text: var(--color-text);
+  --chat-text-muted: var(--color-text-secondary);
+
+  /* Message Bubble Colors */
+  --message-own: var(--color-primary);
+  --message-own-text: #FFFFFF;
+  --message-other: var(--color-card);
+  --message-other-text: var(--color-text);
+  --message-other-border: var(--color-border);
+
+  /* Chat Background Overlay */
+  --chat-background-overlay: rgba(0, 0, 0, 0.4);
+
+  /* Chat Composer */
+  --chat-composer-bg: var(--color-card);
+  --chat-composer-border: var(--color-border);
+  --chat-composer-input-bg: var(--color-bg-secondary);
 }
 
 /* === Dark Mode === */
@@ -163,16 +197,68 @@ table {
   --color-info-light: #1E3A5F;
   --color-accent-light: rgba(255, 140, 60, 0.18);
 
+  --color-danger-hover: #E53935;
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-secondary: #E5E7EB;
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
   --fast: 150ms ease;
 
   --story-ring-gradient: linear-gradient(135deg, #3FBFBA, #0D2A5A);
+
+  /* Chat Semantic Tokens (Dark Mode) */
+  --chat-bg: var(--color-bg-secondary);
+  --chat-surface: var(--color-card);
+  --chat-surface-elevated: #252525;
+  --chat-surface-hover: var(--color-bg-hover);
+  --chat-border: var(--color-border);
+  --chat-text: var(--color-text);
+  --chat-text-muted: var(--color-text-secondary);
+
+  /* Message Bubble Colors (Dark Mode) */
+  --message-own: var(--color-primary);
+  --message-own-text: #FFFFFF;
+  --message-other: #2A2A2A;
+  --message-other-text: var(--color-text);
+  --message-other-border: #3A3A3A;
+
+  /* Chat Background Overlay (Dark Mode) */
+  --chat-background-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Chat Composer (Dark Mode) */
+  --chat-composer-bg: var(--color-card);
+  --chat-composer-border: var(--color-border);
+  --chat-composer-input-bg: var(--color-bg-secondary);
 }
 
 /* === Focus Ring (Accessibility) === */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* === Skeleton Shimmer Animation === */
+@keyframes skeleton-shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+.skeleton {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

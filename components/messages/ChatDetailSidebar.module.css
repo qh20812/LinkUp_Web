@@ -43,8 +43,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -55,6 +55,11 @@
 
 .backBtn:hover {
   background: var(--color-bg-hover);
+}
+
+.backBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .headerTitle {
@@ -144,6 +149,11 @@
   background: var(--color-bg-hover);
 }
 
+.quickActionBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .quickActionBtn i {
   font-size: 1.1rem;
   width: 20px;
@@ -179,6 +189,11 @@
 
 .tab:hover {
   background: var(--color-bg-hover);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .tabActive {

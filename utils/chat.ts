@@ -20,6 +20,12 @@ export function formatClockTime(iso: string): string {
   return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
+export function formatCallDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 export function formatChatDate(iso: string, t: TFunc): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
