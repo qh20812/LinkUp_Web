@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: [process.env.FRONTEND_IP_URL!],
   output: "standalone",
   images: {
     dangerouslyAllowSVG: true,
@@ -21,7 +22,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "localhost:8080";
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     return [
       {
         source: "/api/:path*",

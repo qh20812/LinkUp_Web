@@ -43,7 +43,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''}>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
           <LanguageProvider>
             <ThemeProvider>
               <ToastProvider>
