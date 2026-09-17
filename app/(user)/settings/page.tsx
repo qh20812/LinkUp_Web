@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
@@ -28,6 +28,14 @@ const TABS: { key: TabKey; labelKey: string }[] = [
 const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'notifications', 'deactivate']
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className={styles.page} />}>
+      <SettingsContent />
+    </Suspense>
+  )
+}
+
+function SettingsContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()

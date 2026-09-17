@@ -6,6 +6,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { updateProfile } from '../../api/profile'
 import type { ViewProfileResponse } from '../../types'
 
+const DISPLAY_NAME_REGEX = /^[\p{L}\p{M}\d ]+$/u
+
 interface ProfileEditModalProps {
   profile: ViewProfileResponse
   onClose: () => void
@@ -25,6 +27,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
   const [isPrivatePosts, setIsPrivatePosts] = useState(profile.is_private_posts)
   const [allowStrangerFriend, setAllowStrangerFriend] = useState(profile.allow_stranger_friend_request)
   const [saving, setSaving] = useState(false)
+  const [displayNameError, setDisplayNameError] = useState('')
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -36,6 +39,27 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
 
   const handleSave = async () => {
     if (saving) return
+
+    const trimmed = displayName.trim()
+    const runeCount = Array.from(trimmed).length
+    if (!trimmed) {
+      setDisplayNameError(t('register.displayNameRequired'))
+      return
+    }
+    if (runeCount < 3) {
+      setDisplayNameError(t('register.displayNameTooShort'))
+      return
+    }
+    if (runeCount > 55) {
+      setDisplayNameError(t('register.displayNameTooLong'))
+      return
+    }
+    if (!DISPLAY_NAME_REGEX.test(trimmed)) {
+      setDisplayNameError(t('register.displayNameInvalid'))
+      return
+    }
+    setDisplayNameError('')
+
     setSaving(true)
     try {
       const input: Record<string, unknown> = {}
@@ -83,9 +107,13 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
             <input
               className={styles.input}
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={(e) => {
+                setDisplayName(e.target.value)
+                if (displayNameError) setDisplayNameError('')
+              }}
               maxLength={50}
             />
+            {displayNameError && <span className={styles.fieldError}>{displayNameError}</span>}
           </div>
 
           <div className={styles.fieldGroup}>

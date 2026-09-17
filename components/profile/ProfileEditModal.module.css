@@ -120,6 +120,11 @@
   resize: vertical;
 }
 
+.fieldError {
+  font: var(--text-caption);
+  color: var(--color-error, #e53935);
+}
+
 .privacySection {
   margin-top: var(--space-md);
   padding-top: var(--space-md);

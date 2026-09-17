@@ -86,7 +86,7 @@ export default function ChatMediaLightbox({ msgs, initialIndex, onClose }: ChatM
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.container}>
+      <div className={styles.container} role="dialog" aria-modal="true" aria-label="Media viewer">
         <button
           className={styles.closeBtn}
           onClick={(e) => {

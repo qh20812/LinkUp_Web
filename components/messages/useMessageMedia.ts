@@ -16,6 +16,7 @@ export interface UseMessageMediaOptions {
 export interface MessageMediaState {
   src: string | null
   isVideo: boolean
+  isAudio: boolean
   failed: boolean
   loading: boolean
   boxRef: RefObject<HTMLSpanElement | null>
@@ -95,5 +96,5 @@ export function useMessageMedia(
     }
   }, [message.id, message.media_uri, needsDownload, opts.eager])
 
-  return { src, isVideo, failed, loading, boxRef }
+  return { src, isVideo, isAudio: message.media_type?.startsWith('audio/') === true, failed, loading, boxRef }
 }

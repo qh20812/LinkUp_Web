@@ -93,6 +93,8 @@ export default function NotificationsPage() {
     switch (type) {
       case "like":
         return "bx bx-heart " + styles.iconLike;
+      case "story_react":
+        return "bx bx-heart " + styles.iconFollow;
       case "comment":
         return "bx bx-message-dots " + styles.iconComment;
       case "share":

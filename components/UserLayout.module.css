@@ -5,6 +5,12 @@
   transition: grid-template-columns 0.25s ease;
 }
 
+@supports (min-height: 100dvh) {
+  .layout {
+    min-height: 100dvh;
+  }
+}
+
 .noRight {
   grid-template-columns: 260px minmax(0, 1fr);
 }

@@ -1,7 +1,7 @@
 .ring {
   padding: 3px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #833AB4, #FD1D1D, #FCAF45);
+  background: var(--story-ring-gradient);
   cursor: pointer;
   flex-shrink: 0;
   display: inline-flex;

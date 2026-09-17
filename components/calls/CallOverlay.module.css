@@ -5,12 +5,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.85);
   padding: var(--space-xl);
 }
 
+.backdropVideo {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #000;
+  padding: 0;
+}
+
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,40 +30,11 @@
   box-shadow: var(--shadow-lg);
 }
 
-.videoStage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  min-height: 420px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--color-bg-secondary);
-}
-
-.remoteVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.remoteOff {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  background: var(--color-bg-secondary);
-}
-
-.selfPreview {
+.panelVideo {
   position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  width: 180px;
-  height: 240px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 2px solid var(--color-border);
-  box-shadow: var(--shadow-md);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .avatarWrap {
@@ -205,6 +184,107 @@
 .mirrored {
   transform: scaleX(-1);
 }
+
+/* ── Fullscreen video overlays ── */
+
+.controlsOverlay {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border-radius: 999px;
+  z-index: 10;
+}
+
+.controlsInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-right: var(--space-md);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.controlsDuration {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  font-weight: 500;
+}
+
+.controlsOverlay .remoteMutedIcon {
+  font-size: 16px;
+  color: var(--color-danger);
+}
+
+.controlsOverlay .controlBtn {
+  width: 56px;
+  height: 56px;
+  font-size: 26px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.controlsOverlay .controlBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+.controlsOverlay .endBtn {
+  background: var(--color-danger);
+  width: 64px;
+  height: 64px;
+}
+
+.controlsOverlay .endBtn:hover {
+  background: var(--color-danger);
+}
+
+.controlsOverlay .acceptBtn {
+  background: var(--color-success);
+}
+
+.controlsOverlay .rejectBtn {
+  background: var(--color-danger);
+}
+
+.controlsOverlay .activeBtn {
+  background: var(--color-danger);
+}
+
+.selfPreviewOverlay {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  width: 200px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.remoteOffOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.remoteOffOverlay .bigAvatar {
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Minimized bar ── */
 
 .miniBar {
   position: fixed;

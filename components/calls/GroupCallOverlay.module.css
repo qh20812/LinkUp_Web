@@ -5,90 +5,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  padding: var(--space-lg);
+  background: #000;
+  padding: 0;
 }
 
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
-  width: min(960px, 100%);
+  width: 100%;
+  height: 100%;
   max-height: 100%;
-  background: var(--color-bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
   overflow: hidden;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.headerInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.groupName {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.duration {
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
-}
-
-.participantCount {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-.participantCount i {
-  font-size: 16px;
-}
-
-.minimizeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 20px;
-  color: var(--color-text-secondary);
-  background: transparent;
-  transition: background 0.15s ease;
-}
-
-.minimizeBtn:hover {
-  background: var(--color-bg-hover);
 }
 
 .grid {
   display: grid;
   gap: var(--space-sm);
   padding: var(--space-md);
+  padding-bottom: 80px;
   flex: 1;
   min-height: 0;
 }
 
 .gridSingle {
   grid-template-columns: 1fr;
-  max-width: 640px;
+  max-width: 800px;
   margin: 0 auto;
   width: 100%;
 }
@@ -112,13 +54,54 @@
   grid-template-rows: 1fr 1fr 1fr;
 }
 
-.controls {
+/* ── Controls pill ── */
+
+.controlsOverlay {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-lg);
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--color-border);
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border-radius: 999px;
+  z-index: 10;
+}
+
+.controlsInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-right: var(--space-md);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.controlsDuration {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  font-weight: 500;
+}
+
+.controlsCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.controlsCount i {
+  font-size: 16px;
+}
+
+.controlsActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .controlBtn {
@@ -132,11 +115,12 @@
   cursor: pointer;
   font-size: 26px;
   color: #ffffff;
-  background: var(--color-bg-hover);
+  background: rgba(255, 255, 255, 0.15);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .controlBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
   transform: scale(1.08);
 }
 
@@ -150,6 +134,10 @@
   color: #ffffff;
 }
 
+.activeBtn:hover {
+  background: var(--color-danger);
+}
+
 .endBtn {
   background: var(--color-danger);
   width: 64px;
@@ -160,13 +148,23 @@
   background: var(--color-danger);
 }
 
-.pendingBar {
+/* ── Pending requests overlay ── */
+
+.pendingOverlay {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-md);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  z-index: 10;
+  min-width: 280px;
+  max-width: 400px;
 }
 
 .pendingItem {
@@ -174,7 +172,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-primary);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
 }
 
@@ -200,14 +198,14 @@
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-hover);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .pendingName {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text);
+  color: #fff;
 }
 
 .pendingActions {
@@ -244,13 +242,10 @@
 }
 
 @media (max-width: 768px) {
-  .backdrop {
-    padding: 0;
-  }
-
-  .panel {
-    border-radius: 0;
-    height: 100%;
+  .grid {
+    gap: 4px;
+    padding: var(--space-sm);
+    padding-bottom: 72px;
   }
 
   .gridDouble,
@@ -258,5 +253,40 @@
   .gridSix,
   .gridNine {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .controlsOverlay {
+    bottom: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .controlsInfo {
+    padding-right: var(--space-sm);
+  }
+
+  .controlsDuration {
+    font-size: 0.8125rem;
+  }
+
+  .controlsCount {
+    font-size: 0.75rem;
+  }
+
+  .controlBtn {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .endBtn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .pendingOverlay {
+    bottom: 80px;
+    min-width: auto;
+    max-width: calc(100vw - var(--space-md) * 2);
   }
 }

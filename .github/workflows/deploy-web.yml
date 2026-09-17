@@ -42,6 +42,7 @@ jobs:
           tags: linkup-web:latest
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=server:8080
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=580467482346-dvs47i380uasmohcf5uc3sh0ttiifk74.apps.googleusercontent.com
 
       - name: Save image
         run: |
@@ -53,6 +54,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 24700
           source: web.tar.gz
           target: /tmp/
 
@@ -62,24 +64,25 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 24700
           timeout: 60s
           script_timeout: 10m
           script: |
             set -e
             cd /opt/linkup/web
-            git pull origin main
+            git fetch origin main && git reset --hard origin/main
             docker load -i /tmp/web.tar.gz
             cd /opt/linkup
-            docker compose up -d web
+            docker compose up -d --no-build web
             echo "Waiting for web (up to 60s)..."
             for i in $(seq 1 20); do
-              if curl -sf -o /dev/null http://localhost:3000/; then
+              if curl -skf -o /dev/null https://localhost/ 2>/dev/null; then
                 echo "WEB OK after ${i}x3s"
                 break
               fi
               sleep 3
             done
-            curl -sf -o /dev/null http://localhost:3000/ || exit 1
+            curl -skf -o /dev/null https://localhost/ || exit 1
 
       - name: Notify Telegram
         if: always()

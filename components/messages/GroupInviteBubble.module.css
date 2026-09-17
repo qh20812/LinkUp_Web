@@ -179,3 +179,13 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-md);
+  }
+}

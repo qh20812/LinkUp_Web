@@ -16,7 +16,7 @@ import {
   transferGroupAdmin,
   uploadMedia,
 } from '../../api/chats'
-import type { GroupChatSettings } from '../../types'
+import type { GroupChatSettings, ChatBackground } from '../../types'
 import styles from './GroupSettingsPanel.module.css'
 
 interface GroupSettingsPanelProps {
@@ -27,6 +27,8 @@ interface GroupSettingsPanelProps {
   onSettingsUpdated?: (settings: GroupChatSettings) => void
   onMemberBanned?: (memberId: string) => void
   onLeave?: () => void
+  onOpenBackgroundPicker?: () => void
+  currentBackground?: ChatBackground | null
 }
 
 const MUTE_REASONS = [
@@ -63,6 +65,8 @@ export default function GroupSettingsPanel({
   onSettingsUpdated,
   onMemberBanned,
   onLeave,
+  onOpenBackgroundPicker,
+  currentBackground,
 }: GroupSettingsPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -361,6 +365,36 @@ export default function GroupSettingsPanel({
                     <span className={styles.toggleThumb} />
                   </button>
                 </div>
+              </div>
+
+              <div className={styles.section}>
+                <label className={styles.label}>{t('chat.background')}</label>
+                <button
+                  className={styles.bgPreviewBtn}
+                  onClick={onOpenBackgroundPicker}
+                >
+                  {currentBackground?.value ? (
+                    <div
+                      className={styles.bgPreview}
+                      style={
+                        currentBackground.type === 'solid'
+                          ? { backgroundColor: currentBackground.value }
+                          : currentBackground.type === 'gradient'
+                            ? { backgroundImage: currentBackground.value }
+                            : {
+                                backgroundImage: currentBackground.type === 'preset'
+                                  ? `url(/presets/chat-bg/${currentBackground.value})`
+                                  : `url(${currentBackground.value})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                              }
+                      }
+                    />
+                  ) : (
+                    <span>{t('chat.backgroundDefault')}</span>
+                  )}
+                  <i className="bx bx-chevron-right" />
+                </button>
               </div>
             </>
           )}

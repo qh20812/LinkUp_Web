@@ -88,33 +88,35 @@ export default function AddGroupMemberModal({
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     const trimmed = keyword.trim()
-    if (trimmed.length < 1) {
-      setSearching(false)
-      setResults([])
-      return
-    }
-    setSearching(true)
-    timerRef.current = setTimeout(async () => {
+    timerRef.current = setTimeout(() => {
       const seq = ++seqRef.current
-      try {
-        const res = await searchFriends(trimmed)
-        if (seq !== seqRef.current) return
-        setResults(
-          (res.users ?? [])
-            .filter((u) => !memberIds.has(u.id))
-            .map((u) => ({
-              id: u.id,
-              username: u.username || u.id,
-              display_name: u.display_name,
-              avatar_uri: u.avatar_uri,
-            }))
-        )
-      } catch {
-        if (seq !== seqRef.current) return
+      if (trimmed.length < 1) {
+        setSearching(false)
         setResults([])
-      } finally {
-        if (seq === seqRef.current) setSearching(false)
+        return
       }
+      setSearching(true)
+      ;(async () => {
+        try {
+          const res = await searchFriends(trimmed)
+          if (seq !== seqRef.current) return
+          setResults(
+            (res.users ?? [])
+              .filter((u) => !memberIds.has(u.id))
+              .map((u) => ({
+                id: u.id,
+                username: u.username || u.id,
+                display_name: u.display_name,
+                avatar_uri: u.avatar_uri,
+              }))
+          )
+        } catch {
+          if (seq !== seqRef.current) return
+          setResults([])
+        } finally {
+          if (seq === seqRef.current) setSearching(false)
+        }
+      })()
     }, 400)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)

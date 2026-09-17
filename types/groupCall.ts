@@ -149,6 +149,7 @@ export interface GroupCallHistoryItem {
   caller_id: string
   participants: string[]
   status: string
+  is_video?: boolean
   created_at: string
   ended_at?: string
 }

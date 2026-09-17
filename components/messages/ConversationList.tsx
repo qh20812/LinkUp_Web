@@ -24,6 +24,9 @@ interface ConversationListProps {
   onSelectGroup?: (group: GroupChatConversation) => void
   onNewChat: () => void
   onCreateGroup?: () => void
+  onPinChat?: (chatId: string) => void
+  onMuteChat?: (chatId: string) => void
+  onArchiveChat?: (chatId: string) => void
 }
 
 export default function ConversationList({
@@ -36,6 +39,9 @@ export default function ConversationList({
   onSelectGroup,
   onNewChat,
   onCreateGroup,
+  onPinChat,
+  onMuteChat,
+  onArchiveChat,
 }: ConversationListProps) {
   const { t } = useTranslation()
   const { emojis } = useEmojis()
@@ -162,6 +168,9 @@ export default function ConversationList({
                         {conv.last_message.sender_id === myUserId
                           ? t('chat.youPrefix')
                           : ''}
+                        {conv.last_message.forwarded_from
+                          ? t('chat.forwardedPreview') + ' · '
+                          : ''}
                         {mediaKey
                           ? t(mediaKey)
                           : conv.last_message.media_id
@@ -181,6 +190,35 @@ export default function ConversationList({
                       t('chat.newChat')
                     )}
                   </span>
+                </div>
+                <div className={styles.actions}>
+                  {onPinChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onPinChat(conv.chat_id) }}
+                      title={t('chat.pin')}
+                    >
+                      <i className="bx bx-pin" />
+                    </button>
+                  )}
+                  {onMuteChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onMuteChat(conv.chat_id) }}
+                      title={t('chat.mute')}
+                    >
+                      <i className="bx bx-bell" />
+                    </button>
+                  )}
+                  {onArchiveChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onArchiveChat(conv.chat_id) }}
+                      title={t('chat.archive')}
+                    >
+                      <i className="bx bx-archive" />
+                    </button>
+                  )}
                 </div>
               </button>
               )
@@ -224,9 +262,44 @@ export default function ConversationList({
                   <span className={styles.preview}>
                     {group.member_count} {t('chat.members')}
                     {group.last_message ? (
-                      <> &middot; {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}</>
+                      <>
+                        {' '}&middot;{' '}
+                        {group.last_message.forwarded_from
+                          ? t('chat.forwardedPreview') + ' · '
+                          : ''}
+                        {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}
+                      </>
                     ) : null}
                   </span>
+                </div>
+                <div className={styles.actions}>
+                  {onPinChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onPinChat(group.chat_id) }}
+                      title={t('chat.pin')}
+                    >
+                      <i className="bx bx-pin" />
+                    </button>
+                  )}
+                  {onMuteChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onMuteChat(group.chat_id) }}
+                      title={t('chat.mute')}
+                    >
+                      <i className="bx bx-bell" />
+                    </button>
+                  )}
+                  {onArchiveChat && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => { e.stopPropagation(); onArchiveChat(group.chat_id) }}
+                      title={t('chat.archive')}
+                    >
+                      <i className="bx bx-archive" />
+                    </button>
+                  )}
                 </div>
               </button>
               )

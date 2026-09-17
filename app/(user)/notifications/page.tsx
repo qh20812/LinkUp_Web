@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
@@ -25,6 +25,14 @@ const PAGE_SIZE = 20
 const ALLOWED_FILTERS: Filter[] = ['all', 'unread', 'read']
 
 export default function NotificationsPage() {
+  return (
+    <Suspense fallback={<div className={styles.page} />}>
+      <NotificationsContent />
+    </Suspense>
+  )
+}
+
+function NotificationsContent() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const router = useRouter()
@@ -127,6 +135,8 @@ export default function NotificationsPage() {
     switch (type) {
       case 'like':
         return 'bx bx-heart ' + styles.iconLike
+      case 'story_react':
+        return 'bx bx-heart ' + styles.iconFollow
       case 'comment':
         return 'bx bx-message-dots ' + styles.iconComment
       case 'share':

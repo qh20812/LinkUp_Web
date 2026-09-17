@@ -42,7 +42,7 @@
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-primary-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   font-size: 0.8125rem;
   color: var(--color-primary);
 }
@@ -50,7 +50,7 @@
 .chipAvatar {
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   object-fit: cover;
 }
 
@@ -96,7 +96,7 @@
 .resultAvatar {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   object-fit: cover;
 }
 
@@ -165,4 +165,14 @@
 .shareBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-md);
+  }
 }

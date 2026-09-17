@@ -217,7 +217,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: background 150ms ease, color 150ms ease;
   overflow: hidden;
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
@@ -244,4 +244,14 @@
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
   font-size: 1.25rem;
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--space-md);
+  }
 }
