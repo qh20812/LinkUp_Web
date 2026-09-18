@@ -358,22 +358,35 @@ export default function RightSidebar() {
                   return (
                     <li key={user.id}>
                       <div className={styles.suggestionItem}>
-                        <div className={styles.suggestionAvatar}>
-                          {user.avatar_uri ? (
-                            <ExternalImage src={user.avatar_uri} alt="" className={styles.avatarImg} />
-                          ) : (
-                            <i className="bx bxs-user" />
-                          )}
-                        </div>
-                        <div className={styles.suggestionMeta}>
-                          <span className={styles.suggestionName}>
-                            {user.display_name || user.username}
-                          </span>
-                          {user.mutual_count > 0 && (
-                            <span className={styles.meta}>
-                              {user.mutual_count} {t('rightSidebar.mutual')}
+                        <div
+                          className={styles.suggestionMain}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => router.push(`/profile/${user.id}`)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              router.push(`/profile/${user.id}`)
+                            }
+                          }}
+                        >
+                          <div className={styles.suggestionAvatar}>
+                            {user.avatar_uri ? (
+                              <ExternalImage src={user.avatar_uri} alt="" className={styles.avatarImg} />
+                            ) : (
+                              <i className="bx bxs-user" />
+                            )}
+                          </div>
+                          <div className={styles.suggestionMeta}>
+                            <span className={styles.suggestionName}>
+                              {user.display_name || user.username}
                             </span>
-                          )}
+                            {user.mutual_count > 0 && (
+                              <span className={styles.meta}>
+                                {user.mutual_count} {t('rightSidebar.mutual')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {followed ? (
                           <button

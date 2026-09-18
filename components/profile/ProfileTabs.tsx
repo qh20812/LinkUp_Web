@@ -108,15 +108,15 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
       loadingRef.current = false
       mediaLoadingRef.current = false
       mediaPageRef.current = 1
+      setPosts([])
+      setError(null)
       setHasMore(true)
-    }
-  }, [activeTab])
 
-  useEffect(() => {
-    if (activeTab === 'media') {
-      setTimeout(() => { fetchMedia(1, true) }, 0)
-    } else if (prevTabRef.current === 'media') {
-      setTimeout(() => { fetchPosts(true) }, 0)
+      if (activeTab === 'media') {
+        setTimeout(() => { fetchMedia(1, true) }, 0)
+      } else {
+        setTimeout(() => { fetchPosts(true) }, 0)
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])

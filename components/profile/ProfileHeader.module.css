@@ -539,32 +539,66 @@
 
 .avatarMenu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 176px;
+  max-width: min(240px, calc(100vw - 24px));
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  min-width: 200px;
-  z-index: 20;
+  z-index: 30;
   overflow: hidden;
+  padding: var(--space-xs);
+  animation: avatarMenuIn 0.14s ease;
+}
+
+@keyframes avatarMenuIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .avatarMenuItem {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
   width: 100%;
+  padding: var(--space-sm) var(--space-sm);
   border: none;
   background: none;
   cursor: pointer;
   font: var(--text-body);
+  font-size: 14px;
   color: var(--color-text);
   text-align: left;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.avatarMenuItem i {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .avatarMenuItem:hover {
   background: var(--color-bg-secondary);
+}
+
+.avatarMenuItem:hover i {
+  color: var(--color-primary);
+}
+
+@media (max-width: 576px) {
+  .avatarMenu {
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }

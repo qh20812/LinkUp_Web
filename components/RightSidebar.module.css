@@ -139,6 +139,25 @@
   width: 100%;
 }
 
+.suggestionMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.suggestionMain:hover {
+  background: var(--color-bg-hover);
+}
+
+.suggestionMain:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
 .suggestionAvatar {
   width: 40px;
   height: 40px;

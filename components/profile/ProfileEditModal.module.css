@@ -86,12 +86,6 @@
   gap: var(--space-xs);
 }
 
-.fieldRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-}
-
 .fieldLabel {
   font: var(--text-caption);
   font-weight: 500;
@@ -117,12 +111,77 @@
 
 .textarea {
   min-height: 80px;
-  resize: vertical;
+  resize: none;
+  padding-right: 44px;
+}
+
+.bioField {
+  position: relative;
+}
+
+.emojiBtn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 20px;
+  transition: background var(--fast), color var(--fast);
+}
+
+.emojiBtn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.emojiBtnActive {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+}
+
+.charCount {
+  align-self: flex-end;
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
 }
 
 .fieldError {
   font: var(--text-caption);
   color: var(--color-error, #e53935);
+}
+
+.detectBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.detectBtn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.detectBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .privacySection {
@@ -253,10 +312,6 @@
 @media (max-width: 576px) {
   .modal {
     max-height: 90vh;
-  }
-
-  .fieldRow {
-    grid-template-columns: 1fr;
   }
 
   .modalFooter {

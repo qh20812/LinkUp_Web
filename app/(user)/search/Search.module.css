@@ -156,6 +156,54 @@
   font-size: 16px;
 }
 
+.postIconVideo {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.postThumbWrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-bg-hover);
+  flex-shrink: 0;
+}
+
+.postThumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  display: block;
+}
+
+.videoBadge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.itemExcerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  margin: 2px 0;
+}
+
 .hashtagItem {
   display: flex;
   align-items: center;

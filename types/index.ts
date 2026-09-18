@@ -271,8 +271,12 @@ export interface ViewProfileResponse {
   created_at: string
   bio: string
   location: string
+  hometown_province: string
+  current_province: string
+  current_ward: string
   work: string
   education: string
+  work_other: string
   website: string
   is_private_profile: boolean
   is_private_posts: boolean
@@ -1071,9 +1075,13 @@ export interface UserSearchResult {
 export interface PostSearchResult {
   id: string
   title: string
+  content?: string
   user_id: string
   username: string
   created_at: string
+  thumbnail_uri?: string
+  thumbnail_type?: string
+  video_count?: number
 }
 
 export interface HashtagSearchResult {
