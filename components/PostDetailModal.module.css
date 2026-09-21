@@ -700,6 +700,24 @@
   width: 100%;
 }
 
+.commentsDisabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: 36px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.commentsDisabled i {
+  font-size: 18px;
+}
+
 .commentInput {
   flex: 1;
   height: 36px;

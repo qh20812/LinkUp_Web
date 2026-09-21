@@ -121,6 +121,12 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
+  // Tải bài viết lần đầu khi mount (tab posts là tab mặc định)
+  useEffect(() => {
+    fetchPosts(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'media') return
     const sentinel = sentinelRef.current

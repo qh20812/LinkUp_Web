@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import styles from './ProfileFollowersModal.module.css'
@@ -12,13 +12,14 @@ import type { FollowListItem } from '../../types'
 interface ProfileFollowersModalProps {
   type: 'followers' | 'following'
   userID: string
+  currentUserID?: string
   onClose: () => void
 }
 
-export default function ProfileFollowersModal({ type, userID, onClose }: ProfileFollowersModalProps) {
+export default function ProfileFollowersModal({ type, userID, currentUserID, onClose }: ProfileFollowersModalProps) {
   const { t } = useTranslation()
   const router = useRouter()
-  const { followUser: ctxFollowUser } = useFollowContext()
+  const { followUser: ctxFollowUser, unfollowUser: ctxUnfollowUser } = useFollowContext()
   const [list, setList] = useState<FollowListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -26,17 +27,26 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
   const [search, setSearch] = useState('')
   const [loadingMore, setLoadingMore] = useState(false)
   const [followBusy, setFollowBusy] = useState<string | null>(null)
+  const [followedSet, setFollowedSet] = useState<Set<string>>(new Set())
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false
     const fn = type === 'followers' ? getFollowers : getFollowing
     fn(userID, 1, 20)
       .then((res) => {
+        if (cancelled) return
         setList(res.data)
+        setFollowedSet(new Set(res.data.filter((u) => u.is_following).map((u) => u.user_id)))
         setHasMore(res.has_more)
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
-  })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [type, userID])
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return
@@ -45,6 +55,11 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
       const fn = type === 'followers' ? getFollowers : getFollowing
       const res = await fn(userID, page + 1, 20)
       setList((prev) => [...prev, ...res.data])
+      setFollowedSet((prev) => {
+        const next = new Set(prev)
+        res.data.filter((u) => u.is_following).forEach((u) => next.add(u.user_id))
+        return next
+      })
       setPage((prev) => prev + 1)
       setHasMore(res.has_more)
     } catch {
@@ -57,8 +72,22 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
   const handleFollow = async (userId: string) => {
     if (followBusy) return
     setFollowBusy(userId)
+    const isFollowing = followedSet.has(userId)
     try {
-      await ctxFollowUser(userId)
+      if (isFollowing) {
+        await ctxUnfollowUser(userId)
+      } else {
+        await ctxFollowUser(userId)
+      }
+      setFollowedSet((prev) => {
+        const next = new Set(prev)
+        if (isFollowing) {
+          next.delete(userId)
+        } else {
+          next.add(userId)
+        }
+        return next
+      })
     } catch {
       /* ignore */
     } finally {
@@ -100,7 +129,11 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
           )}
           {!loading && filteredList.length === 0 && (
             <div className={styles.followEmpty}>
-              {search ? t('profile.noResults') : (type === 'followers' ? t('profile.followers') : t('profile.following'))}
+              {search
+                ? t('profile.noResults')
+                : type === 'followers'
+                  ? t('profile.noFollowers')
+                  : t('profile.noFollowing')}
             </div>
           )}
           {filteredList.map((user) => (
@@ -125,13 +158,16 @@ export default function ProfileFollowersModal({ type, userID, onClose }: Profile
                   <span className={styles.followUsername}>@{user.username}</span>
                 </div>
               </div>
-              <button
-                className={`${styles.followBtn} ${followBusy === user.user_id ? styles.followBtnBusy : ''}`}
-                onClick={() => handleFollow(user.user_id)}
-                disabled={followBusy === user.user_id}
-              >
-                <i className="bx bx-user-plus" />
-              </button>
+              {currentUserID && currentUserID !== user.user_id && (
+                <button
+                  className={`${styles.followBtn} ${followedSet.has(user.user_id) ? styles.followBtnActive : ''} ${followBusy === user.user_id ? styles.followBtnBusy : ''}`}
+                  onClick={() => handleFollow(user.user_id)}
+                  disabled={followBusy === user.user_id}
+                >
+                  <i className={followedSet.has(user.user_id) ? 'bx bx-user-check' : 'bx bx-user-plus'} />
+                  <span>{followedSet.has(user.user_id) ? t('profile.followingBtn') : t('profile.follow')}</span>
+                </button>
+              )}
             </div>
           ))}
           {hasMore && filteredList.length > 0 && (

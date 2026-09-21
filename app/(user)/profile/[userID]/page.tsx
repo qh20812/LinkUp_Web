@@ -187,6 +187,7 @@ function ProfileView({ userID }: { userID: string }) {
         <ProfileFollowersModal
           type={modalType}
           userID={userID}
+          currentUserID={currentUserID ?? undefined}
           onClose={() => setModalType(null)}
         />
       )}

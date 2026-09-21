@@ -131,6 +131,7 @@ export interface FeedPost {
   is_following: boolean
   is_pinned: boolean
   pinned_at?: string
+  comments_enabled: boolean
   shared_from_post_id?: string
   share_content?: string
   shared_post?: FeedPost
@@ -151,6 +152,7 @@ export interface CreatePostInput {
   files?: File[]
   gifUrl?: string
   communityID?: string
+  commentsEnabled?: boolean
 }
 
 export interface GifItem {
@@ -734,6 +736,7 @@ export interface FollowListItem {
   username: string
   display_name: string
   avatar_uri: string
+  is_following?: boolean
 }
 
 export interface FollowListResponse {
@@ -1003,6 +1006,9 @@ export interface PinnedMessage {
   content: string
   sender_id: string
   sender_name: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
 }
 
 export interface WsPinMessagePayload {
@@ -1018,6 +1024,9 @@ export interface WsMessagePinnedPayload {
   content: string
   sender_id: string
   sender_name: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
 }
 
 export interface WsMessageUnpinnedPayload {

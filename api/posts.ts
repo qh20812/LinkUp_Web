@@ -84,13 +84,14 @@ export const savePost = (postId: string) =>
 export const getEmojis = () =>
   request<{ data: EmojiItem[] }>('/emojis')
 
-export const createPost = ({ title, content, status, files = [], gifUrl, communityID }: CreatePostInput) => {
+export const createPost = ({ title, content, status, files = [], gifUrl, communityID, commentsEnabled = true }: CreatePostInput) => {
   const formData = new FormData()
   if (title) formData.append('title', title)
   if (content) formData.append('content', content)
   if (status) formData.append('status', status)
   if (gifUrl) formData.append('gif_url', gifUrl)
   if (communityID) formData.append('community_id', communityID)
+  formData.append('comments_enabled', String(commentsEnabled))
   for (const file of files) formData.append('media', file)
 
   return fetch('/api/posts', {
@@ -115,6 +116,13 @@ export const pinPost = (postId: string) =>
 export const unpinPost = (postId: string) =>
   request<{ message: string }>(`/posts/${postId}/pin`, {
     method: 'DELETE',
+  })
+
+export const setCommentsEnabled = (postId: string, enabled: boolean) =>
+  request<{ message: string; data: FeedPost }>(`/posts/${postId}/comments`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+    headers: { 'Content-Type': 'application/json' },
   })
 
 export const getUserMedia = (userID: string, page = 1, pageSize = 20) => {

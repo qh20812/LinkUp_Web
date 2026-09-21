@@ -11,12 +11,14 @@ import AppearanceForm from './AppearanceForm'
 import SessionsManager from './SessionsManager'
 import DeactivateAccount from './DeactivateAccount'
 import NotificationsForm from './NotificationsForm'
+import E2ERecoveryForm from './E2ERecoveryForm'
 import styles from './Settings.module.css'
 
-type TabKey = 'password' | 'privacy' | 'storage' | 'appearance' | 'sessions' | 'deactivate' | 'notifications'
+type TabKey = 'password' | 'privacy' | 'storage' | 'appearance' | 'sessions' | 'deactivate' | 'notifications' | 'security'
 
 const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'password', labelKey: 'settings.tabChangePassword' },
+  { key: 'security', labelKey: 'userSettings.tabSecurity' },
   { key: 'privacy', labelKey: 'userSettings.tabPrivacy' },
   { key: 'storage', labelKey: 'userSettings.tabStorage' },
   { key: 'appearance', labelKey: 'userSettings.tabAppearance' },
@@ -25,7 +27,7 @@ const TABS: { key: TabKey; labelKey: string }[] = [
   { key: 'deactivate', labelKey: 'userSettings.tabDeactivate' },
 ]
 
-const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'notifications', 'deactivate']
+const ALLOWED_TABS: TabKey[] = ['password', 'privacy', 'storage', 'appearance', 'sessions', 'notifications', 'deactivate', 'security']
 
 export default function SettingsPage() {
   return (
@@ -71,6 +73,13 @@ function SettingsContent() {
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>{t('nav.changePassword')}</h2>
               <ChangePasswordForm />
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>{t('userSettings.tabSecurity')}</h2>
+              <E2ERecoveryForm />
             </div>
           )}
 

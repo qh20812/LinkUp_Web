@@ -498,8 +498,14 @@ export default function ChatWindow({
               <div className={styles.pinnedBarItemContent}>
                 <span className={styles.pinnedBarItemSender}>{pin.sender_name || t('chat.unknown')}</span>
                 <span className={styles.pinnedBarItemText}>
-                  {pin.content.length > 60 ? pin.content.slice(0, 60) + '...' : pin.content || t('chat.attachment')}
-                </span>
+                {pin.decrypt_failed
+                  ? t('chat.undecryptable')
+                  : pin.decrypted || !pin.e2e_version
+                    ? pin.content.length > 60
+                      ? pin.content.slice(0, 60) + '...'
+                      : pin.content || t('chat.attachment')
+                    : t('chat.decrypting')}
+              </span>
               </div>
               <button
                 className={styles.pinnedBarRemove}

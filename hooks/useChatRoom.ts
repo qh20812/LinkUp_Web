@@ -5,6 +5,7 @@ import type { ChatMessage, HistoryCursor, MessageReaction, PinnedMessage } from 
 import type { ChatSocket } from './useChatSocket'
 import type { ChatE2E } from './useChatE2E'
 import { useToast } from '../contexts/ToastContext'
+import { useTranslation } from './useTranslation'
 
 interface UseChatRoomOptions {
   chatId: string | null
@@ -100,6 +101,28 @@ function mergeDecrypted(prev: ChatMessage[], chunk: ChatMessage[]): ChatMessage[
   return changed ? sortByCreatedAt([...byId.values()]) : prev
 }
 
+// Cập nhật tin ghim trong prev bằng phiên bản đã giải mã (theo message_id),
+// chỉ khi nội dung/trạng thái thay đổi để tránh render thừa. Giữ thứ tự prev.
+function mergePinned(prev: PinnedMessage[], chunk: PinnedMessage[]): PinnedMessage[] {
+  if (chunk.length === 0) return prev
+  const byId = new Map(prev.map((p) => [p.message_id, p]))
+  let changed = false
+  for (const p of chunk) {
+    const cur = byId.get(p.message_id)
+    if (!cur) continue
+    if (
+      cur.content === p.content &&
+      cur.decrypt_failed === p.decrypt_failed &&
+      cur.decrypted === p.decrypted
+    ) {
+      continue
+    }
+    byId.set(p.message_id, p)
+    changed = true
+  }
+  return changed ? [...byId.values()] : prev
+}
+
 // Ghép trang tin cũ hơn vào đầu danh sách hiện tại; tin trùng id ưu tiên bản
 // mới (vừa tải từ server).
 function prependMessages(prev: ChatMessage[], older: ChatMessage[]): ChatMessage[] {
@@ -119,6 +142,7 @@ export function useChatRoom({
   onNewMessage,
 }: UseChatRoomOptions): ChatRoom {
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
@@ -135,6 +159,7 @@ export function useChatRoom({
   const pendingIdsRef = useRef<string[]>([])
   const pendingSeqRef = useRef(0)
   const messagesRef = useRef<ChatMessage[]>([])
+  const pinnedMessagesRef = useRef<PinnedMessage[]>([])
   const hasMoreRef = useRef(false)
   const nextCursorRef = useRef<HistoryCursor | null>(null)
   const loadingMoreRef = useRef(false)
@@ -148,6 +173,10 @@ export function useChatRoom({
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+
+  useEffect(() => {
+    pinnedMessagesRef.current = pinnedMessages
+  }, [pinnedMessages])
 
   useEffect(() => {
     myUserIdRef.current = myUserId
@@ -183,6 +212,28 @@ export function useChatRoom({
             }
           }
           return updated
+        }),
+      )
+    },
+    [encryption],
+  )
+
+  const decryptPinned = useCallback(
+    async (list: PinnedMessage[]): Promise<PinnedMessage[]> => {
+      if (!encryption) return list
+      return Promise.all(
+        list.map(async (pin) => {
+          // Tin ghim E2E giữ ciphertext → thử giải mã bằng khóa E2E local.
+          // Legacy (e2e_version 0) đã được server giải mã từ trước.
+          if (pin.e2e_version === 1 && pin.content && !pin.decrypted) {
+            try {
+              const plain = await encryption.decrypt(pin.content)
+              return { ...pin, content: plain, decrypted: true, decrypt_failed: false }
+            } catch {
+              return { ...pin, decrypt_failed: true }
+            }
+          }
+          return pin
         }),
       )
     },
@@ -317,21 +368,34 @@ export function useChatRoom({
     setSearchResults(sortByCreatedAt(dedupeByID(data.messages ?? [])))
   }, [])
 
-  const handlePinnedList = useCallback((payload: unknown) => {
-    const data = payload as { pinned_messages?: PinnedMessage[] }
-    if (!data) return
-    setPinnedMessages(data.pinned_messages ?? [])
-  }, [])
+  const handlePinnedList = useCallback(
+    async (payload: unknown) => {
+      const data = payload as { pinned_messages?: PinnedMessage[] }
+      if (!data) return
+      const raw = data.pinned_messages ?? []
+      // Render ngay (tin E2E hiện placeholder), rồi giải mã khi khóa sẵn sàng.
+      setPinnedMessages(raw)
+      const decrypted = await decryptPinned(raw)
+      if (decrypted.length > 0) {
+        setPinnedMessages((prev) => mergePinned(prev, decrypted))
+      }
+    },
+    [decryptPinned],
+  )
 
-  const handlePinned = useCallback((payload: unknown) => {
-    const pin = payload as PinnedMessage
-    if (!pin || !pin.message_id) return
-    setPinnedMessages((prev) => {
-      const exists = prev.some((p) => p.message_id === pin.message_id)
-      if (exists) return prev
-      return [pin, ...prev].slice(0, 2)
-    })
-  }, [])
+  const handlePinned = useCallback(
+    async (payload: unknown) => {
+      const pin = payload as PinnedMessage
+      if (!pin || !pin.message_id) return
+      const decrypted = (await decryptPinned([pin]))[0]
+      setPinnedMessages((prev) => {
+        const exists = prev.some((p) => p.message_id === pin.message_id)
+        if (exists) return mergePinned(prev, [decrypted])
+        return [decrypted, ...prev].slice(0, 2)
+      })
+    },
+    [decryptPinned],
+  )
 
   const handleUnpinned = useCallback((payload: unknown) => {
     const data = payload as { chat_id?: string; message_id?: string }
@@ -433,6 +497,22 @@ export function useChatRoom({
     })
   }, [e2eStatus, encryption, decryptIncoming])
 
+  // Tin ghim E2E cũng chờ khóa: nếu pinned_list đến trước khi khóa sẵn sàng,
+  // giải mã lại khi khóa setup xong. Chạy lại khi status/khóa đổi (vd: rekey)
+  // để retry các tin chưa giải mã được; tin đã decrypted thì bỏ qua.
+  useEffect(() => {
+    if (!encryption || e2eStatus !== 'ready') return
+    const chatID = activeChatIdRef.current
+    const pending = pinnedMessagesRef.current.filter(
+      (p) => p.e2e_version === 1 && p.content && !p.decrypted,
+    )
+    if (pending.length === 0) return
+    void decryptPinned(pending).then((decrypted) => {
+      if (activeChatIdRef.current !== chatID) return
+      setPinnedMessages((prev) => mergePinned(prev, decrypted))
+    })
+  }, [e2eStatus, encryption, decryptPinned])
+
   // Reset trạng thái khi chuyển hội thoại (React: adjust state during render).
   const [prevChatId, setPrevChatId] = useState<string | null>(chatId)
   if (prevChatId !== chatId) {
@@ -473,6 +553,21 @@ export function useChatRoom({
       if (!chatID || (!trimmed && !hasAttachment)) return
       if (socket.status !== 'open') {
         toast({ type: 'error', title: 'Không thể gửi tin nhắn. Đang kết nối lại...' })
+        return
+      }
+
+      // Khóa E2E chưa sẵn sàng (đang khởi tạo cho hội thoại direct) → chặn gửi,
+      // không silent fallback về legacy (server-readable). Draft giữ nguyên trong
+      // Composer, user bấm gửi lại khi khóa sẵn sàng.
+      if (encryption?.status === 'loading') {
+        toast({ type: 'warning', title: t('chat.e2eInitializing') })
+        return
+      }
+      // Đối phương đổi identity và mình không giữ khóa chuẩn → không mã hóa
+      // được cho thiết bị mới của họ; chặn gửi để tránh gửi clear khi E2E, chỉ
+      // báo rõ ràng (không silent fallback).
+      if (encryption?.status === 'partner_changed') {
+        toast({ type: 'warning', title: t('chat.e2ePartnerChanged') })
         return
       }
 
@@ -534,7 +629,7 @@ export function useChatRoom({
         forwarded_from: opts?.forwardedFrom ?? null,
       })
     },
-    [socket, toast, encryption],
+    [socket, toast, encryption, t],
   )
 
   const sendTyping = useCallback(

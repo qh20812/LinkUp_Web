@@ -176,6 +176,20 @@
   font-size: 16px;
 }
 
+.commentsToggle {
+  color: var(--color-text-secondary);
+}
+
+.commentsToggleOn {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.commentsToggleOn:hover {
+  filter: brightness(0.92);
+}
+
 .mediaPreview {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
