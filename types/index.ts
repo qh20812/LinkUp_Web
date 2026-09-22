@@ -864,12 +864,19 @@ export interface FriendStatusResponse {
 }
 
 // ===== Chat / Messages =====
+// Preview tin được trả lời. Server trả content ở dạng thật (legacy) hoặc
+// ciphertext (e2e_version=1 — client tự giải mã). Các cờ decrypt_*/decrypted
+// là client-only, đối xứng với PinnedMessage.
 export interface ReplyPreview {
   id: string
   content: string
   sender_id: string
   sender_name: string
   sender_avatar: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
+  decrypting?: boolean
 }
 
 export interface ChatMessage {

@@ -202,13 +202,20 @@ export function useChatRoom({
               return { ...updated, decrypt_failed: true }
             }
           }
-          if (updated.reply_to && updated.reply_to.content && updated.e2e_version === 1) {
-            const rt = updated.reply_to
+          // Preview reply: server gửi e2e_version ngay trên preview. Legacy (0) là
+          // plaintext — client không đụng. E2E (1) là ciphertext của CÙNG chat này
+          // → giải mã bằng khóa chat. Không phụ thuộc version của tin con.
+          const rt = updated.reply_to
+          if (rt && rt.content && rt.e2e_version === 1 && !rt.decrypted && !rt.decrypting) {
+            updated = { ...updated, reply_to: { ...rt, decrypting: true } }
             try {
               const plain = await encryption.decrypt(rt.content)
-              updated = { ...updated, reply_to: { ...rt, content: plain } }
+              updated = {
+                ...updated,
+                reply_to: { ...rt, content: plain, decrypted: true, decrypt_failed: false },
+              }
             } catch {
-              updated = { ...updated, reply_to: { id: rt.id, content: '', sender_id: rt.sender_id, sender_name: rt.sender_name, sender_avatar: rt.sender_avatar } }
+              updated = { ...updated, reply_to: { ...rt, decrypt_failed: true, decrypting: false } }
             }
           }
           return updated

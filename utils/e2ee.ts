@@ -296,12 +296,17 @@ export function generateChatKeyBase64(): string {
 }
 
 // wrapChatKey bọc khóa chat (32 byte) bằng khóa ECDH chung, dạng b64(iv || ciphertext).
+// Truyền iv để tạo golden vector trong test; mặc định sinh ngẫu nhiên như trước.
 export async function wrapChatKey(
   sharedKey: CryptoKey,
   chatKeyB64: string,
+  iv: Uint8Array = crypto.getRandomValues(new Uint8Array(12)),
 ): Promise<{ wrapped: string; nonce: string }> {
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, sharedKey, b64ToBytes(chatKeyB64))
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv as BufferSource },
+    sharedKey,
+    b64ToBytes(chatKeyB64),
+  )
   return { wrapped: bytesToB64(concat(iv, new Uint8Array(ct))), nonce: bytesToB64(iv) }
 }
 
@@ -322,10 +327,18 @@ export async function unwrapChatKey(
 }
 
 // encryptMessage mã hóa nội dung tin nhắn bằng khóa chat, dạng b64(iv || ciphertext).
-export async function encryptMessage(chatKeyB64: string, plain: string): Promise<string> {
+// Truyền iv để tạo golden vector trong test; mặc định sinh ngẫu nhiên như trước.
+export async function encryptMessage(
+  chatKeyB64: string,
+  plain: string,
+  iv: Uint8Array = crypto.getRandomValues(new Uint8Array(12)),
+): Promise<string> {
   const key = await importAesKey(b64ToBytes(chatKeyB64), ['encrypt'])
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(plain))
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv as BufferSource },
+    key,
+    te.encode(plain),
+  )
   return bytesToB64(concat(iv, new Uint8Array(ct)))
 }
 
