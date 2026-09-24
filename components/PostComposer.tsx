@@ -95,6 +95,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
   const [emojiGroup, setEmojiGroup] = useState<EmotionEmojiItem['group']>('positive')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [commentsDisabled, setCommentsDisabled] = useState(false)
   const privacyRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -153,6 +154,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
     setEmojiOpen(false)
     setGifOpen(false)
     setError(null)
+    setCommentsDisabled(false)
   }
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,6 +239,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
         status: privacy,
         files: media.map((m) => m.file),
         gifUrl: gif?.full,
+        commentsEnabled: !commentsDisabled,
       })
       toast({ type: 'success', title: t('composer.success') })
       setExpanded(false)
@@ -249,6 +252,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
       setGif(null)
       setEmojiOpen(false)
       setGifOpen(false)
+      setCommentsDisabled(false)
       onPosted?.(res.data)
     } catch (e) {
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
@@ -415,6 +419,15 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
               </button>
               {gifOpen && <GifPicker onSelect={selectGif} onClose={() => setGifOpen(false)} />}
             </div>
+            <button
+              type="button"
+              className={`${styles.mediaBtn} ${styles.commentsToggle}${commentsDisabled ? ` ${styles.commentsToggleOn}` : ''}`}
+              onClick={() => setCommentsDisabled((v) => !v)}
+              aria-pressed={commentsDisabled}
+            >
+              <i className="bx bx-message-rounded-x" />
+              <span>{t('composer.disableComments')}</span>
+            </button>
             <div className={styles.privacyWrap} ref={privacyRef}>
               <button
                 type="button"

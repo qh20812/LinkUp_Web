@@ -310,13 +310,25 @@ function FriendsContent() {
     return (
       <div className={styles.cardList}>
         {items.map((item) => (
-          <div key={item.id} className={styles.card}>
+          <div
+            key={item.id}
+            className={`${styles.card} ${styles.cardLink}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push(`/profile/${item.user_id}`)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                router.push(`/profile/${item.user_id}`)
+              }
+            }}
+          >
             <div className={styles.cardAvatar}>
               {item.avatar_uri ? <ExternalImage src={item.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
             </div>
             <span className={styles.cardName}>{item.display_name}</span>
             {subTab === 'received' ? (
-              <div className={styles.cardActions}>
+              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                 <button className={styles.primaryBtn} onClick={() => handleAccept(item)}>
                   <i className="bx bx-check" />
                   {t('friends.accept')}
@@ -327,7 +339,7 @@ function FriendsContent() {
                 </button>
               </div>
             ) : (
-              <div className={styles.cardActions}>
+              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                 <button className={styles.ghostBtn} onClick={() => handleRevoke(item)}>
                   <i className="bx bx-undo" />
                   {t('friends.revoke')}
@@ -372,7 +384,19 @@ function FriendsContent() {
       <>
         <div className={styles.cardList}>
           {suggestions.map((user) => (
-            <div key={user.user_id} className={styles.card}>
+            <div
+              key={user.user_id}
+              className={`${styles.card} ${styles.cardLink}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/profile/${user.user_id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  router.push(`/profile/${user.user_id}`)
+                }
+              }}
+            >
               <div className={styles.cardAvatar}>
                 {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
               </div>
@@ -390,17 +414,19 @@ function FriendsContent() {
                   </span>
                 )}
               </div>
-              {user._friendStatus === 'sent' ? (
-                <button className={`${styles.primaryBtn} ${styles.btnDisabled}`} disabled>
-                  <i className="bx bx-check" />
-                  {t('friends.sent')}
-                </button>
-              ) : (
-                <button className={styles.primaryBtn} onClick={() => handleAddFriend(user)}>
-                  <i className="bx bx-user-plus" />
-                  {t('friends.addFriend')}
-                </button>
-              )}
+              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                {user._friendStatus === 'sent' ? (
+                  <button className={`${styles.primaryBtn} ${styles.btnDisabled}`} disabled>
+                    <i className="bx bx-check" />
+                    {t('friends.sent')}
+                  </button>
+                ) : (
+                  <button className={styles.primaryBtn} onClick={() => handleAddFriend(user)}>
+                    <i className="bx bx-user-plus" />
+                    {t('friends.addFriend')}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -450,12 +476,24 @@ function FriendsContent() {
       <>
         <div className={styles.cardList}>
           {friends.map((user) => (
-            <div key={user.user_id} className={styles.card}>
+            <div
+              key={user.user_id}
+              className={`${styles.card} ${styles.cardLink}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/profile/${user.user_id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  router.push(`/profile/${user.user_id}`)
+                }
+              }}
+            >
               <div className={styles.cardAvatar}>
                 {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
               </div>
               <span className={styles.cardName}>{user.display_name}</span>
-              <div className={styles.cardActions}>
+              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                 <button className={styles.dangerBtn} onClick={() => handleUnfriend(user)}>
                   <i className="bx bx-user-x" />
                   {t('friends.unfriend')}

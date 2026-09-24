@@ -19,6 +19,7 @@ import {
   sharePost,
   deletePost,
   getEmojis,
+  setCommentsEnabled,
 } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
 import ShareModal from './messages/ShareModal'
@@ -149,6 +150,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [togglingComments, setTogglingComments] = useState(false)
   const [mediaIndex, setMediaIndex] = useState(0)
   const [mediaLoaded, setMediaLoaded] = useState(false)
   const [videoFrame, setVideoFrame] = useState<string | null>(null)
@@ -383,6 +385,32 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     }
   }
 
+  const handleToggleComments = async () => {
+    if (!current || togglingComments) return
+    setTogglingComments(true)
+    const prev = current
+    const next = { ...current, comments_enabled: !current.comments_enabled }
+    setCurrent(next)
+    onUpdated?.(next)
+    try {
+      const res = await setCommentsEnabled(prev.id, next.comments_enabled)
+      const remote = res.data
+      const merged = { ...next, comments_enabled: remote.comments_enabled }
+      setCurrent(merged)
+      onUpdated?.(merged)
+      toast({
+        type: 'success',
+        title: merged.comments_enabled ? t('postDetail.commentsEnabledToast') : t('postDetail.commentsDisabledToast'),
+      })
+    } catch (e) {
+      setCurrent(prev)
+      onUpdated?.(prev)
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
+    } finally {
+      setTogglingComments(false)
+    }
+  }
+
   if (!open || !current) return null
 
   const hasMedia = current.media.length > 0
@@ -425,16 +453,18 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           <i className={`bx ${node.comment.is_liked ? 'bxs-heart' : 'bx-heart'}`} />
           {node.comment.likes_count > 0 && <span>{formatCount(node.comment.likes_count)}</span>}
         </button>
-        <button
-          type="button"
-          className={styles.replyBtn}
-          onClick={() => {
-            setReplyingTo((cur) => (cur?.id === node.comment.id ? null : node.comment))
-            commentInputRef.current?.focus()
-          }}
-        >
-          {t('postDetail.reply')}
-        </button>
+        {current.comments_enabled && (
+          <button
+            type="button"
+            className={styles.replyBtn}
+            onClick={() => {
+              setReplyingTo((cur) => (cur?.id === node.comment.id ? null : node.comment))
+              commentInputRef.current?.focus()
+            }}
+          >
+            {t('postDetail.reply')}
+          </button>
+        )}
       </div>
       {node.replies.length > 0 && (
         <div className={styles.commentReplies}>{node.replies.map(renderComment)}</div>
@@ -525,6 +555,17 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                   </button>
                   {menuOpen && (
                     <div className={styles.moreMenu}>
+                      <button
+                        type="button"
+                        className={styles.moreItem}
+                        onClick={handleToggleComments}
+                        disabled={togglingComments}
+                      >
+                        <i className={`bx ${current.comments_enabled ? 'bx-message-rounded-x' : 'bx-message-rounded'}`} />
+                        <span>
+                          {current.comments_enabled ? t('postDetail.disableComments') : t('postDetail.enableComments')}
+                        </span>
+                      </button>
                       <button type="button" className={styles.moreItem} onClick={handleDelete} disabled={deleting}>
                         <i className="bx bx-trash" />
                         <span>{t('postDetail.delete')}</span>
@@ -720,34 +761,41 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
               </button>
             </div>
           )}
-          <div className={styles.commentInputRow}>
-            <input
-              ref={commentInputRef}
-              className={styles.commentInput}
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmitComment()
-                }
-              }}
-              placeholder={t('postDetail.commentPlaceholder')}
-            />
-            <button
-              type="button"
-              className={styles.commentSubmit}
-              onClick={handleSubmitComment}
-              disabled={submittingComment || commentText.trim() === ''}
-              aria-label={t('postDetail.commentButton')}
-            >
-              {submittingComment ? (
-                <i className="bx bx-loader-circle bx-spin" />
-              ) : (
-                <i className="bx bx-send" />
-              )}
-            </button>
-          </div>
+          {current.comments_enabled ? (
+            <div className={styles.commentInputRow}>
+              <input
+                ref={commentInputRef}
+                className={styles.commentInput}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmitComment()
+                  }
+                }}
+                placeholder={t('postDetail.commentPlaceholder')}
+              />
+              <button
+                type="button"
+                className={styles.commentSubmit}
+                onClick={handleSubmitComment}
+                disabled={submittingComment || commentText.trim() === ''}
+                aria-label={t('postDetail.commentButton')}
+              >
+                {submittingComment ? (
+                  <i className="bx bx-loader-circle bx-spin" />
+                ) : (
+                  <i className="bx bx-send" />
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className={styles.commentsDisabled}>
+              <i className="bx bx-message-rounded-x" />
+              <span>{t('postDetail.commentsDisabled')}</span>
+            </div>
+          )}
         </div>
       </div>
       {current && (

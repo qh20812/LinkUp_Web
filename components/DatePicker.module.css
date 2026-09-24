@@ -1,0 +1,193 @@
+.root {
+  position: relative;
+  width: 100%;
+}
+
+.trigger {
+  width: 100%;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font: var(--text-body);
+  text-align: left;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.trigger:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.trigger:hover {
+  border-color: var(--color-primary);
+}
+
+.triggerPlaceholder {
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerValue {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: transform var(--fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.selector {
+  flex: 1;
+  min-width: 0;
+}
+
+.navBtn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 20px;
+  transition: background var(--fast), color var(--fast);
+}
+
+.navBtn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.navBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-xs);
+}
+
+.weekCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.emptyCell {
+  height: 36px;
+}
+
+.dayBtn {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+
+.dayBtn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+
+.dayBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--color-text-secondary);
+}
+
+.daySelected {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.daySelected:hover:not(:disabled) {
+  background: var(--color-primary-light);
+}
+
+.dayToday {
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.todayBtn {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--text-body);
+  cursor: pointer;
+  transition: background var(--fast);
+}
+
+.todayBtn:hover {
+  background: var(--color-bg-secondary);
+}

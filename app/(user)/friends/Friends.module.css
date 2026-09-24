@@ -132,6 +132,20 @@
   box-shadow: var(--shadow-sm);
 }
 
+.cardLink {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cardLink:hover {
+  background: var(--color-bg-hover);
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
 .cardAvatar {
   width: 48px;
   height: 48px;

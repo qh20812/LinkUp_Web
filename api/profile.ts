@@ -12,6 +12,13 @@ export const updateProfile = (input: {
   avatar_uri?: string
   cover_uri?: string
   bio?: string
+  hometown_province?: string
+  current_province?: string
+  current_ward?: string
+  work?: string
+  education?: string
+  work_other?: string
+  location?: string
   is_private_profile?: boolean
   is_private_posts?: boolean
   allow_stranger_friend_request?: boolean

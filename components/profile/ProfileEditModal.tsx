@@ -1,10 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import styles from './ProfileEditModal.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { updateProfile } from '../../api/profile'
+import { reverseGeocode } from '../../api/locations'
+import { WORK_OPTIONS, EDUCATION_OPTIONS } from '../../data/profile-enums'
+import { useToast } from '../../contexts/ToastContext'
+import SearchSelect from '../SearchSelect'
+import DatePicker from '../DatePicker'
+import EmojiPicker from '../EmojiPicker'
 import type { ViewProfileResponse } from '../../types'
+import LocationPicker from './location/LocationPicker'
+import WebsitePreview from './WebsitePreview'
 
 const DISPLAY_NAME_REGEX = /^[\p{L}\p{M}\d ]+$/u
 
@@ -16,10 +24,14 @@ interface ProfileEditModalProps {
 
 export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileEditModalProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const [displayName, setDisplayName] = useState(profile.display_name)
   const [bio, setBio] = useState(profile.bio)
-  const [location, setLocation] = useState(profile.location)
+  const [hometownProvince, setHometownProvince] = useState(profile.hometown_province)
+  const [currentProvince, setCurrentProvince] = useState(profile.current_province)
+  const [currentWard, setCurrentWard] = useState(profile.current_ward)
   const [work, setWork] = useState(profile.work)
+  const [workOther, setWorkOther] = useState(profile.work_other)
   const [education, setEducation] = useState(profile.education)
   const [website, setWebsite] = useState(profile.website)
   const [dateOfBirth, setDateOfBirth] = useState(profile.date_of_birth ? profile.date_of_birth.split('T')[0] : '')
@@ -27,7 +39,13 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
   const [isPrivatePosts, setIsPrivatePosts] = useState(profile.is_private_posts)
   const [allowStrangerFriend, setAllowStrangerFriend] = useState(profile.allow_stranger_friend_request)
   const [saving, setSaving] = useState(false)
+  const [detecting, setDetecting] = useState(false)
   const [displayNameError, setDisplayNameError] = useState('')
+  const [workError, setWorkError] = useState('')
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const bioRef = useRef<HTMLTextAreaElement>(null)
+  const emojiBtnRef = useRef<HTMLButtonElement>(null)
+  const bioSelRef = useRef<[number, number] | null>(null)
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -36,6 +54,59 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
+
+  const handleDetectLocation = () => {
+    if (detecting) return
+    if (!('geolocation' in navigator)) {
+      toast({ type: 'error', title: t('profile.location.geoUnsupported') })
+      return
+    }
+    setDetecting(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude)
+          if (!result.matched || !result.province) {
+            toast({ type: 'warning', title: t('profile.location.detectNoMatch') })
+            return
+          }
+          setCurrentProvince(result.province.id)
+          setCurrentWard(result.ward?.id ?? '')
+          toast({ type: 'success', title: t('profile.location.detectSuccess') })
+        } catch {
+          toast({ type: 'error', title: t('profile.location.detectError') })
+        } finally {
+          setDetecting(false)
+        }
+      },
+      (err) => {
+        setDetecting(false)
+        toast({
+          type: 'error',
+          title: err.code === err.PERMISSION_DENIED
+            ? t('profile.location.detectDenied')
+            : t('profile.location.detectError'),
+        })
+      },
+      { timeout: 10000, maximumAge: 60000 },
+    )
+  }
+
+  const insertEmoji = (ch: string) => {
+    const sel = bioSelRef.current ?? [bio.length, bio.length]
+    const start = Math.min(sel[0], sel[1])
+    const end = Math.max(sel[0], sel[1])
+    const next = bio.slice(0, start) + ch + bio.slice(end)
+    if (next.length > 200) return
+    setBio(next)
+    requestAnimationFrame(() => {
+      const ta = bioRef.current
+      if (!ta) return
+      const pos = Math.min(start + ch.length, ta.value.length)
+      ta.focus()
+      ta.setSelectionRange(pos, pos)
+    })
+  }
 
   const handleSave = async () => {
     if (saving) return
@@ -60,13 +131,22 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     }
     setDisplayNameError('')
 
+    if (work === 'other' && !workOther.trim()) {
+      setWorkError(t('profile.workOtherRequired'))
+      return
+    }
+    setWorkError('')
+
     setSaving(true)
     try {
       const input: Record<string, unknown> = {}
       if (displayName !== profile.display_name) input.display_name = displayName
       if (bio !== profile.bio) input.bio = bio
-      if (location !== profile.location) input.location = location
+      if (hometownProvince !== profile.hometown_province) input.hometown_province = hometownProvince
+      if (currentProvince !== profile.current_province) input.current_province = currentProvince
+      if (currentWard !== profile.current_ward) input.current_ward = currentWard
       if (work !== profile.work) input.work = work
+      if (workOther !== profile.work_other) input.work_other = workOther
       if (education !== profile.education) input.education = education
       if (website !== profile.website) input.website = website
       if (dateOfBirth) {
@@ -118,63 +198,135 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
 
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>{t('profile.editBio')}</label>
-            <textarea
-              className={`${styles.input} ${styles.textarea}`}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={200}
+            <div className={styles.bioField}>
+              <textarea
+                ref={bioRef}
+                className={`${styles.input} ${styles.textarea}`}
+                value={bio}
+                onChange={(e) => {
+                  setBio(e.target.value)
+                  bioSelRef.current = [e.target.selectionStart, e.target.selectionEnd]
+                }}
+                maxLength={200}
+              />
+              <button
+                ref={emojiBtnRef}
+                type="button"
+                className={`${styles.emojiBtn}${emojiOpen ? ` ${styles.emojiBtnActive}` : ''}`}
+                onClick={() => setEmojiOpen((v) => !v)}
+                aria-label={t('composer.emoji')}
+              >
+                <i className="bx bx-smile" />
+              </button>
+              {emojiOpen && (
+                <EmojiPicker
+                  onSelect={insertEmoji}
+                  onClose={() => setEmojiOpen(false)}
+                  ignoreRef={emojiBtnRef}
+                />
+              )}
+            </div>
+            <span className={styles.charCount}>
+              {t('composer.charCount').replace('{count}', String(bio.length)).replace('{max}', '200')}
+            </span>
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('profile.editHometown')}</label>
+            <LocationPicker
+              provinceOnly
+              provinceId={hometownProvince}
+              onProvinceChange={setHometownProvince}
             />
           </div>
 
-          <div className={styles.fieldRow}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>{t('profile.aboutLocation')}</label>
-              <input
-                className={styles.input}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                maxLength={255}
-              />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>{t('profile.aboutWork')}</label>
-              <input
-                className={styles.input}
-                value={work}
-                onChange={(e) => setWork(e.target.value)}
-                maxLength={255}
-              />
-            </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('profile.editCurrentLocation')}</label>
+            <LocationPicker
+              provinceId={currentProvince}
+              wardId={currentWard}
+              onProvinceChange={setCurrentProvince}
+              onWardChange={setCurrentWard}
+            />
+            <button
+              className={styles.detectBtn}
+              onClick={handleDetectLocation}
+              disabled={detecting}
+              type="button"
+            >
+              <i className="bx bx-current-location" />
+              <span>{detecting ? t('common.loading') : t('profile.location.detect')}</span>
+            </button>
           </div>
 
-          <div className={styles.fieldRow}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>{t('profile.aboutEducation')}</label>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('profile.aboutWork')}</label>
+            <SearchSelect
+              options={WORK_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+              value={work}
+              onChange={(v) => {
+                setWork(v)
+                if (workError) setWorkError('')
+              }}
+              placeholder={t('profile.workPlaceholder')}
+              searchPlaceholder={t('profile.workSearchPlaceholder')}
+              emptyText={t('profile.noResults')}
+            />
+            {work === 'other' && (
               <input
                 className={styles.input}
-                value={education}
-                onChange={(e) => setEducation(e.target.value)}
+                value={workOther}
+                onChange={(e) => {
+                  setWorkOther(e.target.value)
+                  if (workError) setWorkError('')
+                }}
                 maxLength={255}
+                placeholder={t('profile.workOtherPlaceholder')}
               />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>{t('profile.aboutWebsite')}</label>
-              <input
-                className={styles.input}
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                maxLength={255}
-              />
-            </div>
+            )}
+            {workError && <span className={styles.fieldError}>{workError}</span>}
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('profile.aboutEducation')}</label>
+            <SearchSelect
+              options={EDUCATION_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) }))}
+              value={education}
+              onChange={setEducation}
+              placeholder={t('profile.educationPlaceholder')}
+              searchPlaceholder={t('profile.educationSearchPlaceholder')}
+              emptyText={t('profile.noResults')}
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>{t('profile.aboutWebsite')}</label>
+            <input
+              className={styles.input}
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              maxLength={255}
+            />
+            <WebsitePreview
+              url={website}
+              labels={{
+                checking: t('profile.website.checking'),
+                online: t('profile.website.online'),
+                offline: t('profile.website.offline'),
+                openLink: t('profile.website.openLink'),
+              }}
+            />
           </div>
 
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>{t('profile.aboutBirthday')}</label>
-            <input
-              className={styles.input}
-              type="date"
+            <DatePicker
               value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
+              onChange={setDateOfBirth}
+              placeholder={t('profile.birthday.placeholder')}
+              todayLabel={t('profile.birthday.today')}
+              monthPlaceholder={t('profile.birthday.month')}
+              yearPlaceholder={t('profile.birthday.year')}
             />
           </div>
 

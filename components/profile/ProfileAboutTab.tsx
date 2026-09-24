@@ -1,7 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import styles from './ProfileAboutTab.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
+import { getProvinces, getWards } from '../../api/locations'
+import { resolveWorkLabel, resolveEducationLabel } from '../../data/profile-enums'
 import type { ViewProfileResponse } from '../../types'
 
 interface ProfileAboutTabProps {
@@ -22,22 +25,71 @@ function formatDate(dateStr: string): string {
 
 export default function ProfileAboutTab({ profile }: ProfileAboutTabProps) {
   const { t } = useTranslation()
+  const [provinceNames, setProvinceNames] = useState<Record<string, string>>({})
+  const [wardNames, setWardNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    getProvinces()
+      .then((res) => {
+        if (cancelled) return
+        const map: Record<string, string> = {}
+        res.data.forEach((p) => { map[p.id] = p.name.vi })
+        setProvinceNames(map)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!profile.current_province) return
+    let cancelled = false
+    getWards(profile.current_province)
+      .then((res) => {
+        if (cancelled) return
+        const map: Record<string, string> = {}
+        res.data.forEach((w) => { map[w.id] = w.name.vi })
+        setWardNames(map)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [profile.current_province])
+
+  const hometown = profile.hometown_province
+    ? (provinceNames[profile.hometown_province] ?? '')
+    : ''
+
+  const currentLocation = profile.current_province
+    ? [
+        profile.current_ward ? (wardNames[profile.current_ward] ?? '') : '',
+        provinceNames[profile.current_province] ?? '',
+      ].filter(Boolean).join(', ')
+    : ''
+
+  const workValue = profile.work === 'other'
+    ? profile.work_other
+    : resolveWorkLabel(profile.work, t)
 
   const infoItems = [
     {
       icon: 'bx-briefcase',
       label: t('profile.aboutWork'),
-      value: profile.work,
+      value: workValue,
+    },
+    {
+      icon: 'bx-home',
+      label: t('profile.aboutHometown'),
+      value: hometown,
     },
     {
       icon: 'bx-map',
-      label: t('profile.aboutLocation'),
-      value: profile.location,
+      label: t('profile.aboutCurrentLocation'),
+      value: currentLocation,
     },
     {
       icon: 'bx-spreadsheet',
       label: t('profile.aboutEducation'),
-      value: profile.education,
+      value: resolveEducationLabel(profile.education, t),
     },
     {
       icon: 'bx-link',

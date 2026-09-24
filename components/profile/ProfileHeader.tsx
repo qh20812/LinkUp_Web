@@ -113,6 +113,24 @@ export default function ProfileHeader({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const renderAvatarMenu = () => showAvatarMenu && (
+    <div className={styles.avatarMenu} role="menu">
+      {hasStory && (
+        <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewStory?.() }}>
+          <i className="bx bx-show" /> <span>{t('story.viewStory')}</span>
+        </button>
+      )}
+      <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewAvatar?.() }}>
+        <i className="bx bx-image" /> <span>{t('story.viewAvatar')}</span>
+      </button>
+      {isSelf && (
+        <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); fileInputRef.current?.click() }}>
+          <i className="bx bx-camera" /> <span>{t('story.changeAvatar')}</span>
+        </button>
+      )}
+    </div>
+  )
+
   const handleCoverClick = () => {
     if (isSelf && onCoverChange) coverInputRef.current?.click()
   }
@@ -182,23 +200,7 @@ export default function ProfileHeader({
                   <span className={styles.avatarOverlayText}>{t('profile.changeAvatar')}</span>
                 </div>
               )}
-              {showAvatarMenu && (
-                <div className={styles.avatarMenu}>
-                  {hasStory && (
-                    <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewStory?.() }}>
-                      <i className="bx bx-show" /> {t('story.viewStory')}
-                    </button>
-                  )}
-                  <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewAvatar?.() }}>
-                    <i className="bx bx-image" /> {t('story.viewAvatar')}
-                  </button>
-                  {isSelf && (
-                    <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); fileInputRef.current?.click() }}>
-                      <i className="bx bx-camera" /> {t('story.changeAvatar')}
-                    </button>
-                  )}
-                </div>
-              )}
+              {renderAvatarMenu()}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -340,23 +342,7 @@ export default function ProfileHeader({
                 <span className={styles.avatarOverlayText}>{t('profile.changeAvatar')}</span>
               </div>
             )}
-            {showAvatarMenu && (
-              <div className={styles.avatarMenu}>
-                {hasStory && (
-                  <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewStory?.() }}>
-                    <i className="bx bx-show" /> {t('story.viewStory')}
-                  </button>
-                )}
-                <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewAvatar?.() }}>
-                  <i className="bx bx-image" /> {t('story.viewAvatar')}
-                </button>
-                {isSelf && (
-                  <button className={styles.avatarMenuItem} onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); fileInputRef.current?.click() }}>
-                    <i className="bx bx-camera" /> {t('story.changeAvatar')}
-                  </button>
-                )}
-              </div>
-            )}
+            {renderAvatarMenu()}
             {isSelf && (
               <input
                 ref={fileInputRef}

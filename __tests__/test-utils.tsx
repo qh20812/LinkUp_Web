@@ -251,6 +251,7 @@ export function buildFeedPost(overrides?: Partial<FeedPost>): FeedPost {
     is_shared: false,
     is_following: false,
     is_pinned: false,
+    comments_enabled: true,
     ...overrides,
   }
 }

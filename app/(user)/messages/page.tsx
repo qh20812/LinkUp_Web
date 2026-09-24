@@ -20,6 +20,7 @@ import { useChatRoom } from '../../../hooks/useChatRoom'
 import { useGroupChatSocket } from '../../../hooks/useGroupChatSocket'
 import { useGroupChatRoom } from '../../../hooks/useGroupChatRoom'
 import { useChatE2E, type ChatE2EStatus } from '../../../hooks/useChatE2E'
+import { useE2ERecovery } from '../../../hooks/useE2ERecovery'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
@@ -76,6 +77,14 @@ function MessagesContent() {
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const e2eStatusRef = useRef<ChatE2EStatus>('unavailable')
   const autoSelectRef = useRef(false)
+
+  // Khôi phục khóa E2E trên thiết bị mới: chặn hydrate danh sách (nội dung sẽ
+  // giải mã ra rỗng) cho tới khi mở bằng PIN/recovery key hoặc bỏ qua.
+  const e2eRecovery = useE2ERecovery()
+  const [recoveryGate, setRecoveryGate] = useState<'checking' | 'unlocked' | 'skipped' | 'none'>('checking')
+  const [recoverySecret, setRecoverySecret] = useState('')
+  const [recoveryKind, setRecoveryKind] = useState<'pin' | 'recovery'>('pin')
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
 
   // Group chat state
   const [groupConversations, setGroupConversations] = useState<GroupChatConversation[]>([])
@@ -240,8 +249,70 @@ function MessagesContent() {
     [searchParams, router],
   )
 
+  // Cổng khôi phục khóa E2E (thiết bị mới): nếu chưa từng "giải quyết" recovery
+  // ở localStorage của máy này và server có blob backup → chặn hydrate tới khi
+  // mở khóa thành công hoặc bỏ qua. useE2ERecovery tự fetch meta khi mount.
   useEffect(() => {
     let cancelled = false
+    // Đọc flag như một async step → setState nằm trong promise callback, tránh
+    // react-hooks/set-state-in-effect (không setState đồng bộ trong effect).
+    void (async () => {
+      let seen = false
+      try {
+        seen = localStorage.getItem('linkup-e2e-recovery-resolved') === '1'
+      } catch {
+        /* private mode */
+      }
+      await Promise.resolve()
+      if (cancelled) return
+      if (seen) {
+        setRecoveryGate('none')
+        return
+      }
+      if (e2eRecovery.meta === null) return // chờ hook fetch xong
+      if (e2eRecovery.meta.has_blob && e2eRecovery.meta.salt) {
+        setRecoveryGate('checking')
+      } else {
+        setRecoveryGate('none')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [e2eRecovery.meta])
+
+  const markRecoveryResolved = useCallback(() => {
+    try {
+      localStorage.setItem('linkup-e2e-recovery-resolved', '1')
+    } catch {
+      /* private mode */
+    }
+  }, [])
+
+  const handleRecoverySkip = useCallback(() => {
+    markRecoveryResolved()
+    setRecoveryGate('skipped')
+  }, [markRecoveryResolved])
+
+  // Mở khóa: tryUnlock tự dẫn key + gửi hash check + import khóa vào IDB, rồi
+  // hydrate lại danh sách hội thoại để preview giải mã được.
+  const handleRecoveryUnlock = useCallback(async () => {
+    if (!recoverySecret.trim() || e2eRecovery.busy) return
+    setRecoveryError(null)
+    try {
+      await e2eRecovery.tryUnlock(recoverySecret.trim(), recoveryKind)
+      markRecoveryResolved()
+      setRecoveryGate('unlocked')
+      await refreshList()
+    } catch (err) {
+      setRecoveryError(err instanceof Error ? err.message : t('common.error'))
+    }
+  }, [e2eRecovery, recoverySecret, recoveryKind, markRecoveryResolved, refreshList, t])
+
+  useEffect(() => {
+    let cancelled = false
+    // Không hydrate tới khi khôi phục được giải quyết (hoặc không có backup).
+    if (recoveryGate === 'checking') return undefined
     Promise.all([listChats(), listGroupChats()])
       .then(([directRes, groupRes]) => {
         return hydrateConversations(directRes.data).then((hydrated) => {
@@ -274,7 +345,7 @@ function MessagesContent() {
     return () => {
       cancelled = true
     }
-  }, [hydrateConversations, searchParams, activeChatId])
+  }, [hydrateConversations, searchParams, activeChatId, recoveryGate])
 
   useEffect(() => {
     if (activeChatType !== 'group' || !activeChatId) return
@@ -524,24 +595,32 @@ function MessagesContent() {
               onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
             />
           ) : activeChatType === 'direct' ? (
-            <ChatWindow
-              conversation={activeConversation}
-              myUserId={myUserId}
-              room={room}
-              isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
-              mode="direct"
-              onReact={room.reactToMessage}
-              onForward={handleForwardMessage}
-              forwarding={forwardDraft?.message ?? null}
-              onClearForward={() => setForwardDraft(null)}
-              onDeleteChat={
-                activeConversation ? () => setDeleteTarget(activeConversation) : undefined
-              }
-              onGroupInviteAccepted={handleGroupInviteAccepted}
-              onBack={() => navigateToChat(null)}
-              chatBackground={chatBackground}
-              onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
-            />
+            <>
+              {encryption.status === 'partner_changed' && (
+                <div className={styles.e2eWarningBanner}>
+                  <i className="bx bx-shield-quarter" />
+                  <span>{t('chat.e2ePartnerChanged')}</span>
+                </div>
+              )}
+              <ChatWindow
+                conversation={activeConversation}
+                myUserId={myUserId}
+                room={room}
+                isEncrypted={encryption.ready || Boolean(activeConversation?.is_encrypted)}
+                mode="direct"
+                onReact={room.reactToMessage}
+                onForward={handleForwardMessage}
+                forwarding={forwardDraft?.message ?? null}
+                onClearForward={() => setForwardDraft(null)}
+                onDeleteChat={
+                  activeConversation ? () => setDeleteTarget(activeConversation) : undefined
+                }
+                onGroupInviteAccepted={handleGroupInviteAccepted}
+                onBack={() => navigateToChat(null)}
+                chatBackground={chatBackground}
+                onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
+              />
+            </>
           ) : (
             <div className={styles.center}>
               <i className="bx bx-message-rounded-dots" />
@@ -562,6 +641,60 @@ function MessagesContent() {
         onClose={() => setCreateGroupOpen(false)}
         onCreated={handleGroupCreated}
       />
+
+      {recoveryGate === 'checking' && (
+        <Modal
+          open
+          onClose={handleRecoverySkip}
+          title={t('chat.recovery.gateTitle')}
+          footer={
+            <div className={styles.modalFooter}>
+              <button className={styles.ghostBtn} onClick={handleRecoverySkip}>
+                {t('chat.recovery.skip')}
+              </button>
+              <button className={styles.primaryBtn} disabled={!recoverySecret.trim() || e2eRecovery.busy} onClick={() => void handleRecoveryUnlock()}>
+                {e2eRecovery.busy ? t('common.loading') : t('chat.recovery.unlock')}
+              </button>
+            </div>
+          }
+        >
+          <p className={styles.modalText}>{t('chat.recovery.gateSubtitle')}</p>
+          <div className={styles.recoveryTabs}>
+            <button
+              type="button"
+              className={`${styles.recoveryTab}${recoveryKind === 'pin' ? ` ${styles.recoveryTabActive}` : ''}`}
+              onClick={() => setRecoveryKind('pin')}
+            >
+              {t('chat.recovery.pinTab')}
+            </button>
+            <button
+              type="button"
+              className={`${styles.recoveryTab}${recoveryKind === 'recovery' ? ` ${styles.recoveryTabActive}` : ''}`}
+              onClick={() => setRecoveryKind('recovery')}
+            >
+              {t('chat.recovery.recoveryTab')}
+            </button>
+          </div>
+          <input
+            type={recoveryKind === 'pin' ? 'password' : 'text'}
+            autoComplete="off"
+            value={recoverySecret}
+            onChange={(e) => setRecoverySecret(e.target.value)}
+            className={styles.recoveryInput}
+            placeholder={
+              recoveryKind === 'pin'
+                ? t('chat.recovery.pinPlaceholder')
+                : t('chat.recovery.recoveryPlaceholder')
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handleRecoveryUnlock()
+            }}
+          />
+          {recoveryError && (
+            <p className={styles.recoveryError}>{recoveryError}</p>
+          )}
+        </Modal>
+      )}
 
       <ForwardPickerModal
         open={forwardPickerOpen}

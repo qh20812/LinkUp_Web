@@ -101,6 +101,7 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
   const [emojiGroup, setEmojiGroup] = useState<EmotionEmojiItem['group']>('positive')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [commentsDisabled, setCommentsDisabled] = useState(false)
 
   const privacyRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -230,6 +231,7 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
     setEmojiOpen(false)
     setGifOpen(false)
     setError(null)
+    setCommentsDisabled(false)
   }
 
   const handleClose = useCallback(() => {
@@ -264,6 +266,7 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
         status: privacy,
         files: media.map((m) => m.file),
         gifUrl: gif?.full,
+        commentsEnabled: !commentsDisabled,
       })
       toast({ type: 'success', title: t('composer.success') })
       window.dispatchEvent(new CustomEvent<FeedPost>('post:created', { detail: res.data }))
@@ -423,6 +426,16 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
               </button>
               {gifOpen && <GifPicker onSelect={selectGif} onClose={() => setGifOpen(false)} />}
             </div>
+
+            <button
+              type="button"
+              className={`${styles.toolbarBtn}${commentsDisabled ? ` ${styles.toolbarBtnActive}` : ''}`}
+              onClick={() => setCommentsDisabled((v) => !v)}
+              aria-pressed={commentsDisabled}
+            >
+              <i className="bx bx-message-rounded-x" />
+              <span>{t('composer.disableComments')}</span>
+            </button>
 
             <div className={styles.privacyWrap} ref={privacyRef}>
               <button

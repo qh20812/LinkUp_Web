@@ -7,7 +7,7 @@ import { swrFetcher } from '../../../api/swr'
 import ExternalImage from '../../../components/ExternalImage'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useAuth } from '../../../hooks/useAuth'
-import type { SearchResponse } from '../../../types'
+import type { PostSearchResult, SearchResponse } from '../../../types'
 import styles from './Search.module.css'
 
 type Tab = 'all' | 'users' | 'posts' | 'hashtags' | 'communities'
@@ -169,6 +169,33 @@ function SearchContent() {
     )
   }
 
+  const renderPostThumb = (post: PostSearchResult) => {
+    if (post.thumbnail_uri) {
+      return (
+        <div className={styles.postThumbWrap}>
+          <ExternalImage src={post.thumbnail_uri} alt="" className={styles.postThumb} />
+          {Number(post.video_count) > 0 && (
+            <span className={styles.videoBadge}>
+              <i className="bx bx-video" />
+            </span>
+          )}
+        </div>
+      )
+    }
+    if (Number(post.video_count) > 0) {
+      return (
+        <div className={`${styles.postIcon} ${styles.postIconVideo}`}>
+          <i className="bx bx-video" />
+        </div>
+      )
+    }
+    return (
+      <div className={styles.postIcon}>
+        <i className="bx bx-file" />
+      </div>
+    )
+  }
+
   const renderPosts = () => {
     if (posts.length === 0) return null
     return (
@@ -182,11 +209,10 @@ function SearchContent() {
             className={styles.postItem}
             onClick={() => router.push(`/posts/${post.id}`)}
           >
-            <div className={styles.postIcon}>
-              <i className="bx bx-file" />
-            </div>
+            {renderPostThumb(post)}
             <div className={styles.itemMeta}>
               <span className={styles.itemName}>{post.title}</span>
+              {post.content && <span className={styles.itemExcerpt}>{post.content}</span>}
               <span className={styles.itemSub}>@{post.username}</span>
             </div>
           </button>

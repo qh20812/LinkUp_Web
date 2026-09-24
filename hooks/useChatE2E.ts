@@ -5,9 +5,10 @@ import {
   decryptChat,
   encryptMessage as e2eEncrypt,
   ensureChatKey,
+  wasPartnerChanged,
 } from '../utils/e2ee'
 
-export type ChatE2EStatus = 'unavailable' | 'loading' | 'legacy' | 'ready'
+export type ChatE2EStatus = 'unavailable' | 'loading' | 'legacy' | 'partner_changed' | 'ready'
 
 export interface ChatE2E {
   status: ChatE2EStatus
@@ -50,6 +51,10 @@ export function useChatE2E({
         if (key) {
           chatKeyRef.current = key
           if (!cancelled) setStatus('ready')
+        } else if (wasPartnerChanged(chatId)) {
+          // Đối phương đổi identity/thiết bị, mình không giữ khóa chuẩn →
+          // không thể tự re-key; cảnh báo thay vì âm thầm legacy.
+          if (!cancelled) setStatus('partner_changed')
         } else {
           // Đối phương chưa đăng ký public key → chat fallback legacy.
           if (!cancelled) setStatus('legacy')

@@ -131,6 +131,7 @@ export interface FeedPost {
   is_following: boolean
   is_pinned: boolean
   pinned_at?: string
+  comments_enabled: boolean
   shared_from_post_id?: string
   share_content?: string
   shared_post?: FeedPost
@@ -151,6 +152,7 @@ export interface CreatePostInput {
   files?: File[]
   gifUrl?: string
   communityID?: string
+  commentsEnabled?: boolean
 }
 
 export interface GifItem {
@@ -271,8 +273,12 @@ export interface ViewProfileResponse {
   created_at: string
   bio: string
   location: string
+  hometown_province: string
+  current_province: string
+  current_ward: string
   work: string
   education: string
+  work_other: string
   website: string
   is_private_profile: boolean
   is_private_posts: boolean
@@ -730,6 +736,7 @@ export interface FollowListItem {
   username: string
   display_name: string
   avatar_uri: string
+  is_following?: boolean
 }
 
 export interface FollowListResponse {
@@ -857,12 +864,19 @@ export interface FriendStatusResponse {
 }
 
 // ===== Chat / Messages =====
+// Preview tin được trả lời. Server trả content ở dạng thật (legacy) hoặc
+// ciphertext (e2e_version=1 — client tự giải mã). Các cờ decrypt_*/decrypted
+// là client-only, đối xứng với PinnedMessage.
 export interface ReplyPreview {
   id: string
   content: string
   sender_id: string
   sender_name: string
   sender_avatar: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
+  decrypting?: boolean
 }
 
 export interface ChatMessage {
@@ -999,6 +1013,9 @@ export interface PinnedMessage {
   content: string
   sender_id: string
   sender_name: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
 }
 
 export interface WsPinMessagePayload {
@@ -1014,6 +1031,9 @@ export interface WsMessagePinnedPayload {
   content: string
   sender_id: string
   sender_name: string
+  e2e_version?: number
+  decrypt_failed?: boolean
+  decrypted?: boolean
 }
 
 export interface WsMessageUnpinnedPayload {
@@ -1071,9 +1091,13 @@ export interface UserSearchResult {
 export interface PostSearchResult {
   id: string
   title: string
+  content?: string
   user_id: string
   username: string
   created_at: string
+  thumbnail_uri?: string
+  thumbnail_type?: string
+  video_count?: number
 }
 
 export interface HashtagSearchResult {
