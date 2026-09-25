@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatDate, formatCallDuration } from '../../utils/chat'
-import { isSingleGiphyUrl } from '../../utils/giphy'
+import { isSingleGiphyUrl, giphyStillUrl } from '../../utils/giphy'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
@@ -1164,7 +1164,7 @@ export default function ChatWindow({
                           {msg.content && singleGiphy && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={msg.content.trim()}
+                              src={giphyStillUrl(msg.content.trim())}
                               alt="emoji"
                               className={styles.emojiMsg}
                               loading="lazy"

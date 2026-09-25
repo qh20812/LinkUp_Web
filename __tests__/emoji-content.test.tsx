@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 
-import { giphyMediaUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls } from '@/utils/giphy'
+import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls } from '@/utils/giphy'
 import { giphyEmojiSrc } from '@/utils/emojis'
 import { renderEmojiContent } from '@/components/messages/EmojiImage'
 import { serializeContent } from '@/components/messages/Composer'
@@ -20,8 +20,25 @@ const GIPHY_URL = 'https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w.gif'
 
 describe('giphy url utils', () => {
   test('giphyMediaUrl builds canonical url', () => {
-    expect(giphyMediaUrl('abc')).toBe('https://media.giphy.com/media/abc/200w.gif')
+    expect(giphyMediaUrl('abc')).toBe('https://media.giphy.com/media/abc/200w_s.gif')
     expect(giphyMediaUrl('abc', 'giphy.gif')).toBe('https://media.giphy.com/media/abc/giphy.gif')
+  })
+
+  test('giphyStillUrl rewrites legacy animated emoji urls to still', () => {
+    expect(giphyStillUrl('https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w.gif')).toBe(
+      'https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif',
+    )
+    expect(giphyStillUrl('https://media0.giphy.com/media/abc/giphy.gif')).toBe(
+      'https://media0.giphy.com/media/abc/giphy_s.gif',
+    )
+    // đã là bản still / có token / không phải GIPHY -> giữ nguyên
+    expect(giphyStillUrl('https://media.giphy.com/media/abc/200w_s.gif')).toBe(
+      'https://media.giphy.com/media/abc/200w_s.gif',
+    )
+    expect(
+      giphyStillUrl('https://media2.giphy.com/media/v1.Y2lkTOKEN/abc/giphy.gif'),
+    ).toBe('https://media2.giphy.com/media/v1.Y2lkTOKEN/abc/giphy.gif')
+    expect(giphyStillUrl('https://example.com/a.png')).toBe('https://example.com/a.png')
   })
 
   test('isGiphyUrl recognizes giphy media hosts only', () => {
@@ -52,12 +69,13 @@ describe('renderEmojiContent', () => {
   const like: EmojiItem = { id: 'e1', code: ':like:', image_uri: 'https://media.giphy.com/media/like-id/200w.gif' }
   const map = new Map<string, EmojiItem>([[':like:', like]])
 
-  test('renders giphy url as inline img', () => {
+  test('renders giphy url as inline img (legacy animated -> still)', () => {
     const markup = renderToStaticMarkup(
       <>{renderEmojiContent(`hi ${GIPHY_URL} bye`, new Map(), 'k')}</>,
     )
     expect(markup).toContain(`<img`)
-    expect(markup).toContain(`src="${GIPHY_URL}"`)
+    expect(markup).toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif"')
+    expect(markup).not.toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w.gif"')
     expect(markup).toContain('alt="emoji"')
     expect(markup).toContain('hi ')
     expect(markup).toContain(' bye')
