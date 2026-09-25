@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
 import GifPicker from './GifPicker'
+import GiphyEmojiPicker from './GiphyEmojiPicker'
 import styles from './CreatePostModal.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import { EMOTION_GROUPS, getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
+import type { GiphyEmoji } from '../utils/giphy'
 import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
 
 interface CreatePostModalProps {
@@ -41,6 +42,10 @@ function serializeEmojiContent(el: HTMLElement): string {
     const n = node as HTMLElement
     if (n.dataset.code) {
       out += n.dataset.code
+      return
+    }
+    if (n.dataset.giphy) {
+      out += n.dataset.giphy
       return
     }
     const tag = n.tagName
@@ -98,7 +103,6 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
   const [gif, setGif] = useState<GifItem | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [gifOpen, setGifOpen] = useState(false)
-  const [emojiGroup, setEmojiGroup] = useState<EmotionEmojiItem['group']>('positive')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [commentsDisabled, setCommentsDisabled] = useState(false)
@@ -109,15 +113,6 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
   const emojiRef = useRef<HTMLDivElement>(null)
   const gifRef = useRef<HTMLDivElement>(null)
   const mediaUrlsRef = useRef<string[]>([])
-
-  const emotions = useMemo(() => getEmotionEmojis(), [])
-  const emotionGroups = useMemo(() => {
-    const map = new Map<EmotionEmojiItem['group'], EmotionEmojiItem[]>()
-    for (const g of EMOTION_GROUPS) {
-      map.set(g, emotions.filter((e) => e.group === g))
-    }
-    return map
-  }, [emotions])
 
   useEffect(() => {
     if (!privacyOpen) return
@@ -179,16 +174,16 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
     setError(null)
   }
 
-  const insertEmoji = (emoji: EmotionEmojiItem) => {
+  const insertEmoji = (emoji: GiphyEmoji) => {
     const el = contentRef.current
     if (!el) {
-      setContent((prev) => prev + emoji.code)
+      setContent((prev) => prev + emoji.url)
       return
     }
     const img = document.createElement('img')
-    img.src = emoji.image_uri
-    img.alt = emoji.code
-    img.dataset.code = emoji.code
+    img.src = emoji.url
+    img.alt = emoji.title || 'emoji'
+    img.dataset.giphy = emoji.url
     img.className = 'emojiInline'
     insertNodeAtCaret(el, img)
     setContent(serializeEmojiContent(el))
@@ -385,33 +380,12 @@ export default function CreatePostModal({ open, onClose }: CreatePostModalProps)
                 <span>{t('composer.emoji')}</span>
               </button>
               {emojiOpen && (
-                <div className={styles.emojiPicker}>
-                  <div className={styles.emojiTabs}>
-                    {EMOTION_GROUPS.map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        className={`${styles.emojiTab} ${emojiGroup === g ? styles.emojiTabActive : ''}`}
-                        onClick={() => setEmojiGroup(g)}
-                      >
-                        {t(`composer.emojiCat.${g}`)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.emojiGrid}>
-                    {emotionGroups.get(emojiGroup)?.map((e) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        className={styles.emojiItem}
-                        onClick={() => insertEmoji(e)}
-                        title={`${e.label} ${e.code}`}
-                      >
-                        <ExternalImage src={e.image_uri} alt={e.label} className={styles.emojiItemImg} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <GiphyEmojiPicker
+                  placement="bottom"
+                  onSelect={insertEmoji}
+                  onClose={() => setEmojiOpen(false)}
+                  ignoreRef={emojiRef}
+                />
               )}
             </div>
 

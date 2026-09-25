@@ -9,6 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatDate, formatCallDuration } from '../../utils/chat'
+import { isSingleGiphyUrl } from '../../utils/giphy'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
@@ -184,8 +185,10 @@ export default function ChatWindow({
   const { isOnline, prefetchPresence } = usePresence()
   const { emojis } = useEmojis()
   const emojiCodeMap = useMemo(() => {
-    const map = new Map(EMOTION_EMOJI_MAP)
+    // Backend trước, EMOTION (GIPHY) ghi đè — render text ưu tiên GIPHY thay twemoji CDN.
+    const map = new Map<string, EmojiItem>()
     for (const e of emojis.values()) map.set(e.code, e)
+    for (const [code, e] of EMOTION_EMOJI_MAP) map.set(code, e)
     return map
   }, [emojis])
 
@@ -840,11 +843,15 @@ export default function ChatWindow({
               !msg.deleted && !msg.decrypt_failed
                 ? singleEmojiCode(msg.content ?? '', emojiCodeMap)
                 : null
+            const singleGiphy =
+              !msg.deleted && !msg.decrypt_failed && !singleEmoji
+                ? isSingleGiphyUrl(msg.content ?? '')
+                : false
             const plain =
               !msg.deleted &&
               !msg.decrypt_failed &&
               ((!msg.content && Boolean(msg.media_id || msg.media_uri || msg.emoji_id)) ||
-                (!msg.media_id && !msg.media_uri && !msg.emoji_id && singleEmoji !== null))
+                (!msg.media_id && !msg.media_uri && !msg.emoji_id && (singleEmoji !== null || singleGiphy)))
             const showSenderName = mode === 'group' && !mine
             const mapMember = showSenderName ? memberNames?.get(msg.sender_id) : null
             const senderDisplayName = msg.sender_name || mapMember?.display_name || null
@@ -1123,7 +1130,7 @@ export default function ChatWindow({
                       {msg.emoji_id && !msg.media_id && !msg.media_uri && (
                         <EmojiBubble message={msg} emojis={emojis} />
                       )}
-                      {msg.decrypt_failed || (msg.content && !isSingleVideo && !singleEmoji) ? (
+                      {msg.decrypt_failed || (msg.content && !isSingleVideo && !singleEmoji && !singleGiphy) ? (
                         <div className={styles.msgLine}>
                           {msg.decrypt_failed ? (
                             <span className={styles.deletedText}>
@@ -1152,6 +1159,16 @@ export default function ChatWindow({
                             <EmojiImage
                               emoji={emojiCodeMap.get(singleEmoji)!}
                               className={styles.emojiMsg}
+                            />
+                          )}
+                          {msg.content && singleGiphy && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={msg.content.trim()}
+                              alt="emoji"
+                              className={styles.emojiMsg}
+                              loading="lazy"
+                              decoding="async"
                             />
                           )}
                           {mine && (

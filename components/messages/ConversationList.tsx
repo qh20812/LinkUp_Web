@@ -11,7 +11,7 @@ import { formatChatTime } from '../../utils/chat'
 import { mediaPreviewKey } from '../../utils/chatMediaPreview'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
-import type { ChatConversation, GroupChatConversation } from '../../types'
+import type { ChatConversation, EmojiItem, GroupChatConversation } from '../../types'
 import styles from './ConversationList.module.css'
 
 interface ConversationListProps {
@@ -47,8 +47,10 @@ export default function ConversationList({
   const { emojis } = useEmojis()
   const { isOnline, prefetchPresence } = usePresence()
   const emojiCodeMap = useMemo(() => {
-    const map = emojiByCode(getEmotionEmojis())
+    // Backend trước, EMOTION (GIPHY) ghi đè — render text ưu tiên GIPHY thay twemoji CDN.
+    const map = new Map<string, EmojiItem>()
     for (const e of emojis.values()) map.set(e.code, e)
+    for (const [code, e] of emojiByCode(getEmotionEmojis())) map.set(code, e)
     return map
   }, [emojis])
   const [filter, setFilter] = useState('')

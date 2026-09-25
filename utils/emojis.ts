@@ -1,4 +1,5 @@
 import { getEmojis } from '../api/posts'
+import { giphyMediaUrl } from './giphy'
 import type { EmojiItem } from '../types'
 
 let cache: Map<string, EmojiItem> | null = null
@@ -85,13 +86,74 @@ function twemojiUrl(emoji: string): string {
   return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${cps}.png`
 }
 
+// Map code -> GIPHY id (tìm qua v1/stickers/search, xếp tay). Emoji cũ hiển thị GIF GIPHY động.
+export const CODE_TO_GIPHY: Record<string, string> = {
+  ':grinning:': 'IpJnbpcEVlLubYtaWh',
+  ':smile:': 'adv74AcNdtP0tj9hLj',
+  ':laughing:': '3ohzdVxy4QqiyrO3U4',
+  ':joy:': 'hVlZnRT6QW1DeYj6We',
+  ':heart_eyes:': 'QUGf8x31iMVSdbNn00',
+  ':kiss:': 'XFFHwbd9re4PFrVV28',
+  ':blush:': 'jRBv1B8dksiq9RyK53',
+  ':wink:': 'hizFOl9hAbeLxp3v0B',
+  ':cool:': 'S3zCBYTwOXlw6o8j84',
+  ':smirk:': '8bl86q2fSFG7bfZUlm',
+  ':relieved:': 'kDqjhUF7jow0V3YX2L',
+  ':hug:': 'lE9zFMsavhUNZuB33I',
+  ':star_eyes:': 'TRA3HFajzhVIFcrRHD',
+  ':partying:': 'KDhlMXoFS8Bx5AYKC4',
+  ':thumbsup:': 'QM3VscCkwB54O6lSee',
+  ':clap:': '5w39AhTMInyt06d4Fu',
+  ':fire:': 'Ply2vUaRg3Swc100lk',
+  ':heart:': 'cRLI5pM8yg3tIqZARZ',
+  ':love:': 'nlNg4qMR8k5mi04fup',
+  ':thinking:': 'Wt42JLMCrSvqxnOPE4',
+  ':neutral:': 'MwQZTlAB8wOfR6lKbt',
+  ':expressionless:': 'iiBpXAiqhsHF3ome4h',
+  ':hmm:': 'WiLul7Z1iulXJVhX9V',
+  ':shrug:': 'zs9a8QS1d6wMNt1dNQ',
+  ':sleepy:': 'rRHR5IFJ7ygfBPlmdO',
+  ':yawning:': 'KMMCwoPpNV9BZqfIGt',
+  ':tired:': 'CNFSTgERMmcdkyxwg3',
+  ':sad:': 'iyGqsXjNfCfx1p2ldm',
+  ':cry:': 'YhMV2cdUWTrPVpZOFN',
+  ':angry:': 'kgLZrW88GRYmpCuPVk',
+  ':rage:': 'gYBCWGIzW4Dygi8sZK',
+  ':wow:': 'bgIUovWAtVaNixyZG2',
+  ':fear:': 'xUPGcpnieVnGZQ5IAw',
+  ':disappointed:': 'h4OGa0npayrJX2NRPT',
+  ':worried:': 'ZWikkq2eBbEYw',
+  ':confused:': 'baOek1Pg6uJY45Q5JI',
+  ':sick:': 'jTMUk5hb8ZnRn1VWFe',
+  // Code của backend seed (bảng emojis) — reaction tin nhắn.
+  ':like:': 'QM3VscCkwB54O6lSee', // cùng ký tự 👍 với :thumbsup:
+  ':haha:': 'hVlZnRT6QW1DeYj6We', // cùng ký tự 😂 với :joy:
+  ':rocket:': 'pcyoWXeoHCapjCvCTQ',
+}
+
+/** Ảnh render cho 1 code: GIPHY (nếu có map) -> twemoji (dự phòng). */
+export function emojiImageUrl(code: string, fallbackEmoji: string): string {
+  const id = CODE_TO_GIPHY[code]
+  return id ? giphyMediaUrl(id) : twemojiUrl(fallbackEmoji)
+}
+
+/**
+ * Ảnh render cho 1 EmojiItem đã có sẵn (emoji server/backend):
+ * GIPHY theo code nếu có -> giữ nguyên image_uri (twemoji) làm dự phòng.
+ * Dùng cho reaction tin nhắn (picker + chip + bubble).
+ */
+export function giphyEmojiSrc(item: EmojiItem): string {
+  const id = CODE_TO_GIPHY[item.code]
+  return id ? giphyMediaUrl(id) : item.image_uri
+}
+
 export type EmotionEmojiItem = EmojiItem & { group: EmojiGroup; label: string }
 
 export function getEmotionEmojis(): EmotionEmojiItem[] {
   return EMOTION_EMOJIS.map((e) => ({
     id: `emotion-${e.code.slice(1, -1)}`,
     code: e.code,
-    image_uri: twemojiUrl(e.emoji),
+    image_uri: emojiImageUrl(e.code, e.emoji),
     group: e.group,
     label: e.label,
   }))

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import ExternalImage from '../ExternalImage'
+import { isGiphyUrl } from '../../utils/giphy'
 import type { EmojiItem } from '../../types'
 import styles from './EmojiImage.module.css'
 
@@ -27,6 +28,7 @@ export function EmojiImage({ emoji, className }: EmojiImageProps) {
 }
 
 const EMOJI_RE = /(:[a-z0-9+_-]+:)/gi
+const URL_RE = /(https?:\/\/[^\s]+)/gi
 
 export function renderEmojiContent(
   content: string,
@@ -35,14 +37,36 @@ export function renderEmojiContent(
   emojiClassName = '',
 ): ReactNode[] {
   const parts = content.split(EMOJI_RE)
-  return parts.map((part, i) => {
+  const out: ReactNode[] = []
+  parts.forEach((part, i) => {
     const key = `${keyPrefix}-${i}`
     if (part.startsWith(':') && part.endsWith(':')) {
       const emoji = map.get(part)
       if (emoji) {
-        return <EmojiImage key={key} emoji={emoji} className={emojiClassName} />
+        out.push(<EmojiImage key={key} emoji={emoji} className={emojiClassName} />)
+        return
       }
     }
-    return part
+    // Trong text thường, URL GIPHY được chèn từ emoji picker render thành ảnh inline.
+    const segs = part.split(URL_RE)
+    segs.forEach((seg, j) => {
+      if (!seg) return
+      if (j % 2 === 1 && isGiphyUrl(seg)) {
+        out.push(
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${key}-g${j}`}
+            src={seg}
+            alt="emoji"
+            className={emojiClassName || styles.inlineGiphy}
+            loading="lazy"
+            decoding="async"
+          />,
+        )
+      } else {
+        out.push(seg)
+      }
+    })
   })
+  return out
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { EmojiImage } from './EmojiImage'
+import { giphyEmojiSrc } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
@@ -63,7 +63,14 @@ export default function ReactionsRow({ msg, myUserId, emojis, onReact, t }: Reac
           onClick={() => react(chip.emoji.id)}
           title={`${myNames}`}
         >
-          <EmojiImage emoji={chip.emoji} className={styles.reactionChipEmoji} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={giphyEmojiSrc(chip.emoji)}
+            alt={chip.emoji.code}
+            className={styles.reactionChipEmoji}
+            loading="lazy"
+            decoding="async"
+          />
           <span className={styles.reactionChipCount}>{chip.count}</span>
         </button>
       ))}

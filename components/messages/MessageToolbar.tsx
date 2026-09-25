@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
-import { EmojiImage } from './EmojiImage'
+import { giphyEmojiSrc } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
-const QUICK_REACT_EMOJI_IDS = ['👍', '❤️', '😂', '😮', '😢', '😡', '👏', '🔥']
+// Giữ nguyên bộ 8 reaction gốc — map sang code của backend để lấy emoji server hợp lệ.
+const QUICK_REACT_CODES = [':like:', ':heart:', ':haha:', ':wow:', ':sad:', ':angry:', ':clap:', ':fire:']
 
 interface MessageToolbarProps {
   msg: ChatMessage
@@ -63,9 +64,15 @@ export default function MessageToolbar({
   }, [moreOpen, reactionOpen])
 
   const quickEmojis = useMemo(() => {
+    // Chỉ dùng emoji server (id thật trong bảng emojis) — bỏ qua map fallback phía client.
+    const byCode = new Map<string, EmojiItem>()
+    for (const e of emojis.values()) {
+      if (e.id.startsWith('emotion-')) continue
+      if (!byCode.has(e.code)) byCode.set(e.code, e)
+    }
     const result: EmojiItem[] = []
-    for (const code of QUICK_REACT_EMOJI_IDS) {
-      const item = emojis.get(code)
+    for (const code of QUICK_REACT_CODES) {
+      const item = byCode.get(code)
       if (item) result.push(item)
     }
     return result
@@ -108,7 +115,14 @@ export default function MessageToolbar({
                   onClick={() => handleReact(item.id)}
                   title={item.code}
                 >
-                  <EmojiImage emoji={item} className={styles.toolbarReactionPickEmoji} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={giphyEmojiSrc(item)}
+                    alt={item.code}
+                    className={styles.toolbarReactionPickEmoji}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
               ))}
             </div>

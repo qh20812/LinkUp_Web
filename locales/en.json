@@ -218,6 +218,8 @@
     "gifError": "Could not load GIFs. Please try again.",
     "gifMissingKey": "GIPHY API key not configured. Set NEXT_PUBLIC_GIPHY_API_KEY in .env.local.",
     "gifClose": "Close",
+    "emojiSearch": "Search emoji...",
+    "emojiEmpty": "No emoji found",
     "emojiCat": {
       "positive": "Happy",
       "neutral": "Neutral",

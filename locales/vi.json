@@ -218,6 +218,8 @@
     "gifError": "Không thể tải GIF. Vui lòng thử lại.",
     "gifMissingKey": "Chưa cấu hình khóa GIPHY API. Hãy đặt NEXT_PUBLIC_GIPHY_API_KEY trong .env.local.",
     "gifClose": "Đóng",
+    "emojiSearch": "Tìm biểu tượng cảm xúc...",
+    "emojiEmpty": "Không tìm thấy biểu tượng cảm xúc",
     "emojiCat": {
       "positive": "Vui",
       "neutral": "Bình thường",

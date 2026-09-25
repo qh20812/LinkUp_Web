@@ -34,6 +34,18 @@ function formatRelativeTime(dateStr: string, t: (key: string) => string): string
 
 const CONTENT_TRUNCATE_LENGTH = 200
 
+/** Cắt nội dung dài, không cắt giữa URL (URL GIPHY bị cắt dở sẽ hỏng ảnh). */
+export function truncateAvoidingUrl(content: string, max: number): string {
+  if (content.length <= max) return content
+  const cut = content.slice(0, max)
+  const lastSpace = cut.lastIndexOf(' ')
+  const tail = lastSpace === -1 ? cut : cut.slice(lastSpace + 1)
+  if (tail.includes('://')) {
+    return (lastSpace === -1 ? '' : cut.slice(0, lastSpace + 1)) + '...'
+  }
+  return cut + '...'
+}
+
 function formatCount(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
@@ -128,7 +140,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   }, [])
   const needsTruncation = post.content.length > CONTENT_TRUNCATE_LENGTH
   const displayContent = needsTruncation && !expanded
-    ? post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
+    ? truncateAvoidingUrl(post.content, CONTENT_TRUNCATE_LENGTH)
     : post.content
 
   const navigateToPost = () => {

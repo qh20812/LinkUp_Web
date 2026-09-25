@@ -1,26 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import GifPicker from '../GifPicker'
+import GiphyEmojiPicker from '../GiphyEmojiPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { uploadChatMedia } from '../../api/chats'
 import { useAudioRecorder, type VoiceRecording } from '../../hooks/useAudioRecorder'
 import { formatCallDuration } from '../../utils/chat'
-import { EmojiImage } from './EmojiImage'
 import VoicePlayer from './VoicePlayer'
-import {
-  EMOTION_GROUPS,
-  getEmotionEmojis,
-  type EmojiGroup,
-  type EmotionEmojiItem,
-} from '../../utils/emojis'
+import { isGiphyUrl, type GiphyEmoji } from '../../utils/giphy'
 import type { ChatMessage, GifItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import styles from './ChatWindow.module.css'
 
-function serializeContent(el: HTMLElement): string {
+export function serializeContent(el: HTMLElement): string {
   let out = ''
   const walk = (node: Node) => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -31,6 +26,10 @@ function serializeContent(el: HTMLElement): string {
     const n = node as HTMLElement
     if (n.dataset.code) {
       out += n.dataset.code
+      return
+    }
+    if (n.dataset.giphy) {
+      out += n.dataset.giphy
       return
     }
     const tag = n.tagName
@@ -54,6 +53,8 @@ const SINGLE_URL_RE = /^https?:\/\/\S+$/i
 
 function isSingleImageUrl(text: string): boolean {
   const trimmed = text.trim()
+  // Emoji GIPHY chèn vào text phải giữ dạng URL để render inline — không upload thành media.
+  if (isGiphyUrl(trimmed)) return false
   if (!SINGLE_URL_RE.test(trimmed)) return false
   try {
     const u = new URL(trimmed)
@@ -112,7 +113,6 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
   const { toast } = useToast()
   const [value, setValue] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
-  const [emojiGroup, setEmojiGroup] = useState<EmojiGroup>('positive')
   const [gifOpen, setGifOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
@@ -137,15 +137,6 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
   } = useAudioRecorder()
   const [pendingVoice, setPendingVoice] = useState<VoiceRecording | null>(null)
   const [voiceUploading, setVoiceUploading] = useState(false)
-
-  const emotions = useMemo(() => getEmotionEmojis(), [])
-  const emotionGroups = useMemo(() => {
-    const map = new Map<EmojiGroup, EmotionEmojiItem[]>()
-    for (const g of EMOTION_GROUPS) {
-      map.set(g, emotions.filter((e) => e.group === g))
-    }
-    return map
-  }, [emotions])
 
   const sendTyping = room.sendTyping
 
@@ -238,11 +229,11 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
     setValue(serializeContent(el))
   }
 
-  const insertEmoji = (emoji: EmotionEmojiItem) => {
+  const insertEmoji = (emoji: GiphyEmoji) => {
     const img = document.createElement('img')
-    img.src = emoji.image_uri
-    img.alt = emoji.code
-    img.dataset.code = emoji.code
+    img.src = emoji.url
+    img.alt = emoji.title || 'emoji'
+    img.dataset.giphy = emoji.url
     img.className = 'emojiInline'
     insertNodeAtCaret(img)
   }
@@ -667,32 +658,13 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
       </div>
       <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFile} />
       {emojiOpen && (
-        <div ref={pickerRef} className={styles.emojiPicker}>
-          <div className={styles.emojiTabs}>
-            {EMOTION_GROUPS.map((g) => (
-              <button
-                key={g}
-                type="button"
-                className={`${styles.emojiTab} ${emojiGroup === g ? styles.emojiTabActive : ''}`}
-                onClick={() => setEmojiGroup(g)}
-              >
-                {t(`chat.emojiCat.${g}`)}
-              </button>
-            ))}
-          </div>
-          <div className={styles.emojiGrid}>
-            {emotionGroups.get(emojiGroup)?.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                className={styles.emojiItem}
-                onClick={() => insertEmoji(e)}
-                title={`${e.label} ${e.code}`}
-              >
-                <EmojiImage emoji={e} className={styles.emojiItemImg} />
-              </button>
-            ))}
-          </div>
+        <div ref={pickerRef}>
+          <GiphyEmojiPicker
+            placement="top"
+            onSelect={insertEmoji}
+            onClose={() => setEmojiOpen(false)}
+            ignoreRef={toggleEmojiRef}
+          />
         </div>
       )}
       {gifOpen && (
