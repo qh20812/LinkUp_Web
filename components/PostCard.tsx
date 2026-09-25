@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ExternalImage from './ExternalImage'
 import { renderEmojiContent } from './messages/EmojiImage'
 import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
+import { separateGiphyUrls } from '../utils/giphy'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
@@ -138,10 +139,13 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentUserId(getTokenPayload()?.user_id ?? null)
   }, [])
-  const needsTruncation = post.content.length > CONTENT_TRUNCATE_LENGTH
+  // Tách URL GIPHY dính nhau TRƯỚC khi cắt — chuỗi liền mạch không có space
+  // sẽ bị truncateAvoidingUrl trả về '...' (mất trắng nội dung).
+  const repairedContent = separateGiphyUrls(post.content)
+  const needsTruncation = repairedContent.length > CONTENT_TRUNCATE_LENGTH
   const displayContent = needsTruncation && !expanded
-    ? truncateAvoidingUrl(post.content, CONTENT_TRUNCATE_LENGTH)
-    : post.content
+    ? truncateAvoidingUrl(repairedContent, CONTENT_TRUNCATE_LENGTH)
+    : repairedContent
 
   const navigateToPost = () => {
     if (onOpenDetail) {

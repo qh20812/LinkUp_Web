@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import ExternalImage from '../ExternalImage'
-import { isGiphyUrl, giphyStillUrl } from '../../utils/giphy'
+import { isGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import type { EmojiItem } from '../../types'
 import styles from './EmojiImage.module.css'
 
@@ -36,7 +36,8 @@ export function renderEmojiContent(
   keyPrefix: string,
   emojiClassName = '',
 ): ReactNode[] {
-  const parts = content.split(EMOJI_RE)
+  // Nội dung cũ có thể dính nhiều URL GIPHY (`url1url2`) → tách trước khi split.
+  const parts = separateGiphyUrls(content).split(EMOJI_RE)
   const out: ReactNode[] = []
   parts.forEach((part, i) => {
     const key = `${keyPrefix}-${i}`

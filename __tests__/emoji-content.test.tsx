@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 
-import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls } from '@/utils/giphy'
+import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls, separateGiphyUrls } from '@/utils/giphy'
 import { giphyEmojiSrc } from '@/utils/emojis'
 import { renderEmojiContent } from '@/components/messages/EmojiImage'
 import { serializeContent } from '@/components/messages/Composer'
@@ -63,6 +63,20 @@ describe('giphy url utils', () => {
     expect(isSingleGiphyUrl('https://example.com/a.png')).toBe(false)
     expect(isSingleGiphyUrl('')).toBe(false)
   })
+
+  test('separateGiphyUrls splits merged giphy urls (legacy content)', () => {
+    const url2 = 'https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w_s.gif'
+    // serializer cũ nối URL không separator -> tách lại
+    expect(separateGiphyUrls(`${GIPHY_URL}${url2}`)).toBe(`${GIPHY_URL} ${url2}`)
+    // idempotent — đã tách thì giữ nguyên
+    expect(separateGiphyUrls(`${GIPHY_URL} ${url2}`)).toBe(`${GIPHY_URL} ${url2}`)
+    expect(separateGiphyUrls(GIPHY_URL)).toBe(GIPHY_URL)
+    // text dính liền trước URL cũng được tách
+    expect(separateGiphyUrls(`abc${GIPHY_URL}`)).toBe(`abc ${GIPHY_URL}`)
+    // không đổi text thuần / URL thường
+    expect(separateGiphyUrls('no url here')).toBe('no url here')
+    expect(separateGiphyUrls('see https://example.com/a.png')).toBe('see https://example.com/a.png')
+  })
 })
 
 describe('renderEmojiContent', () => {
@@ -101,6 +115,25 @@ describe('renderEmojiContent', () => {
     expect(markup).not.toContain('<img')
     expect(markup).toContain(':unknown:')
   })
+
+  test('renders merged giphy urls (legacy content) as separate images', () => {
+    const url2 = 'https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w.gif'
+    const markup = renderToStaticMarkup(
+      <>{renderEmojiContent(`${GIPHY_URL}${url2}`, new Map(), 'k')}</>,
+    )
+    expect(markup.match(/<img/g) ?? []).toHaveLength(2)
+    expect(markup).toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif"')
+    expect(markup).toContain('src="https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w_s.gif"')
+  })
+
+  test('renders text glued before a giphy url without swallowing it', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderEmojiContent(`abc${GIPHY_URL}`, new Map(), 'k')}</>,
+    )
+    expect(markup).toContain('<img')
+    expect(markup).toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif"')
+    expect(markup).toContain('abc')
+  })
 })
 
 describe('serializeContent', () => {
@@ -126,6 +159,27 @@ describe('serializeContent', () => {
     line2.appendChild(document.createTextNode('line two'))
     el.appendChild(line2)
     expect(serializeContent(el)).toBe('line one\nline two\n')
+  })
+
+  test('serializes adjacent giphy elements with space between urls', () => {
+    const url2 = 'https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w_s.gif'
+    const el = document.createElement('div')
+    const a = document.createElement('span')
+    a.dataset.giphy = GIPHY_URL
+    const b = document.createElement('span')
+    b.dataset.giphy = url2
+    el.appendChild(a)
+    el.appendChild(b)
+    expect(serializeContent(el)).toBe(`${GIPHY_URL} ${url2}\n`)
+  })
+
+  test('keeps space between giphy url and following text', () => {
+    const el = document.createElement('div')
+    const giphy = document.createElement('span')
+    giphy.dataset.giphy = GIPHY_URL
+    el.appendChild(giphy)
+    el.appendChild(document.createTextNode('after'))
+    expect(serializeContent(el)).toBe(`${GIPHY_URL} after\n`)
   })
 })
 
@@ -171,5 +225,17 @@ describe('truncateAvoidingUrl', () => {
     const url = 'https://media.giphy.com/media/abcdefgh/200w.gif'
     const content = `word ${url}`
     expect(truncateAvoidingUrl(content, 100)).toBe(content)
+  })
+
+  test('truncates repaired merged-giphy content instead of only ellipsis', () => {
+    const url = 'https://media.giphy.com/media/abcdefgh/200w_s.gif'
+    const merged = url.repeat(10)
+    // chuỗi URL dính nhau không có space -> bug cũ trả về '...' (mất trắng nội dung)
+    expect(truncateAvoidingUrl(merged, 200)).toBe('...')
+    // sau khi tách (như PostCard làm) -> cắt đúng, giữ nguyên URL
+    const out = truncateAvoidingUrl(separateGiphyUrls(merged), 200)
+    expect(out).not.toBe('...')
+    expect(out.endsWith('...')).toBe(true)
+    expect(out).toContain(url)
   })
 })

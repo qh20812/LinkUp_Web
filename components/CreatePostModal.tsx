@@ -45,7 +45,9 @@ function serializeEmojiContent(el: HTMLElement): string {
       return
     }
     if (n.dataset.giphy) {
-      out += n.dataset.giphy
+      // Bọc URL bằng space — URL GIPHY liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
+      if (out && !/\s$/.test(out)) out += ' '
+      out += n.dataset.giphy + ' '
       return
     }
     const tag = n.tagName
@@ -62,7 +64,8 @@ function serializeEmojiContent(el: HTMLElement): string {
     node.childNodes.forEach(walk)
   }
   walk(el)
-  return out.replace(/\n{3,}/g, '\n\n')
+  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL GIPHY được bọc space).
+  return out.replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ +$/, '')
 }
 
 function insertNodeAtCaret(el: HTMLElement, node: Node) {

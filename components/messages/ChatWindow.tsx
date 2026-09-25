@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatDate, formatCallDuration } from '../../utils/chat'
-import { isSingleGiphyUrl, giphyStillUrl } from '../../utils/giphy'
+import { isSingleGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
@@ -845,7 +845,7 @@ export default function ChatWindow({
                 : null
             const singleGiphy =
               !msg.deleted && !msg.decrypt_failed && !singleEmoji
-                ? isSingleGiphyUrl(msg.content ?? '')
+                ? isSingleGiphyUrl(separateGiphyUrls(msg.content ?? ''))
                 : false
             const plain =
               !msg.deleted &&
