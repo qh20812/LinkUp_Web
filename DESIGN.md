@@ -666,8 +666,19 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 **Purpose:** Content consumption. The core loop.
 **Layout:** 3-column (LeftSidebar | Feed | RightSidebar)
-**Center column:** PostComposer at top, infinite-scroll PostCard list below
-**PostCard:** Author header (avatar 40px, name, follow badge, timestamp), content (truncated at 200 chars with expand), media grid (1-4 items), action bar (like, comment, share, save)
+**Center column:** PostComposer teaser at top, infinite-scroll PostCard list below
+
+**Post composer (teaser → modal):**
+- **Entry:** `PostComposer` is a teaser card only — avatar + pill placeholder button ("Bạn đang nghĩ gì?") + round photo button. Clicking the pill opens the modal; the photo button opens it with the file dialog pre-triggered (`initialPicker="media"`). The same `CreatePostModal` is also opened by the LeftSidebar "Tạo bài viết" button. Posts propagate via the `post:created` window event (Feed prepends on receipt — no `onPosted` prop)
+- **Modal structure (top → bottom):** header (avatar + name + ✕ close) → optional draft chip → scrollable body (collapsible title, contentEditable, char count, media previews) → options band → footer bar
+- **Title:** collapsed by default behind a dashed ghost pill "+ Thêm tiêu đề (không bắt buộc)"; expands to the title input on click
+- **Options band (FB-style rows, one concern per row):**
+  - Audience row: privacy icon + current label + chevron → opens the privacy dropdown menu (opens upward, above the band)
+  - Comments row: message icon + "Bình luận" + state text (Đang bật/Đã tắt) + iOS-style switch (44×24 track, ON = comments enabled)
+- **Footer bar:** left = icon-only round attach buttons (photo/video, GIF, emoji — 40px circles, tooltip + aria-label); right = primary "Đăng bài" pill. GIF/emoji pickers anchor upward (`placement="top"`). There is no Cancel button — ✕ / overlay click / Escape all close the modal **and keep the draft**
+- **Draft autosave:** debounced 400ms to `localStorage` key `linkup.composer.draft` (`{title, content, privacy, commentsDisabled, gif, savedAt}`); empty form deletes the key; hydrated on next open with a "Đã khôi phục bản nháp · Xoá" chip; cleared on successful post. Emoji round-trip: serialized `:shortcodes:` are rebuilt as inline `<img class="emojiInline" data-code=…>` on restore. Files are not part of the draft (browser limitation)
+- **Char count:** hidden below 4000 chars (80% of 5000); amber `--color-warning` from 4000; red `--color-danger` + submit validation over 5000
+- **PostCard:** Author header (avatar 40px, name, follow badge, timestamp), content (truncated at 200 chars with expand), media grid (1-4 items), action bar (like, comment, share, save)
 **Right sidebar:** Search input, trending hashtags (top 5), follow suggestions (top 5 with follow buttons)
 **Left sidebar:** Navigation with active state highlighting, create post button (turquoise pill), user dropdown at bottom
 

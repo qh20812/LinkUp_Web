@@ -295,7 +295,7 @@ function FeedContent() {
 
   return (
     <div className={styles.container}>
-      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+      <PostComposer />
       <StoryBar
         stories={stories}
         loading={storyLoading}

@@ -209,11 +209,13 @@
   "composer": {
     "placeholder": "Bạn đang nghĩ gì thế?",
     "titlePlaceholder": "Tiêu đề bài viết...",
+    "addTitle": "Thêm tiêu đề (không bắt buộc)",
     "contentPlaceholder": "Chia sẻ điều gì đó với mọi người...",
     "post": "Đăng bài",
-    "cancel": "Hủy",
     "media": "Ảnh/video",
-    "disableComments": "Tắt bình luận",
+    "comments": "Bình luận",
+    "commentsOn": "Đang bật",
+    "commentsOff": "Đã tắt",
     "emoji": "Biểu tượng cảm xúc",
     "gif": "GIF",
     "gifPlaceholder": "Tìm kiếm GIF trên GIPHY...",
@@ -234,7 +236,9 @@
     "errorTitleLength": "Tiêu đề phải từ 5 đến 150 ký tự",
     "errorContentRequired": "Vui lòng nhập nội dung bài viết",
     "errorMaxLength": "Nội dung không được vượt quá 5000 ký tự",
-    "success": "Đăng bài thành công!"
+    "success": "Đăng bài thành công!",
+    "draftRestored": "Đã khôi phục bản nháp",
+    "discardDraft": "Xoá"
   },
   "brand": {
     "headline": "Kết nối bạn bè, chia sẻ khoảnh khắc",

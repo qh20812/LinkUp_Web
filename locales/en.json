@@ -209,11 +209,13 @@
   "composer": {
     "placeholder": "What's on your mind?",
     "titlePlaceholder": "Post title...",
+    "addTitle": "Add title (optional)",
     "contentPlaceholder": "Share something with everyone...",
     "post": "Post",
-    "cancel": "Cancel",
     "media": "Photo/Video",
-    "disableComments": "Turn off comments",
+    "comments": "Comments",
+    "commentsOn": "On",
+    "commentsOff": "Off",
     "emoji": "Emoji",
     "gif": "GIF",
     "gifPlaceholder": "Search GIFs on GIPHY...",
@@ -234,7 +236,9 @@
     "errorTitleLength": "Title must be between 5 and 150 characters",
     "errorContentRequired": "Please enter some content",
     "errorMaxLength": "Content cannot exceed 5000 characters",
-    "success": "Post published successfully!"
+    "success": "Post published successfully!",
+    "draftRestored": "Draft restored",
+    "discardDraft": "Discard"
   },
   "brand": {
     "headline": "Connect with friends, share moments",
