@@ -30,7 +30,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 
-type Step = 'pick' | 'edit' | 'post'
+type Step = 'pick' | 'edit'
 
 interface StoryEditorModalProps {
   open: boolean
@@ -44,6 +44,9 @@ interface PickedFile {
   gradient: { from: string; to: string } | null
   previewUrl: string | null
   editedBlob: Blob | null
+  caption: string
+  /** Serialized canvas edits (text/stickers/drawings) for re-editing later. */
+  snapshot: string | null
 }
 
 const MAX_MEDIA_COUNT = 10
@@ -56,13 +59,15 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   const { toast } = useToast()
 
   const [step, setStep] = useState<Step>('pick')
+  const [postSheet, setPostSheet] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [items, setItems] = useState<PickedFile[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [filterId, setFilterId] = useState<FilterPresetId>('original')
   const [filterIntensity, setFilterIntensity] = useState(1)
   const [activeTool, setActiveTool] = useState<EditorTool>('select')
   const [textStyle, setTextStyle] = useState<TextPanelStyle>(DEFAULT_TEXT_STYLE)
-  const [selectedText, setSelectedText] = useState<string | null>(null)
   const [selectionKind, setSelectionKind] = useState<'text' | 'other' | null>(null)
   const [brushColor, setBrushColor] = useState('#FFFFFF')
   const [brushSize, setBrushSize] = useState(6)
@@ -104,13 +109,14 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     apiRef.current = null
     setItems([])
     setCurrentIndex(0)
+    setPostSheet(false)
+    setConfirmLeave(false)
     setMusicTrackId(null)
     setMusicVolume(100)
     setFilterId('original')
     setFilterIntensity(1)
     setActiveTool('select')
     setTextStyle(DEFAULT_TEXT_STYLE)
-    setSelectedText(null)
     setSelectionKind(null)
     setBrushColor('#FFFFFF')
     setBrushSize(6)
@@ -123,9 +129,14 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const handleClose = useCallback(() => {
     if (submitting) return
+    // Anything picked/edited is lost on close — ask first.
+    if (items.length > 0) {
+      setConfirmLeave(true)
+      return
+    }
     resetForm()
     onClose()
-  }, [submitting, resetForm, onClose])
+  }, [submitting, items.length, resetForm, onClose])
 
   useEffect(() => {
     if (!open) return
@@ -165,8 +176,8 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
   }, [open, step])
 
   useEffect(() => {
-    if (!open || step !== 'edit') musicEngine.stop()
-  }, [open, step])
+    if (!open || step !== 'edit' || postSheet) musicEngine.stop()
+  }, [open, step, postSheet])
 
   useEffect(() => {
     if (!open || step !== 'edit') return
@@ -198,32 +209,47 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     musicEngine.stop()
 
     const hasVideo = selected.some((f) => f.type.startsWith('video/'))
-    if (hasVideo && selected.length > 1) {
-      setError(t('story.multiError'))
+    if (hasVideo && (selected.length > 1 || items.length > 0)) {
+      setError(t('story.multiErrorVideo'))
       return
     }
-    if (selected.length > MAX_MEDIA_COUNT) {
-      setError(t('story.multiError'))
+    if (items.length + selected.length > MAX_MEDIA_COUNT) {
+      setError(t('story.multiErrorMax'))
       return
     }
 
-    releaseUrls()
-    const nextItems: PickedFile[] = selected.map((f) => {
+    const fresh = items.length === 0
+    if (fresh) {
+      releaseUrls()
+      setFilterId('original')
+      setFilterIntensity(1)
+      setSelectionKind(null)
+      setBrushGradient(DEFAULT_BRUSH_GRADIENT)
+      setIsEraser(false)
+      setActiveTool('select')
+      setCurrentIndex(0)
+    }
+
+    const additions: PickedFile[] = selected.map((f) => {
       const url = URL.createObjectURL(f)
       trackUrl(url)
-      return { file: f, url, gradient: null, previewUrl: null, editedBlob: null }
+      return {
+        file: f,
+        url,
+        gradient: null,
+        previewUrl: null,
+        editedBlob: null,
+        caption: '',
+        snapshot: null,
+      }
     })
 
-    setItems(nextItems)
-    setCurrentIndex(0)
+    if (fresh) {
+      setItems(additions)
+    } else {
+      setItems((prev) => [...prev, ...additions])
+    }
     setError(null)
-    setFilterId('original')
-    setFilterIntensity(1)
-    setSelectedText(null)
-    setSelectionKind(null)
-    setBrushGradient(DEFAULT_BRUSH_GRADIENT)
-    setIsEraser(false)
-    setActiveTool('select')
     setStep('edit')
   }
 
@@ -241,7 +267,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
     setFilterId('original')
     setFilterIntensity(1)
     setTextStyle(DEFAULT_TEXT_STYLE)
-    setSelectedText(null)
     setSelectionKind(null)
     setBrushGradient(DEFAULT_BRUSH_GRADIENT)
     setHasDrawings(false)
@@ -259,13 +284,14 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
         gradient: DEFAULT_TEXT_STORY_GRADIENT,
         previewUrl: null,
         editedBlob: null,
+        caption: '',
+        snapshot: null,
       },
     ])
     setCurrentIndex(0)
     setError(null)
     setFilterId('original')
     setFilterIntensity(1)
-    setSelectedText(null)
     setSelectionKind(null)
     setBrushGradient(DEFAULT_BRUSH_GRADIENT)
     setIsEraser(false)
@@ -279,16 +305,13 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const handleSelectionChange = useCallback((selection: EditorSelection) => {
     if (!selection) {
-      setSelectedText(null)
       setSelectionKind(null)
       return
     }
     if (selection.kind === 'text') {
-      setSelectedText(selection.text)
       setSelectionKind('text')
       setTextStyle(selection.style)
     } else {
-      setSelectedText(null)
       setSelectionKind('other')
     }
   }, [])
@@ -303,20 +326,17 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const handleTextStyleChange = (patch: Partial<TextPanelStyle>) => {
     setTextStyle((prev) => ({ ...prev, ...patch }))
-    if (selectionKind === 'text') {
-      apiRef.current?.applyStyleToSelection(patch)
-    }
-  }
-
-  const handleAddText = (text: string) => {
-    apiRef.current?.addText(text, textStyle)
+    apiRef.current?.applyStyleToSelection(patch)
   }
 
   const handleDeleteSelected = () => {
     apiRef.current?.deleteSelected()
-    setSelectedText(null)
     setSelectionKind(null)
     setActiveTool('select')
+  }
+
+  const captureSnapshot = () => {
+    patchItem(currentIndex, { snapshot: apiRef.current?.getSnapshot() ?? null })
   }
 
   const exportCurrentItem = useCallback(async (): Promise<boolean> => {
@@ -333,9 +353,9 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
       }
       return false
     }
-    const blob = await api.exportBlob(2)
+    const blob = await api.exportBlob()
     if (blob?.type.startsWith('image/')) {
-      const preview = await api.exportBlob(1)
+      const preview = await api.exportBlob(true)
       if (preview) {
         const previewUrl = URL.createObjectURL(preview)
         trackUrl(previewUrl)
@@ -350,24 +370,62 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   const goToItem = async (nextIndex: number) => {
     if (nextIndex < 0 || nextIndex >= items.length || nextIndex === currentIndex) return
-    await exportCurrentItem()
+    if (exporting) return
+    setExporting(true)
+    try {
+      await exportCurrentItem()
+      captureSnapshot()
+    } finally {
+      setExporting(false)
+    }
     const nextItem = items[nextIndex]
     if (nextItem && !isVideoItem(nextItem)) musicEngine.stop()
     setCurrentIndex(nextIndex)
-    setSelectedText(null)
     setSelectionKind(null)
     setActiveTool('select')
     setIsEraser(false)
   }
 
-  const handleDoneEditing = async () => {
-    await exportCurrentItem()
+  const handleBackToPick = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      await exportCurrentItem()
+      captureSnapshot()
+    } finally {
+      setExporting(false)
+    }
     setActiveTool('select')
     setIsEraser(false)
-    setSelectedText(null)
     setSelectionKind(null)
-    setCurrentIndex(0)
-    setStep('post')
+    setStep('pick')
+  }
+
+  const handleOpenPostSheet = async () => {
+    if (exporting || submitting) return
+    setExporting(true)
+    try {
+      await exportCurrentItem()
+      captureSnapshot()
+    } finally {
+      setExporting(false)
+    }
+    setActiveTool('select')
+    setIsEraser(false)
+    setSelectionKind(null)
+    setPostSheet(true)
+  }
+
+  const handleBackFromSheet = () => {
+    setPostSheet(false)
+    if (musicTrackId) void musicEngine.play(musicTrackId, musicVolume / 100)
+  }
+
+  const removeItemAt = (index: number) => {
+    if (items.length <= 1) return
+    const next = items.filter((_, i) => i !== index)
+    setItems(next)
+    setCurrentIndex((ci) => Math.min(ci > index ? ci - 1 : ci, next.length - 1))
   }
 
   const handleSubmit = async () => {
@@ -382,7 +440,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
       await createStories(
         items.map((item) => ({
           file: toUploadFile(item),
-          caption: '',
+          caption: item.caption,
         })),
       )
       toast({ type: 'success', title: t('story.created') })
@@ -411,33 +469,11 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
 
   if (!open) return null
 
-  const showCanvas = current !== null && step === 'edit'
+  const showCanvas = current !== null && step === 'edit' && !postSheet
 
   return createPortal(
     <div className={styles.overlay} onClick={handleClose}>
       <div className={`${styles.modal} ${step === 'edit' ? styles.modalEdit : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div
-          className={styles.stepIndicator}
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={3}
-          aria-valuenow={['pick', 'edit', 'post'].indexOf(step) + 1}
-          aria-label={t('story.editor.step')}
-        >
-          {(['pick', 'edit', 'post']).map((s, i) => {
-            const current = ['pick', 'edit', 'post'].indexOf(step)
-            return (
-              <span
-                key={s}
-                className={`${styles.stepDot} ${step === s ? styles.stepActive : ''} ${
-                  current > i ? styles.stepDone : ''
-                }`}
-              >
-                {current > i ? <i className="bx bx-check" /> : null}
-              </span>
-            )
-          })}
-        </div>
         {step === 'pick' && (
           <>
             <div className={styles.header}>
@@ -484,7 +520,17 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                     >
                       <i className="bx bx-trash" />
                     </button>
-                    {!isTextStory && (
+                    <div className={styles.pickActions}>
+                      {items.length < MAX_MEDIA_COUNT && (
+                        <button
+                          type="button"
+                          className={styles.secondaryBtn}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <i className="bx bx-plus" />
+                          <span>{t('story.editor.addMore')}</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         className={styles.editAgainBtn}
@@ -493,7 +539,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                         <i className="bx bx-edit" />
                         <span>{t('story.editor.editAgain')}</span>
                       </button>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div className={styles.pickTiles}>
@@ -546,7 +592,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
               <button
                 type="button"
                 className={styles.iconBtn}
-                onClick={() => setStep('pick')}
+                onClick={handleBackToPick}
                 aria-label={t('story.editor.back')}
               >
                 <i className="bx bx-chevron-left" />
@@ -596,10 +642,11 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 <button
                   type="button"
                   className={styles.doneBtn}
-                  onClick={handleDoneEditing}
+                  onClick={handleOpenPostSheet}
+                  disabled={exporting}
                 >
-                  <span>{t('story.editor.done')}</span>
-                  <i className="bx bx-chevron-right" />
+                  <span>{t('story.submit')}</span>
+                  <i className="bx bx-send" />
                 </button>
               </div>
             </div>
@@ -623,6 +670,8 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                   brushSize={brushSize}
                   brushGradient={brushGradient}
                   isEraser={isEraser}
+                  textStyle={textStyle}
+                  initialSnapshot={current.snapshot}
                   onApiReady={handleApiReady}
                   onSelectionChange={handleSelectionChange}
                 />
@@ -632,9 +681,8 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 {activeTool === 'text' && (
                   <TextToolPanel
                     style={textStyle}
-                    selectedText={selectedText}
+                    hasSelection={selectionKind === 'text'}
                     onStyleChange={handleTextStyleChange}
-                    onAddText={handleAddText}
                   />
                 )}
                 {activeTool === 'filter' && isImage && !isTextStory && (
@@ -728,9 +776,6 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                         )
                       })}
                     </div>
-                    <span className={styles.gradientLabel}>
-                      {current.gradient ? `${current.gradient.from} → ${current.gradient.to}` : ''}
-                    </span>
                   </>
                 )}
 
@@ -750,13 +795,13 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
           </>
         )}
 
-        {step === 'post' && current && (
+        {step === 'edit' && postSheet && current && (
           <>
             <div className={styles.header}>
               <button
                 type="button"
                 className={styles.iconBtn}
-                onClick={() => setStep('edit')}
+                onClick={handleBackFromSheet}
                 aria-label={t('story.editor.back')}
               >
                 <i className="bx bx-chevron-left" />
@@ -797,33 +842,58 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
                 )}
               </div>
 
+              <textarea
+                className={styles.captionInput}
+                value={current.caption}
+                onChange={(e) => patchItem(currentIndex, { caption: e.target.value.slice(0, 300) })}
+                placeholder={t('story.captionPlaceholder')}
+                maxLength={300}
+                rows={2}
+                aria-label={t('story.captionPlaceholder')}
+              />
+
               {items.length > 1 && (
                 <div className={styles.stripRow}>
                   {items.map((item, i) => (
-                    <button
-                      key={item.url ?? item.previewUrl ?? i}
-                      type="button"
-                      className={`${styles.stripThumb} ${i === currentIndex ? styles.stripThumbActive : ''}`}
-                      onClick={() => setCurrentIndex(i)}
-                      aria-label={t('story.editor.select')}
-                    >
-                      {!isVideoItem(item) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.previewUrl ?? item.url ?? ''}
-                          alt=""
-                          className={styles.stripThumbImg}
-                        />
-                      ) : (
-                        <video
-                          src={item.previewUrl ?? item.url ?? ''}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className={styles.stripThumbImg}
-                        />
+                    <div key={item.url ?? item.previewUrl ?? i} className={styles.stripItem}>
+                      <button
+                        type="button"
+                        className={`${styles.stripThumb} ${i === currentIndex ? styles.stripThumbActive : ''}`}
+                        onClick={() => setCurrentIndex(i)}
+                        aria-label={t('story.editor.select')}
+                        aria-pressed={i === currentIndex}
+                      >
+                        {!isVideoItem(item) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.previewUrl ?? item.url ?? ''}
+                            alt=""
+                            className={styles.stripThumbImg}
+                          />
+                        ) : (
+                          <video
+                            src={item.previewUrl ?? item.url ?? ''}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className={styles.stripThumbImg}
+                          />
+                        )}
+                      </button>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          className={styles.stripRemove}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeItemAt(i)
+                          }}
+                          aria-label={t('common.delete')}
+                        >
+                          <i className="bx bx-x" />
+                        </button>
                       )}
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -835,7 +905,7 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
               <button
                 type="button"
                 className={styles.secondaryBtn}
-                onClick={() => setStep('edit')}
+                onClick={handleBackFromSheet}
                 disabled={submitting}
               >
                 <i className="bx bx-edit" />
@@ -859,6 +929,46 @@ export default function StoryEditorModal({ open, onClose, onCreated }: StoryEdit
               </button>
             </div>
           </>
+        )}
+
+        {confirmLeave && (
+          <div
+            className={styles.confirmOverlay}
+            onClick={(e) => {
+              e.stopPropagation()
+              setConfirmLeave(false)
+            }}
+          >
+            <div
+              className={styles.confirmBox}
+              role="alertdialog"
+              aria-modal="true"
+              aria-label={t('story.leaveConfirmTitle')}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={styles.confirmTitle}>{t('story.leaveConfirmTitle')}</h3>
+              <p className={styles.confirmBody}>{t('story.leaveConfirmBody')}</p>
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setConfirmLeave(false)}
+                >
+                  {t('story.leaveConfirmStay')}
+                </button>
+                <button
+                  type="button"
+                  className={styles.confirmDanger}
+                  onClick={() => {
+                    resetForm()
+                    onClose()
+                  }}
+                >
+                  {t('story.leaveConfirmLeave')}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>,

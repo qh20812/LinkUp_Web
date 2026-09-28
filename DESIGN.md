@@ -682,6 +682,27 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Right sidebar:** Search input, trending hashtags (top 5), follow suggestions (top 5 with follow buttons)
 **Left sidebar:** Navigation with active state highlighting, create post button (turquoise pill), user dropdown at bottom
 
+### Stories (Feed bar + editor)
+
+**Purpose:** Ephemeral 24h media. Facebook-style vertical preview cards + full-screen-ish editor modal.
+
+**Story bar (`StoryBar`, top of Feed center column):**
+- **Chrome:** single `--color-card` row, `1px --color-border`, `radius-lg`, elevation `0 2px 12px rgba(0,0,0,0.06)` (matches PostCard); horizontal scroll with edge mask fade; scrollbar hidden
+- **Tiles:** 112px wide, `aspect-ratio: 9/16`, `radius-md`. Preview = story thumbnail (`object-fit: cover`) + bottom-up dark gradient + avatar ring (`--story-ring-gradient`, viewed = `--color-border` ring) + name bottom-left (white, `--text-caption`, text-shadow). Cards lift `-2px` + `--shadow-md` on hover (disabled under `prefers-reduced-motion`)
+- **"Your Story" tile:** avatar variant when `avatarUri` is provided (thumbnail + gradient + primary `+` badge top-right + "Tin của bạn" label); fallback = dashed-neutral card with primary `+` circle. Creates via `onCreateStory`
+- **A11y:** every tile is `role="button" tabindex=0` with Enter/Space activation; preview cards labelled `"Xem tin: {name}"`; focus-visible = `2px --color-primary` outline
+- **Overflow menu:** right-click or ⋮ opens the mute menu (fixed-position, closes on scroll/resize)
+
+**Editor modal (`StoryEditorModal`) — 2 steps + post sheet:**
+- **Step 1 «pick»:** `--color-bg-secondary` frame (9:16) showing either the placeholder tiles (dashed photo tile + text-story tile) or the current selection with ✕ remove, "Thêm ảnh/video" (append, cap 10) and "Chỉnh sửa" actions. Footer = "Hủy" only. Picking files **appends** (video still exclusive: `story.multiErrorVideo`); over-cap → `story.multiErrorMax`
+- **Step 2 «edit»:** dark stage (`--color-story-bg`), canvas centered with real CSS size via `setDimensions(…, {cssOnly:true})` (backstore fixed at logical 405×720 — window size never changes export resolution). Header: back (captures snapshot first) / undo / redo / recenter / delete-selection + primary **"Đăng"** pill (runs export + snapshot, then opens the post sheet). Bottom overlay: tool-specific panel + EditorToolbar; multi-item nav row (`n/total`)
+- **Text tool:** tap-to-create — clicking empty canvas with the text tool active creates an IText at the tap point using the panel's current style (`textStyle` ref). Panel = hint chip ("Nhấn vào khung để thêm chữ") until a text is selected, preset chips, B/I/U + align + size slider + "Nâng cao" toggle, color swatch row; advanced section holds font, gradient, outline, highlight. No text input, no add/update button; empty texts are removed on editing exit
+- **Snapshots:** every leave-transition (back, nav, "Đăng") serializes non-background objects + bg transform via `api.getSnapshot()` into the item; re-entering a media item restores it after the background loads — filters, drawings, stickers, and text survive pick↔edit↔sheet round-trips. History resets per media item
+- **Post sheet:** replaces the stage while the canvas is unmounted. Preview frame (`--color-bg-secondary`), per-item strip with individual ✕ delete (min 1), caption textarea (300 chars, `story.captionPlaceholder`), footer "Chỉnh sửa" (back) + "Đăng" (submit → `POST /api/stories` with per-item `captions`). Music stops while the sheet is open and resumes on return
+- **Guard:** ✕ / overlay click / Escape with any picked content → confirm dialog ("Rời khỏi bản nháp?" · "Ở lại" / "Rời đi"); empty state closes immediately
+- **Export:** images re-encoded at **1080×1920** (`exportBlob()` → `EXPORT_WIDTH / canvasWidth` multiplier; `exportBlob(true)` = 1× preview for the strip). Videos re-export with the music stream
+- **Theme rule:** editor stage stays dark in both themes (`--color-story-bg`); pick/post frames, strip thumbs, and media placeholders use `--color-bg-secondary` so the light theme never shows black frames. Gradient hex label under the text-story swatches is banned
+
 ### Messages (`/messages`)
 
 **Purpose:** Focused private/group communication. Conversation-first experience.

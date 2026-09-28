@@ -2,6 +2,8 @@ import { filters, Gradient, PencilBrush, util, type Canvas, type FabricImage, ty
 
 export const CANVAS_WIDTH = 405
 export const CANVAS_HEIGHT = 720
+/** Fixed story export resolution (1080x1920). Multiplier = EXPORT_WIDTH / logical width. */
+export const EXPORT_WIDTH = 1080
 
 export type FilterPresetId = 'original' | 'bw' | 'warm' | 'cool' | 'vintage' | 'dramatic'
 

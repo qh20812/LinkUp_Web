@@ -11,6 +11,7 @@
 }
 
 .modal {
+  position: relative;
   background: var(--color-bg-primary);
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-lg);
@@ -222,7 +223,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  background: var(--color-story-bg);
+  background: var(--color-bg-secondary);
 }
 
 .storyFrame {
@@ -233,7 +234,7 @@
   width: auto;
   margin: 0 auto;
   flex-shrink: 0;
-  background: var(--color-story-bg);
+  background: var(--color-bg-secondary);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -316,7 +317,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background: var(--color-story-bg);
+  background: var(--color-bg-secondary);
 }
 
 .mediaEl {
@@ -325,7 +326,7 @@
   max-height: none;
   object-fit: contain;
   display: block;
-  background: var(--color-story-bg);
+  background: var(--color-bg-secondary);
 }
 
 .textStoryPreview {
@@ -358,11 +359,17 @@
   opacity: 0.9;
 }
 
-.editAgainBtn {
+.pickActions {
   position: absolute;
   bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.editAgainBtn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -375,6 +382,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
@@ -387,7 +395,7 @@
   height: 100%;
   object-fit: contain;
   display: block;
-  background: var(--color-story-bg);
+  background: var(--color-bg-secondary);
 }
 
 .gradientRow {
@@ -416,15 +424,6 @@
   border-color: var(--color-primary);
 }
 
-.gradientLabel {
-  display: block;
-  margin-top: 4px;
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
 .fileInput {
   display: none;
 }
@@ -432,6 +431,128 @@
 .errorText {
   color: var(--color-danger);
   font-size: 13px;
+}
+
+.captionInput {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  transition: border-color 0.15s ease;
+}
+
+.captionInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.captionInput::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.stripItem {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  height: 88px;
+}
+
+.stripItem .stripThumb {
+  width: 100%;
+  height: 100%;
+}
+
+.stripRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.stripRemove:hover {
+  background: var(--color-danger);
+}
+
+.confirmOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.5);
+  animation: storyModalEnter 160ms ease-out;
+}
+
+.confirmBox {
+  width: 100%;
+  max-width: 360px;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.confirmTitle {
+  margin: 0 0 var(--space-sm);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.confirmBody {
+  margin: 0 0 var(--space-md);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.confirmActions > * {
+  flex: 1;
+}
+
+.confirmDanger {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.confirmDanger:hover {
+  opacity: 0.9;
 }
 
 .footer {
@@ -550,43 +671,6 @@
     border-radius: 0;
     border: none;
   }
-}
-
-.stepIndicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 0 0;
-  flex-shrink: 0;
-}
-
-.stepDot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-circle);
-  border: 1.5px solid var(--color-border);
-  background: transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.stepActive {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-}
-
-.stepDone {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-}
-
-.stepDone i {
-  font-size: 10px;
-  line-height: 1;
-  color: #fff;
 }
 
 .overlay {

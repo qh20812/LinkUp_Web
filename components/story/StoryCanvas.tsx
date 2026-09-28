@@ -17,6 +17,7 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   DEFAULT_TEXT_STORY_GRADIENT,
+  EXPORT_WIDTH,
   GradientPencilBrush,
   applyFilterToImage,
   buildBlurredBackground,
@@ -41,7 +42,6 @@ export type EditorSelection =
   | null
 
 export interface StoryCanvasApi {
-  addText: (text: string, style: TextPanelStyle) => void
   addSticker: (src: string) => void
   applyStyleToSelection: (patch: Partial<TextPanelStyle>) => void
   deleteSelected: () => void
@@ -49,7 +49,10 @@ export interface StoryCanvasApi {
   undo: () => void
   redo: () => void
   getHistoryState: () => { canUndo: boolean; canRedo: boolean }
-  exportBlob: (multiplier?: number) => Promise<Blob | null>
+  /** Serializes editable objects (per-item snapshot) so the canvas can be restored later. */
+  getSnapshot: () => string | null
+  /** multiplier omitted → full 1080px export; preview=true → 1x for thumbnails. */
+  exportBlob: (preview?: boolean) => Promise<Blob | null>
   exportVideo: (audioStream?: MediaStream) => Promise<Blob | null>
   hasDrawings: () => boolean
   setBackgroundGradient: (from: string, to: string) => void
@@ -69,6 +72,10 @@ interface StoryCanvasProps {
   brushGradient: BrushGradientStyle
   isEraser: boolean
   activeTool: EditorTool
+  /** Style applied when a new text is created by tapping the canvas. */
+  textStyle: TextPanelStyle
+  /** Per-item edit snapshot restored after the media background loads. */
+  initialSnapshot?: string | null
   onApiReady: (api: StoryCanvasApi) => void
   onSelectionChange: (selection: EditorSelection) => void
 }
@@ -117,6 +124,8 @@ export default function StoryCanvas({
   brushGradient,
   isEraser,
   activeTool,
+  textStyle,
+  initialSnapshot = null,
   onApiReady,
   onSelectionChange,
 }: StoryCanvasProps) {
@@ -137,6 +146,9 @@ export default function StoryCanvas({
   const modeRef = useRef(mode)
   const variantRef = useRef(variant)
   const activeToolRef = useRef(activeTool)
+  const textStyleRef = useRef(textStyle)
+  const initialSnapshotRef = useRef(initialSnapshot)
+  const stageSizeRef = useRef(stageSize)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [reloadCount, setReloadCount] = useState(0)
@@ -153,12 +165,18 @@ export default function StoryCanvas({
     variantRef.current = variant
   }, [variant])
 
+  useEffect(() => {
+    textStyleRef.current = textStyle
+  }, [textStyle])
+
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot
+  }, [initialSnapshot])
+
   // ---- history helpers ----
-  const pushHistory = () => {
+  const serializeSnapshot = (): string | null => {
     const canvas = fabricRef.current
-    if (!canvas || !bgLoadedRef.current) return
-    const h = historyRef.current
-    h.snapshots = h.snapshots.slice(0, h.index + 1)
+    if (!canvas || !bgLoadedRef.current) return null
     const serialized = canvas
       .getObjects()
       .filter((o) => o !== bgRef.current && o !== fillRef.current)
@@ -167,7 +185,15 @@ export default function StoryCanvas({
     const bgTransform = bg
       ? { left: bg.left ?? 0, top: bg.top ?? 0, scaleX: bg.scaleX ?? 1, scaleY: bg.scaleY ?? 1 }
       : null
-    h.snapshots.push(JSON.stringify({ objects: serialized, bgTransform }))
+    return JSON.stringify({ objects: serialized, bgTransform })
+  }
+
+  const pushHistory = () => {
+    const h = historyRef.current
+    const snapshot = serializeSnapshot()
+    if (snapshot === null) return
+    h.snapshots = h.snapshots.slice(0, h.index + 1)
+    h.snapshots.push(snapshot)
     if (h.snapshots.length > HISTORY_LIMIT) h.snapshots.shift()
     h.index = h.snapshots.length - 1
   }
@@ -220,14 +246,23 @@ export default function StoryCanvas({
     const canvasEl = canvasElRef.current
     if (!canvasEl) return
 
+    // Fixed logical size: objects/history/export always live in a 405x720
+    // coordinate space; the stage only CSS-scales the element (see stageSize effect).
     const fabric = new FabricCanvas(canvasEl, {
-      width: stageSize?.width ?? CANVAS_WIDTH,
-      height: stageSize?.height ?? CANVAS_HEIGHT,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
     })
+    const stage = stageSizeRef.current
+    if (stage) {
+      fabric.setDimensions({ width: stage.width, height: stage.height }, { cssOnly: true })
+    }
     fabric.freeDrawingBrush = new PencilBrush(fabric)
     fabricRef.current = fabric
     modeRef.current = mode
     variantRef.current = variant
+    if (historyTimerRef.current !== null) window.clearTimeout(historyTimerRef.current)
+    historyTimerRef.current = null
+    historyRef.current = { snapshots: [], index: -1 }
     setLoading(true)
     setLoadError(false)
 
@@ -270,11 +305,80 @@ export default function StoryCanvas({
       }
     }
 
+    const createText = async (
+      text: string,
+      style: TextPanelStyle,
+      point?: { x: number; y: number },
+    ) => {
+      const canvas = fabricRef.current
+      if (!canvas) return
+      await ensureTextFont(style.fontFamily)
+      const t = new IText(text || 'Text', {
+        left: point?.x ?? canvas.getWidth() / 2,
+        top: point?.y ?? canvas.getHeight() / 2,
+        originX: 'center',
+        originY: 'center',
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fill: style.fill,
+        stroke: style.stroke ?? undefined,
+        strokeWidth: style.strokeWidth || 0,
+        textBackgroundColor: style.highlight || undefined,
+        fontWeight: style.fontWeight,
+        fontStyle: style.fontStyle,
+        textAlign: style.textAlign,
+        underline: style.underline,
+        shadow: new Shadow({
+          color: CANVAS_TEXT_SHADOW_COLOR,
+          blur: 6,
+          offsetX: 0,
+          offsetY: 2,
+        }),
+      })
+      if (style.gradient) {
+        t.fill = makeTextGradient(
+          t.width || 120,
+          t.height || style.fontSize,
+          style.gradient.from,
+          style.gradient.to,
+        )
+      }
+      canvas.isDrawingMode = false
+      canvas.add(t)
+      canvas.setActiveObject(t)
+      canvas.requestRenderAll()
+      requestAnimationFrame(() => {
+        t.enterEditing()
+        canvas.requestRenderAll()
+      })
+    }
+
     const handleMouseDown = (opt: TPointerEventInfo<MouseEvent>) => {
-      if (!eraserRef.current) return
-      const target = opt.target as FabricObject | undefined
-      if (target && target.isType('Path')) {
-        fabric.remove(target)
+      if (eraserRef.current) {
+        const target = opt.target as FabricObject | undefined
+        if (target && target.isType('Path')) {
+          fabric.remove(target)
+          fabric.requestRenderAll()
+        }
+        return
+      }
+      // Tap-to-create: with the text tool active, tapping empty canvas area
+      // spawns a text object at that exact point (types in place).
+      if (activeToolRef.current !== 'text' || opt.target) return
+      const isEditing = fabric
+        .getObjects()
+        .some((o) => o instanceof IText && o.isEditing)
+      if (isEditing) return
+      const point = fabric.getScenePoint(opt.e)
+      void createText('', textStyleRef.current, point)
+    }
+
+    // Drop texts that were abandoned empty (user tapped away without typing).
+    const handleTextEditingExited = (opt: { target?: FabricObject }) => {
+      const obj = opt.target
+      if (obj instanceof IText && !(obj.text ?? '').trim()) {
+        fabric.remove(obj)
+        fabric.discardActiveObject()
         fabric.requestRenderAll()
       }
     }
@@ -287,54 +391,12 @@ export default function StoryCanvas({
     fabric.on('selection:updated', emitSelection)
     fabric.on('selection:cleared', () => onSelectionChange(null))
     fabric.on('mouse:down', handleMouseDown as never)
+    fabric.on('text:editing:exited', handleTextEditingExited)
 
     const emitApi = () => {
       if (apiEmittedRef.current) return
       apiEmittedRef.current = true
       onApiReady({
-        addText: async (text, style) => {
-          const canvas = fabricRef.current
-          if (!canvas) return
-          await ensureTextFont(style.fontFamily)
-          const t = new IText(text || 'Text', {
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
-            originX: 'center',
-            originY: 'center',
-            fontFamily: style.fontFamily,
-            fontSize: style.fontSize,
-            fill: style.fill,
-            stroke: style.stroke ?? undefined,
-            strokeWidth: style.strokeWidth || 0,
-            textBackgroundColor: style.highlight || undefined,
-            fontWeight: style.fontWeight,
-            fontStyle: style.fontStyle,
-            textAlign: style.textAlign,
-            underline: style.underline,
-            shadow: new Shadow({
-              color: CANVAS_TEXT_SHADOW_COLOR,
-              blur: 6,
-              offsetX: 0,
-              offsetY: 2,
-            }),
-          })
-          if (style.gradient) {
-            t.fill = makeTextGradient(
-              t.width || 120,
-              t.height || style.fontSize,
-              style.gradient.from,
-              style.gradient.to,
-            )
-          }
-          canvas.isDrawingMode = false
-          canvas.add(t)
-          canvas.setActiveObject(t)
-          canvas.requestRenderAll()
-          requestAnimationFrame(() => {
-            t.enterEditing()
-            canvas.requestRenderAll()
-          })
-        },
         addSticker: async (src) => {
           const canvas = fabricRef.current
           if (!canvas) return
@@ -362,35 +424,37 @@ export default function StoryCanvas({
           const active = canvas?.getActiveObject()
           if (!canvas || !active || !(active instanceof IText)) return
           if (patch.fontFamily !== undefined) {
-            active.fontFamily = patch.fontFamily
             void ensureTextFont(patch.fontFamily)
               .then(() => {
                 if (fabricRef.current === canvas) canvas.requestRenderAll()
               })
               .catch(() => {})
           }
-          if (patch.fontSize !== undefined) active.fontSize = patch.fontSize
+          const props: Record<string, unknown> = {}
+          if (patch.fontSize !== undefined) props.fontSize = patch.fontSize
           if (patch.gradient !== undefined) {
             if (patch.gradient) {
-              active.fill = makeTextGradient(
+              props.fill = makeTextGradient(
                 active.width || 120,
                 active.height || (patch.fontSize ?? active.fontSize ?? 40),
                 patch.gradient.from,
                 patch.gradient.to,
               )
             } else {
-              active.fill = patch.fill ?? CANVAS_DEFAULT_FILL
+              props.fill = patch.fill ?? CANVAS_DEFAULT_FILL
             }
           } else if (patch.fill !== undefined) {
-            active.fill = patch.fill
+            props.fill = patch.fill
           }
-          if (patch.fontWeight !== undefined) active.fontWeight = patch.fontWeight
-          if (patch.fontStyle !== undefined) active.fontStyle = patch.fontStyle
-          if (patch.textAlign !== undefined) active.textAlign = patch.textAlign
-          if (patch.underline !== undefined) active.underline = patch.underline
-          if (patch.stroke !== undefined) active.stroke = patch.stroke ?? ''
-          if (patch.strokeWidth !== undefined) active.strokeWidth = patch.strokeWidth
-          if (patch.highlight !== undefined) active.textBackgroundColor = patch.highlight ?? ''
+          if (patch.fontFamily !== undefined) props.fontFamily = patch.fontFamily
+          if (patch.fontWeight !== undefined) props.fontWeight = patch.fontWeight
+          if (patch.fontStyle !== undefined) props.fontStyle = patch.fontStyle
+          if (patch.textAlign !== undefined) props.textAlign = patch.textAlign
+          if (patch.underline !== undefined) props.underline = patch.underline
+          if (patch.stroke !== undefined) props.stroke = patch.stroke ?? ''
+          if (patch.strokeWidth !== undefined) props.strokeWidth = patch.strokeWidth
+          if (patch.highlight !== undefined) props.textBackgroundColor = patch.highlight ?? ''
+          active.set(props)
           active.setCoords()
           canvas.requestRenderAll()
           scheduleHistory()
@@ -448,9 +512,11 @@ export default function StoryCanvas({
             canRedo: h.index >= 0 && h.index < h.snapshots.length - 1,
           }
         },
-        exportBlob: (multiplier = 2) => {
+        getSnapshot: () => serializeSnapshot(),
+        exportBlob: (preview = false) => {
           const canvas = fabricRef.current
           if (!canvas) return Promise.resolve(null)
+          const multiplier = preview ? 1 : EXPORT_WIDTH / canvas.getWidth()
           return exportCanvasBlob(canvas, multiplier)
         },
         exportVideo: (audioStream?: MediaStream) => {
@@ -532,6 +598,13 @@ export default function StoryCanvas({
       pushHistory()
       fabric.requestRenderAll()
       emitApi()
+      const initial = initialSnapshotRef.current
+      if (initial) {
+        // Restore per-item edits (text/stickers/drawings/pan) after background load.
+        void restoreSnapshot(initial).then(() => {
+          if (fabricRef.current === fabric) pushHistory()
+        })
+      }
       setLoadError(false)
       setLoading(false)
     }
@@ -768,51 +841,23 @@ export default function StoryCanvas({
     canvas.isDrawingMode = activeTool === 'brush' && !isEraser
   }, [activeTool, isEraser])
 
-  // ---- sync canvas internal dimensions with stageSize ----
+  // ---- CSS-scale the canvas display to the stage (backstore stays 405x720) ----
   useEffect(() => {
+    stageSizeRef.current = stageSize
     const canvas = fabricRef.current
-    if (!canvas) return
-
-    const targetW = stageSize?.width ?? CANVAS_WIDTH
-    const targetH = stageSize?.height ?? CANVAS_HEIGHT
-    if (targetW === canvas.getWidth() && targetH === canvas.getHeight()) return
-
-    canvas.setDimensions({ width: targetW, height: targetH })
-
-    const bg = bgRef.current
-    if (bg && bgLoadedRef.current) {
-      const el = bg.getElement?.() ?? (bg as unknown as { _element: HTMLImageElement | HTMLVideoElement })._element
-      const origW = el instanceof HTMLVideoElement
-        ? (el.videoWidth || el.width || targetW)
-        : (el.width || targetW)
-      const origH = el instanceof HTMLVideoElement
-        ? (el.videoHeight || el.height || targetH)
-        : (el.height || targetH)
-      const scale = Math.min(targetW / origW, targetH / origH)
-      bg.set({
-        scaleX: scale,
-        scaleY: scale,
-        left: targetW / 2,
-        top: targetH / 2,
-        originX: 'center',
-        originY: 'center',
-      })
-      bg.setCoords()
-      configureMedia(bg, variantRef.current === 'media' && activeToolRef.current === 'select')
+    if (!canvas || !stageSize) return
+    const el = canvasElRef.current
+    if (
+      el &&
+      el.style.width === `${stageSize.width}px` &&
+      el.style.height === `${stageSize.height}px`
+    ) {
+      return
     }
-
-    const fill = fillRef.current
-    if (fill) {
-      fill.set({
-        left: targetW / 2,
-        top: targetH / 2,
-        originX: 'center',
-        originY: 'center',
-      })
-      fill.setCoords()
-    }
-
-    canvas.requestRenderAll()
+    canvas.setDimensions(
+      { width: stageSize.width, height: stageSize.height },
+      { cssOnly: true },
+    )
   }, [stageSize])
 
   return (

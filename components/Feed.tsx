@@ -3,13 +3,15 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import useSWR from 'swr'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
 import { getFeedAds, trackAdAction } from '../api/partner'
 import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
-import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
+import { request } from '../api/api'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
@@ -62,6 +64,11 @@ function FeedContent() {
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
   const currentUserId = getTokenPayload()?.user_id
+  const { data: myProfile } = useSWR<ViewProfileResponse>(
+    '/profile',
+    (key: string) => request<ViewProfileResponse>(key),
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  )
 
   const filter = tab === 'following' ? 'following' : undefined
 
@@ -300,6 +307,7 @@ function FeedContent() {
         stories={stories}
         loading={storyLoading}
         currentUserId={currentUserId}
+        avatarUri={myProfile?.avatar_uri}
         onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
         onCreateStory={() => setShowCreateStory(true)}
         onMuteUser={(userId) => {
