@@ -1,13 +1,30 @@
 .page {
-  height: 100vh;
+  height: calc(100vh - var(--space-md) * 2);
   min-height: 0;
   display: flex;
   flex-direction: column;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .page {
+    height: calc(100vh - 56px - var(--space-md) * 3);
+  }
 }
 
 @supports (height: 100dvh) {
   .page {
-    height: 100dvh;
+    height: calc(100dvh - var(--space-md) * 2);
+  }
+
+  @media (max-width: 768px) {
+    .page {
+      height: calc(100dvh - 56px - var(--space-md) * 3);
+    }
   }
 }
 
@@ -308,13 +325,5 @@
   .hasChat .windowPane {
     display: flex;
     height: 100%;
-  }
-}
-
-@supports (height: 100dvh) {
-  @media (max-width: 768px) {
-    .page {
-      height: calc(100dvh - 57px);
-    }
   }
 }

@@ -396,14 +396,27 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 
 ```
 ┌──────────┬──────────────────────────┬──────────────┐
-│          │   UserNavbar (56px)      │              │
-│ Left     ├──────────────────────────┤   Right      │
-│ Sidebar  │                          │   Sidebar    │
-│ (260px)  │   Feed / Page Content    │   (360px)    │
-│ sticky   │                          │   sticky     │
+│          │   Navbar (56px card)     │              │
+│ Left     │   sticky top 16px        │   Right      │
+│ Sidebar  ├──────────────────────────┤   Sidebar    │
+│ floating │                          │   floating   │
+│ card     │   Feed / Page Content    │   card       │
 │          │                          │              │
-└──────────┴──────────────────────────┘
+└──────────┴──────────────────────────┴──────────────┘
 ```
+
+**Floating panel chrome (all three components):**
+
+- **Canvas:** `.layout` background is `var(--color-bg-secondary)` — white cards visibly float on the tinted canvas (light `#F5F5F5`, dark `#1A1A1A`)
+- **Panels:** Left sidebar, Right sidebar, and Navbar each render as a floating card — `var(--color-card)` bg, `1px solid var(--color-border)`, `border-radius: var(--radius-lg)`, `box-shadow: var(--shadow-sm)` (navbar: `var(--shadow-md)` since it overlays scrolling content)
+- **Grid:** `gap: var(--space-md)` + `padding: var(--space-md)` — panels never touch viewport edges; mobile drawers are floating sheets inset `16px` as well
+- **Navbar:** sticky at `top: var(--space-md)`, rounded 4 corners, translucent `color-mix(in srgb, var(--color-card) 82%, transparent)` + `backdrop-filter: blur(14px)`, `margin-bottom: var(--space-md)`; feed content scrolls underneath
+- **Sidebars:** sticky full-height cards, `height: calc(100dvh - var(--space-md) * 2)`, scrollbars hidden, own internal padding/scroll
+- **Center content pages** stay transparent — their white cards (PostCard, settings panels) rest directly on the tinted canvas. The messaging workspace (`.page`) is itself a floating card
+- **Active nav item** in left sidebar: pill bg `var(--color-primary-light)` + primary text (matches active tab pattern)
+- **Right sidebar sections** (`.card`, gray blocks): hover elevates to `box-shadow: var(--shadow-sm)` over `0.15s ease`
+- **Drawers (≤1024 right, ≤768 left):** floating sheets — inset `var(--space-md)`, rounded 4 corners, `shadow-lg` when open, slide-in `0.25s ease`
+
 - **Left Sidebar (260px):** Logo, nav items (Home, Explore, Notifications, Messages, Friends, Groups, Saved, Profile), Create Post button, user profile dropdown at bottom. Sticky, full height, scrollable
 - **Center Content:** `UserNavbar` (search + tabs) at top, then page content below. Flex-grow, scrollable
 - **Right Sidebar (360px):** Search box, trending hashtags, follow suggestions. Sticky, full height
