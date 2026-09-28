@@ -60,7 +60,12 @@ export default function LoginForm() {
       localStorage.setItem('refresh_token', res.tokens.refresh_token)
       clearSWRCache()
 
-      router.push(getPostAuthPath(decodeToken(res.tokens.access_token)?.role))
+      const redirect = new URLSearchParams(window.location.search).get('redirect')
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        router.push(redirect)
+      } else {
+        router.push(getPostAuthPath(decodeToken(res.tokens.access_token)?.role))
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t('login.error')
       toast({ type: 'error', title: message })

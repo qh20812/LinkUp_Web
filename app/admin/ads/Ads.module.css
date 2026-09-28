@@ -222,6 +222,35 @@
   color: var(--color-text-secondary);
 }
 
+.badgePending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badgeRejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rejectionInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--text-body);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.rejectionInput:focus {
+  border-color: var(--color-primary);
+}
+
 /* Skeleton */
 .skeletonRow {
   display: flex;

@@ -268,10 +268,10 @@ export const getAds = (page = 1, pageSize = 20, keyword?: string, status?: strin
   return request<AdminAdListResponse>(`/admin/ads?${params}`);
 };
 
-export const updateAdStatus = (id: string, status: string) =>
+export const updateAdStatus = (id: string, status: string, rejectionReason?: string) =>
   request<{ message: string }>(`/admin/ads/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, rejection_reason: rejectionReason || undefined }),
   });
 
 export const deleteAd = (id: string) =>

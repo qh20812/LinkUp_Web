@@ -77,6 +77,20 @@ function MessagesContent() {
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const e2eStatusRef = useRef<ChatE2EStatus>('unavailable')
   const autoSelectRef = useRef(false)
+  const [pendingDraft, setPendingDraft] = useState<string | null>(() => searchParams.get('draft'))
+  const draftInitRef = useRef(false)
+
+  // Story reply: strip draft khỏi URL đúng 1 lần (value đã đọc ở useState
+  // initializer) — tránh gửi lại khi refresh/navigate.
+  useEffect(() => {
+    if (draftInitRef.current) return
+    draftInitRef.current = true
+    if (!searchParams.get('draft')) return
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('draft')
+    const qs = params.toString()
+    router.replace(qs ? `/messages?${qs}` : '/messages')
+  }, [searchParams, router])
 
   // Khôi phục khóa E2E trên thiết bị mới: chặn hydrate danh sách (nội dung sẽ
   // giải mã ra rỗng) cho tới khi mở bằng PIN/recovery key hoặc bỏ qua.
@@ -231,6 +245,17 @@ function MessagesContent() {
       refreshList()
     }
   }, [encryption.status, refreshList])
+
+  // Sẵn sàng auto-send draft story: hội thoại đã hydrate, socket mở, E2E ready
+  // (hoặc chat thường không mã hóa). Không gate trên pendingDraft — Composer
+  // tự giữ cờ draft của nó, nên vẫn true sau khi page đã consume draft.
+  const autoSendReady = Boolean(
+    activeChatType === 'direct' &&
+      activeConversation &&
+      activeConversation.chat_id === activeChatId &&
+      socket.status === 'open' &&
+      (!activeConversation.is_encrypted || encryption.status === 'ready'),
+  )
 
   const navigateToChat = useCallback(
     (chatId: string | null, type: 'direct' | 'group' = 'direct') => {
@@ -619,6 +644,9 @@ function MessagesContent() {
                 onBack={() => navigateToChat(null)}
                 chatBackground={chatBackground}
                 onOpenBackgroundPicker={() => setBackgroundPickerOpen(true)}
+                initialDraft={pendingDraft}
+                autoSendReady={autoSendReady}
+                onDraftConsumed={() => setPendingDraft(null)}
               />
             </>
           ) : (

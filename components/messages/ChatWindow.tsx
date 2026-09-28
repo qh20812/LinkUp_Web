@@ -81,6 +81,9 @@ interface ChatWindowProps {
   onBack?: () => void
   chatBackground?: ChatBackground | null
   onOpenBackgroundPicker?: () => void
+  initialDraft?: string | null
+  autoSendReady?: boolean
+  onDraftConsumed?: () => void
 }
 
 interface DeleteTarget {
@@ -164,6 +167,9 @@ export default function ChatWindow({
   onBack,
   chatBackground,
   onOpenBackgroundPicker,
+  initialDraft = null,
+  autoSendReady = false,
+  onDraftConsumed,
 }: ChatWindowProps) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -1229,7 +1235,18 @@ export default function ChatWindow({
         )}
       </div>
 
-      <Composer room={room} chatId={chatId} replyingTo={replyingTo} forwarding={forwarding ?? null} onClearReply={() => setReplyingTo(null)} onClearForward={onClearForward ?? (() => {})} onScrollToMessage={scrollToMessage} />
+      <Composer
+        room={room}
+        chatId={chatId}
+        replyingTo={replyingTo}
+        forwarding={forwarding ?? null}
+        onClearReply={() => setReplyingTo(null)}
+        onClearForward={onClearForward ?? (() => {})}
+        onScrollToMessage={scrollToMessage}
+        initialDraft={initialDraft}
+        autoSendReady={autoSendReady}
+        onDraftConsumed={onDraftConsumed}
+      />
 
       <Modal
         open={deleteTarget !== null}

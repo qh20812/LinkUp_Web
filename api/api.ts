@@ -50,6 +50,23 @@ export function clearSession(): void {
   localStorage.removeItem('admin_profile')
 }
 
+/** Persist a fresh token pair (e.g. reissued by the server after a role change). */
+export function storeTokens(tokens: { access_token: string; refresh_token?: string }): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('token', tokens.access_token)
+  if (tokens.refresh_token) {
+    localStorage.setItem('refresh_token', tokens.refresh_token)
+  }
+}
+
+/**
+ * Force a token refresh so the JWT claim (e.g. role) is re-read from the DB.
+ * Returns false when refresh fails (no refresh token / network / rejected).
+ */
+export async function refreshSession(): Promise<boolean> {
+  return refreshTokens()
+}
+
 async function refreshTokens(): Promise<boolean> {
   if (typeof window === 'undefined') return false
 

@@ -1,0 +1,66 @@
+.page {
+  animation: fadeIn 0.3s ease;
+}
+
+.title {
+  font: var(--text-h1);
+  color: var(--color-text);
+  margin-bottom: var(--space-xl);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.subscriptionCard {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.subHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.subHeader i {
+  font-size: 20px;
+  color: var(--color-primary);
+}
+
+.subBody {
+  padding: var(--space-lg);
+}
+
+.subRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+}
+
+.subLabel {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.subValue {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

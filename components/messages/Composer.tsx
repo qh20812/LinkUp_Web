@@ -103,11 +103,25 @@ interface ComposerProps {
   onClearReply: () => void
   onClearForward: () => void
   onScrollToMessage?: (messageId: string) => void
+  initialDraft?: string | null
+  autoSendReady?: boolean
+  onDraftConsumed?: () => void
 }
 
 const MAX_ATTACHMENTS = 10
 
-export default function Composer({ room, chatId, replyingTo, forwarding, onClearReply, onClearForward, onScrollToMessage }: ComposerProps) {
+export default function Composer({
+  room,
+  chatId,
+  replyingTo,
+  forwarding,
+  onClearReply,
+  onClearForward,
+  onScrollToMessage,
+  initialDraft = null,
+  autoSendReady = false,
+  onDraftConsumed,
+}: ComposerProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [value, setValue] = useState('')
@@ -126,6 +140,8 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
   const gifPickerRef = useRef<HTMLDivElement>(null)
   const lastTypingRef = useRef(0)
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftPendingRef = useRef(false)
+  const draftSentRef = useRef(false)
   const {
     supported: voiceSupported,
     recording: voiceRecording,
@@ -178,6 +194,18 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
     }
     setValue(forwarding.content || '')
   }, [forwarding])
+
+  // Story reply: điền sẵn draft 1 lần, báo page đã nhận (page strip param URL).
+  useEffect(() => {
+    if (!initialDraft || draftPendingRef.current || draftSentRef.current) return
+    if (!inputRef.current) return
+    draftPendingRef.current = true
+    const el = inputRef.current
+    el.innerHTML = ''
+    el.appendChild(document.createTextNode(initialDraft))
+    setValue(initialDraft)
+    onDraftConsumed?.()
+  }, [initialDraft, onDraftConsumed])
 
   const attachFile = (file: File) => {
     const url = URL.createObjectURL(file)
@@ -270,6 +298,8 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
     if (inputRef.current) inputRef.current.innerHTML = ''
     setEmojiOpen(false)
     sendTyping(false)
+    draftPendingRef.current = false
+    draftSentRef.current = true
   }
 
   const selectGif = (gif: GifItem) => {
@@ -424,6 +454,18 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
     onClearReply()
     onClearForward()
   }
+
+  // Auto-send draft story khi chat sẵn sàng (socket mở, E2E ready). Nếu user
+  // đã tự gửi/reset trước đó thì draftSentRef chặn gửi lần 2; xóa ô → bỏ qua.
+  useEffect(() => {
+    if (!autoSendReady || !draftPendingRef.current || draftSentRef.current) return
+    if (!value.trim()) return
+    draftSentRef.current = true
+    draftPendingRef.current = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- send() tự reset ô soạn cố ý sau auto-send
+    void send()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- send là closure mới mỗi render
+  }, [autoSendReady, value])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])

@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
-import { getPostAuthPath } from '../utils/auth'
 import UserLayout from '../components/UserLayout'
 import Feed from '../components/Feed'
 import Navbar from '../components/Navbar'
@@ -47,9 +46,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (initializing) return
-    const role = isSuperAdmin || isAdmin ? 'ADMIN' : isPartner ? 'PARTNER' : null
-    if (role) router.push(getPostAuthPath(role))
-  }, [isAdmin, isSuperAdmin, isPartner, router, initializing])
+    if (isSuperAdmin || isAdmin) router.push('/admin/dashboard')
+  }, [isAdmin, isSuperAdmin, router, initializing])
 
   if (initializing) {
     return <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }} />
@@ -59,11 +57,11 @@ export default function HomePage() {
     return <LandingPage />
   }
 
-  if (isAdmin || isSuperAdmin || isPartner) {
+  if (isAdmin || isSuperAdmin) {
     return null
   }
 
-  if (isUser) {
+  if (isUser || isPartner) {
     return (
       <UserLayout>
         <Feed />

@@ -6,6 +6,8 @@ import Link from 'next/link'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
+import { getFeedAds, trackAdAction } from '../api/partner'
+import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
 import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
 import PostCard from './PostCard'
@@ -53,6 +55,9 @@ function FeedContent() {
   const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
+  const [feedAds, setFeedAds] = useState<FeedAd[]>([])
+  const [adIndex, setAdIndex] = useState(0)
+  const [trackedAds, setTrackedAds] = useState<Set<string>>(new Set())
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -70,6 +75,12 @@ function FeedContent() {
   useEffect(() => {
     loadStories()
   }, [loadStories])
+
+  useEffect(() => {
+    getFeedAds()
+      .then((res) => setFeedAds(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => {})
+  }, [])
 
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
@@ -300,18 +311,58 @@ function FeedContent() {
             }))
         }}
       />
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onLike={handleLike}
-          onSave={handleSave}
-          onComment={handleComment}
-          onShare={handleShare}
-          onFollow={handleFollow}
-          onOpenDetail={setSelectedPostId}
-        />
-      ))}
+      {posts.map((post, idx) => {
+        const showAd = feedAds.length > 0 && (idx + 1) % 6 === 0 && idx > 0
+        const ad = showAd ? feedAds[adIndex % feedAds.length] : null
+        if (showAd && ad) {
+          setAdIndex((prev) => prev + 1)
+        }
+        return (
+          <div key={post.id}>
+            {ad && (
+              <div className={styles.adCard}>
+                <div className={styles.adBadge}>Tài trợ</div>
+                {ad.media_uri && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={ad.media_uri}
+                    alt={ad.title}
+                    className={styles.adImage}
+                    onLoad={() => {
+                      if (!trackedAds.has(ad.id)) {
+                        setTrackedAds((prev) => new Set(prev).add(ad.id))
+                        trackAdAction(ad.id, 'impression').catch(() => {})
+                      }
+                    }}
+                  />
+                )}
+                <div className={styles.adContent}>
+                  <h4 className={styles.adTitle}>{ad.title}</h4>
+                  <p className={styles.adText}>{ad.content}</p>
+                  <a
+                    href={ad.target_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.adCta}
+                    onClick={() => trackAdAction(ad.id, 'click').catch(() => {})}
+                  >
+                    Xem thêm
+                  </a>
+                </div>
+              </div>
+            )}
+            <PostCard
+              post={post}
+              onLike={handleLike}
+              onSave={handleSave}
+              onComment={handleComment}
+              onShare={handleShare}
+              onFollow={handleFollow}
+              onOpenDetail={setSelectedPostId}
+            />
+          </div>
+        )
+      })}
 
       {loading && (
         <div className={styles.loadingMore}>

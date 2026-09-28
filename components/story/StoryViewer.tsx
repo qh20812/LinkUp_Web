@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import ExternalImage from '../ExternalImage'
 import { EmojiImage } from '../messages/EmojiImage'
 import { getEmotionEmojis } from '../../utils/emojis'
-import { viewStory, interactStory, reactStory, shareStory, deleteStory, getStoryAnalytics } from '../../api/stories'
+import { viewStory, reactStory, shareStory, deleteStory, getStoryAnalytics } from '../../api/stories'
+import { startDirectChat, createChatInvite } from '../../api/chats'
 import styles from './StoryViewer.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
@@ -40,6 +42,7 @@ export default function StoryViewer({
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [replyText, setReplyText] = useState('')
+  const [replySending, setReplySending] = useState(false)
   const [replyFocused, setReplyFocused] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [analytics, setAnalytics] = useState<StoryAnalytics | null>(null)
@@ -49,6 +52,7 @@ export default function StoryViewer({
   const { t } = useTranslation()
   const { toast } = useToast()
   const { emojis } = useEmojis()
+  const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -59,6 +63,7 @@ export default function StoryViewer({
   const story = stories[currentIndex]
   const isVideo = story?.media_type === 'video'
   const isOwner = !!currentUserId && story?.user_id === currentUserId
+  const modalOpen = showAnalytics || showDeleteConfirm
 
   const emojiList = useMemo(() => {
     const server = Array.from(emojis.values())
@@ -100,7 +105,7 @@ export default function StoryViewer({
 
   // Auto-advance for images
   useEffect(() => {
-    if (!story || isPaused || replyFocused || isVideo) return
+    if (!story || isPaused || replyFocused || modalOpen || isVideo) return
 
     const duration = 5000
     const interval = 50
@@ -111,20 +116,20 @@ export default function StoryViewer({
     }, interval)
 
     return () => clearInterval(timer)
-  }, [story, isPaused, replyFocused, isVideo])
+  }, [story, isPaused, replyFocused, modalOpen, isVideo])
 
   // Trigger advance at event phase when image progress reaches 100%
   useEffect(() => {
-    if (!story || isVideo || isPaused || replyFocused) return
+    if (!story || isVideo || isPaused || replyFocused || modalOpen) return
     if (progress < 100) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     goNext()
-  }, [progress, story, isVideo, isPaused, replyFocused, goNext])
+  }, [progress, story, isVideo, isPaused, replyFocused, modalOpen, goNext])
 
   // Video auto-advance
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !isVideo || isPaused || replyFocused) return
+    if (!video || !isVideo || isPaused || replyFocused || modalOpen) return
 
     const handleTimeUpdate = () => {
       if (video.duration > 0) {
@@ -143,22 +148,23 @@ export default function StoryViewer({
       video.removeEventListener('timeupdate', handleTimeUpdate)
       video.removeEventListener('ended', handleEnded)
     }
-  }, [isVideo, isPaused, replyFocused, goNext])
+  }, [isVideo, isPaused, replyFocused, modalOpen, goNext])
 
-  // Pause/play video when isPaused or replyFocused changes
+  // Pause/play video when isPaused, replyFocused, or a modal changes
   useEffect(() => {
     const video = videoRef.current
     if (!video || !isVideo) return
-    if (isPaused || replyFocused) {
+    if (isPaused || replyFocused || modalOpen) {
       video.pause()
     } else {
       video.play().catch(() => {})
     }
-  }, [isPaused, replyFocused, isVideo])
+  }, [isPaused, replyFocused, modalOpen, isVideo])
 
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (modalOpen) return
       if (e.key === 'Escape') {
         onClose()
         return
@@ -177,7 +183,7 @@ export default function StoryViewer({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose, goPrev, goNext, replyFocused])
+  }, [onClose, goPrev, goNext, replyFocused, modalOpen])
 
   // Focus dialog + trap Tab inside + restore focus on close
   useEffect(() => {
@@ -213,10 +219,15 @@ export default function StoryViewer({
 
   // Touch/swipe + double tap
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (modalOpen) return
     touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (modalOpen) {
+      touchStartRef.current = null
+      return
+    }
     if (replyFocused) {
       touchStartRef.current = null
       return
@@ -265,13 +276,26 @@ export default function StoryViewer({
   }
 
   const handleReplySubmit = async () => {
-    if (!replyText.trim() || !story) return
+    const text = replyText.trim()
+    if (!text || !story || replySending) return
+    setReplySending(true)
     try {
-      await interactStory(story.id, 'reply', undefined, replyText.trim())
+      const res = await startDirectChat(story.user_id)
+      if ('needInvite' in res) {
+        await createChatInvite(story.user_id)
+        setReplyText('')
+        toast({ type: 'success', title: t('story.chatInviteSent') })
+        return
+      }
       setReplyText('')
-      toast({ type: 'success', title: t('story.replySent') })
+      onClose()
+      router.push(
+        `/messages?chat_id=${encodeURIComponent(res.chatId)}&type=direct&draft=${encodeURIComponent(text)}`,
+      )
     } catch (err) {
       toast({ type: 'error', title: err instanceof Error ? err.message : t('common.error') })
+    } finally {
+      setReplySending(false)
     }
   }
 
@@ -494,7 +518,12 @@ export default function StoryViewer({
             onBlur={() => setReplyFocused(false)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleReplySubmit() }}
           />
-          <button className={styles.sendBtn} onClick={handleReplySubmit} aria-label={t('story.sendReply')}>
+          <button
+            className={styles.sendBtn}
+            onClick={handleReplySubmit}
+            disabled={replySending || !replyText.trim()}
+            aria-label={t('story.sendReply')}
+          >
             <i className="bx bx-send" />
           </button>
         </div>

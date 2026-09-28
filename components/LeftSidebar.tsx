@@ -40,7 +40,7 @@ export default function LeftSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, isAuthenticated, isUser, isPartner, initializing } = useAuth()
   const { profile } = useProfile()
   const { unreadCount, closeWs } = useNotification()
   const { resetPresence } = usePresence()
@@ -137,6 +137,19 @@ export default function LeftSidebar() {
               <i className="bx bx-cog" />
               <span>{t('nav.settings')}</span>
             </Link>
+            <div className={styles.dropdownDivider} />
+            {!initializing && isAuthenticated && isUser && (
+              <Link href="/packages" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+                <i className="bx bxs-store" />
+                <span>{t('sidebar.becomePartner')}</span>
+              </Link>
+            )}
+            {!initializing && isAuthenticated && isPartner && (
+              <Link href="/partner/dashboard" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+                <i className="bx bx-bar-chart-alt-2" />
+                <span>{t('sidebar.partnerHub')}</span>
+              </Link>
+            )}
             <div className={styles.dropdownDivider} />
             <button className={`${styles.dropdownItem} ${styles.danger}`} onClick={handleLogout}>
               <i className="bx bx-log-out-circle" />
