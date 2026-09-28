@@ -309,12 +309,18 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 
 ### Toast Notifications
 
-- Position: bottom-right, `16px` from edges
+- Position: bottom-right, `16px` from edges (mobile: full-width, honors `safe-area-inset-bottom`)
 - Width: `360px` max
-- Left border: `4px` solid (color matches type: green/red/amber/blue)
-- Background: `var(--color-card)`, shadow: `var(--shadow-lg)`
-- Auto-dismiss: 4 seconds with progress bar
-- Types: success, error, warning, info — each with distinct icon and border color
+- Surface: `var(--color-card)`, `1px solid var(--color-border)`, `border-radius: var(--radius-lg)`, `var(--shadow-lg)` — no left accent stripe
+- Lead: `32px` circular **icon chip** — background `var(--color-{type}-light)`, icon `var(--color-{type})` (solid Boxicons glyph)
+- Title: `14px` / `600`; message: `--text-caption` muted
+- Optional **action button** (e.g. "Undo"): text button in `var(--color-primary)`, `600`, hover wash `var(--color-primary-light)`
+- Auto-dismiss: 4 seconds with `2px` bottom progress bar; **timer and progress pause on hover/focus**
+- **Stack:** max `3` visible toasts (overflow exits oldest with animation); duplicate `type + title` replaces the existing toast
+- **Swipe:** horizontal drag > `60px` dismisses (touch)
+- Entrance: `translateY(16px) + fade`, `200ms cubic-bezier(0.21, 1.02, 0.73, 1)`; exit: `fade + translateY(12px)`, `150ms ease-in`
+- `prefers-reduced-motion`: transforms disabled, instant appear/disappear
+- Types: success, error, warning, info — chip color distinguishes them; error uses `role="alert"`, others `role="status"`
 
 ---
 
