@@ -4,13 +4,13 @@ import { useState, useRef, useEffect } from 'react'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
 import GifPicker from './GifPicker'
-import GiphyEmojiPicker from './GiphyEmojiPicker'
+import EmojiPicker from './EmojiPicker'
 import styles from './PostComposer.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import type { GiphyEmoji } from '../utils/giphy'
+import type { EmojiOption } from '../utils/emojifyi'
 import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
 
 function useProfile() {
@@ -38,10 +38,10 @@ function serializeEmojiContent(el: HTMLElement): string {
       out += n.dataset.code
       return
     }
-    if (n.dataset.giphy) {
-      // Bọc URL bằng space — URL GIPHY liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
+    if (n.dataset.emoji) {
+      // Bọc URL bằng space — URL ảnh emoji liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
       if (out && !/\s$/.test(out)) out += ' '
-      out += n.dataset.giphy + ' '
+      out += n.dataset.emoji + ' '
       return
     }
     const tag = n.tagName
@@ -58,7 +58,7 @@ function serializeEmojiContent(el: HTMLElement): string {
     node.childNodes.forEach(walk)
   }
   walk(el)
-  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL GIPHY được bọc space).
+  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL emoji được bọc space).
   return out.replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ +$/, '')
 }
 
@@ -179,7 +179,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
     setError(null)
   }
 
-  const insertEmoji = (emoji: GiphyEmoji) => {
+  const insertEmoji = (emoji: EmojiOption) => {
     const el = contentRef.current
     if (!el) {
       setContent((prev) => prev + emoji.url)
@@ -188,7 +188,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
     const img = document.createElement('img')
     img.src = emoji.url
     img.alt = emoji.title || 'emoji'
-    img.dataset.giphy = emoji.url
+    img.dataset.emoji = emoji.url
     img.className = 'emojiInline'
     insertNodeAtCaret(el, img)
     setContent(serializeEmojiContent(el))
@@ -374,7 +374,7 @@ export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost)
                 <span>{t('composer.emoji')}</span>
               </button>
               {emojiOpen && (
-                <GiphyEmojiPicker
+                <EmojiPicker
                   placement="bottom"
                   onSelect={insertEmoji}
                   onClose={() => setEmojiOpen(false)}

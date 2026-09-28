@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import ExternalImage from '../ExternalImage'
 import { isGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
+import { isEmojifyiUrl } from '../../utils/emojifyi'
 import type { EmojiItem } from '../../types'
 import styles from './EmojiImage.module.css'
 
@@ -48,7 +49,7 @@ export function renderEmojiContent(
         return
       }
     }
-    // Trong text thường, URL GIPHY được chèn từ emoji picker render thành ảnh inline (rewrite sang bản still tĩnh).
+    // Trong text thường, URL ảnh emoji (GIPHY cũ / emojifyi mới) render thành ảnh inline.
     const segs = part.split(URL_RE)
     segs.forEach((seg, j) => {
       if (!seg) return
@@ -58,6 +59,18 @@ export function renderEmojiContent(
           <img
             key={`${key}-g${j}`}
             src={giphyStillUrl(seg)}
+            alt="emoji"
+            className={emojiClassName || styles.inlineGiphy}
+            loading="lazy"
+            decoding="async"
+          />,
+        )
+      } else if (j % 2 === 1 && isEmojifyiUrl(seg)) {
+        out.push(
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${key}-e${j}`}
+            src={seg}
             alt="emoji"
             className={emojiClassName || styles.inlineGiphy}
             loading="lazy"

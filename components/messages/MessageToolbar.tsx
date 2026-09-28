@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
-import { giphyEmojiSrc } from '../../utils/emojis'
+import { emojiSrc } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
@@ -117,7 +117,7 @@ export default function MessageToolbar({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={giphyEmojiSrc(item)}
+                    src={emojiSrc(item)}
                     alt={item.code}
                     className={styles.toolbarReactionPickEmoji}
                     loading="lazy"

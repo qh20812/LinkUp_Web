@@ -1,10 +1,10 @@
 import type { GifItem } from '../types'
 
-// ===== GIPHY API client dùng chung (Web) =====
-// Endpoint đã kiểm chứng thực tế:
-//  - v2/emoji      : browse catalog emoji (q BỊ BỎ QUA -> chỉ dùng offset pagination, limit max 50)
-//  - v1/stickers/search : tìm kiếm emoji/sticker (q hoạt động tốt)
-//  - v1/gifs/trending | v1/gifs/search : GIF
+// ===== GIPHY API client — chỉ dùng cho GIF =====
+// Emoji đã chuyển sang emojifyi.com (utils/emojifyi.ts).
+// Các helper URL GIPHY bên dưới GIỮ NGUYÊN cho nội dung cũ đã lưu trong DB
+// (post/tin nhắn/bio chứa URL media*.giphy.com) + GIF đính kèm.
+// Endpoint GIF đã kiểm chứng: v1/gifs/trending | v1/gifs/search.
 
 export const GIPHY_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY ?? ''
 
@@ -66,15 +66,6 @@ export function isSingleGiphyUrl(text: string): boolean {
   return stripGiphyUrls(trimmed) === ''
 }
 
-export interface GiphyEmoji {
-  id: string
-  title: string
-  /** URL đưa vào nội dung — bản still tĩnh (200w_s.gif). */
-  url: string
-  /** Ảnh tĩnh cho lưới picker (100x100). */
-  preview: string
-}
-
 interface GiphyImage {
   url: string
   width?: string
@@ -122,21 +113,6 @@ function toGifItem(r: GiphyResult): GifItem | null {
   }
 }
 
-function toEmoji(r: GiphyResult): GiphyEmoji {
-  return {
-    id: r.id,
-    title: r.title ?? '',
-    // URL canonical still (200w_s.gif — ảnh tĩnh) để chèn vào nội dung.
-    url: giphyMediaUrl(r.id),
-    // Ảnh tĩnh cho lưới picker — lấy từ API (*_still); fallback URL canonical still.
-    preview:
-      r.images.fixed_width_small_still?.url ??
-      r.images.fixed_height_small_still?.url ??
-      r.images.fixed_width_still?.url ??
-      giphyMediaUrl(r.id, '100w_s.gif'),
-  }
-}
-
 async function giphyGet(path: string, params: Record<string, string>): Promise<GiphyListResponse> {
   if (!GIPHY_KEY) return { data: [] }
   const url = new URL(`${GIPHY_API}${path}`)
@@ -145,40 +121,6 @@ async function giphyGet(path: string, params: Record<string, string>): Promise<G
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`GIPHY ${res.status}`)
   return (await res.json()) as GiphyListResponse
-}
-
-// ===== Emoji =====
-
-export interface FetchEmojisResult {
-  items: GiphyEmoji[]
-  hasMore: boolean
-}
-
-export async function fetchGiphyEmojis(
-  opts: { q?: string; offset?: number } = {},
-): Promise<FetchEmojisResult> {
-  const query = opts.q?.trim()
-  const offset = opts.offset ?? 0
-  if (query) {
-    // v2/emoji bỏ qua q -> dùng stickers/search cho phần tìm kiếm
-    const data = await giphyGet('/v1/stickers/search', {
-      q: query,
-      limit: '24',
-      offset: String(offset),
-      rating: 'g',
-    })
-    const items = data.data.map(toEmoji)
-    const total = data.pagination?.total_count ?? 0
-    const count = data.pagination?.count ?? items.length
-    return { items, hasMore: offset + count < total }
-  }
-  const data = await giphyGet('/v2/emoji', {
-    limit: '50',
-    offset: String(offset),
-  })
-  const items = data.data.map(toEmoji)
-  const next = data.pagination?.next_cursor
-  return { items, hasMore: items.length > 0 && next !== undefined && next > 0 }
 }
 
 // ===== GIF =====

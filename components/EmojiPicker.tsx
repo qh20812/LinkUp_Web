@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import styles from './GiphyEmojiPicker.module.css'
+import styles from './EmojiPicker.module.css'
 import { useTranslation } from '../hooks/useTranslation'
-import { GIPHY_KEY, fetchGiphyEmojis, type GiphyEmoji } from '../utils/giphy'
+import { fetchEmojifyiEmojis, type EmojiOption } from '../utils/emojifyi'
 
-interface GiphyEmojiPickerProps {
-  onSelect: (emoji: GiphyEmoji) => void
+interface EmojiPickerProps {
+  onSelect: (emoji: EmojiOption) => void
   onClose: () => void
   placement?: 'top' | 'bottom'
   /** Element that toggles this picker — clicks on it are not treated as outside. */
@@ -15,19 +15,19 @@ interface GiphyEmojiPickerProps {
 
 const DEBOUNCE_MS = 400
 
-export default function GiphyEmojiPicker({
+export default function EmojiPicker({
   onSelect,
   onClose,
   placement = 'bottom',
   ignoreRef,
-}: GiphyEmojiPickerProps) {
+}: EmojiPickerProps) {
   const { t } = useTranslation()
   const tRef = useRef(t)
   useEffect(() => {
     tRef.current = t
   })
   const [query, setQuery] = useState('')
-  const [items, setItems] = useState<GiphyEmoji[]>([])
+  const [items, setItems] = useState<EmojiOption[]>([])
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,9 +56,8 @@ export default function GiphyEmojiPicker({
   }, [onClose, ignoreRef])
 
   const load = useCallback((q: string, offset: number) => {
-    if (!GIPHY_KEY) return
     const id = ++requestIdRef.current
-    fetchGiphyEmojis({ q, offset })
+    fetchEmojifyiEmojis({ q, offset })
       .then((res) => {
         if (requestIdRef.current !== id) return
         setItems((prev) => (offset === 0 ? res.items : [...prev, ...res.items]))
@@ -81,7 +80,6 @@ export default function GiphyEmojiPicker({
 
   // Debounced search.
   useEffect(() => {
-    if (!GIPHY_KEY) return
     const term = query.trim()
     if (!term) {
       // quay về catalog khi xóa search
@@ -110,17 +108,6 @@ export default function GiphyEmojiPicker({
 
   const pickerClass = `${styles.picker}${placement === 'top' ? ` ${styles.pickerTop}` : ''}`
 
-  if (!GIPHY_KEY) {
-    return (
-      <div className={pickerClass} ref={rootRef} role="dialog" aria-label={t('composer.emoji')}>
-        <div className={styles.missingKey}>
-          <i className="bx bx-error-circle" />
-          <p>{t('composer.gifMissingKey')}</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={pickerClass} ref={rootRef} role="dialog" aria-label={t('composer.emoji')}>
       <div className={styles.searchRow}>
@@ -139,7 +126,7 @@ export default function GiphyEmojiPicker({
       <div className={styles.grid} ref={gridRef} onScroll={onScroll}>
         {items.map((e) => (
           <button
-            key={`${e.id}-${e.title}`}
+            key={e.id}
             type="button"
             className={styles.item}
             onClick={() => {
@@ -162,7 +149,7 @@ export default function GiphyEmojiPicker({
           <p className={styles.empty}>{t('composer.emojiEmpty')}</p>
         )}
       </div>
-      <div className={styles.attribution}>Powered by GIPHY</div>
+      <div className={styles.attribution}>Powered by EmojiFYI</div>
     </div>
   )
 }

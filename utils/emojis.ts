@@ -1,5 +1,5 @@
 import { getEmojis } from '../api/posts'
-import { giphyMediaUrl } from './giphy'
+import { emojifyiImageUrl } from './emojifyi'
 import type { EmojiItem } from '../types'
 
 let cache: Map<string, EmojiItem> | null = null
@@ -78,73 +78,28 @@ export const EMOTION_EMOJIS: EmotionEmoji[] = [
   { code: ':sick:', emoji: '\u{1F922}', label: 'Sick', group: 'negative' },
 ]
 
-function twemojiUrl(emoji: string): string {
-  const cps = [...emoji]
-    .map((ch) => ch.codePointAt(0)!.toString(16))
-    .filter((cp) => cp !== 'fe0f')
-    .join('-')
-  return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${cps}.png`
+// Code của backend seed (bảng emojis) không có trong EMOTION_EMOJIS.
+// Ký tự lấy từ cmd/seed/core/main.go (image_uri twemoji tương ứng).
+const EXTRA_CODE_TO_CHAR: Record<string, string> = {
+  ':like:': '\u{1F44D}', // 👍
+  ':haha:': '\u{1F602}', // 😂
+  ':rocket:': '\u{1F680}', // 🚀
 }
 
-// Map code -> GIPHY id (tìm qua v1/stickers/search, xếp tay). Emoji render bằng bản still tĩnh (200w_s.gif).
-export const CODE_TO_GIPHY: Record<string, string> = {
-  ':grinning:': 'IpJnbpcEVlLubYtaWh',
-  ':smile:': 'adv74AcNdtP0tj9hLj',
-  ':laughing:': '3ohzdVxy4QqiyrO3U4',
-  ':joy:': 'hVlZnRT6QW1DeYj6We',
-  ':heart_eyes:': 'QUGf8x31iMVSdbNn00',
-  ':kiss:': 'XFFHwbd9re4PFrVV28',
-  ':blush:': 'jRBv1B8dksiq9RyK53',
-  ':wink:': 'hizFOl9hAbeLxp3v0B',
-  ':cool:': 'S3zCBYTwOXlw6o8j84',
-  ':smirk:': '8bl86q2fSFG7bfZUlm',
-  ':relieved:': 'kDqjhUF7jow0V3YX2L',
-  ':hug:': 'lE9zFMsavhUNZuB33I',
-  ':star_eyes:': 'TRA3HFajzhVIFcrRHD',
-  ':partying:': 'KDhlMXoFS8Bx5AYKC4',
-  ':thumbsup:': 'QM3VscCkwB54O6lSee',
-  ':clap:': '5w39AhTMInyt06d4Fu',
-  ':fire:': 'Ply2vUaRg3Swc100lk',
-  ':heart:': 'cRLI5pM8yg3tIqZARZ',
-  ':love:': 'nlNg4qMR8k5mi04fup',
-  ':thinking:': 'Wt42JLMCrSvqxnOPE4',
-  ':neutral:': 'MwQZTlAB8wOfR6lKbt',
-  ':expressionless:': 'iiBpXAiqhsHF3ome4h',
-  ':hmm:': 'WiLul7Z1iulXJVhX9V',
-  ':shrug:': 'zs9a8QS1d6wMNt1dNQ',
-  ':sleepy:': 'rRHR5IFJ7ygfBPlmdO',
-  ':yawning:': 'KMMCwoPpNV9BZqfIGt',
-  ':tired:': 'CNFSTgERMmcdkyxwg3',
-  ':sad:': 'iyGqsXjNfCfx1p2ldm',
-  ':cry:': 'YhMV2cdUWTrPVpZOFN',
-  ':angry:': 'kgLZrW88GRYmpCuPVk',
-  ':rage:': 'gYBCWGIzW4Dygi8sZK',
-  ':wow:': 'bgIUovWAtVaNixyZG2',
-  ':fear:': 'xUPGcpnieVnGZQ5IAw',
-  ':disappointed:': 'h4OGa0npayrJX2NRPT',
-  ':worried:': 'ZWikkq2eBbEYw',
-  ':confused:': 'baOek1Pg6uJY45Q5JI',
-  ':sick:': 'jTMUk5hb8ZnRn1VWFe',
-  // Code của backend seed (bảng emojis) — reaction tin nhắn.
-  ':like:': 'QM3VscCkwB54O6lSee', // cùng ký tự 👍 với :thumbsup:
-  ':haha:': 'hVlZnRT6QW1DeYj6We', // cùng ký tự 😂 với :joy:
-  ':rocket:': 'pcyoWXeoHCapjCvCTQ',
-}
-
-/** Ảnh render cho 1 code: GIPHY (nếu có map) -> twemoji (dự phòng). */
-export function emojiImageUrl(code: string, fallbackEmoji: string): string {
-  const id = CODE_TO_GIPHY[code]
-  return id ? giphyMediaUrl(id) : twemojiUrl(fallbackEmoji)
+function charForCode(code: string): string | null {
+  const extra = EXTRA_CODE_TO_CHAR[code]
+  if (extra) return extra
+  return EMOTION_EMOJIS.find((e) => e.code === code)?.emoji ?? null
 }
 
 /**
  * Ảnh render cho 1 EmojiItem đã có sẵn (emoji server/backend):
- * GIPHY theo code nếu có -> giữ nguyên image_uri (twemoji) làm dự phòng.
- * Dùng cho reaction tin nhắn (picker + chip + bubble).
+ * ký tự theo code -> ảnh CDN emojifyi (noto) -> giữ nguyên image_uri
+ * (twemoji CDN của server) làm dự phòng. Dùng cho reaction tin nhắn (picker + chip + bubble).
  */
-export function giphyEmojiSrc(item: EmojiItem): string {
-  const id = CODE_TO_GIPHY[item.code]
-  return id ? giphyMediaUrl(id) : item.image_uri
+export function emojiSrc(item: EmojiItem): string {
+  const ch = charForCode(item.code)
+  return ch ? emojifyiImageUrl(ch) : item.image_uri
 }
 
 export type EmotionEmojiItem = EmojiItem & { group: EmojiGroup; label: string }
@@ -153,7 +108,7 @@ export function getEmotionEmojis(): EmotionEmojiItem[] {
   return EMOTION_EMOJIS.map((e) => ({
     id: `emotion-${e.code.slice(1, -1)}`,
     code: e.code,
-    image_uri: emojiImageUrl(e.code, e.emoji),
+    image_uri: emojifyiImageUrl(e.emoji),
     group: e.group,
     label: e.label,
   }))

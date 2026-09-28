@@ -9,8 +9,8 @@ import { WORK_OPTIONS, EDUCATION_OPTIONS } from '../../data/profile-enums'
 import { useToast } from '../../contexts/ToastContext'
 import SearchSelect from '../SearchSelect'
 import DatePicker from '../DatePicker'
-import GiphyEmojiPicker from '../GiphyEmojiPicker'
-import type { GiphyEmoji } from '../../utils/giphy'
+import EmojiPicker from '../EmojiPicker'
+import type { EmojiOption } from '../../utils/emojifyi'
 import type { ViewProfileResponse } from '../../types'
 import LocationPicker from './location/LocationPicker'
 import WebsitePreview from './WebsitePreview'
@@ -93,7 +93,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     )
   }
 
-  const insertEmoji = (emoji: GiphyEmoji) => {
+  const insertEmoji = (emoji: EmojiOption) => {
     const ch = emoji.url
     const sel = bioSelRef.current ?? [bio.length, bio.length]
     const start = Math.min(sel[0], sel[1])
@@ -226,7 +226,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
                 <i className="bx bx-smile" />
               </button>
               {emojiOpen && (
-                <GiphyEmojiPicker
+                <EmojiPicker
                   placement="bottom"
                   onSelect={insertEmoji}
                   onClose={() => setEmojiOpen(false)}

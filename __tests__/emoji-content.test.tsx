@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls, separateGiphyUrls } from '@/utils/giphy'
-import { giphyEmojiSrc } from '@/utils/emojis'
+import { emojifyiImageUrl, isEmojifyiUrl, isSingleEmojifyiUrl, stripEmojifyiUrls } from '@/utils/emojifyi'
+import { emojiSrc } from '@/utils/emojis'
 import { renderEmojiContent } from '@/components/messages/EmojiImage'
 import { serializeContent } from '@/components/messages/Composer'
 import { truncateAvoidingUrl } from '@/components/PostCard'
@@ -17,6 +18,8 @@ jest.mock('next/link', () => ({
 }))
 
 const GIPHY_URL = 'https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w.gif'
+const EMOJIFYI_URL = 'https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f600.png'
+const EMOJIFYI_URL2 = 'https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f60d.png'
 
 describe('giphy url utils', () => {
   test('giphyMediaUrl builds canonical url', () => {
@@ -79,6 +82,51 @@ describe('giphy url utils', () => {
   })
 })
 
+describe('emojifyi url utils', () => {
+  test('emojifyiImageUrl sinh URL CDN (noto, bỏ fe0f, pad >= 4 hex)', () => {
+    expect(emojifyiImageUrl('\u{1F600}')).toBe(EMOJIFYI_URL)
+    // CDN không có file kèm fe0f -> phải bỏ nó (verify thực tế: ..._fe0f.png trả 404)
+    expect(emojifyiImageUrl('\u{2764}\u{FE0F}')).toBe(
+      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u2764.png',
+    )
+    // codepoint < 0x1000 zero-pad (vd keycap # -> 0023)
+    expect(emojifyiImageUrl('#\u{FE0F}\u{20E3}')).toBe(
+      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u0023_20e3.png',
+    )
+    // chuỗi nhiều codepoint (ZWJ) nối bằng _
+    expect(emojifyiImageUrl('\u{1F469}\u{200D}\u{1F4BB}')).toBe(
+      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f469_200d_1f4bb.png',
+    )
+  })
+
+  test('isEmojifyiUrl chỉ nhận CDN emojifyi', () => {
+    expect(isEmojifyiUrl(EMOJIFYI_URL)).toBe(true)
+    expect(isEmojifyiUrl('https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f600.png')).toBe(true)
+    expect(isEmojifyiUrl(GIPHY_URL)).toBe(false)
+    expect(isEmojifyiUrl('https://example.com/1f600.png')).toBe(false)
+  })
+
+  test('isSingleEmojifyiUrl / stripEmojifyiUrls', () => {
+    expect(isSingleEmojifyiUrl(EMOJIFYI_URL)).toBe(true)
+    expect(isSingleEmojifyiUrl(`  ${EMOJIFYI_URL}  `)).toBe(true)
+    expect(isSingleEmojifyiUrl(`text ${EMOJIFYI_URL}`)).toBe(false)
+    expect(isSingleEmojifyiUrl('')).toBe(false)
+    expect(stripEmojifyiUrls(`hi ${EMOJIFYI_URL} bye`)).toBe('hi bye')
+    expect(stripEmojifyiUrls('no url here')).toBe('no url here')
+  })
+
+  test('renderEmojiContent render URL emojifyi thành ảnh inline', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderEmojiContent(`hi ${EMOJIFYI_URL} bye`, new Map(), 'k')}</>,
+    )
+    expect(markup).toContain(`<img`)
+    expect(markup).toContain(`src="${EMOJIFYI_URL}"`)
+    expect(markup).toContain('alt="emoji"')
+    expect(markup).toContain('hi ')
+    expect(markup).toContain(' bye')
+  })
+})
+
 describe('renderEmojiContent', () => {
   const like: EmojiItem = { id: 'e1', code: ':like:', image_uri: 'https://media.giphy.com/media/like-id/200w.gif' }
   const map = new Map<string, EmojiItem>([[':like:', like]])
@@ -137,17 +185,17 @@ describe('renderEmojiContent', () => {
 })
 
 describe('serializeContent', () => {
-  test('serializes text, giphy span and code span', () => {
+  test('serializes text, emoji span and code span', () => {
     const el = document.createElement('div')
     el.appendChild(document.createTextNode('hello '))
-    const giphy = document.createElement('span')
-    giphy.dataset.giphy = GIPHY_URL
-    el.appendChild(giphy)
+    const emoji = document.createElement('span')
+    emoji.dataset.emoji = EMOJIFYI_URL
+    el.appendChild(emoji)
     el.appendChild(document.createElement('br'))
     const code = document.createElement('span')
     code.dataset.code = ':like:'
     el.appendChild(code)
-    expect(serializeContent(el)).toBe(`hello ${GIPHY_URL}\n:like:\n`)
+    expect(serializeContent(el)).toBe(`hello ${EMOJIFYI_URL}\n:like:\n`)
   })
 
   test('serializes div blocks with newlines', () => {
@@ -161,45 +209,50 @@ describe('serializeContent', () => {
     expect(serializeContent(el)).toBe('line one\nline two\n')
   })
 
-  test('serializes adjacent giphy elements with space between urls', () => {
-    const url2 = 'https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w_s.gif'
+  test('serializes adjacent emoji elements with space between urls', () => {
     const el = document.createElement('div')
     const a = document.createElement('span')
-    a.dataset.giphy = GIPHY_URL
+    a.dataset.emoji = EMOJIFYI_URL
     const b = document.createElement('span')
-    b.dataset.giphy = url2
+    b.dataset.emoji = EMOJIFYI_URL2
     el.appendChild(a)
     el.appendChild(b)
-    expect(serializeContent(el)).toBe(`${GIPHY_URL} ${url2}\n`)
+    expect(serializeContent(el)).toBe(`${EMOJIFYI_URL} ${EMOJIFYI_URL2}\n`)
   })
 
-  test('keeps space between giphy url and following text', () => {
+  test('keeps space between emoji url and following text', () => {
     const el = document.createElement('div')
-    const giphy = document.createElement('span')
-    giphy.dataset.giphy = GIPHY_URL
-    el.appendChild(giphy)
+    const emoji = document.createElement('span')
+    emoji.dataset.emoji = EMOJIFYI_URL
+    el.appendChild(emoji)
     el.appendChild(document.createTextNode('after'))
-    expect(serializeContent(el)).toBe(`${GIPHY_URL} after\n`)
+    expect(serializeContent(el)).toBe(`${EMOJIFYI_URL} after\n`)
   })
 })
 
-describe('giphyEmojiSrc (reaction tin nhắn)', () => {
+describe('emojiSrc (reaction tin nhắn)', () => {
   const serverItem = (code: string, imageUri = 'https://cdn.example.com/emoji.png'): EmojiItem => ({
     id: `server-${code}`,
     code,
     image_uri: imageUri,
   })
 
-  test('map toàn bộ code của backend seed sang GIPHY', () => {
-    expect(giphyEmojiSrc(serverItem(':like:'))).toBe(giphyMediaUrl('QM3VscCkwB54O6lSee'))
-    expect(giphyEmojiSrc(serverItem(':haha:'))).toBe(giphyMediaUrl('hVlZnRT6QW1DeYj6We'))
-    expect(giphyEmojiSrc(serverItem(':rocket:'))).toBe(giphyMediaUrl('pcyoWXeoHCapjCvCTQ'))
-    expect(giphyEmojiSrc(serverItem(':fire:'))).toBe(giphyMediaUrl('Ply2vUaRg3Swc100lk'))
-    expect(giphyEmojiSrc(serverItem(':heart:'))).toBe(giphyMediaUrl('cRLI5pM8yg3tIqZARZ'))
+  test('map code backend/emotion sang ảnh emojifyi (noto)', () => {
+    const cdn = 'https://cdn.emojifyi.com/images/platforms/noto/emoji_u'
+    expect(emojiSrc(serverItem(':like:'))).toBe(`${cdn}1f44d.png`)
+    expect(emojiSrc(serverItem(':haha:'))).toBe(`${cdn}1f602.png`)
+    expect(emojiSrc(serverItem(':rocket:'))).toBe(`${cdn}1f680.png`)
+    expect(emojiSrc(serverItem(':fire:'))).toBe(`${cdn}1f525.png`)
+    expect(emojiSrc(serverItem(':heart:'))).toBe(`${cdn}2764.png`)
+    expect(emojiSrc(serverItem(':wow:'))).toBe(`${cdn}1f62e.png`)
+    expect(emojiSrc(serverItem(':clap:'))).toBe(`${cdn}1f44f.png`)
+    expect(emojiSrc(serverItem(':sad:'))).toBe(`${cdn}1f622.png`)
+    expect(emojiSrc(serverItem(':angry:'))).toBe(`${cdn}1f621.png`)
+    expect(emojiSrc(serverItem(':love:'))).toBe(`${cdn}1f496.png`)
   })
 
-  test('giữ image_uri (twemoji) khi chưa có map GIPHY', () => {
-    expect(giphyEmojiSrc(serverItem(':unknown:'))).toBe('https://cdn.example.com/emoji.png')
+  test('giữ image_uri (twemoji CDN của server) khi chưa có map ký tự', () => {
+    expect(emojiSrc(serverItem(':unknown:'))).toBe('https://cdn.example.com/emoji.png')
   })
 })
 

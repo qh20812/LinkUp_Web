@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslation } from '../../hooks/useTranslation'
-import { giphyEmojiSrc } from '../../utils/emojis'
+import { emojiSrc } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
@@ -19,7 +19,7 @@ export default function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={giphyEmojiSrc(emoji)}
+      src={emojiSrc(emoji)}
       alt={emoji.code}
       className={styles.emojiMsg}
       loading="lazy"

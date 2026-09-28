@@ -47,7 +47,7 @@ export default function ConversationList({
   const { emojis } = useEmojis()
   const { isOnline, prefetchPresence } = usePresence()
   const emojiCodeMap = useMemo(() => {
-    // Backend trước, EMOTION (GIPHY) ghi đè — render text ưu tiên GIPHY thay twemoji CDN.
+    // Backend trước, EMOTION ghi đè — render text ưu tiên ảnh emojifyi thay twemoji CDN của server.
     const map = new Map<string, EmojiItem>()
     for (const e of emojis.values()) map.set(e.code, e)
     for (const [code, e] of emojiByCode(getEmotionEmojis())) map.set(code, e)

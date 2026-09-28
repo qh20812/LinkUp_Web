@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import ExternalImage from '../ExternalImage'
 import GifPicker from '../GifPicker'
-import GiphyEmojiPicker from '../GiphyEmojiPicker'
+import EmojiPicker from '../EmojiPicker'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { uploadChatMedia } from '../../api/chats'
 import { useAudioRecorder, type VoiceRecording } from '../../hooks/useAudioRecorder'
 import { formatCallDuration } from '../../utils/chat'
 import VoicePlayer from './VoicePlayer'
-import { isGiphyUrl, type GiphyEmoji } from '../../utils/giphy'
+import { isGiphyUrl } from '../../utils/giphy'
+import { isEmojifyiUrl, type EmojiOption } from '../../utils/emojifyi'
 import type { ChatMessage, GifItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import styles from './ChatWindow.module.css'
@@ -28,10 +29,10 @@ export function serializeContent(el: HTMLElement): string {
       out += n.dataset.code
       return
     }
-    if (n.dataset.giphy) {
-      // Bọc URL bằng space — URL GIPHY liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
+    if (n.dataset.emoji) {
+      // Bọc URL bằng space — URL ảnh emoji liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
       if (out && !/\s$/.test(out)) out += ' '
-      out += n.dataset.giphy + ' '
+      out += n.dataset.emoji + ' '
       return
     }
     const tag = n.tagName
@@ -48,7 +49,7 @@ export function serializeContent(el: HTMLElement): string {
     node.childNodes.forEach(walk)
   }
   walk(el)
-  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL GIPHY được bọc space).
+  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL emoji được bọc space).
   return out.replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ +$/, '')
 }
 
@@ -56,8 +57,9 @@ const SINGLE_URL_RE = /^https?:\/\/\S+$/i
 
 function isSingleImageUrl(text: string): boolean {
   const trimmed = text.trim()
-  // Emoji GIPHY chèn vào text phải giữ dạng URL để render inline — không upload thành media.
+  // Emoji chèn vào text (GIPHY cũ / emojifyi mới) phải giữ dạng URL để render inline — không upload thành media.
   if (isGiphyUrl(trimmed)) return false
+  if (isEmojifyiUrl(trimmed)) return false
   if (!SINGLE_URL_RE.test(trimmed)) return false
   try {
     const u = new URL(trimmed)
@@ -232,11 +234,11 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
     setValue(serializeContent(el))
   }
 
-  const insertEmoji = (emoji: GiphyEmoji) => {
+  const insertEmoji = (emoji: EmojiOption) => {
     const img = document.createElement('img')
     img.src = emoji.url
     img.alt = emoji.title || 'emoji'
-    img.dataset.giphy = emoji.url
+    img.dataset.emoji = emoji.url
     img.className = 'emojiInline'
     insertNodeAtCaret(img)
   }
@@ -662,7 +664,7 @@ export default function Composer({ room, chatId, replyingTo, forwarding, onClear
       <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFile} />
       {emojiOpen && (
         <div ref={pickerRef}>
-          <GiphyEmojiPicker
+          <EmojiPicker
             placement="top"
             onSelect={insertEmoji}
             onClose={() => setEmojiOpen(false)}
