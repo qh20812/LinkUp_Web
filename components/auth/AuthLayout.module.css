@@ -55,47 +55,6 @@
   gap: var(--space-md);
 }
 
-.toggleGroup {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.toggleBtn {
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggleActive {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-bg);
-}
-
-.iconBtn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.15rem;
-}
-
-.iconBtn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
 .main {
   flex: 1;
   min-height: 0;
@@ -126,17 +85,8 @@
     padding: 0 var(--space-md);
   }
 
-  .toggleGroup {
-    gap: var(--space-xs);
-  }
-
-  .toggleBtn {
-    padding: var(--space-xs) var(--space-sm);
-  }
-
-  .iconBtn {
-    width: 36px;
-    height: 36px;
+  .controls {
+    gap: var(--space-sm);
   }
 
   .footer {

@@ -145,6 +145,11 @@ table {
   --glass-blur: 14px;
   --glass-shadow: 0 8px 32px rgba(10, 31, 68, 0.1);
 
+  /* Segmented control (NavControls language toggle) — iOS-style elevated thumb */
+  --seg-track-bg: color-mix(in srgb, var(--color-bg-secondary) 85%, transparent);
+  --seg-thumb-bg: #ffffff;
+  --seg-thumb-text: var(--color-text);
+
   /* Z-index scale */
   --z-base: 0;
   --z-above: 1;
@@ -240,6 +245,11 @@ table {
   --glass-bg-strong: color-mix(in srgb, var(--color-card) 90%, transparent);
   --glass-border: color-mix(in srgb, var(--color-border) 75%, transparent);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+
+  /* Segmented control — dark track, bright thumb (light-fill dark CTA doctrine) */
+  --seg-track-bg: rgba(0, 0, 0, 0.35);
+  --seg-thumb-bg: var(--color-cta);
+  --seg-thumb-text: var(--color-cta-text);
 
   --story-ring-gradient: linear-gradient(135deg, #3FBFBA, #0D2A5A);
   --color-heart: #FF6B81;

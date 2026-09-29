@@ -248,6 +248,14 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - The real Google control is the GSI iframe from `@react-oauth/google` rendered **transparently on top** (`position:absolute; inset:0; opacity:0`), sized to the button via `ResizeObserver` + CSS fill — it owns clicks, focus, and the a11y tree; the visual `<span>` is non-interactive and `aria-hidden`
 - Never wrap the official iframe in visible Google styling — the custom button is the design system's surface
 
+**Nav Controls** (`components/NavControls.tsx` — shared by landing Navbar + AuthLayout header):
+- **Language toggle:** segmented pill in a glass track — `.track` = `radius-pill`, `padding: 3px`, `--seg-track-bg` + `1px --glass-border` + `blur(8px)`; segments VI/EN are `radius-pill`, 28px tall (32px ≤576px), `--text-caption` / `600`, text-secondary at rest
+- **Active segment:** iOS-style elevated thumb — background `--seg-thumb-bg`, text `--seg-thumb-text`, `box-shadow: var(--shadow-sm)`. Light: white thumb on soft-surface track. Dark: bright thumb (`--color-cta` fill + `--color-cta-text`) on `rgba(0,0,0,0.35)` track. Use `aria-pressed` on segments
+- **Theme toggle:** circular 36px button (40px ≤576px), `--seg-track-bg` + `--glass-border`, `border-radius: 50%`; hover = `--color-primary-light` wash + primary icon + icon rotates `15deg`; active = `scale(0.94)`. Must keep `aria-label`
+- **Login button (landing navbar):** compact turquoise accent pill — `background: var(--color-primary)`, `color: var(--color-bg)` (auto-inverts light/dark), `height: 36px`, `padding: 0 18px`, `radius-pill`, `shadow-sm`; hover `translateY(-1px)` + `--color-primary-hover` + `shadow-md`. Compact size keeps it inside the §2 turquoise rule (never full-width)
+- Focus-visible on every control: `2px solid var(--color-primary)` outline. `prefers-reduced-motion`: rotation/press transforms disabled
+- Never render these controls inline per-page — always via `NavControls` to keep the two navbars identical
+
 ### Glass Surface (floating chrome variant)
 
 The shared recipe for anything that floats — landing navbar/footer, auth header/footer/card, user navbar:
