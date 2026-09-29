@@ -110,6 +110,7 @@
 }
 
 .menuToggle {
+  position: relative;
   display: none;
   align-items: center;
   justify-content: center;
@@ -128,6 +129,34 @@
   background: var(--color-primary-light);
   border-color: transparent;
   color: var(--color-primary);
+}
+
+/* Custom tooltip (replaces native title) */
+.menuToggle::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background: var(--color-text);
+  color: var(--color-card);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1200;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.menuToggle:hover::after,
+.menuToggle:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Desktop controls */
@@ -186,5 +215,11 @@
 
   .menuToggle {
     display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuToggle::after {
+    transition: none;
   }
 }

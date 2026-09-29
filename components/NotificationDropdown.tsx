@@ -21,23 +21,23 @@ export default function NotificationDropdown({
   const { t } = useTranslation();
   const router = useRouter();
 
-  const getIconClass = (type: NotificationType): string => {
+  const getIconName = (type: NotificationType): string => {
     switch (type) {
       case "like":
-        return "bx bx-heart " + styles.iconLike;
+        return "bx bx-heart";
       case "comment":
-        return "bx bx-message-dots " + styles.iconComment;
+        return "bx bx-message-dots";
       case "share":
-        return "bx bx-share-alt " + styles.iconLike;
+        return "bx bx-share-alt";
       case "follow":
-        return "bx bx-user-plus " + styles.iconFollow;
+        return "bx bx-user-plus";
       case "message":
-        return "bx bx-envelope " + styles.iconMessage;
+        return "bx bx-envelope";
       case "friend_request":
       case "friend_accepted":
-        return "bx bx-group " + styles.iconFriend;
+        return "bx bx-group";
       case "voice_call":
-        return "bx bx-phone " + styles.iconCall;
+        return "bx bx-phone";
       case "community_join_request":
       case "community_join_approved":
       case "community_join_rejected":
@@ -48,9 +48,30 @@ export default function NotificationDropdown({
       case "community_invite_code_used":
       case "community_invitation_received":
       case "community_invitation_accepted":
-        return "bx bx-world " + styles.iconCommunity;
+        return "bx bx-world";
       default:
-        return "bx bx-bell " + styles.iconCommunity;
+        return "bx bx-bell";
+    }
+  };
+
+  const getIconColorClass = (type: NotificationType): string => {
+    switch (type) {
+      case "like":
+      case "share":
+        return styles.iconLike;
+      case "comment":
+        return styles.iconComment;
+      case "follow":
+        return styles.iconFollow;
+      case "message":
+        return styles.iconMessage;
+      case "friend_request":
+      case "friend_accepted":
+        return styles.iconFriend;
+      case "voice_call":
+        return styles.iconCall;
+      default:
+        return styles.iconCommunity;
     }
   };
 
@@ -118,7 +139,8 @@ export default function NotificationDropdown({
           </>
         ) : notifications.length === 0 ? (
           <div className={styles.emptyState}>
-            {t("notifications.noNotifications")}
+            <i className="bx bx-bell" />
+            <span>{t("notifications.noNotifications")}</span>
           </div>
         ) : (
           notifications.map((item) => (
@@ -136,7 +158,12 @@ export default function NotificationDropdown({
                     className={styles.senderAvatar}
                   />
                 ) : (
-                  <i className={getIconClass(item.type)} />
+                  <span
+                    className={`${styles.iconChip} ${getIconColorClass(
+                      item.type
+                    )}`}>
+                    <i className={getIconName(item.type)} />
+                  </span>
                 )}
               </div>
               <div className={styles.contentWrap}>

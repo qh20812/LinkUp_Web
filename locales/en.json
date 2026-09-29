@@ -73,6 +73,9 @@
     "policies": "Policies",
     "login": "Log in",
     "adminLogin": "Administrator",
+    "toggleTheme": "Theme mode",
+    "language": "Language",
+    "toggleMenu": "Toggle menu",
     "ads": "Ads"
   },
   "userNavbar": {

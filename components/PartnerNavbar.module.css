@@ -1,75 +1,89 @@
 .nav {
   height: 56px;
-  background: var(--color-bg);
-  padding: 0 24px 0 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  margin: var(--space-md) var(--space-md) 0;
+  padding: 0 var(--space-md);
   display: flex;
   align-items: center;
   gap: 24px;
   position: sticky;
-  top: 0;
+  top: var(--space-md);
   left: 0;
   z-index: 1000;
 }
 
 /* Menu button */
 .menuBtn {
-  cursor: pointer;
-  color: var(--color-text);
-  font-size: 1.7rem;
-}
-
-/* Toggle group (language) */
-.toggleGroup {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.toggleBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  min-width: 36px;
-  padding: 0 var(--space-sm);
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: var(--text-caption);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.toggleBtn:hover {
-  background: var(--color-bg);
-}
-
-.toggleActive {
-  background: var(--color-primary);
-  color: var(--color-secondary);
-}
-
-/* Icon button (theme) */
-.iconBtn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 1.2rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--seg-track-bg);
+  color: var(--color-text);
+  font-size: 1.4rem;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease-out;
 }
 
-.iconBtn:hover {
-  background: var(--color-bg);
-  color: var(--color-text);
+.menuBtn:hover {
+  background: var(--color-primary-light);
+  border-color: transparent;
+  color: var(--color-primary);
+}
+
+.menuBtn:active {
+  transform: scale(0.94);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Custom tooltip (replaces native title) */
+.menuBtn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background: var(--color-text);
+  color: var(--color-card);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1200;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.menuBtn:hover::after,
+.menuBtn:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Nav controls (language + theme) */
+.controls {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Profile wrap */
@@ -84,10 +98,21 @@
   align-items: center;
   gap: 10px;
   width: auto;
-  padding: 0 8px;
+  padding: 5px 10px;
   background: none;
   border: none;
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.profile:hover {
+  background: var(--color-bg-secondary);
+}
+
+.profile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 .profile img {
@@ -125,21 +150,67 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  min-width: 200px;
-  padding: 4px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  min-width: 250px;
+  padding: 6px;
   z-index: 1100;
-  animation: fadeIn 0.15s ease;
+  transform-origin: top right;
+  animation: popIn 0.18s ease-out;
+}
+
+/* Identity header */
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.dropdownAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dropdownUser {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dropdownName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownEmail {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dropdownItem {
   width: 100%;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 9px 12px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text);
   font: var(--text-body);
@@ -149,22 +220,28 @@
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .dropdownItem:hover {
-  background: var(--color-bg-secondary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .dropdownItem i {
   font-size: 18px;
   width: 20px;
   color: var(--color-text-secondary);
+  transition: color 0.15s ease;
+}
+
+.dropdownItem:hover i {
+  color: var(--color-primary);
 }
 
 .dropdownDivider {
   height: 1px;
-  background: var(--color-border);
+  background: var(--glass-border);
   margin: 4px 8px;
 }
 
@@ -176,22 +253,49 @@
   color: var(--color-danger);
 }
 
-@keyframes fadeIn {
+.dropdownDanger:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger);
+}
+
+.dropdownDanger:hover i {
+  color: var(--color-danger);
+}
+
+@keyframes popIn {
   from {
     opacity: 0;
+    transform: translateY(-6px) scale(0.98);
   }
   to {
     opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 /* Mobile */
 @media screen and (max-width: 576px) {
-  .toggleGroup {
+  .controls {
     display: none;
   }
+}
 
-  .iconBtn {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .menuBtn,
+  .profile,
+  .dropdownItem {
+    transition: none;
+  }
+
+  .menuBtn::after {
+    transition: none;
+  }
+
+  .menuBtn:active {
+    transform: none;
+  }
+
+  .dropdown {
+    animation: none;
   }
 }

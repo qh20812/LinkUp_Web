@@ -40,7 +40,8 @@ export default function Navbar() {
           <button
             className={styles.menuToggle}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={t('nav.toggleMenu')}
+            data-tooltip={t('nav.toggleMenu')}
           >
             <i className={`bx ${menuOpen ? 'bx-x' : 'bx-menu'}`} />
           </button>

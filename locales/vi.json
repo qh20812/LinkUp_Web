@@ -73,6 +73,9 @@
     "policies": "Chính sách",
     "login": "Đăng nhập",
     "adminLogin": "Quản trị viên",
+    "toggleTheme": "Chế độ sáng/tối",
+    "language": "Ngôn ngữ",
+    "toggleMenu": "Chuyển đổi menu",
     "ads": "Quảng cáo"
   },
   "userNavbar": {

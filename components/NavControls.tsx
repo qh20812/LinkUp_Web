@@ -6,12 +6,12 @@ import { useTheme } from '../hooks/useTheme'
 import styles from './NavControls.module.css'
 
 export default function NavControls() {
-  const { language, setLanguage } = useTranslation()
+  const { t, language, setLanguage } = useTranslation()
   const { theme, toggleTheme } = useTheme()
 
   return (
     <div className={styles.group} suppressHydrationWarning>
-      <div className={styles.track} role="group" aria-label="Language">
+      <div className={styles.track} role="group" aria-label={t('nav.language')}>
         <button
           type="button"
           className={`${styles.seg}${language === 'vi' ? ` ${styles.segActive}` : ''}`}
@@ -36,8 +36,8 @@ export default function NavControls() {
         type="button"
         className={styles.iconBtn}
         onClick={toggleTheme}
-        aria-label="Toggle theme"
-        title="Toggle theme"
+        aria-label={t('nav.toggleTheme')}
+        data-tooltip={t('nav.toggleTheme')}
       >
         <i className={`bx ${theme === 'light' ? 'bx-moon' : 'bx-sun'}`} />
       </button>

@@ -6,21 +6,20 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { useTranslation } from '../hooks/useTranslation'
-import { useTheme } from '../hooks/useTheme'
 import { logout } from '../api/auth'
 import { getAdminProfile } from '../api/admin'
 import { clearSession } from '../api/api'
 import { clearSWRCache } from '../api/swr'
 import styles from './PartnerNavbar.module.css'
 import { useNotification } from '../contexts/NotificationContext'
+import NavControls from './NavControls'
 
 interface PartnerNavbarProps {
   onMenuToggle: () => void
 }
 
 export default function PartnerNavbar({ onMenuToggle }: PartnerNavbarProps) {
-  const { t, language, setLanguage } = useTranslation()
-  const { theme, toggleTheme } = useTheme()
+  const { t } = useTranslation()
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
@@ -91,42 +90,27 @@ export default function PartnerNavbar({ onMenuToggle }: PartnerNavbarProps) {
 
   return (
     <nav className={styles.nav}>
-      <i className={`bx bx-menu ${styles.menuBtn}`} onClick={onMenuToggle} />
-
-      <div className={styles.toggleGroup} suppressHydrationWarning>
-        <button
-          className={`${styles.toggleBtn}${
-            language === 'vi' ? ` ${styles.toggleActive}` : ''
-          }`}
-          onClick={() => setLanguage('vi')}
-          suppressHydrationWarning>
-          VI
-        </button>
-        <button
-          className={`${styles.toggleBtn}${
-            language === 'en' ? ` ${styles.toggleActive}` : ''
-          }`}
-          onClick={() => setLanguage('en')}
-          suppressHydrationWarning>
-          EN
-        </button>
-      </div>
-
       <button
-        className={styles.iconBtn}
-        onClick={toggleTheme}
-        aria-label="Toggle theme">
-        <i className={`bx ${theme === 'light' ? 'bx-moon' : 'bx-sun'}`} />
+        type="button"
+        className={styles.menuBtn}
+        onClick={onMenuToggle}
+        aria-label={t('nav.toggleMenu')}
+        data-tooltip={t('nav.toggleMenu')}>
+        <i className="bx bx-menu" />
       </button>
+
+      <div className={styles.controls}>
+        <NavControls />
+      </div>
 
       <div className={styles.profileWrap} ref={dropdownRef}>
         <button
           className={styles.profile}
-          aria-label="Profile"
+          aria-label={t('nav.profile')}
           onClick={() => setDropdownOpen(!dropdownOpen)}>
           <Image
-            src={profile?.avatar_uri || cachedProfile.avatar_uri || '/S-Logo.png'}
-            alt="Profile"
+            src={profile?.avatar_uri || cachedProfile.avatar_uri || "/S-Logo.png"}
+            alt=""
             width={36}
             height={36}
             priority
@@ -141,6 +125,22 @@ export default function PartnerNavbar({ onMenuToggle }: PartnerNavbarProps) {
 
         {dropdownOpen && (
           <div className={styles.dropdown}>
+            <div className={styles.dropdownHeader}>
+              <Image
+                src={profile?.avatar_uri || cachedProfile.avatar_uri || "/S-Logo.png"}
+                alt=""
+                width={40}
+                height={40}
+                className={styles.dropdownAvatar}
+                unoptimized
+              />
+              <div className={styles.dropdownUser}>
+                <span className={styles.dropdownName}>
+                  {profile?.display_name || cachedProfile.display_name || "Partner"}
+                </span>
+                <span className={styles.dropdownEmail}>{tokenEmail}</span>
+              </div>
+            </div>
             <Link href="/profile" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
               <i className="bx bx-user-circle" />
               <span>{t('nav.profile')}</span>
