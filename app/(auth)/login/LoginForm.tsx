@@ -116,7 +116,7 @@ export default function LoginForm() {
         <h1 className={shared.title}>{t('login.title')}</h1>
         <p className={shared.subtitle}>{t('login.subtitle')}</p>
 
-        <GoogleAuthButton />
+        <GoogleAuthButton textKey="login.google.button" />
 
         <div className={shared.divider}>
           <span>{t('login.or')}</span>

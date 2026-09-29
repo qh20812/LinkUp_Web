@@ -126,7 +126,7 @@ export default function RegisterForm() {
         <h1 className={shared.title}>{t('register.title')}</h1>
         <p className={shared.subtitle}>{t('register.subtitle')}</p>
 
-        <GoogleAuthButton />
+        <GoogleAuthButton textKey="register.google.button" />
 
         <div className={shared.divider}>
           <span>{t('register.or')}</span>

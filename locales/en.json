@@ -298,13 +298,40 @@
     "verifyEmailAction": "Verify email",
     "google": {
       "error": "Google login failed",
-      "text": "continue_with"
+      "text": "continue_with",
+      "button": "Sign in with Google"
     }
   },
   "landing": {
     "tagline": "Connect with friends, share moments",
+    "sub": "Where friends, communities and everyday moments meet — every day.",
     "ctaStart": "Get started",
-    "ctaLogin": "Log in"
+    "ctaLogin": "Log in",
+    "feature1Title": "Friends & communities",
+    "feature1Body": "Meet new people, join communities around your interests and follow the creators you like — all in one feed.",
+    "feature2Title": "End-to-end encrypted chat",
+    "feature2Body": "Private messaging with friends and groups. Only you and the person you are talking to can read your messages.",
+    "feature3Title": "Voice & group video calls",
+    "feature3Body": "Clear 1-1 and group calls with screen sharing, right inside the app.",
+    "trustTitle": "Privacy is your right",
+    "trustBody": "You control who sees your posts, who can message you and who can friend you. LinkUp never sells your data.",
+    "badge1": "End-to-end encryption",
+    "badge2": "Privacy controls",
+    "badge3": "Easy block & report",
+    "ctaTitle": "Ready to join LinkUp?",
+    "ctaBody": "Create a free account and start connecting today.",
+    "mock": {
+      "friend1": "Mia Nguyen",
+      "friend2": "Alex Tran",
+      "friend3": "Linh Le",
+      "mutual": "3 mutual friends",
+      "connect": "Add friend",
+      "connected": "Friends",
+      "bubble1": "Coffee tonight?",
+      "bubble2": "Sure, 7pm!",
+      "enc": "End-to-end encrypted",
+      "notif": "Linh Le sent you a friend request"
+    }
   },
   "register": {
     "title": "Register",
@@ -352,6 +379,9 @@
       "lower": "Lowercase letter",
       "digit": "Contains a number",
       "special": "Special character"
+    },
+    "google": {
+      "button": "Sign up with Google"
     }
   },
   "onboarding": {

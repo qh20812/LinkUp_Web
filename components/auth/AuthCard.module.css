@@ -7,15 +7,17 @@
   justify-content: center;
   width: 100%;
   padding: var(--space-xl) var(--space-md);
-  background: var(--color-bg);
+  background: transparent;
 }
 
 .card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
   width: 100%;
   max-width: 420px;
   animation: authCardIn 200ms ease-out both;
@@ -38,10 +40,15 @@
     background: transparent;
   }
 
+  /* Keep a light glass card on mobile — drop the shadow, not the surface. */
   .card {
     padding: var(--space-lg);
-    border: none;
     box-shadow: none;
-    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
   }
 }

@@ -298,13 +298,40 @@
     "verifyEmailAction": "Xác thực email",
     "google": {
       "error": "Đăng nhập bằng Google thất bại",
-      "text": "continue_with"
+      "text": "continue_with",
+      "button": "Đăng nhập với Google"
     }
   },
   "landing": {
     "tagline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
+    "sub": "Nơi bạn bè, cộng đồng và những khoảnh khắc đẹp cùng gặp nhau mỗi ngày.",
     "ctaStart": "Bắt đầu",
-    "ctaLogin": "Đăng nhập"
+    "ctaLogin": "Đăng nhập",
+    "feature1Title": "Kết nối bạn bè & cộng đồng",
+    "feature1Body": "Tìm bạn mới, tham gia cộng đồng theo sở thích và theo dõi những người bạn yêu thích — tất cả trên một dòng thời gian.",
+    "feature2Title": "Tin nhắn mã hoá đầu-cuối",
+    "feature2Body": "Nhắn tin riêng tư với bạn bè và nhóm. Chỉ mình bạn và người nhận đọc được nội dung tin nhắn.",
+    "feature3Title": "Gọi thoại & video nhóm",
+    "feature3Body": "Gọi 1-1 hoặc gọi nhóm chất lượng cao, chia sẻ màn hình và trò chuyện ngay trong ứng dụng.",
+    "trustTitle": "Riêng tư là quyền của bạn",
+    "trustBody": "Bạn kiểm soát ai xem bài viết, ai có thể nhắn tin và ai được kết bạn. LinkUp không bán dữ liệu của bạn.",
+    "badge1": "Mã hoá đầu-cuối",
+    "badge2": "Kiểm soát quyền riêng tư",
+    "badge3": "Chặn & báo cáo dễ dàng",
+    "ctaTitle": "Sẵn sàng tham gia LinkUp?",
+    "ctaBody": "Tạo tài khoản miễn phí và bắt đầu kết nối ngay hôm nay.",
+    "mock": {
+      "friend1": "Minh Anh",
+      "friend2": "Hoàng Nam",
+      "friend3": "Thu Hà",
+      "mutual": "3 bạn chung",
+      "connect": "Kết nối",
+      "connected": "Đã kết nối",
+      "bubble1": "Tối nay đi cà phê không?",
+      "bubble2": "Được đấy, 7h nhé!",
+      "enc": "Mã hoá đầu-cuối",
+      "notif": "Thu Hà đã gửi cho bạn lời mời kết bạn"
+    }
   },
   "register": {
     "title": "Đăng ký",
@@ -352,6 +379,9 @@
       "lower": "Chữ thường",
       "digit": "Chứa số",
       "special": "Ký tự đặc biệt"
+    },
+    "google": {
+      "button": "Đăng ký với Google"
     }
   },
   "onboarding": {

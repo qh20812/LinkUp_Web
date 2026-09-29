@@ -56,6 +56,9 @@ table {
 
 /* === Design Tokens (Light Mode - Default) === */
 :root {
+  /* Native controls (checkbox, scrollbar, select, autofill) follow the theme */
+  color-scheme: light;
+
   /* Brand Colors */
   --color-primary: #12A5A1;
   --color-primary-hover: #0C918D;
@@ -65,6 +68,13 @@ table {
   --color-secondary: #0A1F44;
   --color-secondary-hover: #0D2A5A;
   --color-secondary-active: #0F3570;
+
+  /* Primary CTA fill — separate from --color-secondary, which doubles as
+     ink/gradient-end in dark mode (#1A1A1A would be invisible as a button). */
+  --color-cta: #0A1F44;
+  --color-cta-hover: #0D2A5A;
+  --color-cta-active: #0F3570;
+  --color-cta-text: #FFFFFF;
 
   --color-accent: #FF6F00;
   --color-accent-hover: #E66300;
@@ -128,6 +138,13 @@ table {
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.15);
   --fast: 150ms ease;
 
+  /* Glass surface (floating translucent chrome — navbar, sidebars, auth card) */
+  --glass-bg: color-mix(in srgb, var(--color-card) 84%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--color-card) 92%, transparent);
+  --glass-border: color-mix(in srgb, var(--color-border) 70%, transparent);
+  --glass-blur: 14px;
+  --glass-shadow: 0 8px 32px rgba(10, 31, 68, 0.1);
+
   /* Z-index scale */
   --z-base: 0;
   --z-above: 1;
@@ -173,6 +190,8 @@ table {
 
 /* === Dark Mode === */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-primary: #3FBFBA;
   --color-primary-hover: #2BB0AC;
   --color-primary-active: #1FA3A0;
@@ -181,6 +200,13 @@ table {
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
   --color-secondary-active: #2A2A2A;
+
+  /* Dark CTA: light fill + dark text — high contrast against #111/#1E1E1E.
+     (Navy #0A1F44 fill would nearly vanish on the dark canvas.) */
+  --color-cta: #E5E7EB;
+  --color-cta-hover: #FFFFFF;
+  --color-cta-active: #D1D5DB;
+  --color-cta-text: #111111;
 
   --color-bg: #111111;
   --color-bg-primary: #111111;
@@ -208,6 +234,12 @@ table {
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
   --fast: 150ms ease;
+
+  /* Glass surface — darker translucent fill + heavier shadow on dark canvas */
+  --glass-bg: color-mix(in srgb, var(--color-card) 78%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--color-card) 90%, transparent);
+  --glass-border: color-mix(in srgb, var(--color-border) 75%, transparent);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 
   --story-ring-gradient: linear-gradient(135deg, #3FBFBA, #0D2A5A);
   --color-heart: #FF6B81;

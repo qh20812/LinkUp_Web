@@ -1,10 +1,14 @@
 .nav {
   position: sticky;
-  top: 0;
+  top: var(--space-md);
   z-index: 1000;
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  margin: var(--space-md) var(--space-md) 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
 }
 
 .inner {
@@ -176,15 +180,19 @@
   .links {
     display: none;
     position: absolute;
-    top: 56px;
-    left: 0;
-    right: 0;
+    top: calc(100% + 1px);
+    left: -1px;
+    right: -1px;
     flex-direction: column;
-    background: var(--color-card);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
     padding: var(--space-md);
     gap: var(--space-md);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--glass-shadow);
   }
 
   .linksOpen {

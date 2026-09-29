@@ -73,6 +73,8 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 
 ```css
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-primary: #3FBFBA;
   --color-primary-hover: #2BB0AC;
   --color-primary-active: #1FA3A0;
@@ -81,6 +83,11 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
   --color-secondary-active: #2A2A2A;
+
+  --color-cta: #E5E7EB;
+  --color-cta-hover: #FFFFFF;
+  --color-cta-active: #D1D5DB;
+  --color-cta-text: #111111;
 
   --color-bg: #111111;
   --color-bg-secondary: #1A1A1A;
@@ -107,7 +114,7 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 
 ### Color Rules
 
-- **Primary CTA buttons** use Deep Navy (`#0A1F44`) fill + white text — high contrast, authoritative
+- **Primary CTA buttons** use Deep Navy (`#0A1F44`) fill + white text — high contrast, authoritative. **Dark mode:** use `--color-cta` (light fill `#E5E7EB` + `#111` text) — navy `#0A1F44`/`#1A1A1A` would disappear against the dark canvas. `--color-secondary` in dark (`#1A1A1A`) is ink/gradient-end only, never a button fill
 - **Fresh Turquoise** is allowed for:
   - Compact accent buttons (Follow, Create Post, Send) — `padding` ≤ `12px 24px`
   - Outgoing message bubbles (chat)
@@ -200,11 +207,12 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 ### Buttons
 
 **Primary (Deep Navy fill):**
-- Background: `#0A1F44`, text: `#FFFFFF`, border: none
+- Background: `var(--color-cta)` — light mode `#0A1F44`, dark mode `#E5E7EB` with `var(--color-cta-text)` (`#FFF` / `#111`), border: none
 - Border-radius: `8px`, padding: `10px 20px`, font-weight: 600
-- Hover: `#0D2A5A` background. Active: `translateY(-1px)` tactile push
+- Hover: `var(--color-cta-hover)` background. Active: `translateY(-1px)` tactile push
 - Disabled: `opacity: 0.5`, cursor: `not-allowed`
 - Use for: primary page-level CTAs, form submissions, major actions
+- Never use `var(--color-secondary)` as a button fill in dark mode — it is the ink/gradient-end token
 
 **Secondary (Ghost/Outline):**
 - Background: transparent, border: `1px solid var(--color-border)`, text: `var(--color-text)`
@@ -233,6 +241,25 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Hover: `var(--color-bg-secondary)`
 - Contains a single Boxicon glyph
 - Must have: `aria-label`, keyboard accessible, visible focus state
+
+**OAuth (Google) button** (`components/auth/GoogleAuthButton.tsx`):
+- Custom visual matching auth inputs: `100%` × `44px`, `1px solid var(--color-border)`, `radius-md`, `--color-bg-secondary` fill, DM Sans `600`, inline 4-color Google "G" SVG (18px) + per-page label (`login.google.button` / `register.google.button`)
+- Hover: fill → `var(--color-card)`; active: `translateY(-1px)`; keyboard focus (`:focus-within`): primary border + ring — identical to input treatment
+- The real Google control is the GSI iframe from `@react-oauth/google` rendered **transparently on top** (`position:absolute; inset:0; opacity:0`), sized to the button via `ResizeObserver` + CSS fill — it owns clicks, focus, and the a11y tree; the visual `<span>` is non-interactive and `aria-hidden`
+- Never wrap the official iframe in visible Google styling — the custom button is the design system's surface
+
+### Glass Surface (floating chrome variant)
+
+The shared recipe for anything that floats — landing navbar/footer, auth header/footer/card, user navbar:
+
+- Background: `var(--glass-bg)` (`color-mix` card + transparent; `--glass-bg-strong` when content behind must stay legible)
+- `backdrop-filter: blur(var(--glass-blur))` (+ `-webkit-` prefix)
+- Border: `1px solid var(--glass-border)`
+- Radius: `var(--radius-lg)` (all four corners)
+- Shadow: `var(--glass-shadow)`
+- Tokens live in `globals.css` (light + `[data-theme="dark"]` overrides) — never inline a `color-mix`/`blur` value per component
+- Glass needs a backdrop: place it over a tinted canvas, mesh gradient, or scrolling content — never over a flat same-color surface (the blur does nothing)
+- Gradient-stage glass (hero chips, closing panel) uses literal `rgba(255,255,255,0.12–0.14)` fills + `rgba(255,255,255,0.22–0.26)` borders instead of the card-mix tokens
 
 ### Cards
 
@@ -334,35 +361,38 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 
 ---
 
-## 5. Hero Section (Landing Page)
+## 5. Landing Page (Track 1)
 
 The landing page is the first impression for unauthenticated visitors.
 
 ### Layout
 
-**Split gradient hero** — not a centered text blob:
-- Full-width gradient background: `linear-gradient(135deg, #12A5A1, #0A1F44)` (turquoise to navy)
-- Content centered within gradient, `max-width: 560px`
-- Logo (white, inverted) + brand name at top
-- Headline: large, white, tight tracking — the tagline in Vietnamese
-- Two CTA buttons side by side:
-  - Primary: white fill + navy text ("Get Started")
-  - Secondary: white border + white text, transparent fill ("Log In")
+**Floating glass chrome + split gradient hero + zig-zag sections:**
+
+- **Canvas:** the page sits on `--color-bg-secondary` — the same tinted canvas as Track 3; all chrome floats
+- **Navbar:** sticky `top: var(--space-md)`, inset `var(--space-md)`, glass surface (`--glass-bg` + `backdrop-filter: blur(var(--glass-blur))`), `border-radius: var(--radius-lg)`, `--glass-shadow`. Mobile dropdown is a glass sheet with rounded bottom corners
+- **Hero stage:** rounded gradient card inset `var(--space-md)` — mesh background (base `linear-gradient(135deg, #12A5A1, #0A1F44)` + white bloom top-left + faint warm ember bottom-right) with two slowly drifting decorative orbs (`aria-hidden`)
+- **Split grid** `1.05fr 0.95fr` — asymmetric by rule (never equal columns):
+  - **Left:** inverted white logo + brand, `H1` tagline, subline, CTA pair, 3 glass value-prop chips (`brand.point1..3`) — content left-aligned, never centered
+  - **Right:** decorative "app preview" composition (`aria-hidden`) — glass post card (avatar + line placeholders + media block + action chips), glass chat card (2 bubbles), glass notification pill with orange dot; each floats with a slow `floatY` drift
+- **Features:** 3 zig-zag rows (text ↔ glass mock panel): friend list with connect pills, encrypted chat bubbles + encryption chip, group-call tile grid + control bar
+- **Closing band:** gradient card (`--color-secondary → --color-primary`) inset like the hero — left: trust heading + body + 3 glass badges; right: glass CTA panel (heading + body + the 2 buttons stacked)
+- **Footer:** floating glass row, same recipe as the navbar, inset `var(--space-md)`
 
 ### Rules
 
-- No stock photos or hero images — the gradient IS the visual
+- No stock photos or hero images — gradients, glass panels and DOM mockups ARE the visual
 - No "Scroll to explore" or arrow indicators
-- Headline is `H1` scale, white, `font-weight: 700`
-- CTA buttons: `padding: 12px 32px`, `border-radius: 8px`, `font-weight: 700`
-- Below the hero: simple footer with copyright only
-- Navbar overlays the gradient at top: brand logo + language toggle + theme toggle + login link
+- No fake stats, no placeholder names — mock content uses realistic Vietnamese names via `landing.mock.*`
+- CTA buttons: white fill + navy text (primary), translucent white border + blur (secondary); full-width ≤576px
+- Entrance motion: hero children stagger `fadeUp`; sections reveal via IntersectionObserver (`data-reveal` + `data-reveal-active` on root) — content must be visible when JS is unavailable
+- `prefers-reduced-motion`: orbs, floats, staggers, and reveals are all disabled
 
 ### Mobile
 
-- Hero scales down gracefully, gradient remains full-width
-- Buttons stack vertically if needed
-- Footer stays minimal
+- ≤967px: hero collapses to single column, preview composition hidden, feature rows stack (text above visual), closing band stacks
+- ≤576px: hero/footer/closing inset shrinks to `var(--space-sm)`, buttons full-width
+- Gradient stage remains full-bleed-inset; glass chrome unchanged
 
 ---
 
@@ -374,41 +404,50 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Navbar (transparent over gradient)          │
+│  Glass Navbar (floating, sticky, inset 16px) │
 ├──────────────────────────────────────────────┤
-│                                              │
-│         Gradient Hero (full width)           │
-│         Logo + Tagline + CTAs                │
-│                                              │
+│  ┌─ Gradient Hero Stage (inset, rounded) ──┐ │
+│  │ Left: logo, tagline, CTAs, glass chips  │ │
+│  │ Right: glass app-preview (decorative)   │ │
+│  └─────────────────────────────────────────┘ │
+│  Features — zig-zag rows, glass mock panels │
+│  Closing band — gradient + glass CTA panel  │
 ├──────────────────────────────────────────────┤
-│  Footer                                      │
+│  Glass Footer (floating, inset 16px)         │
 └──────────────────────────────────────────────┘
 ```
+
+- Canvas is `--color-bg-secondary`; navbar, footer, hero stage and closing band are all inset by `var(--space-md)` and rounded `var(--radius-lg)` — the same floating language as Track 3
 
 ### Track 2: Auth Pages (Login, Register, Forgot/Reset Password, Verify Email, Onboarding)
 
-**Fixed-height split layout — the page never scrolls, only the form pane does:**
+**Fixed-height split layout — the page never scrolls, only the form pane does. Chrome floats on a tinted canvas (glass header/footer + the split as one floating card):**
 ```
-┌──────────────────────────────────────────────┐  ← pinned: 100dvh, overflow: hidden
-│  Header (56px: logo, lang + theme toggles)   │
-├──────────────────┬───────────────────────────┤
-│                  │  (scroll container ↓)     │
-│  Brand Pane      │  Form Pane                │
-│  (gradient bg)   │  overflow-y: auto         │
-│  Logo + Headline │  AuthCard (max-w: 420px)  │
-│  + 3 value props │  centered, sticks to      │
-│                  │  top when taller than pane│
-├──────────────────┴───────────────────────────┤
-│  Footer (© 2026 LinkUp)                      │
-└──────────────────────────────────────────────┘
+┌─ shell: 100dvh, overflow hidden, pad 16px, bg --color-bg-secondary ─┐
+│ ┌─ Glass Header (56px: logo, lang + theme, rounded) ──────────────┐ │
+│ ├────────────────────────┬────────────────────────────────────────┤ │
+│ │                        │  (scroll container ↓)                 │ │
+│ │  Brand Pane            │  Form Pane                            │ │
+│ │  mesh gradient +       │  bg: tinted mesh                      │ │
+│ │  drifting orbs +       │  AuthCard (glass, max-w: 420px)       │ │
+│ │  staggered entrance    │  centered, sticks to top when taller  │ │
+│ ├────────────────────────┴────────────────────────────────────────┤ │
+│ │  Glass Footer (© 2026 LinkUp, slim, rounded)                    │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+  ↑ the whole thing is a floating composition: shell padding + rounded
+    header / split card / footer with --glass-* tokens
 ```
-- **Shell:** `height: 100dvh` + `overflow: hidden` — header, brand pane, and footer are pinned; no page-level scroll
-- **Brand pane:** 50% width, gradient `135deg` primary → secondary, white text: logo + headline + tagline + 3 value props (`brand.point1..3`), decorative orbs (`aria-hidden`). Does not scroll
-- **Form pane:** 50% width, `overflow-y: auto` — the ONLY scrollable region on auth pages. `AuthCard` uses the `min-height: 100%` centering pattern: content shorter than the pane centers vertically; taller content sticks to the top and scrolls (never clipped at the top edge)
+- **Shell:** `height: 100dvh` + `overflow: hidden` + `padding: var(--space-md)` + `gap: var(--space-sm)` on `--color-bg-secondary` — header, split card, and footer are pinned; no page-level scroll
+- **Glass chrome:** header, footer, and the split container (`AuthLayout .main`) use the glass recipe — `--glass-bg`, `backdrop-filter: blur(var(--glass-blur))`, `1px solid var(--glass-border)`, `--glass-shadow`, `border-radius: var(--radius-lg)`
+- **Brand pane:** 50% width, layered mesh gradient (base `135deg` primary → secondary + white bloom + faint ember), white text: logo + headline + tagline + 3 value props (`brand.point1..3`), two decorative orbs drifting on an 18–22s loop (`aria-hidden`). Children stagger-fade in (40/110/180/250ms). Does not scroll
+- **Form pane:** 50% width, `overflow-y: auto`, tinted mesh background (`--color-bg-secondary` + two faint `--color-primary` radial washes) — the backdrop the glass AuthCard blurs. The ONLY scrollable region on auth pages. `AuthCard` uses the `min-height: 100%` centering pattern: content shorter than the pane centers vertically; taller content sticks to the top and scrolls (never clipped at the top edge)
+- **AuthCard:** glass surface — `--glass-bg-strong`, `blur(16px)`, `--glass-border`, `--glass-shadow`. ≤576px keeps the glass but drops the shadow (never strips to transparent)
 - **Mobile (≤767px):** column stack — brand pane becomes a **compact gradient strip** (logo + headline + tagline, value props hidden), form pane takes the remaining height and scrolls internally. Header and footer stay pinned
 - **Keyboard:** focusing an input scrolls the form pane (nearest scrollable ancestor), not the page
 - **Fallback:** if mobile soft-keyboard focus-scroll misbehaves on a browser, revert only `<768px` to page scroll (`height: auto; overflow: visible` on the shell)
 - Server errors render inline (`FormAlert`, `role="alert"`) inside the form — never toast-only
+- `prefers-reduced-motion`: orb drift and brand-pane stagger disabled
 
 ### Track 3: User Social (3-Column)
 
@@ -428,7 +467,7 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 - **Canvas:** `.layout` background is `var(--color-bg-secondary)` — white cards visibly float on the tinted canvas (light `#F5F5F5`, dark `#1A1A1A`)
 - **Panels:** Left sidebar, Right sidebar, and Navbar each render as a floating card — `var(--color-card)` bg, `1px solid var(--color-border)`, `border-radius: var(--radius-lg)`, `box-shadow: var(--shadow-sm)` (navbar: `var(--shadow-md)` since it overlays scrolling content)
 - **Grid:** `gap: var(--space-md)` + `padding: var(--space-md)` — panels never touch viewport edges; mobile drawers are floating sheets inset `16px` as well
-- **Navbar:** sticky at `top: var(--space-md)`, rounded 4 corners, translucent `color-mix(in srgb, var(--color-card) 82%, transparent)` + `backdrop-filter: blur(14px)`, `margin-bottom: var(--space-md)`; feed content scrolls underneath
+- **Navbar:** sticky at `top: var(--space-md)`, rounded 4 corners, glass surface (`var(--glass-bg)` + `backdrop-filter: blur(var(--glass-blur))`, see §4 Glass Surface), `margin-bottom: var(--space-md)`; feed content scrolls underneath
 - **Sidebars:** sticky full-height cards, `height: calc(100dvh - var(--space-md) * 2)`, scrollbars hidden, own internal padding/scroll
 - **Center content pages** stay transparent — their white cards (PostCard, settings panels) rest directly on the tinted canvas. The messaging workspace (`.page`) is itself a floating card
 - **Active nav item** in left sidebar: pill bg `var(--color-primary-light)` + primary text (matches active tab pattern)
@@ -592,6 +631,11 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 - **Toast exit:** fade out + slide down, `150ms ease-in`
 - **Modal entrance:** overlay fade `0 → 0.5`, content `translateY(8px) → 0` + `opacity 0 → 1`, `200ms ease-out`
 - **Skeleton shimmer:** `opacity 0.4 → 0.8 → 0.4`, `1.5s ease-in-out infinite`
+- **Hero/auth entrance stagger:** children fade + `translateY(10–12px → 0)`, `420–460ms ease-out`, delays `40ms → ~360ms` in DOM order
+- **Orb drift:** decorative gradient orbs loop `translate3d` + subtle `scale`, `18–26s ease-in-out infinite alternate` (auth brand pane, landing hero)
+- **Hero preview float:** glass mock cards bob `-12px` vertically, `6.5–8s ease-in-out infinite alternate` with negative delays so they never sync
+- **Section reveal (landing):** IntersectionObserver adds `.revealed` at `threshold: 0.15` → `opacity 0→1` + `translateY(14px→0)`, `500ms ease-out`; hide-state only activates after JS adds `data-reveal-active` (no-JS = fully visible)
+- All of the above are disabled under `prefers-reduced-motion`
 
 ### Page Transitions
 
@@ -660,17 +704,19 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 ### Landing Page (`/`)
 
 **Purpose:** Convert visitors to registered users. First impression.
-**Layout:** Navbar + gradient hero + minimal footer
-**Hero content:** Logo (white inverted), brand name "LinkUp", Vietnamese tagline, two CTA buttons
-**Color:** Full gradient background `#12A5A1 → #0A1F44`, white text
-**Mobile:** Brand pane hidden. Buttons stack. Footer minimal.
+**Layout:** Track 1 — glass navbar + gradient hero stage + zig-zag features + closing band + glass footer (see §5)
+**Hero content:** left = inverted logo, "LinkUp", Vietnamese tagline (`landing.tagline`), subline (`landing.sub`), 2 CTA buttons, 3 glass value chips (`brand.point1..3`); right = decorative glass app-preview (post card, chat card, notification pill, `aria-hidden`)
+**Features:** 3 zig-zag rows (`landing.feature1..3`), each with a glass mock panel (friend list / encrypted chat / group call)
+**Closing:** gradient band — trust copy + badges (`landing.trust*`, `landing.badge*`) left, glass CTA panel (`landing.ctaTitle/Body`) right
+**Color:** hero/closing gradients `#12A5A1 → #0A1F44` variants, white text; canvas `--color-bg-secondary`
+**Mobile:** preview hidden ≤967px; sections stack; buttons full-width ≤576px
 
 ### Login (`/login`)
 
 **Purpose:** Authenticate existing users. Quick, frictionless.
-**Layout:** Fixed-height split (Track 2) — brand pane (left, 50%) + form pane (right, 50%, scrolls internally)
+**Layout:** Fixed-height split (Track 2) — brand pane (left, 50%) + form pane (right, 50%, scrolls internally); glass header/footer, glass AuthCard on tinted mesh
 **Brand pane:** Gradient bg, logo, headline, tagline, 3 value props
-**Form pane order:** title + subtitle (left-aligned) → Google OAuth button → divider ("hoặc") → email input → password input (with "Quên mật khẩu?" in the label row) → navy full-width "Đăng nhập" → footer link "Chưa có tài khoản? Đăng ký"
+**Form pane order:** title + subtitle (left-aligned) → Google OAuth button ("Đăng nhập với Google", custom — see §4) → divider ("hoặc") → email input → password input (with "Quên mật khẩu?" in the label row) → navy full-width "Đăng nhập" → footer link "Chưa có tài khoản? Đăng ký"
 **Validation:** Real-time per-field errors below each field (reserved 18px slot — layout never jumps); server errors inline `FormAlert` (`role="alert"`, maps `auth.EMAIL_NOT_VERIFIED` → action button to `/verify-email`, locked/attempt-limit codes → warning variant)
 **Focus:** email autofocused on ≥768px only (mobile keyboard would cover the form)
 **Mobile (≤767px):** compact gradient brand strip on top; header/footer pinned; form pane scrolls internally
@@ -679,7 +725,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 **Purpose:** Create new accounts. Onboarding starts here.
 **Layout:** Same fixed-height split as login
-**Form pane order:** title + subtitle → Google OAuth button → divider → display name → email → password → confirm password → terms checkbox → navy full-width "Đăng ký" → footer link "Đã có tài khoản? Đăng nhập"
+**Form pane order:** title + subtitle → Google OAuth button ("Đăng ký với Google", custom — see §4) → divider → display name → email → password → confirm password → terms checkbox → navy full-width "Đăng ký" → footer link "Đã có tài khoản? Đăng nhập"
 **Password UX:** live strength meter (4 segments, tone weak/fair/strong, label `aria-live="polite"`) + 5-item requirement checklist (`register.req.*`, icons flip `bx-x-circle` → `bx-check-circle` live) + confirm-match live hint (`register.confirmMatchOk`)
 **Terms:** plain-text checkbox row (no links — no `/terms` page exists), client-only error until checked
 **Validation:** Real-time per-field errors, strength meter, inline `FormAlert` for server errors (`auth.EMAIL_EXISTS` → danger), focus first invalid field on submit

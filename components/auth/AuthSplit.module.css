@@ -3,7 +3,7 @@
   display: flex;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-bg);
+  background: var(--color-bg-secondary);
 }
 
 .brandPane {
@@ -13,7 +13,12 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl) var(--space-lg);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  /* Layered mesh: white bloom top-left + faint warm ember bottom-right
+     over the base brand gradient. */
+  background:
+    radial-gradient(120% 80% at 15% 8%, rgba(255, 255, 255, 0.16), transparent 55%),
+    radial-gradient(90% 70% at 92% 92%, rgba(255, 111, 0, 0.1), transparent 60%),
+    linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   overflow: hidden;
 }
 
@@ -27,6 +32,8 @@
   top: -80px;
   right: -100px;
   pointer-events: none;
+  animation: orbDrift 18s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .decoAlt {
@@ -37,6 +44,28 @@
   bottom: -60px;
   left: -70px;
   background: rgba(255, 255, 255, 0.06);
+  animation-duration: 22s;
+  animation-delay: -7s;
+}
+
+@keyframes orbDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-26px, 20px, 0) scale(1.07);
+  }
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .brandInner {
@@ -44,6 +73,27 @@
   z-index: 1;
   max-width: 380px;
   color: #ffffff;
+}
+
+/* Entrance stagger: logo → headline → tagline → value props */
+.brandInner > * {
+  animation: authFadeUp 420ms ease-out both;
+}
+
+.brandInner > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.brandInner > *:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.brandInner > *:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.brandInner > *:nth-child(4) {
+  animation-delay: 250ms;
 }
 
 .brandLogo {
@@ -110,6 +160,11 @@
   min-height: 0;
   padding: var(--space-xl) var(--space-lg);
   min-width: 0;
+  /* Soft tinted mesh — the backdrop the glass AuthCard blurs. */
+  background:
+    radial-gradient(60% 45% at 88% 6%, var(--color-primary-light), transparent 65%),
+    radial-gradient(55% 45% at 8% 96%, color-mix(in srgb, var(--color-primary) 9%, transparent), transparent 70%),
+    var(--color-bg-secondary);
 }
 
 @media (max-width: 767px) {
@@ -159,5 +214,14 @@
   .formPane {
     flex: 1 1 auto;
     padding: var(--space-lg) var(--space-md);
+  }
+}
+
+/* Motion is decorative here — kill it entirely when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
+  .deco,
+  .decoAlt,
+  .brandInner > * {
+    animation: none;
   }
 }

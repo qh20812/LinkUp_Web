@@ -146,7 +146,7 @@
   background: var(--color-bg-secondary);
 }
 
-/* === Primary CTA (Deep Navy — per DESIGN.md §2 color rules) === */
+/* === Primary CTA (--color-cta: navy in light, light fill in dark — DESIGN.md §2) === */
 
 .button {
   width: 100%;
@@ -154,8 +154,8 @@
   margin-top: var(--space-xs);
   border: none;
   border-radius: var(--radius-md);
-  background: var(--color-secondary);
-  color: #ffffff;
+  background: var(--color-cta);
+  color: var(--color-cta-text);
   font: var(--text-body);
   font-weight: 600;
   cursor: pointer;
@@ -163,11 +163,11 @@
 }
 
 .button:hover {
-  background: var(--color-secondary-hover);
+  background: var(--color-cta-hover);
 }
 
 .button:active {
-  background: var(--color-secondary-active);
+  background: var(--color-cta-active);
   transform: translateY(-1px);
 }
 
