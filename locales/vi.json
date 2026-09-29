@@ -54,7 +54,8 @@
     "page": "Trang",
     "updatedAt": "Ngày cập nhật",
     "retry": "Thử lại",
-    "passwordMismatch": "Mật khẩu xác nhận không khớp"
+    "passwordMismatch": "Mật khẩu xác nhận không khớp",
+    "more": "Thêm"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",
@@ -128,11 +129,23 @@
     "liked": "Đã thích",
     "viewMore": "Xem thêm",
     "viewLess": "Thu gọn",
+    "noContent": "Bài viết không có nội dung",
+    "viewCount": "{count} lượt xem",
     "justNow": "Vừa xong",
     "minutesAgo": "{minutes} phút trước",
     "hoursAgo": "{hours} giờ trước",
     "daysAgo": "{days} ngày trước",
-    "follow": "Theo dõi"
+    "follow": "Theo dõi",
+    "following": "Đã theo dõi",
+    "sharePost": "Chia sẻ bài viết",
+    "copyLink": "Sao chép liên kết",
+    "linkCopied": "Đã sao chép liên kết",
+    "sharedState": "Đã chia sẻ",
+    "likeFailed": "Không thể thả cảm xúc. Vui lòng thử lại.",
+    "privacyPublic": "Công khai",
+    "privacyFriend": "Bạn bè",
+    "privacyPrivate": "Riêng tư",
+    "pinned": "Đã ghim"
   },
   "feed": {
     "empty": "Chưa có bài viết nào.",
@@ -167,7 +180,20 @@
     "disableComments": "Tắt bình luận",
     "enableComments": "Bật bình luận",
     "commentsDisabledToast": "Đã tắt bình luận",
-    "commentsEnabledToast": "Đã bật bình luận"
+    "commentsEnabledToast": "Đã bật bình luận",
+    "likeCount": "{count} lượt thích",
+    "shareCount": "{count} chia sẻ",
+    "emptyCommentsTitle": "Chưa có bình luận nào",
+    "emptyCommentsHint": "Hãy là người đầu tiên chia sẻ suy nghĩ của bạn.",
+    "charLimit": "Đã đạt giới hạn 1000 ký tự",
+    "deleteTitle": "Xóa bài viết?",
+    "deleteMessage": "Hành động này không thể hoàn tác.",
+    "confirmDelete": "Xóa",
+    "dialogLabel": "Chi tiết bài viết",
+    "prevMedia": "Ảnh trước",
+    "nextMedia": "Ảnh tiếp theo",
+    "copied": "Đã sao chép liên kết",
+    "commentsSkeletonLabel": "Đang tải bình luận"
   },
   "saved": {
     "title": "Bài viết đã lưu",
@@ -242,7 +268,14 @@
   },
   "brand": {
     "headline": "Kết nối bạn bè, chia sẻ khoảnh khắc",
-    "tagline": "Mạng xã hội cho mọi người"
+    "tagline": "Mạng xã hội cho mọi người",
+    "point1": "Kết nối với bạn bè và cộng đồng",
+    "point2": "Chia sẻ khoảnh khắc mỗi ngày",
+    "point3": "Nhắn tin nhanh, riêng tư và an toàn"
+  },
+  "auth": {
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu"
   },
   "login": {
     "title": "Đăng nhập",
@@ -261,6 +294,8 @@
     "emailInvalid": "Định dạng email không hợp lệ",
     "passwordRequired": "Mật khẩu không được để trống",
     "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+    "submitting": "Đang đăng nhập...",
+    "verifyEmailAction": "Xác thực email",
     "google": {
       "error": "Đăng nhập bằng Google thất bại",
       "text": "continue_with"
@@ -299,7 +334,25 @@
     "passwordTooLong": "Mật khẩu không được vượt quá 50 ký tự",
     "passwordComplexity": "Mật khẩu phải chứa chữ in hoa, chữ thường, số và ký tự đặc biệt",
     "confirmRequired": "Vui lòng xác nhận mật khẩu",
-    "confirmMismatch": "Mật khẩu xác nhận không khớp"
+    "confirmMismatch": "Mật khẩu xác nhận không khớp",
+    "confirmMatchOk": "Mật khẩu đã khớp",
+    "submitting": "Đang đăng ký...",
+    "terms": "Tôi đồng ý với Điều khoản sử dụng và Chính sách bảo mật của LinkUp",
+    "termsRequired": "Vui lòng đồng ý với điều khoản sử dụng",
+    "strength": {
+      "0": "Rất yếu",
+      "1": "Yếu",
+      "2": "Trung bình",
+      "3": "Mạnh",
+      "4": "Rất mạnh"
+    },
+    "req": {
+      "length": "Ít nhất 8 ký tự",
+      "upper": "Chữ in hoa",
+      "lower": "Chữ thường",
+      "digit": "Chứa số",
+      "special": "Ký tự đặc biệt"
+    }
   },
   "onboarding": {
     "title": "Hoàn thiện hồ sơ",

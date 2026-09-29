@@ -29,3 +29,49 @@
 .backBtn:hover {
   background: var(--color-primary-hover);
 }
+
+.skelCard {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skelAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-circle);
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+.skelLines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.skelLine {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+}
+
+.skelMedia {
+  width: 100%;
+  height: clamp(120px, 30vw, 200px);
+  border-radius: var(--radius-md);
+  background: var(--color-border);
+}

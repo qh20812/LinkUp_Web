@@ -51,8 +51,8 @@ export default function GoogleAuthButton() {
 
   if (loading) {
     return (
-      <button type="button" className={styles.loading} disabled>
-        {'...'}
+      <button type="button" className={styles.loading} disabled aria-busy>
+        {t('common.loading')}
       </button>
     )
   }

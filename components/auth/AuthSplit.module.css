@@ -2,10 +2,12 @@
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
   background: var(--color-bg);
 }
 
 .brandPane {
+  position: relative;
   flex: 1 1 50%;
   display: flex;
   align-items: center;
@@ -15,8 +17,32 @@
   overflow: hidden;
 }
 
+/* Soft decorative orbs — no neon glow, subtle depth only. */
+.deco {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  top: -80px;
+  right: -100px;
+  pointer-events: none;
+}
+
+.decoAlt {
+  width: 220px;
+  height: 220px;
+  top: auto;
+  right: auto;
+  bottom: -60px;
+  left: -70px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .brandInner {
-  max-width: 360px;
+  position: relative;
+  z-index: 1;
+  max-width: 380px;
   color: #ffffff;
 }
 
@@ -42,28 +68,96 @@
 .brandText {
   font: var(--text-h1);
   line-height: 1.25;
+  letter-spacing: -0.02em;
   margin-bottom: var(--space-md);
 }
 
 .brandTagline {
   font: var(--text-body);
   color: rgba(255, 255, 255, 0.85);
+  margin-bottom: var(--space-lg);
 }
 
-.formPane {
-  flex: 1 1 50%;
+.brandPoints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.brandPoints li {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--space-sm);
+  font: var(--text-caption);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.brandPoints i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Scroll container — the only thing that scrolls on auth pages.
+   Vertical centering lives in AuthCard's .wrap (min-height: 100% pattern)
+   so tall content sticks to the top instead of being clipped. */
+.formPane {
+  flex: 1 1 50%;
+  overflow-y: auto;
+  min-height: 0;
   padding: var(--space-xl) var(--space-lg);
+  min-width: 0;
 }
 
 @media (max-width: 767px) {
+  .split {
+    flex-direction: column;
+  }
+
+  /* Compact gradient brand strip instead of hiding the pane entirely. */
   .brandPane {
+    flex: 0 0 auto;
+    align-items: center;
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .brandInner {
+    max-width: none;
+    width: 100%;
+  }
+
+  .brandLogo {
+    margin-bottom: var(--space-sm);
+  }
+
+  .brandLogoImg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brandName {
+    font-size: 1.125rem;
+  }
+
+  .brandText {
+    font-size: 1.25rem;
+    margin-bottom: var(--space-xs);
+  }
+
+  .brandTagline {
+    font-size: 0.8125rem;
+    margin-bottom: 0;
+  }
+
+  .brandPoints {
     display: none;
   }
 
   .formPane {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    padding: var(--space-lg) var(--space-md);
   }
 }

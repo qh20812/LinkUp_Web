@@ -141,7 +141,10 @@ table {
 
   /* Story */
   --story-ring-gradient: linear-gradient(135deg, #12A5A1, #0A1F44);
+
+  /* Like / Heart (posts & comments) */
   --color-heart: #D32F2F;
+  --color-heart-light: rgba(211, 47, 47, 0.1);
 
   /* Chat Semantic Tokens */
   --chat-bg: var(--color-bg-secondary);
@@ -207,6 +210,8 @@ table {
   --fast: 150ms ease;
 
   --story-ring-gradient: linear-gradient(135deg, #3FBFBA, #0D2A5A);
+  --color-heart: #FF6B81;
+  --color-heart-light: rgba(255, 107, 129, 0.16);
 
   /* Chat Semantic Tokens (Dark Mode) */
   --chat-bg: var(--color-bg-secondary);

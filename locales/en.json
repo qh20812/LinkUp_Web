@@ -54,7 +54,8 @@
     "page": "Page",
     "updatedAt": "Updated At",
     "retry": "Retry",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "more": "More"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -128,11 +129,23 @@
     "liked": "Liked",
     "viewMore": "View More",
     "viewLess": "Show Less",
+    "noContent": "This post has no content",
+    "viewCount": "{count} views",
     "justNow": "Just now",
     "minutesAgo": "{minutes}m ago",
     "hoursAgo": "{hours}h ago",
     "daysAgo": "{days}d ago",
-    "follow": "Follow"
+    "follow": "Follow",
+    "following": "Following",
+    "sharePost": "Share post",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "sharedState": "Shared",
+    "likeFailed": "Couldn't react. Please try again.",
+    "privacyPublic": "Public",
+    "privacyFriend": "Friends",
+    "privacyPrivate": "Private",
+    "pinned": "Pinned"
   },
   "feed": {
     "empty": "No posts yet.",
@@ -167,7 +180,20 @@
     "disableComments": "Turn off comments",
     "enableComments": "Turn on comments",
     "commentsDisabledToast": "Comments turned off",
-    "commentsEnabledToast": "Comments turned on"
+    "commentsEnabledToast": "Comments turned on",
+    "likeCount": "{count} likes",
+    "shareCount": "{count} shares",
+    "emptyCommentsTitle": "No comments yet",
+    "emptyCommentsHint": "Be the first to share your thoughts.",
+    "charLimit": "Reached the 1000 character limit",
+    "deleteTitle": "Delete post?",
+    "deleteMessage": "This action cannot be undone.",
+    "confirmDelete": "Delete",
+    "dialogLabel": "Post details",
+    "prevMedia": "Previous media",
+    "nextMedia": "Next media",
+    "copied": "Link copied",
+    "commentsSkeletonLabel": "Loading comments"
   },
   "saved": {
     "title": "Saved Posts",
@@ -242,7 +268,14 @@
   },
   "brand": {
     "headline": "Connect with friends, share moments",
-    "tagline": "The social community for everyone"
+    "tagline": "The social community for everyone",
+    "point1": "Connect with friends and communities",
+    "point2": "Share your moments every day",
+    "point3": "Fast, private and secure messaging"
+  },
+  "auth": {
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "login": {
     "title": "Login",
@@ -261,6 +294,8 @@
     "emailInvalid": "Invalid email format",
     "passwordRequired": "Password is required",
     "passwordTooShort": "Password must be at least 6 characters",
+    "submitting": "Signing in...",
+    "verifyEmailAction": "Verify email",
     "google": {
       "error": "Google login failed",
       "text": "continue_with"
@@ -299,7 +334,25 @@
     "passwordTooLong": "Password must not exceed 50 characters",
     "passwordComplexity": "Password must contain uppercase, lowercase, number and special character",
     "confirmRequired": "Please confirm your password",
-    "confirmMismatch": "Passwords do not match"
+    "confirmMismatch": "Passwords do not match",
+    "confirmMatchOk": "Passwords match",
+    "submitting": "Creating account...",
+    "terms": "I agree to LinkUp's Terms of Use and Privacy Policy",
+    "termsRequired": "Please agree to the terms of use",
+    "strength": {
+      "0": "Very weak",
+      "1": "Weak",
+      "2": "Fair",
+      "3": "Strong",
+      "4": "Very strong"
+    },
+    "req": {
+      "length": "At least 8 characters",
+      "upper": "Uppercase letter",
+      "lower": "Lowercase letter",
+      "digit": "Contains a number",
+      "special": "Special character"
+    }
   },
   "onboarding": {
     "title": "Complete Your Profile",

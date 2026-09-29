@@ -53,6 +53,7 @@ function FeedContent() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
   const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
@@ -228,6 +229,7 @@ function FeedContent() {
 
   const handleShare = (postId: string) => {
     setSelectedPostId(postId)
+    setSharePostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -373,9 +375,16 @@ function FeedContent() {
       })}
 
       {loading && (
-        <div className={styles.loadingMore}>
-          <i className="bx bx-loader-circle bx-spin" />
-          <span>{t('common.loading')}</span>
+        <div className={styles.skeleton} role="status" aria-label={t('common.loading')}>
+          <div className={styles.skelHeader}>
+            <div className={styles.skelAvatar} />
+            <div className={styles.skelLines}>
+              <div className={styles.skelLine} style={{ width: '35%' }} />
+              <div className={styles.skelLine} style={{ width: '20%' }} />
+            </div>
+          </div>
+          <div className={styles.skelLine} style={{ width: '70%' }} />
+          <div className={styles.skelLine} style={{ width: '50%' }} />
         </div>
       )}
 
@@ -410,7 +419,11 @@ function FeedContent() {
           key={detailPost.id}
           post={detailPost}
           open
-          onClose={() => setSelectedPostId(null)}
+          initialShareOpen={sharePostId === detailPost.id}
+          onClose={() => {
+            setSelectedPostId(null)
+            setSharePostId(null)
+          }}
           onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
           onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
         />

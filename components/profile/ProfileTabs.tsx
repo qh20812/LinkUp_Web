@@ -43,6 +43,7 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [pinBusy, setPinBusy] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -328,7 +329,10 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
                   onLike={handleLike}
                   onSave={handleSavePost}
                   onComment={(id) => setSelectedPostId(id)}
-                  onShare={(id) => setSelectedPostId(id)}
+                  onShare={(id) => {
+                    setSelectedPostId(id)
+                    setSharePostId(id)
+                  }}
                   onFollow={onFollow}
                   onOpenDetail={setSelectedPostId}
                 />
@@ -367,7 +371,11 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
             key={detailPost.id}
             post={detailPost}
             open
-            onClose={() => setSelectedPostId(null)}
+            initialShareOpen={sharePostId === detailPost.id}
+            onClose={() => {
+              setSelectedPostId(null)
+              setSharePostId(null)
+            }}
             onUpdated={(updated) =>
               setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
             }

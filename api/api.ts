@@ -31,16 +31,45 @@ function resolveError(code: string, params?: Record<string, string | number>): s
 
 const DOT_CODE_RE = /^\w+\.\w+$/
 
-export async function extractErrorMessage(res: Response): Promise<string> {
+/**
+ * Error thrown by `request()` — carries the raw server error code (e.g.
+ * `auth.EMAIL_NOT_VERIFIED`) alongside the localized message so callers can
+ * branch on the failure type. Still an `Error`, so existing
+ * `err instanceof Error` handlers keep working unchanged.
+ */
+export class ApiError extends Error {
+  readonly code: string
+  readonly status: number
+
+  constructor(message: string, code = '', status = 0) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.status = status
+  }
+}
+
+interface ParsedError {
+  code: string
+  message: string
+}
+
+export async function parseError(res: Response): Promise<ParsedError> {
   const body = await res.json().catch(() => null)
   if (body && typeof body.error === 'string' && body.error) {
     if (DOT_CODE_RE.test(body.error)) {
-      return resolveError(body.error, body.params)
+      return { code: body.error, message: resolveError(body.error, body.params) }
     }
-    return body.error
+    return { code: '', message: body.error }
   }
-  if (body && typeof body.message === 'string' && body.message) return body.message
-  return `HTTP ${res.status}`
+  if (body && typeof body.message === 'string' && body.message) {
+    return { code: '', message: body.message }
+  }
+  return { code: '', message: `HTTP ${res.status}` }
+}
+
+export async function extractErrorMessage(res: Response): Promise<string> {
+  return (await parseError(res)).message
 }
 
 export function clearSession(): void {
@@ -146,7 +175,8 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
       clearSession()
       redirectToLogin()
     }
-    throw new Error(await extractErrorMessage(res))
+    const { code, message } = await parseError(res)
+    throw new ApiError(message, code, res.status)
   }
 
   return res.json()

@@ -66,6 +66,7 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 | **Success Green** | `#388E3C` | `#E8F5E9` | `#064E3B` | Active status, success toasts, online indicators |
 | **Caution Amber** | `#FBC02D` | `#FFF8E1` | `#78350F` | Pending status, warning toasts |
 | **Danger Crimson** | `#D32F2F` | `#FFEBEE` | `#7F1D1D` | Banned status, error toasts, delete actions |
+| **Heart Red** | `#D32F2F` | `rgba(211,47,47,0.10)` | `rgba(255,107,129,0.16)` | Like/love reactions on posts and comments. Tokens `--color-heart`, `--color-heart-light` (dark: `#FF6B81`) |
 | **Info Blue** | `#1976D2` | `#E3F2FD` | `#1E3A5F` | Informational badges, reviewed status |
 
 ### Dark Mode Overrides
@@ -94,6 +95,9 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
   --color-warning-light: #78350F;
   --color-danger-light: #7F1D1D;
   --color-info-light: #1E3A5F;
+
+  --color-heart: #FF6B81;
+  --color-heart-light: rgba(255, 107, 129, 0.16);
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
@@ -251,6 +255,12 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Label positioned above input, `4px` gap. Error text below in `var(--color-danger)`, `12px` gap
 - No floating labels. No animated label transitions
 
+**Auth inputs** (Track 2, `authShared.module.css`):
+- Height `44px`, **filled style**: background `var(--color-bg-secondary)`, no resting border; `aria-invalid` → `1px solid var(--color-danger)` + danger wash
+- Error/hint line reserves a fixed `18px` slot below every field — forms never shift when a message appears
+- Password fields use `PasswordInput` (focusable eye toggle, `aria-pressed`, `auth.showPassword`/`auth.hidePassword` labels)
+- Autofill override: white/`--color-bg-secondary` background + `--color-text`, no yellow browser tint
+
 ### Textarea (Post Composer)
 
 - Min-height: `120px`, auto-expands with content
@@ -284,7 +294,7 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 ### Modals
 
 - Overlay: `rgba(0,0,0,0.5)` backdrop
-- Container: `var(--color-card)`, `border-radius: 20px`, `max-width: 560px` (standard), `900px` (post detail)
+- Container: `var(--color-card)`, `border-radius: 20px`, `max-width: 560px` (standard), `1080px` (post detail — split 2-column)
 - Padding: `24px` header, `0` body, `24px` footer
 - Header: `H2` title + close button (X icon, 36px ghost)
 - Close on: overlay click, Escape key, X button
@@ -375,22 +385,30 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 └──────────────────────────────────────────────┘
 ```
 
-### Track 2: Auth Pages (Login, Register, Forgot Password)
+### Track 2: Auth Pages (Login, Register, Forgot/Reset Password, Verify Email, Onboarding)
 
-**Split layout:**
+**Fixed-height split layout — the page never scrolls, only the form pane does:**
 ```
-┌──────────────────┬───────────────────────────┐
-│                  │                           │
-│  Brand Pane      │    Form Pane              │
-│  (gradient bg)   │    (white bg)             │
-│  Logo + Copy     │    AuthCard (max-w: 400px)│
-│                  │                           │
-└──────────────────┴───────────────────────────┘
+┌──────────────────────────────────────────────┐  ← pinned: 100dvh, overflow: hidden
+│  Header (56px: logo, lang + theme toggles)   │
+├──────────────────┬───────────────────────────┤
+│                  │  (scroll container ↓)     │
+│  Brand Pane      │  Form Pane                │
+│  (gradient bg)   │  overflow-y: auto         │
+│  Logo + Headline │  AuthCard (max-w: 420px)  │
+│  + 3 value props │  centered, sticks to      │
+│                  │  top when taller than pane│
+├──────────────────┴───────────────────────────┤
+│  Footer (© 2026 LinkUp)                      │
+└──────────────────────────────────────────────┘
 ```
-- Brand pane: 50% width, gradient background, white text, logo + headline + tagline
-- Form pane: 50% width, centered form card
-- **Mobile:** Brand pane hidden. Form pane full-width, centered
-- Brand pane disappears below `768px`
+- **Shell:** `height: 100dvh` + `overflow: hidden` — header, brand pane, and footer are pinned; no page-level scroll
+- **Brand pane:** 50% width, gradient `135deg` primary → secondary, white text: logo + headline + tagline + 3 value props (`brand.point1..3`), decorative orbs (`aria-hidden`). Does not scroll
+- **Form pane:** 50% width, `overflow-y: auto` — the ONLY scrollable region on auth pages. `AuthCard` uses the `min-height: 100%` centering pattern: content shorter than the pane centers vertically; taller content sticks to the top and scrolls (never clipped at the top edge)
+- **Mobile (≤767px):** column stack — brand pane becomes a **compact gradient strip** (logo + headline + tagline, value props hidden), form pane takes the remaining height and scrolls internally. Header and footer stay pinned
+- **Keyboard:** focusing an input scrolls the form pane (nearest scrollable ancestor), not the page
+- **Fallback:** if mobile soft-keyboard focus-scroll misbehaves on a browser, revert only `<768px` to page scroll (`height: auto; overflow: visible` on the shell)
+- Server errors render inline (`FormAlert`, `role="alert"`) inside the form — never toast-only
 
 ### Track 3: User Social (3-Column)
 
@@ -506,6 +524,7 @@ Use native CSS Grid — never flexbox percentage math:
 - Feed content: `max-width: 680px` centered in center column
 - Horizontal padding: `16px` (mobile), `24px` (tablet), `32px` (desktop)
 - Full-height sections: `min-height: 100dvh` — never `100vh` (iOS Safari jump)
+- **Auth pages (Track 2) are the exception:** they use fixed `height: 100dvh` + `overflow: hidden` on the shell so the page itself never scrolls — overflow is absorbed by the form pane's `overflow-y: auto`
 
 ---
 
@@ -603,7 +622,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 - No custom mouse cursors
 - No overlapping elements — clean spatial separation always
 - No `z-index` spam — use only for intentional stacking contexts (Navbar, Modal, Overlay, messaging layers)
-- No `h-screen` — always `min-height: 100dvh`
+- No `h-screen` — use `min-height: 100dvh` (fixed `height: 100dvh` only for intentional no-page-scroll shells like auth Track 2)
 
 ### Layout
 
@@ -649,18 +668,22 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 ### Login (`/login`)
 
 **Purpose:** Authenticate existing users. Quick, frictionless.
-**Layout:** Split — brand pane (left, 50%) + form pane (right, 50%)
-**Brand pane:** Gradient bg, logo, "Welcome back" headline, brief tagline
-**Form pane:** Email input, password input, "Forgot password?" link, "Log in" primary button, Google OAuth button, "Create account" link
-**Validation:** Inline errors below each field, red text
-**Mobile:** Brand pane hidden. Form centered, full-width.
+**Layout:** Fixed-height split (Track 2) — brand pane (left, 50%) + form pane (right, 50%, scrolls internally)
+**Brand pane:** Gradient bg, logo, headline, tagline, 3 value props
+**Form pane order:** title + subtitle (left-aligned) → Google OAuth button → divider ("hoặc") → email input → password input (with "Quên mật khẩu?" in the label row) → navy full-width "Đăng nhập" → footer link "Chưa có tài khoản? Đăng ký"
+**Validation:** Real-time per-field errors below each field (reserved 18px slot — layout never jumps); server errors inline `FormAlert` (`role="alert"`, maps `auth.EMAIL_NOT_VERIFIED` → action button to `/verify-email`, locked/attempt-limit codes → warning variant)
+**Focus:** email autofocused on ≥768px only (mobile keyboard would cover the form)
+**Mobile (≤767px):** compact gradient brand strip on top; header/footer pinned; form pane scrolls internally
 
 ### Register (`/register`)
 
 **Purpose:** Create new accounts. Onboarding starts here.
-**Layout:** Same split as login
-**Form:** Display name, email, password, confirm password, "Create account" button, Google OAuth, "Already have an account? Log in" link
-**Validation:** Real-time field validation, password strength indicator
+**Layout:** Same fixed-height split as login
+**Form pane order:** title + subtitle → Google OAuth button → divider → display name → email → password → confirm password → terms checkbox → navy full-width "Đăng ký" → footer link "Đã có tài khoản? Đăng nhập"
+**Password UX:** live strength meter (4 segments, tone weak/fair/strong, label `aria-live="polite"`) + 5-item requirement checklist (`register.req.*`, icons flip `bx-x-circle` → `bx-check-circle` live) + confirm-match live hint (`register.confirmMatchOk`)
+**Terms:** plain-text checkbox row (no links — no `/terms` page exists), client-only error until checked
+**Validation:** Real-time per-field errors, strength meter, inline `FormAlert` for server errors (`auth.EMAIL_EXISTS` → danger), focus first invalid field on submit
+**Focus:** display name autofocused on ≥768px only
 
 ### Feed (`/` — authenticated)
 
@@ -681,6 +704,36 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 - **PostCard:** Author header (avatar 40px, name, follow badge, timestamp), content (truncated at 200 chars with expand), media grid (1-4 items), action bar (like, comment, share, save)
 **Right sidebar:** Search input, trending hashtags (top 5), follow suggestions (top 5 with follow buttons)
 **Left sidebar:** Navigation with active state highlighting, create post button (turquoise pill), user dropdown at bottom
+
+### Post Card & Post Detail Modal
+
+**PostCard (`components/PostCard.tsx`):**
+
+- **Header:** avatar 40px, display name + optional Follow badge, `@username · relative time` (absolute date in `title` attr), privacy chip (globe/lock/group icon) when `status !== 'public'`, "Đã chip" pin badge when `is_pinned`
+- **Content:** hashtags (`#tag`) render as primary-colored links → `/search?q=%23tag`. Truncation at 200 chars with "Xem thêm / Thu gọn"
+- **Media grid:** 1–4 items; when a post has >4 media the 4th tile shows a `+N` overlay. Cards are clickable to open the detail modal (keyboard: `role="button"` + Enter/Space)
+- **Action bar — two clusters:**
+  - Left: **Like · Comment · Share** (ghost buttons, icon + count)
+  - Right (`margin-left: auto`): **Save · Send-to-friend** — or a single Share button opening a compact popover menu (`Chia sẻ bài viết` / `Gửi cho bạn bè`)
+- **Like:** color `var(--color-heart)`, hover wash `var(--color-heart-light)`, pop animation `scale 1 → 1.3 → 1` (300ms). Double-tap on card body = like (touch)
+- **Never** hardcode red/pink values — always `--color-heart` tokens (dark mode override required)
+- **Empty post:** a post with no title, no content, **and** no media renders a single muted placeholder line (`post.noContent`, italic `--color-text-secondary`). Media-only posts show no annotation — the media is the content
+- **View count (owner-only):** the author's own posts replace the (formerly disabled) Save button in the right action cluster with an eye stat — `bx-show` icon + compact count (`post.viewCount`, uses the shared `formatCount`). Other users' posts keep the Save button unchanged. The modal stats row keeps showing views to everyone
+
+**Post Detail Modal (`components/PostDetailModal.tsx`):**
+
+- **Desktop ≥960px — split 2-column grid:**
+  - Left pane: media stage, `background: #000`, full height, carousel with prev/next (keyboard ←/→ + touch swipe), counter badge, dot indicators — prev/next, counter, and dots are all hidden when the post has a single media item
+  - Right pane (440px): header (fixed) → scroll area (body → stats → action bar → comments) → comment composer (fixed at bottom of the right pane, never spans the media pane)
+  - Text-only posts: single column, content `max-width: 680px` centered
+- **Mobile ≤768px:** stack — media on top, content scrolls, composer pinned above the safe area
+- **Stats row:** one line — `N lượt thích · N bình luận · N chia sẻ · N lượt xem`; clicking the comment segment scrolls to the comment list
+- **Action bar:** same two-cluster rule as PostCard. After sharing, show a "Đã chia sẻ" chip — do not disable the share button permanently
+- **Owner menu (⋮):** toggle comments, copy link, delete (styled confirm modal — never `window.confirm`). **Guest menu:** copy link, report
+- **Comments:** current-user avatar left of the composer input; sort as a segmented pill control; Reply scrolls to + highlights the parent comment; char counter near the 1000-char server limit (amber → red); loading = comment skeletons (no spinners); empty state = composed illustration + guidance line
+- **A11y:** `role="dialog"`, `aria-modal="true"`, focus trap, focus restore on close, Escape + overlay click close
+- **URL:** opening from a feed pushes `/posts/{id}`; browser Back closes the modal first
+- **Motion:** overlay `0 → 0.5`, content `opacity 0 → 1` + `translateY(8px) → 0`, `200ms ease-out`
 
 ### Stories (Feed bar + editor)
 

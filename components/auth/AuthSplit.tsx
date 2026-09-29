@@ -9,14 +9,32 @@ function BrandPane() {
   const { t } = useTranslation()
 
   return (
-    <div className={styles.brandInner}>
-      <div className={styles.brandLogo}>
-        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={48} height={48} className={styles.brandLogoImg} />
-        <span className={styles.brandName}>LinkUp</span>
+    <>
+      <div className={styles.brandInner}>
+        <div className={styles.brandLogo}>
+          <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={48} height={48} className={styles.brandLogoImg} />
+          <span className={styles.brandName}>LinkUp</span>
+        </div>
+        <h2 className={styles.brandText}>{t('brand.headline')}</h2>
+        <p className={styles.brandTagline}>{t('brand.tagline')}</p>
+        <ul className={styles.brandPoints}>
+          <li>
+            <i className="bx bx-check" aria-hidden="true" />
+            {t('brand.point1')}
+          </li>
+          <li>
+            <i className="bx bx-check" aria-hidden="true" />
+            {t('brand.point2')}
+          </li>
+          <li>
+            <i className="bx bx-check" aria-hidden="true" />
+            {t('brand.point3')}
+          </li>
+        </ul>
       </div>
-      <h2 className={styles.brandText}>{t('brand.headline')}</h2>
-      <p className={styles.brandTagline}>{t('brand.tagline')}</p>
-    </div>
+      <span className={styles.deco} aria-hidden="true" />
+      <span className={`${styles.deco} ${styles.decoAlt}`} aria-hidden="true" />
+    </>
   )
 }
 
