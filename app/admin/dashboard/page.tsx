@@ -19,6 +19,8 @@ import {
 import { useTranslation } from '../../../hooks/useTranslation'
 import { swrFetcher } from '../../../api/swr'
 import StatCard from '../../../components/StatCard'
+import UserProfileModal from '../../../components/UserProfileModal'
+import PostPreviewModal from '../../../components/PostPreviewModal'
 import type {
   AdminAnalyticsResponse,
   ChartDataPoint,
@@ -144,6 +146,15 @@ function formatISO(d: Date): string {
 export default function DashboardPage() {
   const { t } = useTranslation()
   const [period, setPeriod] = useState<Period>('7d')
+  const [userTarget, setUserTarget] = useState<TopActiveUser | null>(null)
+  const [postTarget, setPostTarget] = useState<TopEngagedPost | null>(null)
+
+  const rowKeyDown = (open: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      open()
+    }
+  }
 
   const { start, end } = getDateRange(period)
   const startDate = formatISO(start)
@@ -464,7 +475,12 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {data.top_users.map((user, i) => (
-                  <tr key={user.user_id}>
+                  <tr
+                    key={user.user_id}
+                    className={styles.topListRow}
+                    tabIndex={0}
+                    onClick={() => setUserTarget(user)}
+                    onKeyDown={rowKeyDown(() => setUserTarget(user))}>
                     <td>
                       <span className={rankClass(i)}>{i + 1}</span>
                     </td>
@@ -514,7 +530,12 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {data.top_posts.map((post, i) => (
-                  <tr key={post.post_id}>
+                  <tr
+                    key={post.post_id}
+                    className={styles.topListRow}
+                    tabIndex={0}
+                    onClick={() => setPostTarget(post)}
+                    onKeyDown={rowKeyDown(() => setPostTarget(post))}>
                     <td>
                       <span className={rankClass(i)}>{i + 1}</span>
                     </td>
@@ -547,6 +568,20 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {userTarget && (
+        <UserProfileModal user={userTarget} onClose={() => setUserTarget(null)} />
+      )}
+      {postTarget && (
+        <PostPreviewModal
+          post={postTarget}
+          onClose={() => setPostTarget(null)}
+          onViewProfile={(user) => {
+            setPostTarget(null)
+            setUserTarget(user)
+          }}
+        />
+      )}
     </div>
   )
 }

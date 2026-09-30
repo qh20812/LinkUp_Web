@@ -258,6 +258,7 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Circular icon siblings in a navbar (hamburger menu button, notification bell) reuse the theme-toggle recipe: 36px circle, `--seg-track-bg` + `--glass-border`, hover = `--color-primary-light` wash + primary icon, `aria-label` required
 - **Tooltips:** icon buttons (theme, menu, bell) use a custom tooltip — `data-tooltip={t(...)}` rendered by `::after { content: attr(data-tooltip) }` (local class + `attr()`, never attribute-only selectors in CSS Modules), pill 12px, `background: var(--color-text)` / `color: var(--color-card)` (auto-inverts light/dark), shown on `:hover`/`:focus-visible` with 150ms fade + 2px rise, `z-index: 1200`. Never native `title` — it double-renders and cannot be styled. The language group and profile trigger carry a localized `aria-label` only (no tooltip)
 - **Localization:** every `aria-label`/tooltip in nav chrome goes through `t()` — `nav.toggleTheme`, `nav.language`, `nav.toggleMenu`, reusing `sidebar.notifications` and `nav.profile`. Hardcoded English strings are banned
+- **Brand (admin/partner navbar):** the LinkUp lockup lives in the navbar, centered — same brand formula as the landing Navbar `.brand`: 32×32 `object-fit: contain` icon + `gap: 8px` + wordmark `--text-h2` 20px `--color-primary`, hover icon `scale(1.06)` + focus-visible 2px outline. Centering is **flow-based**: the brand is a flex child with `margin: 0 auto`, placed between the left cluster (menu; search too on admin) and the right cluster — its auto margins absorb the free space, so it can never overlap siblings (never `position: absolute`). Moving the brand here means removing the rival auto-margins: `.searchForm { margin-right: auto }` (admin) and `.profileWrap { margin-left: auto }` (partner) — two owners of the same free space fight. ≤576px: hide the wordmark (icon only) and hide `.userInfo` in the profile trigger (avatar + chevron only) — also relieves mobile crowding. The sidebar starts directly with its menu (`sideMenu { margin-top: 16px }`)
 
 ### Glass Surface (floating chrome variant)
 
@@ -848,6 +849,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Layout:** Admin sidebar + AdminNavbar + content area
 **Content:** 6 stat cards (3x2 grid) with animated counters and trend indicators, line chart (user/post/report growth over time), pie chart (user status distribution), two recent tables (top users, top posts), period selector dropdown
 **Charts:** Recharts library, responsive, with loading skeletons
+**Top lists:** "Người dùng tích cực nhất" / "Bài viết tương tác nhất" rows are clickable (`.topListRow`: pointer, hover `--color-bg-secondary`, focus-visible outline, Enter/Space) → open `UserProfileModal` (fetches `GET /profile/:userID`: avatar, name, bio, stat chips; footer "Xem hồ sơ đầy đủ" expands **in-place** — no navigation to user layout — widening the shared Modal via new `size="lg"` prop (680px) to show cover header + avatar overlap + full `ProfileAboutTab` About section, footer becomes "Quay lại") or `PostPreviewModal` (fetches `GET /posts/:id`: clickable author row → chains to UserProfileModal, clamped content, media grid, status badge, stats, "Xem bài viết" link). Both reuse shared `components/Modal`, loading spinner + retry error states.
 
 ### Admin Users (`/admin/users`)
 
@@ -860,6 +862,31 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Tabs:** Change Password, Privacy, Appearance (theme toggle), Storage (quota info), Active Sessions, Deactivate Account
 **Layout:** 3-column user layout, settings content in center column
 **Form pattern:** Label above input, helper text below, save button at bottom
+
+### Admin Settings (`/admin/settings`)
+
+**Purpose:** Super Admin only — global system settings (11 backend keys). Admin sidebar + AdminNavbar + content area.
+**Layout:** Header (title + caption subtitle + Super Admin badge + "Unsaved changes" dirty pill with orange `--color-accent` dot) above a **vertical rail split**: 220px `.rail` (`role="tablist"`, 3 tabs with icon + label, active = `--color-primary-light` pill, navy on hover) + flexible `.panel` (`role="tabpanel"`). Tab syncs to `?tab=general|security|registration` via `router.replace` (wrapped in `<Suspense>` for `useSearchParams`).
+**Tabs:** General (site name, description, contact email, maintenance toggle), Security & Auth (password min length, max login attempts, JWT expiry, refresh token expiry), Registration (allow registration, require email verify, default user role select).
+**Tab switch:** content crossfade 150ms ease (`.panel` keyed by tab, §8).
+**Fields:** two row types — text/number/textarea/select rows (label + `settings.hint.*` helper via `text-caption` + control, `.fieldError` inline on blur/save) and boolean `.settingRow` (label + hint left, 44×24 `.toggle` right; maintenance ON shows amber `--color-warning-light` banner with `bx-error-circle` — no emoji). Inputs follow §4 (40px, `radius-md`, focus ring `0 0 0 3px --color-primary-light`, danger border+ring when invalid).
+**Actions:** global dirty detection (`JSON.stringify` compare) — Save (navy `--color-cta`, §2) + Cancel (ghost outline) disabled until dirty; invalid fields jump to their tab and toast the first error; save errors surface inline (touched), success toast + SWR invalidate.
+**Skeleton:** header + 3 rail pills + card rows (shimmer 0.4→0.8→0.4), matches final layout.
+**Responsive:** ≤860px rail becomes a wrapping horizontal row above the panel; ≤576px header stacks, inputs go full-width, footer buttons stack full-width.
+
+### Admin Profile (`/admin/profile`)
+
+**Purpose:** Lean self-service profile for ADMIN + SUPER_ADMIN (role guard: other roles → redirect with unauthorized toast). Admin sidebar + AdminNavbar + content area.
+**Header:** H1 + caption subtitle + role badge pill right (`bx-shield-quarter`; SUPER_ADMIN = `--color-primary-light`/primary, ADMIN = neutral border pill).
+**Card "Account":**
+- Identity row: 96px avatar button (hover/focus → dark camera overlay, click → file input → `/media/upload` → `PATCH /profile` → toast + `invalidate('/profile')` so navbar updates) + display name (`--text-h2`) + `@username`.
+- Read-only info grid (2-col, ≤860 1-col): email (token), user ID (mono `infoCode` chip + copy button with swap-to-check tooltip), joined date (locale-aware `toLocaleDateString`), role.
+- Edit form: display name (required, maxLength 50, inline error on blur) + bio (textarea maxLength 160 with `text-caption` hint), fields follow §4.
+- Actions: global dirty detection — Save (navy `--color-cta`, §2) + Cancel ghost, disabled until dirty; success/error toast.
+**Card "Security":** inline change-password form (old/new/confirm, `autoComplete` attrs) + Save — same `POST /auth/change-password` as the navbar modal.
+**Skeleton:** header + identity (circle + lines) + 4 info placeholders (shimmer 0.4→0.8→0.4).
+**Tooltips:** custom `data-tooltip` `::after` pill (§4 pattern) on avatar + copy; no native `title`, no emoji.
+**Responsive:** ≤576px header stacks, identity column stacks, inputs full-width, footer buttons stack full-width.
 
 ---
 

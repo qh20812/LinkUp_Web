@@ -98,6 +98,6 @@ The three layout groups are independent — they share no chrome components.
 | `/admin/notifications` | Done | List with read/unread filter, pagination, mark-read, preferences |
 | `/admin/ads` | Done | Ad management, analytics, status toggle |
 | `/admin/settings` | Done | Site settings management |
-| `/admin/profile` | Stub | Coming soon |
+| `/admin/profile` | Done | Lean profile (ADMIN + SUPER_ADMIN): avatar upload, display name/bio edit, read-only account info, change password |
 
 **Shared components:** `Modal`, `Pagination`, `StatCard` in `components/` — reuse instead of inlining.

@@ -26,44 +26,10 @@
   width: 60px;
 }
 
-/* Logo */
-.logo {
-  font-size: 24px;
-  font-weight: 700;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  color: var(--color-primary);
-  z-index: 500;
-  padding-bottom: 20px;
-  box-sizing: content-box;
-}
-
-.logoImg {
-  min-width: 60px;
-  display: flex;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.logoName {
-  font: var(--text-h2);
-  font-size: 20px;
-  color: var(--color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.close .logoName {
-  display: none;
-}
-
-/* Side menu */
+/* Side menu — the sidebar starts directly with the menu (brand lives centered in the navbar) */
 .sideMenu {
   width: 100%;
-  margin-top: 48px;
+  margin-top: var(--space-md);
   flex: 1;
 }
 
@@ -267,10 +233,6 @@
 @media screen and (max-width: 768px) {
   .sidebar {
     width: 60px;
-  }
-
-  .logoName {
-    display: none;
   }
 }
 

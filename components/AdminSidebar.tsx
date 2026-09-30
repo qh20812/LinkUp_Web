@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
   import { useTranslation } from '../hooks/useTranslation'
   import { logout } from '../api/auth'
@@ -55,11 +54,6 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
 
   return (
     <aside className={`${styles.sidebar}${collapsed ? ` ${styles.close}` : ''}${mobileOpen ? ` ${styles.mobileOpen}` : ''}`}>
-      <Link href="/admin/dashboard" className={styles.logo}>
-        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-        <span className={styles.logoName}>LinkUp</span>
-      </Link>
-
       <ul className={styles.sideMenu}>
         {menuItems.map((item) => (
           <li

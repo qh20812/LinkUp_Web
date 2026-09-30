@@ -331,6 +331,20 @@
   border-bottom: none;
 }
 
+.topListRow {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.topListRow:hover {
+  background: var(--color-bg-secondary);
+}
+
+.topListRow:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .topListRank {
   width: 28px;
   height: 28px;
@@ -422,5 +436,11 @@
   .chartHeader {
     flex-direction: column;
     gap: var(--space-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topListRow {
+    transition: none;
   }
 }

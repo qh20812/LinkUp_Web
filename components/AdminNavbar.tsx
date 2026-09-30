@@ -158,6 +158,18 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
         />
       </form>
 
+      <Link href="/admin/dashboard" className={styles.brand}>
+        <Image
+          src="/S-Logo-Rmbg.png"
+          alt="LinkUp"
+          width={32}
+          height={32}
+          className={styles.brandImg}
+          priority
+        />
+        <span className={styles.brandName}>LinkUp</span>
+      </Link>
+
       <div className={styles.controls}>
         <NavControls />
       </div>

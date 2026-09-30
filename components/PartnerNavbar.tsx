@@ -103,6 +103,18 @@ export default function PartnerNavbar({ onMenuToggle }: PartnerNavbarProps) {
         <NavControls />
       </div>
 
+      <Link href="/partner/dashboard" className={styles.brand}>
+        <Image
+          src="/S-Logo-Rmbg.png"
+          alt="LinkUp"
+          width={32}
+          height={32}
+          className={styles.brandImg}
+          priority
+        />
+        <span className={styles.brandName}>LinkUp</span>
+      </Link>
+
       <div className={styles.profileWrap} ref={dropdownRef}>
         <button
           className={styles.profile}

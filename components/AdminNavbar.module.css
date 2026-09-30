@@ -83,7 +83,7 @@
   transform: translateX(-50%) translateY(0);
 }
 
-/* Search pill */
+/* Search pill — no margin-right: auto; the brand's auto margins own the free space */
 .searchForm {
   display: flex;
   align-items: center;
@@ -91,7 +91,6 @@
   height: 36px;
   width: 100%;
   max-width: 400px;
-  margin-right: auto;
   padding: 0 14px;
   border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
@@ -124,6 +123,44 @@
 
 .searchInput::placeholder {
   color: var(--color-text-secondary);
+}
+
+/* Brand — centered via flow: margin: 0 auto splits the free space between
+   the left cluster (menu + search) and the right cluster (controls + bell +
+   profile). Never absolute-positioned: auto margins can't overlap siblings.
+   Brand formula matches Navbar .brand (DESIGN.md §4). */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  margin: 0 auto;
+  color: var(--color-primary);
+}
+
+.brandImg {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.brandName {
+  font: var(--text-h2);
+  font-size: 20px;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.brand:hover .brandImg {
+  transform: scale(1.06);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Nav controls (language + theme) */
@@ -504,6 +541,14 @@
   .controls {
     display: none;
   }
+
+  .brandName {
+    display: none;
+  }
+
+  .userInfo {
+    display: none;
+  }
 }
 
 /* Notification bell wrapper */
@@ -536,6 +581,7 @@
   .menuBtn,
   .notif,
   .profile,
+  .brandImg,
   .dropdownItem {
     transition: none;
   }

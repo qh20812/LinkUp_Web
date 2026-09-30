@@ -1,0 +1,242 @@
+.author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 8px;
+  margin: -8px -8px 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.author:hover {
+  background: var(--color-bg-secondary);
+}
+
+.author:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.authorAvatar {
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.authorText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.authorName {
+  font: var(--text-body);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.authorUsername {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.author > i {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+}
+
+.title {
+  font: var(--text-body);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: var(--space-md);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusPublic {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.statusFriend {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.statusPrivate {
+  background: var(--color-warning-light);
+  color: var(--color-text);
+}
+
+.statusHidden {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.date {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.content {
+  font: var(--text-body);
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-top: var(--space-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  overflow: hidden;
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: var(--space-md);
+}
+
+.mediaThumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.mediaImg {
+  object-fit: cover;
+}
+
+.mediaPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 28px;
+}
+
+.mediaMore {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-divider);
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.stat i {
+  font-size: 1rem;
+  color: var(--color-primary);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.state i {
+  font-size: 32px;
+}
+
+.btnPrimary,
+.btnSecondary {
+  height: 40px;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-md);
+  font: var(--text-body);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btnPrimary {
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  border: none;
+}
+
+.btnPrimary:hover {
+  background: var(--color-cta-hover);
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.btnSecondary:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .author,
+  .btnPrimary,
+  .btnSecondary {
+    transition: none;
+  }
+}
