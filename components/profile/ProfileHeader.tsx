@@ -6,11 +6,15 @@ import ExternalImage from '../ExternalImage'
 import OnlineIndicator from '../OnlineIndicator'
 import StoryAvatar from '../story/StoryAvatar'
 import FriendButton from './FriendButton'
+import { renderEmojiContent } from '../messages/EmojiImage'
+import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import styles from './ProfileHeader.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { usePresence } from '../../contexts/PresenceContext'
 import type { ViewProfileResponse } from '../../types'
 import type { FollowStats } from '../../hooks/profile/useFollowStats'
+
+const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
 
 function formatJoinDate(dateStr: string, t: (key: string) => string): string {
   const d = new Date(dateStr)
@@ -212,7 +216,9 @@ export default function ProfileHeader({
             <div className={styles.userInfo}>
               <p className={styles.displayName}>{profile.display_name}</p>
               {profile.username && <p className={styles.username}>@{profile.username}</p>}
-              {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
+              {profile.bio && (
+                <p className={styles.bio}>{renderEmojiContent(profile.bio, EMOJI_CODE_MAP, 'bio-edit')}</p>
+              )}
             </div>
           </div>
 
@@ -361,7 +367,7 @@ export default function ProfileHeader({
                 <i className="bx bx-lock-alt" /> {t('profile.private')}
               </span>
             ) : profile.bio ? (
-              <p className={styles.bio}>{profile.bio}</p>
+              <p className={styles.bio}>{renderEmojiContent(profile.bio, EMOJI_CODE_MAP, 'bio')}</p>
             ) : null}
             <div className={styles.meta}>
               {profile.post_count > 0 && (

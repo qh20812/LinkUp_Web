@@ -5,7 +5,11 @@ import styles from './ProfileAboutTab.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getProvinces, getWards } from '../../api/locations'
 import { resolveWorkLabel, resolveEducationLabel } from '../../data/profile-enums'
+import { renderEmojiContent } from '../messages/EmojiImage'
+import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import type { ViewProfileResponse } from '../../types'
+
+const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
 
 interface ProfileAboutTabProps {
   profile: ViewProfileResponse
@@ -125,7 +129,7 @@ export default function ProfileAboutTab({ profile }: ProfileAboutTabProps) {
       {profile.bio && (
         <div className={styles.section}>
           <h4 className={styles.sectionTitle}>{t('profile.aboutBio')}</h4>
-          <p className={styles.bioText}>{profile.bio}</p>
+          <p className={styles.bioText}>{renderEmojiContent(profile.bio, EMOJI_CODE_MAP, 'bio-about')}</p>
         </div>
       )}
 

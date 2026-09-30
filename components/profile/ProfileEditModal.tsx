@@ -10,6 +10,7 @@ import { useToast } from '../../contexts/ToastContext'
 import SearchSelect from '../SearchSelect'
 import DatePicker from '../DatePicker'
 import EmojiPicker from '../EmojiPicker'
+import type { EmojiOption } from '../../utils/emojifyi'
 import type { ViewProfileResponse } from '../../types'
 import LocationPicker from './location/LocationPicker'
 import WebsitePreview from './WebsitePreview'
@@ -92,17 +93,22 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     )
   }
 
-  const insertEmoji = (ch: string) => {
+  const insertEmoji = (emoji: EmojiOption) => {
+    const ch = emoji.url
     const sel = bioSelRef.current ?? [bio.length, bio.length]
     const start = Math.min(sel[0], sel[1])
     const end = Math.max(sel[0], sel[1])
-    const next = bio.slice(0, start) + ch + bio.slice(end)
+    const before = bio.slice(0, start)
+    // Bọc URL bằng space — 2 emoji liền nhau không separator sẽ render thành 1 ảnh.
+    const sep = before && !/\s$/.test(before) ? ' ' : ''
+    const inserted = `${sep}${ch} `
+    const next = before + inserted + bio.slice(end)
     if (next.length > 200) return
     setBio(next)
     requestAnimationFrame(() => {
       const ta = bioRef.current
       if (!ta) return
-      const pos = Math.min(start + ch.length, ta.value.length)
+      const pos = Math.min(start + inserted.length, ta.value.length)
       ta.focus()
       ta.setSelectionRange(pos, pos)
     })
@@ -140,8 +146,9 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     setSaving(true)
     try {
       const input: Record<string, unknown> = {}
+      const trimmedBio = bio.trim()
       if (displayName !== profile.display_name) input.display_name = displayName
-      if (bio !== profile.bio) input.bio = bio
+      if (trimmedBio !== profile.bio) input.bio = trimmedBio
       if (hometownProvince !== profile.hometown_province) input.hometown_province = hometownProvince
       if (currentProvince !== profile.current_province) input.current_province = currentProvince
       if (currentWard !== profile.current_ward) input.current_ward = currentWard
@@ -220,6 +227,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
               </button>
               {emojiOpen && (
                 <EmojiPicker
+                  placement="bottom"
                   onSelect={insertEmoji}
                   onClose={() => setEmojiOpen(false)}
                   ignoreRef={emojiBtnRef}

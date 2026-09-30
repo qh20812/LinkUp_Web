@@ -5,12 +5,14 @@ import { createPortal } from 'react-dom'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
 import GifPicker from './GifPicker'
+import EmojiPicker from './EmojiPicker'
 import styles from './CreatePostModal.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import { EMOTION_GROUPS, getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
+import { getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
+import type { EmojiOption } from '../utils/emojifyi'
 import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
 
 interface CreatePostModalProps {
@@ -74,6 +76,12 @@ function serializeEmojiContent(el: HTMLElement): string {
       out += n.dataset.code
       return
     }
+    if (n.dataset.emoji) {
+      // Bọc URL bằng space — URL ảnh emoji liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
+      if (out && !/\s$/.test(out)) out += ' '
+      out += n.dataset.emoji + ' '
+      return
+    }
     const tag = n.tagName
     if (tag === 'BR') {
       out += '\n'
@@ -88,7 +96,8 @@ function serializeEmojiContent(el: HTMLElement): string {
     node.childNodes.forEach(walk)
   }
   walk(el)
-  return out.replace(/\n{3,}/g, '\n\n')
+  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL emoji được bọc space).
+  return out.replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ +$/, '')
 }
 
 function insertNodeAtCaret(el: HTMLElement, node: Node) {
@@ -130,7 +139,6 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   const [gif, setGif] = useState<GifItem | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [gifOpen, setGifOpen] = useState(false)
-  const [emojiGroup, setEmojiGroup] = useState<EmotionEmojiItem['group']>('positive')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [commentsDisabled, setCommentsDisabled] = useState(false)
@@ -145,13 +153,6 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   const mediaUrlsRef = useRef<string[]>([])
 
   const emotions = useMemo(() => getEmotionEmojis(), [])
-  const emotionGroups = useMemo(() => {
-    const map = new Map<EmotionEmojiItem['group'], EmotionEmojiItem[]>()
-    for (const g of EMOTION_GROUPS) {
-      map.set(g, emotions.filter((e) => e.group === g))
-    }
-    return map
-  }, [emotions])
   const emojiByCode = useMemo(() => new Map(emotions.map((e) => [e.code, e])), [emotions])
 
   useEffect(() => {
@@ -334,16 +335,16 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     setError(null)
   }
 
-  const insertEmoji = (emoji: EmotionEmojiItem) => {
+  const insertEmoji = (emoji: EmojiOption) => {
     const el = contentRef.current
     if (!el) {
-      setContent((prev) => prev + emoji.code)
+      setContent((prev) => prev + emoji.url)
       return
     }
     const img = document.createElement('img')
-    img.src = emoji.image_uri
-    img.alt = emoji.code
-    img.dataset.code = emoji.code
+    img.src = emoji.url
+    img.alt = emoji.title || 'emoji'
+    img.dataset.emoji = emoji.url
     img.className = 'emojiInline'
     insertNodeAtCaret(el, img)
     setContent(serializeEmojiContent(el))
@@ -618,33 +619,12 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
                 <i className="bx bxs-smile" />
               </button>
               {emojiOpen && (
-                <div className={styles.emojiPicker}>
-                  <div className={styles.emojiTabs}>
-                    {EMOTION_GROUPS.map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        className={`${styles.emojiTab} ${emojiGroup === g ? styles.emojiTabActive : ''}`}
-                        onClick={() => setEmojiGroup(g)}
-                      >
-                        {t(`composer.emojiCat.${g}`)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.emojiGrid}>
-                    {emotionGroups.get(emojiGroup)?.map((e) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        className={styles.emojiItem}
-                        onClick={() => insertEmoji(e)}
-                        title={`${e.label} ${e.code}`}
-                      >
-                        <ExternalImage src={e.image_uri} alt={e.label} className={styles.emojiItemImg} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <EmojiPicker
+                  placement="top"
+                  onSelect={insertEmoji}
+                  onClose={() => setEmojiOpen(false)}
+                  ignoreRef={emojiRef}
+                />
               )}
             </div>
           </div>

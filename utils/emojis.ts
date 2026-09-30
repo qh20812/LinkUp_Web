@@ -1,4 +1,5 @@
 import { getEmojis } from '../api/posts'
+import { emojifyiImageUrl } from './emojifyi'
 import type { EmojiItem } from '../types'
 
 let cache: Map<string, EmojiItem> | null = null
@@ -77,12 +78,28 @@ export const EMOTION_EMOJIS: EmotionEmoji[] = [
   { code: ':sick:', emoji: '\u{1F922}', label: 'Sick', group: 'negative' },
 ]
 
-function twemojiUrl(emoji: string): string {
-  const cps = [...emoji]
-    .map((ch) => ch.codePointAt(0)!.toString(16))
-    .filter((cp) => cp !== 'fe0f')
-    .join('-')
-  return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${cps}.png`
+// Code của backend seed (bảng emojis) không có trong EMOTION_EMOJIS.
+// Ký tự lấy từ cmd/seed/core/main.go (image_uri twemoji tương ứng).
+const EXTRA_CODE_TO_CHAR: Record<string, string> = {
+  ':like:': '\u{1F44D}', // 👍
+  ':haha:': '\u{1F602}', // 😂
+  ':rocket:': '\u{1F680}', // 🚀
+}
+
+function charForCode(code: string): string | null {
+  const extra = EXTRA_CODE_TO_CHAR[code]
+  if (extra) return extra
+  return EMOTION_EMOJIS.find((e) => e.code === code)?.emoji ?? null
+}
+
+/**
+ * Ảnh render cho 1 EmojiItem đã có sẵn (emoji server/backend):
+ * ký tự theo code -> ảnh CDN emojifyi (noto) -> giữ nguyên image_uri
+ * (twemoji CDN của server) làm dự phòng. Dùng cho reaction tin nhắn (picker + chip + bubble).
+ */
+export function emojiSrc(item: EmojiItem): string {
+  const ch = charForCode(item.code)
+  return ch ? emojifyiImageUrl(ch) : item.image_uri
 }
 
 export type EmotionEmojiItem = EmojiItem & { group: EmojiGroup; label: string }
@@ -91,7 +108,7 @@ export function getEmotionEmojis(): EmotionEmojiItem[] {
   return EMOTION_EMOJIS.map((e) => ({
     id: `emotion-${e.code.slice(1, -1)}`,
     code: e.code,
-    image_uri: twemojiUrl(e.emoji),
+    image_uri: emojifyiImageUrl(e.emoji),
     group: e.group,
     label: e.label,
   }))

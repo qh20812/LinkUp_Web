@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ExternalImage from './ExternalImage'
 import { renderPostContent } from './messages/EmojiImage'
 import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
+import { separateGiphyUrls } from '../utils/giphy'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
@@ -33,6 +34,18 @@ function formatRelativeTime(dateStr: string, t: (key: string) => string): string
 }
 
 const CONTENT_TRUNCATE_LENGTH = 200
+
+/** Cắt nội dung dài, không cắt giữa URL (URL GIPHY bị cắt dở sẽ hỏng ảnh). */
+export function truncateAvoidingUrl(content: string, max: number): string {
+  if (content.length <= max) return content
+  const cut = content.slice(0, max)
+  const lastSpace = cut.lastIndexOf(' ')
+  const tail = lastSpace === -1 ? cut : cut.slice(lastSpace + 1)
+  if (tail.includes('://')) {
+    return (lastSpace === -1 ? '' : cut.slice(0, lastSpace + 1)) + '...'
+  }
+  return cut + '...'
+}
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
@@ -196,10 +209,13 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
     }
   }, [shareMenuOpen])
 
-  const needsTruncation = post.content.length > CONTENT_TRUNCATE_LENGTH
+  // Tách URL GIPHY dính nhau TRƯỚC khi cắt — chuỗi liền mạch không có space
+  // sẽ bị truncateAvoidingUrl trả về '...' (mất trắng nội dung).
+  const repairedContent = separateGiphyUrls(post.content)
+  const needsTruncation = repairedContent.length > CONTENT_TRUNCATE_LENGTH
   const displayContent = needsTruncation && !expanded
-    ? post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
-    : post.content
+    ? truncateAvoidingUrl(repairedContent, CONTENT_TRUNCATE_LENGTH)
+    : repairedContent
 
   const navigateToPost = () => {
     if (onOpenDetail) {
@@ -325,9 +341,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             {post.shared_post.content && (
               <p className={styles.text}>
                 {renderPostContent(
-                  post.shared_post.content.length > CONTENT_TRUNCATE_LENGTH
-                    ? post.shared_post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
-                    : post.shared_post.content,
+                  truncateAvoidingUrl(separateGiphyUrls(post.shared_post.content), CONTENT_TRUNCATE_LENGTH),
                   EMOJI_CODE_MAP, `spc-${post.shared_post.id}`, styles.textEmoji, styles.hashtag
                 )}
               </p>
