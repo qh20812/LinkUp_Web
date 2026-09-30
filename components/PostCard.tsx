@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ExternalImage from './ExternalImage'
-import { renderEmojiContent } from './messages/EmojiImage'
+import { renderPostContent } from './messages/EmojiImage'
 import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
 import { separateGiphyUrls } from '../utils/giphy'
 import styles from './PostCard.module.css'
@@ -53,6 +53,18 @@ function formatCount(n: number): string {
   return String(n)
 }
 
+const PRIVACY_ICONS: Record<string, string> = {
+  public: 'bx-globe',
+  friend: 'bx-group',
+  private: 'bx-lock',
+}
+
+const PRIVACY_LABELS: Record<string, string> = {
+  public: 'post.privacyPublic',
+  friend: 'post.privacyFriend',
+  private: 'post.privacyPrivate',
+}
+
 interface PostCardProps {
   post: FeedPost
   onLike?: (postId: string) => void
@@ -67,7 +79,7 @@ function isVideo(fileType: string): boolean {
   return fileType.startsWith('video/')
 }
 
-function MediaItem({ m }: { m: FeedPost['media'][number] }) {
+function MediaItem({ m, overlay }: { m: FeedPost['media'][number]; overlay?: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false)
   const url = m.file_uri
 
@@ -81,25 +93,46 @@ function MediaItem({ m }: { m: FeedPost['media'][number] }) {
       ) : (
         <ExternalImage src={url} alt="" className={styles.mediaEl} loading="lazy" onLoad={() => setLoaded(true)} />
       )}
+      {overlay}
     </div>
   )
 }
 
-function MediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate: () => void }) {
+interface MediaGridProps {
+  media: FeedPost['media']
+  onMediaClick: () => void
+  burst?: boolean
+}
+
+function MediaGrid({ media, onMediaClick, burst }: MediaGridProps) {
   if (media.length === 0) return null
   const count = Math.min(media.length, 4)
   const gridClass = [styles.grid1, styles.grid2, styles.grid3, styles.grid4][count - 1] || styles.grid1
+  const extraCount = media.length - 4
 
   return (
-    <div className={`${styles.mediaGrid} ${gridClass}`} onClick={onNavigate}>
-      {media.slice(0, 4).map((m) => (
-        <MediaItem key={m.id} m={m} />
+    <div className={`${styles.mediaGrid} ${gridClass}`} onClick={onMediaClick}>
+      {media.slice(0, 4).map((m, i) => (
+        <MediaItem
+          key={m.id}
+          m={m}
+          overlay={
+            i === 3 && extraCount > 0 ? (
+              <div className={styles.mediaMore}>+{extraCount}</div>
+            ) : undefined
+          }
+        />
       ))}
+      {burst && (
+        <span className={styles.burstHeart} aria-hidden="true">
+          <i className="bxs-heart" />
+        </span>
+      )}
     </div>
   )
 }
 
-function LazyMediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavigate: () => void }) {
+function LazyMediaGrid({ media, onMediaClick, burst }: { media: FeedPost['media']; onMediaClick: () => void; burst?: boolean }) {
   const [visible, setVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -125,7 +158,7 @@ function LazyMediaGrid({ media, onNavigate }: { media: FeedPost['media']; onNavi
     return <div ref={ref} className={styles.mediaSkeleton} />
   }
 
-  return <MediaGrid media={media} onNavigate={onNavigate} />
+  return <MediaGrid media={media} onMediaClick={onMediaClick} burst={burst} />
 }
 
 export default function PostCard({ post, onLike, onSave, onComment, onShare, onFollow, onOpenDetail }: PostCardProps) {
@@ -134,11 +167,48 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const [expanded, setExpanded] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [likePop, setLikePop] = useState(false)
+  const [burst, setBurst] = useState(false)
+  const prevLikedRef = useRef(post.is_liked)
+  const lastTapRef = useRef(0)
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentUserId(getTokenPayload()?.user_id ?? null)
   }, [])
+
+  useEffect(() => {
+    if (post.is_liked && !prevLikedRef.current) {
+      setLikePop(true)
+      const timer = setTimeout(() => setLikePop(false), 320)
+      prevLikedRef.current = post.is_liked
+      return () => clearTimeout(timer)
+    }
+    prevLikedRef.current = post.is_liked
+  }, [post.is_liked])
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!shareMenuOpen) return
+    const close = () => setShareMenuOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [shareMenuOpen])
+
   // Tách URL GIPHY dính nhau TRƯỚC khi cắt — chuỗi liền mạch không có space
   // sẽ bị truncateAvoidingUrl trả về '...' (mất trắng nội dung).
   const repairedContent = separateGiphyUrls(post.content)
@@ -155,7 +225,37 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
     router.push(`/posts/${post.id}`)
   }
 
+  const isCoarsePointer = () =>
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+  const handleMediaClick = () => {
+    if (!isCoarsePointer()) {
+      navigateToPost()
+      return
+    }
+    const now = Date.now()
+    if (now - lastTapRef.current < 300) {
+      lastTapRef.current = 0
+      if (navTimerRef.current) {
+        clearTimeout(navTimerRef.current)
+        navTimerRef.current = undefined
+      }
+      onLike?.(post.id)
+      setBurst(true)
+      setTimeout(() => setBurst(false), 600)
+      return
+    }
+    lastTapRef.current = now
+    navTimerRef.current = setTimeout(() => {
+      navTimerRef.current = undefined
+      navigateToPost()
+    }, 280)
+  }
+
   const isRepost = Boolean(post.shared_from_post_id && post.shared_post)
+  const privacyIcon = PRIVACY_ICONS[post.status]
+  const privacyLabelKey = PRIVACY_LABELS[post.status]
+  const isOwn = post.user_id === currentUserId
 
   return (
     <article className={styles.card}>
@@ -171,8 +271,16 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
           <div className={styles.authorMeta}>
             <span className={styles.displayName}>
               <span className={styles.displayNameText}>{post.display_name}</span>
+              {post.is_pinned && (
+                <span className={styles.pinBadge}>
+                  <i className="bx bx-pin" />
+                  {t('post.pinned')}
+                </span>
+              )}
               {isRepost && <span className={styles.repostLabel}>{t('post.sharedPost')}</span>}
-              {!post.is_following && post.user_id !== currentUserId && (
+              {!isOwn && (post.is_following ? (
+                <span className={styles.followingBadge}>{t('post.following')}</span>
+              ) : (
                 <button
                   className={styles.followBadge}
                   onClick={(e) => {
@@ -183,19 +291,33 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
                 >
                   {t('post.follow')}
                 </button>
-              )}
+              ))}
             </span>
-            <span className={styles.usernameTime}>
+            <span className={styles.usernameTime} title={new Date(post.created_at).toLocaleString()}>
               @{post.username} · {formatRelativeTime(post.created_at, t)}
+              {privacyIcon && privacyLabelKey && (
+                <i className={`bx ${privacyIcon} ${styles.privacyIcon}`} title={t(privacyLabelKey)} />
+              )}
             </span>
           </div>
         </Link>
       </div>
 
-      <div className={styles.body} onClick={navigateToPost}>
+      <div
+        className={styles.body}
+        role="button"
+        tabIndex={0}
+        onClick={navigateToPost}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            navigateToPost()
+          }
+        }}
+      >
         {isRepost && post.share_content && (
           <p className={styles.shareContent}>
-            {renderEmojiContent(post.share_content, EMOJI_CODE_MAP, `sc-${post.id}`, styles.textEmoji)}
+            {renderPostContent(post.share_content, EMOJI_CODE_MAP, `sc-${post.id}`, styles.textEmoji, styles.hashtag)}
           </p>
         )}
         {isRepost && post.shared_post ? (
@@ -218,16 +340,14 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             {post.shared_post.title && <h2 className={styles.title}>{post.shared_post.title}</h2>}
             {post.shared_post.content && (
               <p className={styles.text}>
-                {renderEmojiContent(
-                  post.shared_post.content.length > CONTENT_TRUNCATE_LENGTH
-                    ? post.shared_post.content.slice(0, CONTENT_TRUNCATE_LENGTH) + '...'
-                    : post.shared_post.content,
-                  EMOJI_CODE_MAP, `spc-${post.shared_post.id}`, styles.textEmoji
+                {renderPostContent(
+                  truncateAvoidingUrl(separateGiphyUrls(post.shared_post.content), CONTENT_TRUNCATE_LENGTH),
+                  EMOJI_CODE_MAP, `spc-${post.shared_post.id}`, styles.textEmoji, styles.hashtag
                 )}
               </p>
             )}
             {post.shared_post.media.length > 0 && (
-              <MediaGrid media={post.shared_post.media} onNavigate={navigateToPost} />
+              <MediaGrid media={post.shared_post.media} onMediaClick={navigateToPost} />
             )}
           </div>
         ) : (
@@ -236,7 +356,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             {post.content && (
               <div className={styles.content}>
                 <p className={styles.text}>
-                  {renderEmojiContent(displayContent, EMOJI_CODE_MAP, `pc-${post.id}`, styles.textEmoji)}
+                  {renderPostContent(displayContent, EMOJI_CODE_MAP, `pc-${post.id}`, styles.textEmoji, styles.hashtag)}
                 </p>
                 {needsTruncation && (
                   <button
@@ -251,73 +371,112 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
                 )}
               </div>
             )}
+            {!post.title && !post.content && post.media.length === 0 && (
+              <p className={styles.emptyBody}>{t('post.noContent')}</p>
+            )}
           </>
         )}
       </div>
 
-      {!isRepost && <LazyMediaGrid media={post.media} onNavigate={navigateToPost} />}
+      {!isRepost && <LazyMediaGrid media={post.media} onMediaClick={handleMediaClick} burst={burst} />}
 
       <div className={styles.actionBar}>
-        <button
-          className={`${styles.actionBtn} ${post.is_liked ? styles.liked : ''}`}
-          onClick={(e) => {
-            e.stopPropagation()
-            onLike?.(post.id)
-          }}
-          aria-label={t('post.like')}
-        >
-          <i className={`bx ${post.is_liked ? 'bxs-heart' : 'bx-heart'}`} />
-          <span>{formatCount(post.likes_count)}</span>
-        </button>
+        <div className={styles.actionCluster}>
+          <button
+            className={`${styles.actionBtn} ${post.is_liked ? styles.liked : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onLike?.(post.id)
+            }}
+            aria-label={t('post.like')}
+            aria-pressed={post.is_liked}
+          >
+            <i className={`bx ${post.is_liked ? 'bxs-heart' : 'bx-heart'}${likePop ? ` ${styles.likePopIcon}` : ''}`} />
+            <span>{formatCount(post.likes_count)}</span>
+          </button>
 
-        <button
-          className={styles.actionBtn}
-          onClick={(e) => {
-            e.stopPropagation()
-            onComment?.(post.id)
-          }}
-          aria-label={t('post.comment')}
-        >
-          <i className="bx bx-message-rounded" />
-          <span>{formatCount(post.comments_count)}</span>
-        </button>
+          <button
+            className={styles.actionBtn}
+            onClick={(e) => {
+              e.stopPropagation()
+              onComment?.(post.id)
+            }}
+            aria-label={t('post.comment')}
+          >
+            <i className="bx bx-message-rounded" />
+            <span>{formatCount(post.comments_count)}</span>
+          </button>
 
-        <button
-          className={styles.actionBtn}
-          onClick={(e) => {
-            e.stopPropagation()
-            onShare?.(post.id)
-          }}
-          aria-label={t('post.share')}
-          disabled={post.user_id === currentUserId}
-        >
-          <i className="bx bx-share-alt" />
-          <span>{formatCount(post.shares_count)}</span>
-        </button>
+          <div className={styles.shareWrap}>
+            <button
+              className={styles.actionBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShareMenuOpen((v) => !v)
+              }}
+              aria-label={t('post.share')}
+              aria-haspopup="menu"
+              aria-expanded={shareMenuOpen}
+              disabled={isOwn}
+            >
+              <i className="bx bx-share-alt" />
+              <span>{formatCount(post.shares_count)}</span>
+            </button>
+            {shareMenuOpen && (
+              <div className={styles.shareMenu} role="menu" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.shareMenuItem}
+                  onClick={() => {
+                    setShareMenuOpen(false)
+                    onShare?.(post.id)
+                  }}
+                >
+                  <i className="bx bx-share-alt" />
+                  <span>{t('post.sharePost')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.shareMenuItem}
+                  onClick={() => {
+                    setShareMenuOpen(false)
+                    setShareToFriendOpen(true)
+                  }}
+                >
+                  <i className="bx bx-message-rounded-detail" />
+                  <span>{t('post.shareToFriend')}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
-        <button
-          className={`${styles.actionBtn} ${post.is_saved ? styles.saved : ''}`}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSave?.(post.id)
-          }}
-          aria-label={t('post.save')}
-          disabled={post.user_id === currentUserId}
-        >
-          <i className={`bx ${post.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
-        </button>
-
-        <button
-          className={styles.actionBtn}
-          onClick={(e) => {
-            e.stopPropagation()
-            setShareToFriendOpen(true)
-          }}
-          aria-label={t('post.shareToFriend')}
-          disabled={post.user_id === currentUserId}
-        >
-          <i className="bx bx-message-rounded-detail" />
-        </button>
+        <div className={`${styles.actionCluster} ${styles.clusterRight}`}>
+          {isOwn ? (
+            <span
+              className={styles.viewStat}
+              role="img"
+              aria-label={t('post.viewCount', { count: post.views_count })}
+            >
+              <i className="bx bx-show" aria-hidden="true" />
+              <span>{formatCount(post.views_count)}</span>
+            </span>
+          ) : (
+            <button
+              className={`${styles.actionBtn} ${post.is_saved ? styles.saved : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSave?.(post.id)
+              }}
+              aria-label={post.is_saved ? t('post.saved') : t('post.save')}
+              aria-pressed={post.is_saved}
+            >
+              <i className={`bx ${post.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
+            </button>
+          )}
+        </div>
       </div>
 
       <ShareModal

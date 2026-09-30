@@ -1,0 +1,393 @@
+/* Shared styles for all auth forms (login, register, forgot/reset password).
+   Imported by AuthField / PasswordInput / FormAlert and by each form. */
+
+.title {
+  font: var(--text-h2);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.subtitle {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* === Field === */
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.label {
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.labelAction {
+  font: var(--text-caption);
+  font-weight: 600;
+}
+
+.labelAction a,
+.labelAction button {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.labelAction a:hover,
+.labelAction button:hover {
+  text-decoration: underline;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font: var(--text-body);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+  background: var(--color-card);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-light);
+}
+
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-secondary) inset;
+  -webkit-text-fill-color: var(--color-text);
+  transition: background-color 99999s ease-out;
+}
+
+/* Reserved error line — the form never shifts when a message appears. */
+.errorSlot {
+  min-height: 18px;
+  margin-top: var(--space-xs);
+  font: var(--text-caption);
+  line-height: 1.4;
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.hint {
+  color: var(--color-success);
+}
+
+/* === Password input === */
+
+.passwordWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordWrap .input {
+  padding-right: 44px;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 2px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.eyeBtn:hover {
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+}
+
+/* === Primary CTA (--color-cta: navy in light, light fill in dark — DESIGN.md §2) === */
+
+.button {
+  width: 100%;
+  height: 44px;
+  margin-top: var(--space-xs);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font: var(--text-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease-out;
+}
+
+.button:hover {
+  background: var(--color-cta-hover);
+}
+
+.button:active {
+  background: var(--color-cta-active);
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* === Inline error banner (server errors) === */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 10px var(--space-md);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-light);
+  font: var(--text-caption);
+  line-height: 1.5;
+}
+
+.alertIcon {
+  font-size: 1rem;
+  color: var(--color-danger);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alertMessage {
+  flex: 1;
+  color: var(--color-danger);
+}
+
+.alertAction {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.alertAction:hover {
+  background: var(--color-primary-light);
+}
+
+.alertWarning {
+  border-color: var(--color-warning);
+  background: var(--color-warning-light);
+}
+
+.alertWarning .alertIcon,
+.alertWarning .alertMessage {
+  color: var(--color-text);
+}
+
+/* === Password strength meter === */
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.meterBars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.seg {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  transition: background-color 0.2s ease;
+}
+
+.seg.on {
+  background: var(--color-text-secondary);
+}
+
+.toneWeak .seg.on {
+  background: var(--color-danger);
+}
+
+.toneFair .seg.on {
+  background: var(--color-warning);
+}
+
+.toneStrong .seg.on {
+  background: var(--color-success);
+}
+
+.meterLabel {
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.toneWeak .meterLabel {
+  color: var(--color-danger);
+}
+
+.toneFair .meterLabel {
+  color: var(--color-warning);
+}
+
+.toneStrong .meterLabel {
+  color: var(--color-success);
+}
+
+/* === Password requirement checklist === */
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+
+.check i {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.checkMet {
+  color: var(--color-success);
+}
+
+/* === Terms checkbox === */
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.checkboxRow input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkboxRow label {
+  font: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.checkboxError {
+  margin-top: var(--space-xs);
+  font: var(--text-caption);
+  color: var(--color-danger);
+  min-height: 0;
+}
+
+/* === Divider / footer === */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.divider span {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-transform: lowercase;
+}
+
+.footer {
+  margin-top: var(--space-lg);
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.footerLink {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .checks {
+    grid-template-columns: 1fr;
+  }
+}

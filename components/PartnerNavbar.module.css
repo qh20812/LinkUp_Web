@@ -1,0 +1,346 @@
+.nav {
+  height: 56px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  margin: var(--space-md) var(--space-md) 0;
+  padding: 0 var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: sticky;
+  top: var(--space-md);
+  left: 0;
+  z-index: 1000;
+}
+
+/* Menu button */
+.menuBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--seg-track-bg);
+  color: var(--color-text);
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease-out;
+}
+
+.menuBtn:hover {
+  background: var(--color-primary-light);
+  border-color: transparent;
+  color: var(--color-primary);
+}
+
+.menuBtn:active {
+  transform: scale(0.94);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Custom tooltip (replaces native title) */
+.menuBtn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background: var(--color-text);
+  color: var(--color-card);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1200;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.menuBtn:hover::after,
+.menuBtn:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Nav controls (language + theme) */
+.controls {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Brand — centered via flow: margin: 0 auto splits the free space between
+   the left cluster (menu + controls) and the right cluster (profile).
+   Never absolute-positioned. Brand formula matches Navbar .brand. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  margin: 0 auto;
+  color: var(--color-primary);
+}
+
+.brandImg {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.brandName {
+  font: var(--text-h2);
+  font-size: 20px;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.brand:hover .brandImg {
+  transform: scale(1.06);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Profile wrap — no margin-left: auto; the brand's auto margins own it */
+.profileWrap {
+  position: relative;
+}
+
+/* Profile */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  padding: 5px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.profile:hover {
+  background: var(--color-bg-secondary);
+}
+
+.profile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.profile img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profileChevron {
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.3;
+}
+
+.userName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.userEmail {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  min-width: 250px;
+  padding: 6px;
+  z-index: 1100;
+  transform-origin: top right;
+  animation: popIn 0.18s ease-out;
+}
+
+/* Identity header */
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.dropdownAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dropdownUser {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dropdownName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownEmail {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownItem {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--text-body);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dropdownItem:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.dropdownItem i {
+  font-size: 18px;
+  width: 20px;
+  color: var(--color-text-secondary);
+  transition: color 0.15s ease;
+}
+
+.dropdownItem:hover i {
+  color: var(--color-primary);
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 8px;
+}
+
+.dropdownDanger {
+  color: var(--color-danger);
+}
+
+.dropdownDanger i {
+  color: var(--color-danger);
+}
+
+.dropdownDanger:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger);
+}
+
+.dropdownDanger:hover i {
+  color: var(--color-danger);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile */
+@media screen and (max-width: 576px) {
+  .controls {
+    display: none;
+  }
+
+  .brandName {
+    display: none;
+  }
+
+  .userInfo {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuBtn,
+  .profile,
+  .brandImg,
+  .dropdownItem {
+    transition: none;
+  }
+
+  .menuBtn::after {
+    transition: none;
+  }
+
+  .menuBtn:active {
+    transform: none;
+  }
+
+  .dropdown {
+    animation: none;
+  }
+}

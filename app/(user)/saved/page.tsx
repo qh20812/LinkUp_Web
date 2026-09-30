@@ -37,6 +37,7 @@ export default function SavedPage() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -135,6 +136,7 @@ export default function SavedPage() {
 
   const handleShare = (postId: string) => {
     setSelectedPostId(postId)
+    setSharePostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -218,9 +220,16 @@ export default function SavedPage() {
         ))}
 
         {loading && (
-          <div className={styles.loadingMore}>
-            <i className="bx bx-loader-circle bx-spin" />
-            <span>{t('common.loading')}</span>
+          <div className={styles.skeleton} role="status" aria-label={t('common.loading')}>
+            <div className={styles.skelHeader}>
+              <div className={styles.skelAvatar} />
+              <div className={styles.skelLines}>
+                <div className={styles.skelLine} style={{ width: '35%' }} />
+                <div className={styles.skelLine} style={{ width: '20%' }} />
+              </div>
+            </div>
+            <div className={styles.skelLine} style={{ width: '70%' }} />
+            <div className={styles.skelLine} style={{ width: '50%' }} />
           </div>
         )}
 
@@ -237,7 +246,11 @@ export default function SavedPage() {
             key={detailPost.id}
             post={detailPost}
             open
-            onClose={() => setSelectedPostId(null)}
+            initialShareOpen={sharePostId === detailPost.id}
+            onClose={() => {
+              setSelectedPostId(null)
+              setSharePostId(null)
+            }}
             onUpdated={(updated) =>
               setPosts((prev) =>
                 updated.is_saved

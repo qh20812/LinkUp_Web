@@ -66,12 +66,15 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 | **Success Green** | `#388E3C` | `#E8F5E9` | `#064E3B` | Active status, success toasts, online indicators |
 | **Caution Amber** | `#FBC02D` | `#FFF8E1` | `#78350F` | Pending status, warning toasts |
 | **Danger Crimson** | `#D32F2F` | `#FFEBEE` | `#7F1D1D` | Banned status, error toasts, delete actions |
+| **Heart Red** | `#D32F2F` | `rgba(211,47,47,0.10)` | `rgba(255,107,129,0.16)` | Like/love reactions on posts and comments. Tokens `--color-heart`, `--color-heart-light` (dark: `#FF6B81`) |
 | **Info Blue** | `#1976D2` | `#E3F2FD` | `#1E3A5F` | Informational badges, reviewed status |
 
 ### Dark Mode Overrides
 
 ```css
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-primary: #3FBFBA;
   --color-primary-hover: #2BB0AC;
   --color-primary-active: #1FA3A0;
@@ -80,6 +83,11 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
   --color-secondary: #1A1A1A;
   --color-secondary-hover: #222222;
   --color-secondary-active: #2A2A2A;
+
+  --color-cta: #E5E7EB;
+  --color-cta-hover: #FFFFFF;
+  --color-cta-active: #D1D5DB;
+  --color-cta-text: #111111;
 
   --color-bg: #111111;
   --color-bg-secondary: #1A1A1A;
@@ -95,6 +103,9 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
   --color-danger-light: #7F1D1D;
   --color-info-light: #1E3A5F;
 
+  --color-heart: #FF6B81;
+  --color-heart-light: rgba(255, 107, 129, 0.16);
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
@@ -103,7 +114,7 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 
 ### Color Rules
 
-- **Primary CTA buttons** use Deep Navy (`#0A1F44`) fill + white text — high contrast, authoritative
+- **Primary CTA buttons** use Deep Navy (`#0A1F44`) fill + white text — high contrast, authoritative. **Dark mode:** use `--color-cta` (light fill `#E5E7EB` + `#111` text) — navy `#0A1F44`/`#1A1A1A` would disappear against the dark canvas. `--color-secondary` in dark (`#1A1A1A`) is ink/gradient-end only, never a button fill
 - **Fresh Turquoise** is allowed for:
   - Compact accent buttons (Follow, Create Post, Send) — `padding` ≤ `12px 24px`
   - Outgoing message bubbles (chat)
@@ -196,11 +207,12 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 ### Buttons
 
 **Primary (Deep Navy fill):**
-- Background: `#0A1F44`, text: `#FFFFFF`, border: none
+- Background: `var(--color-cta)` — light mode `#0A1F44`, dark mode `#E5E7EB` with `var(--color-cta-text)` (`#FFF` / `#111`), border: none
 - Border-radius: `8px`, padding: `10px 20px`, font-weight: 600
-- Hover: `#0D2A5A` background. Active: `translateY(-1px)` tactile push
+- Hover: `var(--color-cta-hover)` background. Active: `translateY(-1px)` tactile push
 - Disabled: `opacity: 0.5`, cursor: `not-allowed`
 - Use for: primary page-level CTAs, form submissions, major actions
+- Never use `var(--color-secondary)` as a button fill in dark mode — it is the ink/gradient-end token
 
 **Secondary (Ghost/Outline):**
 - Background: transparent, border: `1px solid var(--color-border)`, text: `var(--color-text)`
@@ -230,6 +242,50 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Contains a single Boxicon glyph
 - Must have: `aria-label`, keyboard accessible, visible focus state
 
+**OAuth (Google) button** (`components/auth/GoogleAuthButton.tsx`):
+- Custom visual matching auth inputs: `100%` × `44px`, `1px solid var(--color-border)`, `radius-md`, `--color-bg-secondary` fill, DM Sans `600`, inline 4-color Google "G" SVG (18px) + per-page label (`login.google.button` / `register.google.button`)
+- Hover: fill → `var(--color-card)`; active: `translateY(-1px)`; keyboard focus (`:focus-within`): primary border + ring — identical to input treatment
+- The real Google control is the GSI iframe from `@react-oauth/google` rendered **transparently on top** (`position:absolute; inset:0; opacity:0`), sized to the button via `ResizeObserver` + CSS fill — it owns clicks, focus, and the a11y tree; the visual `<span>` is non-interactive and `aria-hidden`
+- Never wrap the official iframe in visible Google styling — the custom button is the design system's surface
+
+**Nav Controls** (`components/NavControls.tsx` — shared by landing Navbar, AuthLayout header, AdminNavbar + PartnerNavbar):
+- **Language toggle:** segmented pill in a glass track — `.track` = `radius-pill`, `padding: 3px`, `--seg-track-bg` + `1px --glass-border` + `blur(8px)`; segments VI/EN are `radius-pill`, 28px tall (32px ≤576px), `--text-caption` / `600`, text-secondary at rest
+- **Active segment:** iOS-style elevated thumb — background `--seg-thumb-bg`, text `--seg-thumb-text`, `box-shadow: var(--shadow-sm)`. Light: white thumb on soft-surface track. Dark: bright thumb (`--color-cta` fill + `--color-cta-text`) on `rgba(0,0,0,0.35)` track. Use `aria-pressed` on segments
+- **Theme toggle:** circular 36px button (40px ≤576px), `--seg-track-bg` + `--glass-border`, `border-radius: 50%`; hover = `--color-primary-light` wash + primary icon + icon rotates `15deg`; active = `scale(0.94)`. Must keep `aria-label`
+- **Login button (landing navbar):** compact turquoise accent pill — `background: var(--color-primary)`, `color: var(--color-bg)` (auto-inverts light/dark), `height: 36px`, `padding: 0 18px`, `radius-pill`, `shadow-sm`; hover `translateY(-1px)` + `--color-primary-hover` + `shadow-md`. Compact size keeps it inside the §2 turquoise rule (never full-width)
+- Focus-visible on every control: `2px solid var(--color-primary)` outline. `prefers-reduced-motion`: rotation/press transforms disabled
+- Never render these controls inline per-page — always via `NavControls` to keep every navbar identical. Admin/Partner wrap it in a local `.controls` div that hides ≤576px (matches the previous behavior of those navbars)
+- Circular icon siblings in a navbar (hamburger menu button, notification bell) reuse the theme-toggle recipe: 36px circle, `--seg-track-bg` + `--glass-border`, hover = `--color-primary-light` wash + primary icon, `aria-label` required
+- **Tooltips:** icon buttons (theme, menu, bell) use a custom tooltip — `data-tooltip={t(...)}` rendered by `::after { content: attr(data-tooltip) }` (local class + `attr()`, never attribute-only selectors in CSS Modules), pill 12px, `background: var(--color-text)` / `color: var(--color-card)` (auto-inverts light/dark), shown on `:hover`/`:focus-visible` with 150ms fade + 2px rise, `z-index: 1200`. Never native `title` — it double-renders and cannot be styled. The language group and profile trigger carry a localized `aria-label` only (no tooltip)
+- **Localization:** every `aria-label`/tooltip in nav chrome goes through `t()` — `nav.toggleTheme`, `nav.language`, `nav.toggleMenu`, reusing `sidebar.notifications` and `nav.profile`. Hardcoded English strings are banned
+- **Brand (admin/partner navbar):** the LinkUp lockup lives in the navbar, centered — same brand formula as the landing Navbar `.brand`: 32×32 `object-fit: contain` icon + `gap: 8px` + wordmark `--text-h2` 20px `--color-primary`, hover icon `scale(1.06)` + focus-visible 2px outline. Centering is **flow-based**: the brand is a flex child with `margin: 0 auto`, placed between the left cluster (menu; search too on admin) and the right cluster — its auto margins absorb the free space, so it can never overlap siblings (never `position: absolute`). Moving the brand here means removing the rival auto-margins: `.searchForm { margin-right: auto }` (admin) and `.profileWrap { margin-left: auto }` (partner) — two owners of the same free space fight. ≤576px: hide the wordmark (icon only) and hide `.userInfo` in the profile trigger (avatar + chevron only) — also relieves mobile crowding. The sidebar starts directly with its menu (`sideMenu { margin-top: 16px }`)
+
+### Glass Surface (floating chrome variant)
+
+The shared recipe for anything that floats — landing navbar/footer, auth header/footer/card, user navbar, admin/partner navbar + sidebar:
+
+- Background: `var(--glass-bg)` (`color-mix` card + transparent; `--glass-bg-strong` when content behind must stay legible)
+- `backdrop-filter: blur(var(--glass-blur))` (+ `-webkit-` prefix)
+- Border: `1px solid var(--glass-border)`
+- Radius: `var(--radius-lg)` (all four corners)
+- Shadow: `var(--glass-shadow)`
+- Tokens live in `globals.css` (light + `[data-theme="dark"]` overrides) — never inline a `color-mix`/`blur` value per component
+- Glass needs a backdrop: place it over a tinted canvas, mesh gradient, or scrolling content — never over a flat same-color surface (the blur does nothing)
+- Admin/Partner: the whole `.layout` carries `--color-bg-secondary` as the canvas so the inset 16px chrome has tint under it
+- Gradient-stage glass (hero chips, closing panel) uses literal `rgba(255,255,255,0.12–0.14)` fills + `rgba(255,255,255,0.22–0.26)` borders instead of the card-mix tokens
+
+### Dropdown / Popover (nav popovers)
+
+Anything anchored to a navbar control — profile menu, notification center — follows the Glass Surface recipe:
+
+- Container: `--glass-bg-strong` + `backdrop-filter: blur(--glass-blur)` + `--glass-border` + `radius-lg` + `--glass-shadow`, `padding: 6px`, `transform-origin: top right`
+- Entrance: `popIn` — `opacity 0→1` + `translateY(-6px)→0` + `scale(0.98→1)`, `180ms ease-out`; animation disabled under `prefers-reduced-motion`
+- Anchor: `position: absolute; right: 0; top: calc(100% + 8px); z-index: 1100`
+- **Profile dropdown** (Admin + Partner): identity header on top — avatar 40px + name + email in a `--color-bg-secondary` `radius-md` block — then items. Items: transparent rest, hover = `--color-primary-light` fill + `--color-primary` text/icon; danger item hover = `color-mix(--color-danger 8%)` keeping danger text/icon. Dividers: `--glass-border`. The navbar profile trigger itself is a pill with `--color-bg-secondary` hover wash
+- **Notification center** (`NotificationDropdown.tsx`): header row = title + "mark all read" as a `--color-primary-light` pill button; scrollable list (`scrollbar-width: thin`, `6px` padding) of inset `radius-md` items; footer = full-width "view all" pill (`--color-primary-light`). Unread item = `--color-primary-light` fill + primary dot; read hover = `--color-bg-secondary`; empty state = bell glyph + label
+- **Notification type icons:** 32px circular chips — `background: color-mix(in srgb, currentColor 14%, transparent)` with the type color class on the chip (never a bare colored glyph); sender avatar (32px circle) replaces the chip when present
+- Never render nav popovers as solid `--color-card` boxes — they must match the floating chrome they hang off
+
 ### Cards
 
 - Background: `var(--color-card)`
@@ -250,6 +306,12 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Placeholder: `var(--color-text-secondary)`
 - Label positioned above input, `4px` gap. Error text below in `var(--color-danger)`, `12px` gap
 - No floating labels. No animated label transitions
+
+**Auth inputs** (Track 2, `authShared.module.css`):
+- Height `44px`, **filled style**: background `var(--color-bg-secondary)`, no resting border; `aria-invalid` → `1px solid var(--color-danger)` + danger wash
+- Error/hint line reserves a fixed `18px` slot below every field — forms never shift when a message appears
+- Password fields use `PasswordInput` (focusable eye toggle, `aria-pressed`, `auth.showPassword`/`auth.hidePassword` labels)
+- Autofill override: white/`--color-bg-secondary` background + `--color-text`, no yellow browser tint
 
 ### Textarea (Post Composer)
 
@@ -284,7 +346,8 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 ### Modals
 
 - Overlay: `rgba(0,0,0,0.5)` backdrop
-- Container: `var(--color-card)`, `border-radius: 20px`, `max-width: 560px` (standard), `900px` (post detail)
+- Container: `var(--color-card)`, `border-radius: 20px`, `max-width: 560px` (standard), `1080px` (post detail — split 2-column)
+- **Glass variant for chrome-attached modals** (e.g. admin Change Password): container = `--glass-bg-strong` + blur + `--glass-border` + `--glass-shadow` (keeps `radius-lg`), overlay gains `backdrop-filter: blur(6px)`; header/footer borders use `--glass-border`. Content modals (post detail, review, ban…) stay on `--color-card`
 - Padding: `24px` header, `0` body, `24px` footer
 - Header: `H2` title + close button (X icon, 36px ghost)
 - Close on: overlay click, Escape key, X button
@@ -309,44 +372,53 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 
 ### Toast Notifications
 
-- Position: bottom-right, `16px` from edges
+- Position: bottom-right, `16px` from edges (mobile: full-width, honors `safe-area-inset-bottom`)
 - Width: `360px` max
-- Left border: `4px` solid (color matches type: green/red/amber/blue)
-- Background: `var(--color-card)`, shadow: `var(--shadow-lg)`
-- Auto-dismiss: 4 seconds with progress bar
-- Types: success, error, warning, info — each with distinct icon and border color
+- Surface: `var(--color-card)`, `1px solid var(--color-border)`, `border-radius: var(--radius-lg)`, `var(--shadow-lg)` — no left accent stripe
+- Lead: `32px` circular **icon chip** — background `var(--color-{type}-light)`, icon `var(--color-{type})` (solid Boxicons glyph)
+- Title: `14px` / `600`; message: `--text-caption` muted
+- Optional **action button** (e.g. "Undo"): text button in `var(--color-primary)`, `600`, hover wash `var(--color-primary-light)`
+- Auto-dismiss: 4 seconds with `2px` bottom progress bar; **timer and progress pause on hover/focus**
+- **Stack:** max `3` visible toasts (overflow exits oldest with animation); duplicate `type + title` replaces the existing toast
+- **Swipe:** horizontal drag > `60px` dismisses (touch)
+- Entrance: `translateY(16px) + fade`, `200ms cubic-bezier(0.21, 1.02, 0.73, 1)`; exit: `fade + translateY(12px)`, `150ms ease-in`
+- `prefers-reduced-motion`: transforms disabled, instant appear/disappear
+- Types: success, error, warning, info — chip color distinguishes them; error uses `role="alert"`, others `role="status"`
 
 ---
 
-## 5. Hero Section (Landing Page)
+## 5. Landing Page (Track 1)
 
 The landing page is the first impression for unauthenticated visitors.
 
 ### Layout
 
-**Split gradient hero** — not a centered text blob:
-- Full-width gradient background: `linear-gradient(135deg, #12A5A1, #0A1F44)` (turquoise to navy)
-- Content centered within gradient, `max-width: 560px`
-- Logo (white, inverted) + brand name at top
-- Headline: large, white, tight tracking — the tagline in Vietnamese
-- Two CTA buttons side by side:
-  - Primary: white fill + navy text ("Get Started")
-  - Secondary: white border + white text, transparent fill ("Log In")
+**Floating glass chrome + split gradient hero + zig-zag sections:**
+
+- **Canvas:** the page sits on `--color-bg-secondary` — the same tinted canvas as Track 3; all chrome floats
+- **Navbar:** sticky `top: var(--space-md)`, inset `var(--space-md)`, glass surface (`--glass-bg` + `backdrop-filter: blur(var(--glass-blur))`), `border-radius: var(--radius-lg)`, `--glass-shadow`. Mobile dropdown is a glass sheet with rounded bottom corners
+- **Hero stage:** rounded gradient card inset `var(--space-md)` — mesh background (base `linear-gradient(135deg, #12A5A1, #0A1F44)` + white bloom top-left + faint warm ember bottom-right) with two slowly drifting decorative orbs (`aria-hidden`)
+- **Split grid** `1.05fr 0.95fr` — asymmetric by rule (never equal columns):
+  - **Left:** inverted white logo + brand, `H1` tagline, subline, CTA pair, 3 glass value-prop chips (`brand.point1..3`) — content left-aligned, never centered
+  - **Right:** decorative "app preview" composition (`aria-hidden`) — glass post card (avatar + line placeholders + media block + action chips), glass chat card (2 bubbles), glass notification pill with orange dot; each floats with a slow `floatY` drift
+- **Features:** 3 zig-zag rows (text ↔ glass mock panel): friend list with connect pills, encrypted chat bubbles + encryption chip, group-call tile grid + control bar
+- **Closing band:** gradient card (`--color-secondary → --color-primary`) inset like the hero — left: trust heading + body + 3 glass badges; right: glass CTA panel (heading + body + the 2 buttons stacked)
+- **Footer:** floating glass row, same recipe as the navbar, inset `var(--space-md)`
 
 ### Rules
 
-- No stock photos or hero images — the gradient IS the visual
+- No stock photos or hero images — gradients, glass panels and DOM mockups ARE the visual
 - No "Scroll to explore" or arrow indicators
-- Headline is `H1` scale, white, `font-weight: 700`
-- CTA buttons: `padding: 12px 32px`, `border-radius: 8px`, `font-weight: 700`
-- Below the hero: simple footer with copyright only
-- Navbar overlays the gradient at top: brand logo + language toggle + theme toggle + login link
+- No fake stats, no placeholder names — mock content uses realistic Vietnamese names via `landing.mock.*`
+- CTA buttons: white fill + navy text (primary), translucent white border + blur (secondary); full-width ≤576px
+- Entrance motion: hero children stagger `fadeUp`; sections reveal via IntersectionObserver (`data-reveal` + `data-reveal-active` on root) — content must be visible when JS is unavailable
+- `prefers-reduced-motion`: orbs, floats, staggers, and reveals are all disabled
 
 ### Mobile
 
-- Hero scales down gracefully, gradient remains full-width
-- Buttons stack vertically if needed
-- Footer stays minimal
+- ≤967px: hero collapses to single column, preview composition hidden, feature rows stack (text above visual), closing band stacks
+- ≤576px: hero/footer/closing inset shrinks to `var(--space-sm)`, buttons full-width
+- Gradient stage remains full-bleed-inset; glass chrome unchanged
 
 ---
 
@@ -358,69 +430,105 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Navbar (transparent over gradient)          │
+│  Glass Navbar (floating, sticky, inset 16px) │
 ├──────────────────────────────────────────────┤
-│                                              │
-│         Gradient Hero (full width)           │
-│         Logo + Tagline + CTAs                │
-│                                              │
+│  ┌─ Gradient Hero Stage (inset, rounded) ──┐ │
+│  │ Left: logo, tagline, CTAs, glass chips  │ │
+│  │ Right: glass app-preview (decorative)   │ │
+│  └─────────────────────────────────────────┘ │
+│  Features — zig-zag rows, glass mock panels │
+│  Closing band — gradient + glass CTA panel  │
 ├──────────────────────────────────────────────┤
-│  Footer                                      │
+│  Glass Footer (floating, inset 16px)         │
 └──────────────────────────────────────────────┘
 ```
 
-### Track 2: Auth Pages (Login, Register, Forgot Password)
+- Canvas is `--color-bg-secondary`; navbar, footer, hero stage and closing band are all inset by `var(--space-md)` and rounded `var(--radius-lg)` — the same floating language as Track 3
 
-**Split layout:**
+### Track 2: Auth Pages (Login, Register, Forgot/Reset Password, Verify Email, Onboarding)
+
+**Fixed-height split layout — the page never scrolls, only the form pane does. Chrome floats on a tinted canvas (glass header/footer + the split as one floating card):**
 ```
-┌──────────────────┬───────────────────────────┐
-│                  │                           │
-│  Brand Pane      │    Form Pane              │
-│  (gradient bg)   │    (white bg)             │
-│  Logo + Copy     │    AuthCard (max-w: 400px)│
-│                  │                           │
-└──────────────────┴───────────────────────────┘
+┌─ shell: 100dvh, overflow hidden, pad 16px, bg --color-bg-secondary ─┐
+│ ┌─ Glass Header (56px: logo, lang + theme, rounded) ──────────────┐ │
+│ ├────────────────────────┬────────────────────────────────────────┤ │
+│ │                        │  (scroll container ↓)                 │ │
+│ │  Brand Pane            │  Form Pane                            │ │
+│ │  mesh gradient +       │  bg: tinted mesh                      │ │
+│ │  drifting orbs +       │  AuthCard (glass, max-w: 420px)       │ │
+│ │  staggered entrance    │  centered, sticks to top when taller  │ │
+│ ├────────────────────────┴────────────────────────────────────────┤ │
+│ │  Glass Footer (© 2026 LinkUp, slim, rounded)                    │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+  ↑ the whole thing is a floating composition: shell padding + rounded
+    header / split card / footer with --glass-* tokens
 ```
-- Brand pane: 50% width, gradient background, white text, logo + headline + tagline
-- Form pane: 50% width, centered form card
-- **Mobile:** Brand pane hidden. Form pane full-width, centered
-- Brand pane disappears below `768px`
+- **Shell:** `height: 100dvh` + `overflow: hidden` + `padding: var(--space-md)` + `gap: var(--space-sm)` on `--color-bg-secondary` — header, split card, and footer are pinned; no page-level scroll
+- **Glass chrome:** header, footer, and the split container (`AuthLayout .main`) use the glass recipe — `--glass-bg`, `backdrop-filter: blur(var(--glass-blur))`, `1px solid var(--glass-border)`, `--glass-shadow`, `border-radius: var(--radius-lg)`
+- **Brand pane:** 50% width, layered mesh gradient (base `135deg` primary → secondary + white bloom + faint ember), white text: logo + headline + tagline + 3 value props (`brand.point1..3`), two decorative orbs drifting on an 18–22s loop (`aria-hidden`). Children stagger-fade in (40/110/180/250ms). Does not scroll
+- **Form pane:** 50% width, `overflow-y: auto`, tinted mesh background (`--color-bg-secondary` + two faint `--color-primary` radial washes) — the backdrop the glass AuthCard blurs. The ONLY scrollable region on auth pages. `AuthCard` uses the `min-height: 100%` centering pattern: content shorter than the pane centers vertically; taller content sticks to the top and scrolls (never clipped at the top edge)
+- **AuthCard:** glass surface — `--glass-bg-strong`, `blur(16px)`, `--glass-border`, `--glass-shadow`. ≤576px keeps the glass but drops the shadow (never strips to transparent)
+- **Mobile (≤767px):** column stack — brand pane becomes a **compact gradient strip** (logo + headline + tagline, value props hidden), form pane takes the remaining height and scrolls internally. Header and footer stay pinned
+- **Keyboard:** focusing an input scrolls the form pane (nearest scrollable ancestor), not the page
+- **Fallback:** if mobile soft-keyboard focus-scroll misbehaves on a browser, revert only `<768px` to page scroll (`height: auto; overflow: visible` on the shell)
+- Server errors render inline (`FormAlert`, `role="alert"`) inside the form — never toast-only
+- `prefers-reduced-motion`: orb drift and brand-pane stagger disabled
 
 ### Track 3: User Social (3-Column)
 
 ```
 ┌──────────┬──────────────────────────┬──────────────┐
-│          │   UserNavbar (56px)      │              │
-│ Left     ├──────────────────────────┤   Right      │
-│ Sidebar  │                          │   Sidebar    │
-│ (260px)  │   Feed / Page Content    │   (360px)    │
-│ sticky   │                          │   sticky     │
+│          │   Navbar (56px card)     │              │
+│ Left     │   sticky top 16px        │   Right      │
+│ Sidebar  ├──────────────────────────┤   Sidebar    │
+│ floating │                          │   floating   │
+│ card     │   Feed / Page Content    │   card       │
 │          │                          │              │
-└──────────┴──────────────────────────┘
+└──────────┴──────────────────────────┴──────────────┘
 ```
+
+**Floating panel chrome (all three components):**
+
+- **Canvas:** `.layout` background is `var(--color-bg-secondary)` — white cards visibly float on the tinted canvas (light `#F5F5F5`, dark `#1A1A1A`)
+- **Panels:** Left sidebar, Right sidebar, and Navbar each render as a floating card — `var(--color-card)` bg, `1px solid var(--color-border)`, `border-radius: var(--radius-lg)`, `box-shadow: var(--shadow-sm)` (navbar: `var(--shadow-md)` since it overlays scrolling content)
+- **Grid:** `gap: var(--space-md)` + `padding: var(--space-md)` — panels never touch viewport edges; mobile drawers are floating sheets inset `16px` as well
+- **Navbar:** sticky at `top: var(--space-md)`, rounded 4 corners, glass surface (`var(--glass-bg)` + `backdrop-filter: blur(var(--glass-blur))`, see §4 Glass Surface), `margin-bottom: var(--space-md)`; feed content scrolls underneath
+- **Sidebars:** sticky full-height cards, `height: calc(100dvh - var(--space-md) * 2)`, scrollbars hidden, own internal padding/scroll
+- **Center content pages** stay transparent — their white cards (PostCard, settings panels) rest directly on the tinted canvas. The messaging workspace (`.page`) is itself a floating card
+- **Active nav item** in left sidebar: pill bg `var(--color-primary-light)` + primary text (matches active tab pattern)
+- **Right sidebar sections** (`.card`, gray blocks): hover elevates to `box-shadow: var(--shadow-sm)` over `0.15s ease`
+- **Drawers (≤1024 right, ≤768 left):** floating sheets — inset `var(--space-md)`, rounded 4 corners, `shadow-lg` when open, slide-in `0.25s ease`
+
 - **Left Sidebar (260px):** Logo, nav items (Home, Explore, Notifications, Messages, Friends, Groups, Saved, Profile), Create Post button, user profile dropdown at bottom. Sticky, full height, scrollable
 - **Center Content:** `UserNavbar` (search + tabs) at top, then page content below. Flex-grow, scrollable
 - **Right Sidebar (360px):** Search box, trending hashtags, follow suggestions. Sticky, full height
 - **Tablet (< 1024px):** Right sidebar hidden
 - **Mobile (< 768px):** Left sidebar hidden (hamburger menu). Right sidebar hidden. Content full-width
 
-### Track 4: Admin Dashboard (Sidebar + Content)
+### Track 4: Admin Dashboard (Sidebar + Content) — also Partner
 
 ```
-┌──────────┬──────────────────────────────────┐
-│          │   AdminNavbar (56px, sticky)     │
-│ Admin    ├──────────────────────────────────┤
-│ Sidebar  │                                  │
-│ (230px)  │   Main Content                   │
-│ collapse │   padding: 32px 24px             │
-│ to 60px  │                                  │
-│          │                                  │
-└──────────┴──────────────────────────────────┘
+ tint canvas (--color-bg-secondary), inset 16px
+┌─16px─┬───────────────────────────────────┐
+│ ┌──────────┐  ┌───────────────────────┐  │
+│ │ Admin    │  │ AdminNavbar (56px)    │  │
+│ │ Sidebar  │  │ glass, radius-lg      │  │
+│ │ glass    │  ├───────────────────────┤  │
+│ │ 230px    │  │                       │  │
+│ │ collapse │  │   Main Content        │  │
+│ │ to 60px  │  │   padding: 32px 24px  │  │
+│ └──────────┘  │   scrollable          │  │
+│               └───────────────────────┘  │
+└──────────────────────────────────────────┘
 ```
-- **AdminSidebar:** Logo, 8 nav items with icons, separator, Profile + Settings (super admin only), Logout. Collapsible to `60px` via toggle. Mobile: overlay drawer at `<= 576px`
-- **AdminNavbar:** Hamburger toggle, search input (placeholder, readOnly), language toggle, theme toggle, notification bell with unread badge, profile dropdown
-- **Content area:** `max-height: calc(100vh - 56px)`, scrollable, padding `32px 24px`
-- Sidebar width transitions: `230px ↔ 60px` with `0.3s ease` margin-left transition
+
+- **Canvas:** `.layout` is tinted `--color-bg-secondary` (full viewport, incl. the gutters) so the floating chrome always has a tinted backdrop; `.content` repeats the tint
+- **Sidebar (Admin + Partner):** `position: fixed`, inset `var(--space-md)` on top/left, `height: calc(100dvh - space-md*2)`, glass recipe + `radius-lg`. Logo, nav items with icons, separator, footer items, Logout. Collapsible to `60px` (`.close`); content `margin-left` follows: `262px ↔ 92px` (230/60 + 2×16 inset), `0.3s ease`. Mobile: floating drawer at `<= 576px` (off-canvas via `translateX(calc(-100% - space-md))`, overlay z-index 1999 < sidebar 2000)
+- **Nav item states:** rest = transparent; hover = `--color-bg-secondary` wash; **active = `--color-primary-light` pill + `--color-primary` text** (full 48px radius — same language as Track 3). Never resurrect the old opaque "notch" `::before/::after` trick — it requires solid backgrounds and breaks on glass
+- **Navbar (Admin + Partner):** glass recipe, `margin: space-md space-md 0`, sticky `top: space-md`, 56px. Order: circular hamburger `<button>` (36px, glass, `aria-label="Toggle menu"`) → search pill → `<NavControls>` in a `.controls` wrapper → bell (admin) → profile dropdown. Search is a unified pill: `--color-bg-secondary`, `radius-pill`, magnifier icon + borderless readOnly input, `max-width: 400px`, `:focus-within` primary border; ≤576px it collapses to a 36px circle and `.controls` hides. Bell opens the glass notification-center popover and the profile trigger opens the glass identity-header dropdown — both per §4 Dropdown / Popover
+- **Notification bell:** circular glass (theme-toggle recipe) with red unread badge at top-right
+- **Content area:** `max-height: calc(100dvh - 72px)` (16 top inset + 56 navbar), scrollable, padding `32px 24px`
 
 ### Track 5: Messaging
 
@@ -487,6 +595,7 @@ Use native CSS Grid — never flexbox percentage math:
 - Feed content: `max-width: 680px` centered in center column
 - Horizontal padding: `16px` (mobile), `24px` (tablet), `32px` (desktop)
 - Full-height sections: `min-height: 100dvh` — never `100vh` (iOS Safari jump)
+- **Auth pages (Track 2) are the exception:** they use fixed `height: 100dvh` + `overflow: hidden` on the shell so the page itself never scrolls — overflow is absorbed by the form pane's `overflow-y: auto`
 
 ---
 
@@ -547,13 +656,19 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 - **Button press:** `translateY(-1px)` on active, `150ms ease-out`
 - **Card hover:** shadow elevation `sm → md`, `150ms ease`
-- **Nav item hover:** background wash `transparent → var(--color-bg-secondary)`, `150ms ease`
+- **Nav item hover:** background wash `transparent → var(--color-bg-secondary)`, `150ms ease`; active admin/partner sidebar item = `--color-primary-light` pill (no transition on activate)
+- **Circular nav icon (menu/bell/theme):** hover = `--color-primary-light` wash + primary icon, press = `scale(0.94)`, `150ms ease-out`
 - **Like heart:** scale `1 → 1.3 → 1` with color change, `300ms spring` (Framer Motion)
 - **Follow button:** text morphs "Follow" → "Following" with width transition, `200ms ease`
 - **Toast entrance:** slide up from bottom + fade in, `200ms ease-out`
 - **Toast exit:** fade out + slide down, `150ms ease-in`
 - **Modal entrance:** overlay fade `0 → 0.5`, content `translateY(8px) → 0` + `opacity 0 → 1`, `200ms ease-out`
 - **Skeleton shimmer:** `opacity 0.4 → 0.8 → 0.4`, `1.5s ease-in-out infinite`
+- **Hero/auth entrance stagger:** children fade + `translateY(10–12px → 0)`, `420–460ms ease-out`, delays `40ms → ~360ms` in DOM order
+- **Orb drift:** decorative gradient orbs loop `translate3d` + subtle `scale`, `18–26s ease-in-out infinite alternate` (auth brand pane, landing hero)
+- **Hero preview float:** glass mock cards bob `-12px` vertically, `6.5–8s ease-in-out infinite alternate` with negative delays so they never sync
+- **Section reveal (landing):** IntersectionObserver adds `.revealed` at `threshold: 0.15` → `opacity 0→1` + `translateY(14px→0)`, `500ms ease-out`; hide-state only activates after JS adds `data-reveal-active` (no-JS = fully visible)
+- All of the above are disabled under `prefers-reduced-motion`
 
 ### Page Transitions
 
@@ -584,7 +699,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 - No custom mouse cursors
 - No overlapping elements — clean spatial separation always
 - No `z-index` spam — use only for intentional stacking contexts (Navbar, Modal, Overlay, messaging layers)
-- No `h-screen` — always `min-height: 100dvh`
+- No `h-screen` — use `min-height: 100dvh` (fixed `height: 100dvh` only for intentional no-page-scroll shells like auth Track 2)
 
 ### Layout
 
@@ -622,35 +737,103 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 ### Landing Page (`/`)
 
 **Purpose:** Convert visitors to registered users. First impression.
-**Layout:** Navbar + gradient hero + minimal footer
-**Hero content:** Logo (white inverted), brand name "LinkUp", Vietnamese tagline, two CTA buttons
-**Color:** Full gradient background `#12A5A1 → #0A1F44`, white text
-**Mobile:** Brand pane hidden. Buttons stack. Footer minimal.
+**Layout:** Track 1 — glass navbar + gradient hero stage + zig-zag features + closing band + glass footer (see §5)
+**Hero content:** left = inverted logo, "LinkUp", Vietnamese tagline (`landing.tagline`), subline (`landing.sub`), 2 CTA buttons, 3 glass value chips (`brand.point1..3`); right = decorative glass app-preview (post card, chat card, notification pill, `aria-hidden`)
+**Features:** 3 zig-zag rows (`landing.feature1..3`), each with a glass mock panel (friend list / encrypted chat / group call)
+**Closing:** gradient band — trust copy + badges (`landing.trust*`, `landing.badge*`) left, glass CTA panel (`landing.ctaTitle/Body`) right
+**Color:** hero/closing gradients `#12A5A1 → #0A1F44` variants, white text; canvas `--color-bg-secondary`
+**Mobile:** preview hidden ≤967px; sections stack; buttons full-width ≤576px
 
 ### Login (`/login`)
 
 **Purpose:** Authenticate existing users. Quick, frictionless.
-**Layout:** Split — brand pane (left, 50%) + form pane (right, 50%)
-**Brand pane:** Gradient bg, logo, "Welcome back" headline, brief tagline
-**Form pane:** Email input, password input, "Forgot password?" link, "Log in" primary button, Google OAuth button, "Create account" link
-**Validation:** Inline errors below each field, red text
-**Mobile:** Brand pane hidden. Form centered, full-width.
+**Layout:** Fixed-height split (Track 2) — brand pane (left, 50%) + form pane (right, 50%, scrolls internally); glass header/footer, glass AuthCard on tinted mesh
+**Brand pane:** Gradient bg, logo, headline, tagline, 3 value props
+**Form pane order:** title + subtitle (left-aligned) → Google OAuth button ("Đăng nhập với Google", custom — see §4) → divider ("hoặc") → email input → password input (with "Quên mật khẩu?" in the label row) → navy full-width "Đăng nhập" → footer link "Chưa có tài khoản? Đăng ký"
+**Validation:** Real-time per-field errors below each field (reserved 18px slot — layout never jumps); server errors inline `FormAlert` (`role="alert"`, maps `auth.EMAIL_NOT_VERIFIED` → action button to `/verify-email`, locked/attempt-limit codes → warning variant)
+**Focus:** email autofocused on ≥768px only (mobile keyboard would cover the form)
+**Mobile (≤767px):** compact gradient brand strip on top; header/footer pinned; form pane scrolls internally
 
 ### Register (`/register`)
 
 **Purpose:** Create new accounts. Onboarding starts here.
-**Layout:** Same split as login
-**Form:** Display name, email, password, confirm password, "Create account" button, Google OAuth, "Already have an account? Log in" link
-**Validation:** Real-time field validation, password strength indicator
+**Layout:** Same fixed-height split as login
+**Form pane order:** title + subtitle → Google OAuth button ("Đăng ký với Google", custom — see §4) → divider → display name → email → password → confirm password → terms checkbox → navy full-width "Đăng ký" → footer link "Đã có tài khoản? Đăng nhập"
+**Password UX:** live strength meter (4 segments, tone weak/fair/strong, label `aria-live="polite"`) + 5-item requirement checklist (`register.req.*`, icons flip `bx-x-circle` → `bx-check-circle` live) + confirm-match live hint (`register.confirmMatchOk`)
+**Terms:** plain-text checkbox row (no links — no `/terms` page exists), client-only error until checked
+**Validation:** Real-time per-field errors, strength meter, inline `FormAlert` for server errors (`auth.EMAIL_EXISTS` → danger), focus first invalid field on submit
+**Focus:** display name autofocused on ≥768px only
 
 ### Feed (`/` — authenticated)
 
 **Purpose:** Content consumption. The core loop.
 **Layout:** 3-column (LeftSidebar | Feed | RightSidebar)
-**Center column:** PostComposer at top, infinite-scroll PostCard list below
-**PostCard:** Author header (avatar 40px, name, follow badge, timestamp), content (truncated at 200 chars with expand), media grid (1-4 items), action bar (like, comment, share, save)
+**Center column:** PostComposer teaser at top, infinite-scroll PostCard list below
+
+**Post composer (teaser → modal):**
+- **Entry:** `PostComposer` is a teaser card only — avatar + pill placeholder button ("Bạn đang nghĩ gì?") + round photo button. Clicking the pill opens the modal; the photo button opens it with the file dialog pre-triggered (`initialPicker="media"`). The same `CreatePostModal` is also opened by the LeftSidebar "Tạo bài viết" button. Posts propagate via the `post:created` window event (Feed prepends on receipt — no `onPosted` prop)
+- **Modal structure (top → bottom):** header (avatar + name + ✕ close) → optional draft chip → scrollable body (collapsible title, contentEditable, char count, media previews) → options band → footer bar
+- **Title:** collapsed by default behind a dashed ghost pill "+ Thêm tiêu đề (không bắt buộc)"; expands to the title input on click
+- **Options band (FB-style rows, one concern per row):**
+  - Audience row: privacy icon + current label + chevron → opens the privacy dropdown menu (opens upward, above the band)
+  - Comments row: message icon + "Bình luận" + state text (Đang bật/Đã tắt) + iOS-style switch (44×24 track, ON = comments enabled)
+- **Footer bar:** left = icon-only round attach buttons (photo/video, GIF, emoji — 40px circles, tooltip + aria-label); right = primary "Đăng bài" pill. GIF/emoji pickers anchor upward (`placement="top"`). There is no Cancel button — ✕ / overlay click / Escape all close the modal **and keep the draft**
+- **Draft autosave:** debounced 400ms to `localStorage` key `linkup.composer.draft` (`{title, content, privacy, commentsDisabled, gif, savedAt}`); empty form deletes the key; hydrated on next open with a "Đã khôi phục bản nháp · Xoá" chip; cleared on successful post. Emoji round-trip: serialized `:shortcodes:` are rebuilt as inline `<img class="emojiInline" data-code=…>` on restore. Files are not part of the draft (browser limitation)
+- **Char count:** hidden below 4000 chars (80% of 5000); amber `--color-warning` from 4000; red `--color-danger` + submit validation over 5000
+- **PostCard:** Author header (avatar 40px, name, follow badge, timestamp), content (truncated at 200 chars with expand), media grid (1-4 items), action bar (like, comment, share, save)
 **Right sidebar:** Search input, trending hashtags (top 5), follow suggestions (top 5 with follow buttons)
 **Left sidebar:** Navigation with active state highlighting, create post button (turquoise pill), user dropdown at bottom
+
+### Post Card & Post Detail Modal
+
+**PostCard (`components/PostCard.tsx`):**
+
+- **Header:** avatar 40px, display name + optional Follow badge, `@username · relative time` (absolute date in `title` attr), privacy chip (globe/lock/group icon) when `status !== 'public'`, "Đã chip" pin badge when `is_pinned`
+- **Content:** hashtags (`#tag`) render as primary-colored links → `/search?q=%23tag`. Truncation at 200 chars with "Xem thêm / Thu gọn"
+- **Media grid:** 1–4 items; when a post has >4 media the 4th tile shows a `+N` overlay. Cards are clickable to open the detail modal (keyboard: `role="button"` + Enter/Space)
+- **Action bar — two clusters:**
+  - Left: **Like · Comment · Share** (ghost buttons, icon + count)
+  - Right (`margin-left: auto`): **Save · Send-to-friend** — or a single Share button opening a compact popover menu (`Chia sẻ bài viết` / `Gửi cho bạn bè`)
+- **Like:** color `var(--color-heart)`, hover wash `var(--color-heart-light)`, pop animation `scale 1 → 1.3 → 1` (300ms). Double-tap on card body = like (touch)
+- **Never** hardcode red/pink values — always `--color-heart` tokens (dark mode override required)
+- **Empty post:** a post with no title, no content, **and** no media renders a single muted placeholder line (`post.noContent`, italic `--color-text-secondary`). Media-only posts show no annotation — the media is the content
+- **View count (owner-only):** the author's own posts replace the (formerly disabled) Save button in the right action cluster with an eye stat — `bx-show` icon + compact count (`post.viewCount`, uses the shared `formatCount`). Other users' posts keep the Save button unchanged. The modal stats row keeps showing views to everyone
+
+**Post Detail Modal (`components/PostDetailModal.tsx`):**
+
+- **Desktop ≥960px — split 2-column grid:**
+  - Left pane: media stage, `background: #000`, full height, carousel with prev/next (keyboard ←/→ + touch swipe), counter badge, dot indicators — prev/next, counter, and dots are all hidden when the post has a single media item
+  - Right pane (440px): header (fixed) → scroll area (body → stats → action bar → comments) → comment composer (fixed at bottom of the right pane, never spans the media pane)
+  - Text-only posts: single column, content `max-width: 680px` centered
+- **Mobile ≤768px:** stack — media on top, content scrolls, composer pinned above the safe area
+- **Stats row:** one line — `N lượt thích · N bình luận · N chia sẻ · N lượt xem`; clicking the comment segment scrolls to the comment list
+- **Action bar:** same two-cluster rule as PostCard. After sharing, show a "Đã chia sẻ" chip — do not disable the share button permanently
+- **Owner menu (⋮):** toggle comments, copy link, delete (styled confirm modal — never `window.confirm`). **Guest menu:** copy link, report
+- **Comments:** current-user avatar left of the composer input; sort as a segmented pill control; Reply scrolls to + highlights the parent comment; char counter near the 1000-char server limit (amber → red); loading = comment skeletons (no spinners); empty state = composed illustration + guidance line
+- **A11y:** `role="dialog"`, `aria-modal="true"`, focus trap, focus restore on close, Escape + overlay click close
+- **URL:** opening from a feed pushes `/posts/{id}`; browser Back closes the modal first
+- **Motion:** overlay `0 → 0.5`, content `opacity 0 → 1` + `translateY(8px) → 0`, `200ms ease-out`
+
+### Stories (Feed bar + editor)
+
+**Purpose:** Ephemeral 24h media. Facebook-style vertical preview cards + full-screen-ish editor modal.
+
+**Story bar (`StoryBar`, top of Feed center column):**
+- **Chrome:** single `--color-card` row, `1px --color-border`, `radius-lg`, elevation `0 2px 12px rgba(0,0,0,0.06)` (matches PostCard); horizontal scroll with edge mask fade; scrollbar hidden
+- **Tiles:** 112px wide, `aspect-ratio: 9/16`, `radius-md`. Preview = story thumbnail (`object-fit: cover`) + bottom-up dark gradient + avatar ring (`--story-ring-gradient`, viewed = `--color-border` ring) + name bottom-left (white, `--text-caption`, text-shadow). Cards lift `-2px` + `--shadow-md` on hover (disabled under `prefers-reduced-motion`)
+- **"Your Story" tile:** avatar variant when `avatarUri` is provided (thumbnail + gradient + primary `+` badge top-right + "Tin của bạn" label); fallback = dashed-neutral card with primary `+` circle. Creates via `onCreateStory`
+- **A11y:** every tile is `role="button" tabindex=0` with Enter/Space activation; preview cards labelled `"Xem tin: {name}"`; focus-visible = `2px --color-primary` outline
+- **Overflow menu:** right-click or ⋮ opens the mute menu (fixed-position, closes on scroll/resize)
+
+**Editor modal (`StoryEditorModal`) — 2 steps + post sheet:**
+- **Step 1 «pick»:** `--color-bg-secondary` frame (9:16) showing either the placeholder tiles (dashed photo tile + text-story tile) or the current selection with ✕ remove, "Thêm ảnh/video" (append, cap 10) and "Chỉnh sửa" actions. Footer = "Hủy" only. Picking files **appends** (video still exclusive: `story.multiErrorVideo`); over-cap → `story.multiErrorMax`
+- **Step 2 «edit»:** dark stage (`--color-story-bg`), canvas centered with real CSS size via `setDimensions(…, {cssOnly:true})` (backstore fixed at logical 405×720 — window size never changes export resolution). Header: back (captures snapshot first) / undo / redo / recenter / delete-selection + primary **"Đăng"** pill (runs export + snapshot, then opens the post sheet). Bottom overlay: tool-specific panel + EditorToolbar; multi-item nav row (`n/total`)
+- **Text tool:** tap-to-create — clicking empty canvas with the text tool active creates an IText at the tap point using the panel's current style (`textStyle` ref). Panel = hint chip ("Nhấn vào khung để thêm chữ") until a text is selected, preset chips, B/I/U + align + size slider + "Nâng cao" toggle, color swatch row; advanced section holds font, gradient, outline, highlight. No text input, no add/update button; empty texts are removed on editing exit
+- **Snapshots:** every leave-transition (back, nav, "Đăng") serializes non-background objects + bg transform via `api.getSnapshot()` into the item; re-entering a media item restores it after the background loads — filters, drawings, stickers, and text survive pick↔edit↔sheet round-trips. History resets per media item
+- **Post sheet:** replaces the stage while the canvas is unmounted. Preview frame (`--color-bg-secondary`), per-item strip with individual ✕ delete (min 1), caption textarea (300 chars, `story.captionPlaceholder`), footer "Chỉnh sửa" (back) + "Đăng" (submit → `POST /api/stories` with per-item `captions`). Music stops while the sheet is open and resumes on return
+- **Guard:** ✕ / overlay click / Escape with any picked content → confirm dialog ("Rời khỏi bản nháp?" · "Ở lại" / "Rời đi"); empty state closes immediately
+- **Export:** images re-encoded at **1080×1920** (`exportBlob()` → `EXPORT_WIDTH / canvasWidth` multiplier; `exportBlob(true)` = 1× preview for the strip). Videos re-export with the music stream
+- **Theme rule:** editor stage stays dark in both themes (`--color-story-bg`); pick/post frames, strip thumbs, and media placeholders use `--color-bg-secondary` so the light theme never shows black frames. Gradient hex label under the text-story swatches is banned
 
 ### Messages (`/messages`)
 
@@ -666,6 +849,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Layout:** Admin sidebar + AdminNavbar + content area
 **Content:** 6 stat cards (3x2 grid) with animated counters and trend indicators, line chart (user/post/report growth over time), pie chart (user status distribution), two recent tables (top users, top posts), period selector dropdown
 **Charts:** Recharts library, responsive, with loading skeletons
+**Top lists:** "Người dùng tích cực nhất" / "Bài viết tương tác nhất" rows are clickable (`.topListRow`: pointer, hover `--color-bg-secondary`, focus-visible outline, Enter/Space) → open `UserProfileModal` (fetches `GET /profile/:userID`: avatar, name, bio, stat chips; footer "Xem hồ sơ đầy đủ" expands **in-place** — no navigation to user layout — widening the shared Modal via new `size="lg"` prop (680px) to show cover header + avatar overlap + full `ProfileAboutTab` About section, footer becomes "Quay lại") or `PostPreviewModal` (fetches `GET /posts/:id`: clickable author row → chains to UserProfileModal, clamped content, media grid, status badge, stats, "Xem bài viết" link). Both reuse shared `components/Modal`, loading spinner + retry error states.
 
 ### Admin Users (`/admin/users`)
 
@@ -678,6 +862,31 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Tabs:** Change Password, Privacy, Appearance (theme toggle), Storage (quota info), Active Sessions, Deactivate Account
 **Layout:** 3-column user layout, settings content in center column
 **Form pattern:** Label above input, helper text below, save button at bottom
+
+### Admin Settings (`/admin/settings`)
+
+**Purpose:** Super Admin only — global system settings (11 backend keys). Admin sidebar + AdminNavbar + content area.
+**Layout:** Header (title + caption subtitle + Super Admin badge + "Unsaved changes" dirty pill with orange `--color-accent` dot) above a **vertical rail split**: 220px `.rail` (`role="tablist"`, 3 tabs with icon + label, active = `--color-primary-light` pill, navy on hover) + flexible `.panel` (`role="tabpanel"`). Tab syncs to `?tab=general|security|registration` via `router.replace` (wrapped in `<Suspense>` for `useSearchParams`).
+**Tabs:** General (site name, description, contact email, maintenance toggle), Security & Auth (password min length, max login attempts, JWT expiry, refresh token expiry), Registration (allow registration, require email verify, default user role select).
+**Tab switch:** content crossfade 150ms ease (`.panel` keyed by tab, §8).
+**Fields:** two row types — text/number/textarea/select rows (label + `settings.hint.*` helper via `text-caption` + control, `.fieldError` inline on blur/save) and boolean `.settingRow` (label + hint left, 44×24 `.toggle` right; maintenance ON shows amber `--color-warning-light` banner with `bx-error-circle` — no emoji). Inputs follow §4 (40px, `radius-md`, focus ring `0 0 0 3px --color-primary-light`, danger border+ring when invalid).
+**Actions:** global dirty detection (`JSON.stringify` compare) — Save (navy `--color-cta`, §2) + Cancel (ghost outline) disabled until dirty; invalid fields jump to their tab and toast the first error; save errors surface inline (touched), success toast + SWR invalidate.
+**Skeleton:** header + 3 rail pills + card rows (shimmer 0.4→0.8→0.4), matches final layout.
+**Responsive:** ≤860px rail becomes a wrapping horizontal row above the panel; ≤576px header stacks, inputs go full-width, footer buttons stack full-width.
+
+### Admin Profile (`/admin/profile`)
+
+**Purpose:** Lean self-service profile for ADMIN + SUPER_ADMIN (role guard: other roles → redirect with unauthorized toast). Admin sidebar + AdminNavbar + content area.
+**Header:** H1 + caption subtitle + role badge pill right (`bx-shield-quarter`; SUPER_ADMIN = `--color-primary-light`/primary, ADMIN = neutral border pill).
+**Card "Account":**
+- Identity row: 96px avatar button (hover/focus → dark camera overlay, click → file input → `/media/upload` → `PATCH /profile` → toast + `invalidate('/profile')` so navbar updates) + display name (`--text-h2`) + `@username`.
+- Read-only info grid (2-col, ≤860 1-col): email (token), user ID (mono `infoCode` chip + copy button with swap-to-check tooltip), joined date (locale-aware `toLocaleDateString`), role.
+- Edit form: display name (required, maxLength 50, inline error on blur) + bio (textarea maxLength 160 with `text-caption` hint), fields follow §4.
+- Actions: global dirty detection — Save (navy `--color-cta`, §2) + Cancel ghost, disabled until dirty; success/error toast.
+**Card "Security":** inline change-password form (old/new/confirm, `autoComplete` attrs) + Save — same `POST /auth/change-password` as the navbar modal.
+**Skeleton:** header + identity (circle + lines) + 4 info placeholders (shimmer 0.4→0.8→0.4).
+**Tooltips:** custom `data-tooltip` `::after` pill (§4 pattern) on avatar + copy; no native `title`, no emoji.
+**Responsive:** ≤576px header stacks, identity column stacks, inputs full-width, footer buttons stack full-width.
 
 ---
 

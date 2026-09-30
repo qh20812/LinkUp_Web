@@ -6,7 +6,6 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useTranslation } from "../hooks/useTranslation";
-import { useTheme } from "../hooks/useTheme";
 import { useToast } from "../contexts/ToastContext";
   import { changePassword, logout } from "../api/auth";
   import { getAdminProfile } from "../api/admin";
@@ -15,17 +14,16 @@ import { useToast } from "../contexts/ToastContext";
   import styles from "./AdminNavbar.module.css";
 import { useNotification } from "../contexts/NotificationContext";
 import NotificationDropdown from "./NotificationDropdown";
+import NavControls from "./NavControls";
 
 interface AdminNavbarProps {
   onMenuToggle: () => void;
 }
 
 export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
-  const { t, language, setLanguage } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const pathname = usePathname();
-  const [searchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -141,49 +139,46 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
 
   return (
     <nav className={styles.nav}>
-      <i className={`bx bx-menu ${styles.menuBtn}`} onClick={onMenuToggle} />
+      <button
+        type="button"
+        className={styles.menuBtn}
+        onClick={onMenuToggle}
+        aria-label={t("nav.toggleMenu")}
+        data-tooltip={t("nav.toggleMenu")}>
+        <i className="bx bx-menu" />
+      </button>
 
-      <form
-        className={`${styles.searchForm}${searchOpen ? ` ${styles.show}` : ""}`}
-        onSubmit={(e) => e.preventDefault()}>
-        <div className={styles.formInput}>
-          <input type="search" placeholder={t("common.search")} readOnly />
-          <button className={styles.searchBtn} type="submit">
-            <i className="bx bx-search" />
-          </button>
-        </div>
+      <form className={styles.searchForm} onSubmit={(e) => e.preventDefault()}>
+        <i className="bx bx-search" />
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder={t("common.search")}
+          readOnly
+        />
       </form>
 
-      <div className={styles.toggleGroup} suppressHydrationWarning>
-        <button
-          className={`${styles.toggleBtn}${
-            language === "vi" ? ` ${styles.toggleActive}` : ""
-          }`}
-          onClick={() => setLanguage("vi")}
-          suppressHydrationWarning>
-          VI
-        </button>
-        <button
-          className={`${styles.toggleBtn}${
-            language === "en" ? ` ${styles.toggleActive}` : ""
-          }`}
-          onClick={() => setLanguage("en")}
-          suppressHydrationWarning>
-          EN
-        </button>
-      </div>
+      <Link href="/admin/dashboard" className={styles.brand}>
+        <Image
+          src="/S-Logo-Rmbg.png"
+          alt="LinkUp"
+          width={32}
+          height={32}
+          className={styles.brandImg}
+          priority
+        />
+        <span className={styles.brandName}>LinkUp</span>
+      </Link>
 
-      <button
-        className={styles.iconBtn}
-        onClick={toggleTheme}
-        aria-label="Toggle theme">
-        <i className={`bx ${theme === "light" ? "bx-moon" : "bx-sun"}`} />
-      </button>
+      <div className={styles.controls}>
+        <NavControls />
+      </div>
 
       <div className={styles.notifWrap} ref={notifRef}>
         <button
           className={styles.notif}
-          aria-label="Notifications"
+          aria-label={t("sidebar.notifications")}
+          data-tooltip={t("sidebar.notifications")}
           onClick={() => {
             setNotifOpen(!notifOpen);
             setDropdownOpen(false); 
@@ -203,11 +198,11 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
       <div className={styles.profileWrap} ref={dropdownRef}>
         <button
           className={styles.profile}
-          aria-label="Profile"
+          aria-label={t("nav.profile")}
           onClick={() => setDropdownOpen(!dropdownOpen)}>
           <Image
             src={profile?.avatar_uri || cachedProfile.avatar_uri || "/S-Logo.png"}
-            alt="Profile"
+            alt=""
             width={36}
             height={36}
             priority
@@ -222,6 +217,22 @@ export default function AdminNavbar({ onMenuToggle }: AdminNavbarProps) {
 
         {dropdownOpen && (
           <div className={styles.dropdown}>
+            <div className={styles.dropdownHeader}>
+              <Image
+                src={profile?.avatar_uri || cachedProfile.avatar_uri || "/S-Logo.png"}
+                alt=""
+                width={40}
+                height={40}
+                className={styles.dropdownAvatar}
+                unoptimized
+              />
+              <div className={styles.dropdownUser}>
+                <span className={styles.dropdownName}>
+                  {profile?.display_name || cachedProfile.display_name || "Admin"}
+                </span>
+                <span className={styles.dropdownEmail}>{tokenEmail}</span>
+              </div>
+            </div>
             <Link href="/admin/profile" className={styles.dropdownItem}>
               <i className="bx bx-user-circle" />
               <span>{t("nav.profile")}</span>

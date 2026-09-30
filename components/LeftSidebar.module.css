@@ -61,6 +61,11 @@
 .navItem.active {
   color: var(--color-primary);
   font-weight: 700;
+  background: var(--color-primary-light);
+}
+
+.navItem.active:hover {
+  background: var(--color-primary-light);
 }
 
 .navItem.active i {

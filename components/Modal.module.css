@@ -23,6 +23,10 @@
   overscroll-behavior: contain;
 }
 
+.modalLg {
+  max-width: 680px;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -50,7 +54,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  transition: all 0.2s;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .closeBtn:hover {

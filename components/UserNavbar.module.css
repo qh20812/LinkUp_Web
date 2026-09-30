@@ -1,13 +1,18 @@
 .nav {
   position: sticky;
-  top: 0;
+  top: var(--space-md);
   z-index: 100;
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   height: 56px;
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 var(--space-md);
   gap: 12px;
 }
 

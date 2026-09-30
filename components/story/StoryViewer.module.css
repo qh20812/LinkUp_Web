@@ -238,6 +238,11 @@
   opacity: 1;
 }
 
+.sendBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .paused .progressFill {
   animation-play-state: paused;
 }
@@ -519,29 +524,6 @@
   color: var(--color-text-secondary);
 }
 
-.statsTabs {
-  display: flex;
-  gap: var(--space-xs);
-  padding: 0 var(--space-md) var(--space-sm);
-}
-
-.statsTab {
-  flex: 1;
-  padding: var(--space-xs) var(--space-sm);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-secondary);
-  font: var(--text-caption);
-  cursor: pointer;
-}
-
-.statsTabActive {
-  color: var(--color-text);
-  border-bottom-color: var(--color-primary);
-  font-weight: 600;
-}
-
 .statsList {
   flex: 1;
   overflow-y: auto;
@@ -582,6 +564,17 @@
   border-bottom: none;
 }
 
+.statsRowHeadline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.statsRowHeadline .statsRowSub {
+  margin-left: auto;
+}
+
 .statsRowName {
   font: var(--text-caption);
   font-weight: 600;
@@ -593,12 +586,9 @@
   color: var(--color-text-secondary);
 }
 
-.statsReply {
-  font: var(--text-body);
-  color: var(--color-text);
-  background: var(--color-bg-secondary);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-md);
+.statsRowEmoji {
+  width: 16px;
+  height: 16px;
 }
 
 .statsEmpty {
@@ -606,37 +596,6 @@
   padding: var(--space-lg);
   color: var(--color-text-secondary);
   font: var(--text-caption);
-}
-
-.reactFilter {
-  display: flex;
-  gap: var(--space-xs);
-  padding-bottom: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.reactFilterBtn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  color: var(--color-text);
-  font: var(--text-caption);
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.reactFilterActive {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-.reactFilterImg {
-  width: 18px;
-  height: 18px;
 }
 
 @media (max-width: 768px) and (min-width: 601px) {

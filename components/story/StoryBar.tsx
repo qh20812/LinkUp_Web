@@ -10,6 +10,8 @@ interface StoryBarProps {
   stories: StoryFeedItem[]
   loading?: boolean
   currentUserId?: string
+  /** Current user's avatar for the "Your Story" create tile. */
+  avatarUri?: string
   onSelectStory: (userId: string, stories: StoryItem[]) => void
   onCreateStory: () => void
   onMuteUser: (userId: string) => void
@@ -51,6 +53,7 @@ export default function StoryBar({
   stories,
   loading = false,
   currentUserId,
+  avatarUri,
   onSelectStory,
   onCreateStory,
   onMuteUser,
@@ -101,16 +104,36 @@ export default function StoryBar({
           <div
             className={`${styles.storyItem} ${styles.yourStory}`}
             onClick={onCreateStory}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onCreateStory()
+              }
+            }}
             role="button"
             tabIndex={0}
+            aria-label={t('story.addStory')}
           >
             <div className={styles.yourStoryCard}>
-              <span className={styles.yourStoryIcon}>
-                <i className="bx bx-plus" aria-hidden="true" />
-              </span>
-              <span className={styles.yourStoryLabel}>
-                {t('story.yourStory')}
-              </span>
+              {avatarUri ? (
+                <>
+                  <ExternalImage src={avatarUri} alt="" className={styles.previewMedia} />
+                  <div className={styles.gradient} />
+                  <span className={styles.plusBadge} aria-hidden="true">
+                    <i className="bx bx-plus" />
+                  </span>
+                  <div className={styles.overlay}>
+                    <span className={styles.storyName}>{t('story.yourStory')}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className={styles.yourStoryIcon}>
+                    <i className="bx bx-plus" aria-hidden="true" />
+                  </span>
+                  <span className={styles.yourStoryLabel}>{t('story.yourStory')}</span>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -123,6 +146,15 @@ export default function StoryBar({
               key={item.user.id}
               className={`${styles.storyItem} ${styles.previewCard}`}
               onClick={() => onSelectStory(item.user.id, item.stories)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onSelectStory(item.user.id, item.stories)
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${t('story.viewStory')}: ${item.user.display_name}`}
               onContextMenu={(e) => {
                 e.preventDefault()
                 if (item.user.id !== currentUserId) openMenu(e, item.user.id)

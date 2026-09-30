@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
-import { renderEmojiContent } from './messages/EmojiImage'
+import { renderPostContent } from './messages/EmojiImage'
 import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
 import styles from './PostDetailModal.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
+import { useFollowContext } from '../contexts/FollowContext'
 import { getTokenPayload } from '../api/auth'
+import { request } from '../api/api'
 import {
   getPostDetail,
   getComments,
@@ -23,10 +26,24 @@ import {
 } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
 import ShareModal from './messages/ShareModal'
-import type { FeedPost, CommentItem, EmojiItem } from '../types'
+import type { FeedPost, CommentItem, EmojiItem, ViewProfileResponse } from '../types'
 
 const COMMENT_PAGE_SIZE = 10
+const COMMENT_MAX_LENGTH = 1000
+const COMMENT_COUNTER_START = 900
 const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
+
+const PRIVACY_ICONS: Record<string, string> = {
+  public: 'bx-globe',
+  friend: 'bx-group',
+  private: 'bx-lock',
+}
+
+const PRIVACY_LABELS: Record<string, string> = {
+  public: 'post.privacyPublic',
+  friend: 'post.privacyFriend',
+  private: 'post.privacyPrivate',
+}
 
 let likeEmojiIdPromise: Promise<string | undefined> | undefined
 
@@ -68,6 +85,10 @@ function formatCount(n: number): string {
 
 function isVideo(fileType: string): boolean {
   return fileType.startsWith('video/')
+}
+
+function runeLength(text: string): number {
+  return Array.from(text).length
 }
 
 interface CommentNode {
@@ -129,11 +150,20 @@ interface PostDetailModalProps {
   onClose: () => void
   onUpdated?: (post: FeedPost) => void
   onDeleted?: (postId: string) => void
+  initialShareOpen?: boolean
 }
 
-export default function PostDetailModal({ post, open, onClose, onUpdated, onDeleted }: PostDetailModalProps) {
+export default function PostDetailModal({
+  post,
+  open,
+  onClose,
+  onUpdated,
+  onDeleted,
+  initialShareOpen,
+}: PostDetailModalProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const { followUser: ctxFollowUser, unfollowUser: ctxUnfollowUser } = useFollowContext()
   const [current, setCurrent] = useState<FeedPost>(post)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [comments, setComments] = useState<CommentItem[]>([])
@@ -144,17 +174,49 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const [replyingTo, setReplyingTo] = useState<CommentItem | null>(null)
   const [submittingComment, setSubmittingComment] = useState(false)
   const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'relevant'>('newest')
-  const [shareOpen, setShareOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(() => !!initialShareOpen)
   const [shareText, setShareText] = useState('')
   const [sharing, setSharing] = useState(false)
   const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [togglingComments, setTogglingComments] = useState(false)
   const [mediaIndex, setMediaIndex] = useState(0)
   const [mediaLoaded, setMediaLoaded] = useState(false)
   const [videoFrame, setVideoFrame] = useState<string | null>(null)
+  const [likePop, setLikePop] = useState(false)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const commentInputRef = useRef<HTMLInputElement>(null)
+  const shareInputRef = useRef<HTMLTextAreaElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const commentsRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  const pushedRef = useRef(false)
+  const confirmRef = useRef(false)
+  const prevLikedRef = useRef(post.is_liked)
+  const touchStartXRef = useRef<number | null>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+    confirmRef.current = confirmDelete
+  }, [onClose, confirmDelete])
+
+  const requestClose = useCallback(() => {
+    if (pushedRef.current) {
+      pushedRef.current = false
+      window.history.back()
+    }
+    onCloseRef.current()
+  }, [])
+
+  const { data: myProfile } = useSWR<ViewProfileResponse>(
+    open ? '/profile' : null,
+    (key: string) => request<ViewProfileResponse>(key),
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  )
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -220,24 +282,110 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
   useEffect(() => {
     if (!open) return
+    returnFocusRef.current = document.activeElement as HTMLElement | null
+
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (confirmRef.current) {
+          setConfirmDelete(false)
+          return
+        }
+        requestClose()
+        return
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const nodes = modalRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )
+        if (nodes.length === 0) return
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        const active = document.activeElement
+        if (e.shiftKey && (active === first || !modalRef.current.contains(active))) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+        return
+      }
+      const target = e.target as HTMLElement | null
+      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+      if (typing || current.media.length < 2) return
+      if (e.key === 'ArrowLeft') setMediaIndex((i) => (i - 1 + current.media.length) % current.media.length)
+      if (e.key === 'ArrowRight') setMediaIndex((i) => (i + 1) % current.media.length)
     }
     document.addEventListener('keydown', handleKey)
     const prevHtmlOverflow = document.documentElement.style.overflow
     document.documentElement.style.overflow = 'hidden'
+    const focusTimer = setTimeout(() => {
+      modalRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }, 50)
     return () => {
       document.removeEventListener('keydown', handleKey)
       document.documentElement.style.overflow = prevHtmlOverflow
+      clearTimeout(focusTimer)
+      returnFocusRef.current?.focus?.()
     }
-  }, [open, onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const here = window.location.pathname
+    const target = `/posts/${post.id}`
+    if (here !== target) {
+      window.history.pushState({ linkupPostModal: true }, '', target)
+      pushedRef.current = true
+    }
+    const onPop = () => {
+      pushedRef.current = false
+      onCloseRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [open, post.id])
+
+  useEffect(() => {
+    if (current.is_liked && !prevLikedRef.current) {
+      setLikePop(true)
+      const timer = setTimeout(() => setLikePop(false), 320)
+      prevLikedRef.current = current.is_liked
+      return () => clearTimeout(timer)
+    }
+    prevLikedRef.current = current.is_liked
+  }, [current.is_liked])
+
+  useEffect(() => {
+    if (!shareOpen) return
+    const timer = setTimeout(() => shareInputRef.current?.focus(), 30)
+    return () => clearTimeout(timer)
+  }, [shareOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = () => setMenuOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
   const loadMoreComments = useCallback(async () => {
     const nextPage = commentPage + 1
     setCommentsLoading(true)
     try {
       const res = await getComments(current.id, nextPage, COMMENT_PAGE_SIZE, commentSort)
-      setComments((prev) => [...prev, ...res.data])
+      setComments((prev) => {
+        const seen = new Set(prev.map((c) => c.id))
+        return [...prev, ...res.data.filter((c) => !seen.has(c.id))]
+      })
       setCommentPage(nextPage)
       setCommentTotal(res.total)
     } catch {
@@ -296,7 +444,10 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const handleLike = async () => {
     if (!current) return
     const emojiId = await ensureLikeEmojiId()
-    if (!emojiId) return
+    if (!emojiId) {
+      toast({ type: 'error', title: t('post.likeFailed') })
+      return
+    }
     const prev = current
     const next = {
       ...current,
@@ -331,17 +482,23 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const handleSubmitComment = async () => {
     const content = commentText.trim()
     if (!content || !current || submittingComment) return
+    if (runeLength(content) > COMMENT_MAX_LENGTH) return
     setSubmittingComment(true)
     try {
       const res = await createComment(current.id, content, replyingTo?.id)
-      setComments(res.data)
-      setCommentTotal(res.data.length)
-      setCommentPage(1)
-      setCommentText('')
-      setReplyingTo(null)
-      const next = { ...current, comments_count: res.data.length }
+      const existingIds = new Set(comments.map((c) => c.id))
+      const created = res.data.find((c) => !existingIds.has(c.id))
+      if (created) {
+        setComments((prev) => [created, ...prev])
+        setCommentTotal((prev) => prev + 1)
+        setHighlightId(created.id)
+        setTimeout(() => setHighlightId(null), 1500)
+      }
+      const next = { ...current, comments_count: current.comments_count + 1 }
       setCurrent(next)
       onUpdated?.(next)
+      setCommentText('')
+      setReplyingTo(null)
       toast({ type: 'success', title: t('postDetail.commentPosted') })
     } catch (e) {
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
@@ -370,14 +527,14 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
 
   const handleDelete = async () => {
     if (!current || deleting) return
-    if (!window.confirm(t('postDetail.deleteConfirm'))) return
+    setConfirmDelete(false)
     setDeleting(true)
     setMenuOpen(false)
     try {
       await deletePost(current.id)
       toast({ type: 'success', title: t('postDetail.deleted') })
       onDeleted?.(current.id)
-      onClose()
+      requestClose()
     } catch (e) {
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     } finally {
@@ -388,6 +545,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   const handleToggleComments = async () => {
     if (!current || togglingComments) return
     setTogglingComments(true)
+    setMenuOpen(false)
     const prev = current
     const next = { ...current, comments_enabled: !current.comments_enabled }
     setCurrent(next)
@@ -411,16 +569,79 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
     }
   }
 
+  const handleCopyLink = async () => {
+    setMenuOpen(false)
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/posts/${current.id}`)
+      toast({ type: 'success', title: t('post.linkCopied') })
+    } catch {
+      toast({ type: 'error', title: t('common.error') })
+    }
+  }
+
+  const handleFollowToggle = async () => {
+    if (!current || isOwner) return
+    const prev = current
+    const next = { ...current, is_following: !current.is_following }
+    setCurrent(next)
+    onUpdated?.(next)
+    try {
+      if (prev.is_following) await ctxUnfollowUser(current.user_id)
+      else await ctxFollowUser(current.user_id)
+    } catch (e) {
+      setCurrent(prev)
+      onUpdated?.(prev)
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
+    }
+  }
+
+  const handleReply = (c: CommentItem) => {
+    setReplyingTo((cur) => (cur?.id === c.id ? null : c))
+    if (replyingTo?.id !== c.id) {
+      setHighlightId(c.id)
+      setTimeout(() => setHighlightId(null), 1500)
+      requestAnimationFrame(() => {
+        const el = commentsRef.current?.querySelector<HTMLElement>(`[data-comment-id="${c.id}"]`)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+    commentInputRef.current?.focus()
+  }
+
+  const scrollToComments = () => {
+    commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return
+    const delta = e.changedTouches[0].clientX - touchStartXRef.current
+    touchStartXRef.current = null
+    if (Math.abs(delta) < 50 || current.media.length < 2) return
+    if (delta > 0) setMediaIndex((i) => (i - 1 + current.media.length) % current.media.length)
+    else setMediaIndex((i) => (i + 1) % current.media.length)
+  }
+
   if (!open || !current) return null
 
   const hasMedia = current.media.length > 0
-
   const isOwner = currentUserId !== null && current.user_id === currentUserId
-
   const commentTree = buildCommentTree(comments, commentSort)
+  const commentRuneLen = runeLength(commentText)
+  const overLimit = commentRuneLen > COMMENT_MAX_LENGTH
+  const privacyIcon = PRIVACY_ICONS[current.status]
+  const privacyLabelKey = PRIVACY_LABELS[current.status]
+  const safeMediaIndex = Math.min(mediaIndex, Math.max(current.media.length - 1, 0))
 
   const renderComment = (node: CommentNode): React.ReactNode => (
-    <div key={node.comment.id} className={styles.commentItem}>
+    <div
+      key={node.comment.id}
+      data-comment-id={node.comment.id}
+      className={`${styles.commentItem}${highlightId === node.comment.id ? ` ${styles.commentHighlight}` : ''}`}
+    >
       <div className={styles.commentHead}>
         <div className={styles.commentAvatar}>
           {node.comment.avatar_uri ? (
@@ -449,6 +670,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           type="button"
           className={`${styles.commentLikeBtn} ${node.comment.is_liked ? styles.commentLikeActive : ''}`}
           onClick={() => handleToggleCommentLike(node.comment.id)}
+          aria-pressed={node.comment.is_liked}
         >
           <i className={`bx ${node.comment.is_liked ? 'bxs-heart' : 'bx-heart'}`} />
           {node.comment.likes_count > 0 && <span>{formatCount(node.comment.likes_count)}</span>}
@@ -457,10 +679,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
           <button
             type="button"
             className={styles.replyBtn}
-            onClick={() => {
-              setReplyingTo((cur) => (cur?.id === node.comment.id ? null : node.comment))
-              commentInputRef.current?.focus()
-            }}
+            onClick={() => handleReply(node.comment)}
           >
             {t('postDetail.reply')}
           </button>
@@ -473,16 +692,25 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
   )
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.grid}>
+    <div className={styles.overlay} onClick={requestClose}>
+      <div
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('postDetail.dialogLabel')}
+        ref={modalRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`${styles.grid}${hasMedia ? '' : ` ${styles.gridNoMedia}`}`}>
           {hasMedia && (
-            <div className={styles.mediaPane}>
+            <div
+              className={styles.mediaPane}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               <div className={styles.mediaStage}>
                 {(() => {
-                  const mediaCount = current.media.length
-                  const safeIndex = Math.min(mediaIndex, mediaCount - 1)
-                  const m = current.media[safeIndex]
+                  const m = current.media[safeMediaIndex]
                   const blurUrl = isVideo(m.file_type)
                     ? (videoFrame ? `url(${videoFrame})` : 'none')
                     : `url(${m.file_uri})`
@@ -505,7 +733,7 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                     type="button"
                     className={`${styles.navBtn} ${styles.navPrev}`}
                     onClick={() => setMediaIndex((i) => (i - 1 + current.media.length) % current.media.length)}
-                    aria-label="Previous media"
+                    aria-label={t('postDetail.prevMedia')}
                   >
                     <i className="bx bx-chevron-left" />
                   </button>
@@ -513,19 +741,32 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                     type="button"
                     className={`${styles.navBtn} ${styles.navNext}`}
                     onClick={() => setMediaIndex((i) => (i + 1) % current.media.length)}
-                    aria-label="Next media"
+                    aria-label={t('postDetail.nextMedia')}
                   >
                     <i className="bx bx-chevron-right" />
                   </button>
                   <span className={styles.mediaCounter}>
-                    {Math.min(mediaIndex, current.media.length - 1) + 1} / {current.media.length}
+                    {safeMediaIndex + 1} / {current.media.length}
                   </span>
+                  {current.media.length <= 10 && (
+                    <div className={styles.mediaDots}>
+                      {current.media.map((m, i) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`${styles.dot}${i === safeMediaIndex ? ` ${styles.dotActive}` : ''}`}
+                          onClick={() => setMediaIndex(i)}
+                          aria-label={`${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
           )}
 
-          <div className={`${styles.contentPane}${hasMedia ? ` ${styles.contentPaneSplit}` : ''}`}>
+          <div className={styles.contentCol}>
             <div className={styles.header}>
               <Link href={`/profile/${current.user_id}`} className={styles.author}>
                 <div className={styles.avatar}>
@@ -537,267 +778,420 @@ export default function PostDetailModal({ post, open, onClose, onUpdated, onDele
                 </div>
                 <div className={styles.authorMeta}>
                   <span className={styles.displayName}>{current.display_name}</span>
-                  <span className={styles.usernameTime}>
+                  <span
+                    className={styles.usernameTime}
+                    title={new Date(current.created_at).toLocaleString()}
+                  >
                     @{current.username} · {formatRelativeTime(current.created_at, t)}
+                    {privacyIcon && privacyLabelKey && (
+                      <i className={`bx ${privacyIcon} ${styles.privacyIcon}`} title={t(privacyLabelKey)} />
+                    )}
                   </span>
                 </div>
               </Link>
 
-              {isOwner && (
-                <div className={styles.moreWrap}>
-                  <button
-                    type="button"
-                    className={styles.moreBtn}
-                    onClick={() => setMenuOpen((v) => !v)}
-                    aria-label="More"
-                  >
-                    <i className="bx bx-dots-horizontal-rounded" />
-                  </button>
-                  {menuOpen && (
-                    <div className={styles.moreMenu}>
-                      <button
-                        type="button"
-                        className={styles.moreItem}
-                        onClick={handleToggleComments}
-                        disabled={togglingComments}
-                      >
-                        <i className={`bx ${current.comments_enabled ? 'bx-message-rounded-x' : 'bx-message-rounded'}`} />
-                        <span>
-                          {current.comments_enabled ? t('postDetail.disableComments') : t('postDetail.enableComments')}
-                        </span>
-                      </button>
-                      <button type="button" className={styles.moreItem} onClick={handleDelete} disabled={deleting}>
-                        <i className="bx bx-trash" />
-                        <span>{t('postDetail.delete')}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {!isOwner && (
+                <button
+                  type="button"
+                  className={current.is_following ? styles.followingBtn : styles.followBtn}
+                  onClick={handleFollowToggle}
+                >
+                  {current.is_following ? t('post.following') : t('post.follow')}
+                </button>
               )}
 
-              <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+              <div className={styles.moreWrap}>
+                <button
+                  type="button"
+                  className={styles.moreBtn}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuOpen((v) => !v)
+                  }}
+                  aria-label={t('common.more')}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                >
+                  <i className="bx bx-dots-horizontal-rounded" />
+                </button>
+                {menuOpen && (
+                  <div className={styles.moreMenu} role="menu" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className={styles.moreItem} onClick={handleCopyLink}>
+                      <i className="bx bx-link" />
+                      <span>{t('post.copyLink')}</span>
+                    </button>
+                    {isOwner && (
+                      <>
+                        <button
+                          type="button"
+                          className={styles.moreItem}
+                          onClick={handleToggleComments}
+                          disabled={togglingComments}
+                        >
+                          <i className={`bx ${current.comments_enabled ? 'bx-message-rounded-x' : 'bx-message-rounded'}`} />
+                          <span>
+                            {current.comments_enabled ? t('postDetail.disableComments') : t('postDetail.enableComments')}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.moreItem} ${styles.moreItemDanger}`}
+                          onClick={() => {
+                            setMenuOpen(false)
+                            setConfirmDelete(true)
+                          }}
+                          disabled={deleting}
+                        >
+                          <i className="bx bx-trash" />
+                          <span>{t('postDetail.delete')}</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={requestClose}
+                aria-label={t('common.close')}
+                data-autofocus
+              >
                 <i className="bx bx-x" />
               </button>
             </div>
 
-            <div className={styles.body}>
-              {current.shared_from_post_id && current.shared_post && (
-                current.share_content && (
-                  <p className={styles.text} style={{ marginBottom: 10 }}>
-                    {renderEmojiContent(current.share_content, EMOJI_CODE_MAP, `psc-${current.id}`, styles.textEmoji)}
-                  </p>
-                )
-              )}
-              {current.shared_from_post_id && current.shared_post ? (
-                <div className={styles.embeddedPost}>
-                  <Link href={`/profile/${current.shared_post.user_id}`} className={styles.embeddedAuthor} onClick={(e) => e.stopPropagation()}>
-                    <div className={styles.embeddedAvatar}>
-                      {current.shared_post.avatar_uri ? (
-                        <ExternalImage src={current.shared_post.avatar_uri} alt="" />
-                      ) : (
-                        <i className="bx bxs-user" />
+            <div className={styles.scrollArea} ref={scrollRef}>
+              <div className={styles.contentInner}>
+                <div className={styles.body}>
+                  {current.shared_from_post_id && current.shared_post && current.share_content && (
+                    <p className={styles.shareContentText}>
+                      {renderPostContent(
+                        current.share_content,
+                        EMOJI_CODE_MAP,
+                        `psc-${current.id}`,
+                        styles.textEmoji,
+                        styles.hashtag,
+                      )}
+                    </p>
+                  )}
+                  {current.shared_from_post_id && current.shared_post ? (
+                    <div className={styles.embeddedPost}>
+                      <Link
+                        href={`/profile/${current.shared_post.user_id}`}
+                        className={styles.embeddedAuthor}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className={styles.embeddedAvatar}>
+                          {current.shared_post.avatar_uri ? (
+                            <ExternalImage src={current.shared_post.avatar_uri} alt="" />
+                          ) : (
+                            <i className="bx bxs-user" />
+                          )}
+                        </div>
+                        <div className={styles.embeddedAuthorMeta}>
+                          <span className={styles.embeddedName}>{current.shared_post.display_name}</span>
+                          <span className={styles.embeddedUsername}>@{current.shared_post.username}</span>
+                        </div>
+                      </Link>
+                      {current.shared_post.title && <h2 className={styles.title}>{current.shared_post.title}</h2>}
+                      {current.shared_post.content && (
+                        <p className={styles.text}>
+                          {renderPostContent(
+                            current.shared_post.content,
+                            EMOJI_CODE_MAP,
+                            `spd-${current.shared_post.id}`,
+                            styles.textEmoji,
+                            styles.hashtag,
+                          )}
+                        </p>
                       )}
                     </div>
-                    <div className={styles.embeddedAuthorMeta}>
-                      <span className={styles.embeddedName}>{current.shared_post.display_name}</span>
-                      <span className={styles.embeddedUsername}>@{current.shared_post.username}</span>
-                    </div>
-                  </Link>
-                  {current.shared_post.title && <h2 className={styles.title}>{current.shared_post.title}</h2>}
-                  {current.shared_post.content && (
-                    <p className={styles.text}>
-                      {renderEmojiContent(current.shared_post.content, EMOJI_CODE_MAP, `spd-${current.shared_post.id}`, styles.textEmoji)}
-                    </p>
+                  ) : (
+                    <>
+                      {current.title && <h2 className={styles.title}>{current.title}</h2>}
+                      {current.content && (
+                        <p className={styles.text}>
+                          {renderPostContent(
+                            current.content,
+                            EMOJI_CODE_MAP,
+                            `pd-${current.id}`,
+                            styles.textEmoji,
+                            styles.hashtag,
+                          )}
+                        </p>
+                      )}
+                      {!current.title && !current.content && current.media.length === 0 && (
+                        <p className={styles.emptyBody}>{t('post.noContent')}</p>
+                      )}
+                    </>
                   )}
                 </div>
-              ) : (
-                <>
-                  {current.title && <h2 className={styles.title}>{current.title}</h2>}
-                  {current.content && (
-                    <p className={styles.text}>
-                      {renderEmojiContent(current.content, EMOJI_CODE_MAP, `pd-${current.id}`, styles.textEmoji)}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
 
-            <div className={styles.stats}>
-              <span>{t('postDetail.viewCount', { count: formatCount(current.views_count) })}</span>
-              <span>{t('postDetail.commentCount', { count: formatCount(current.comments_count) })}</span>
-            </div>
-
-            <div className={styles.actionBar}>
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${current.is_liked ? styles.liked : ''}`}
-                onClick={handleLike}
-              >
-                <i className={`bx ${current.is_liked ? 'bxs-heart' : 'bx-heart'}`} />
-                <span>{formatCount(current.likes_count)}</span>
-              </button>
-
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={() => commentInputRef.current?.focus()}
-              >
-                <i className="bx bx-message-rounded" />
-                <span>{formatCount(current.comments_count)}</span>
-              </button>
-
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={() => setShareOpen((v) => !v)}
-                disabled={isOwner || current.is_shared}
-              >
-                <i className="bx bx-share-alt" />
-                <span>{formatCount(current.shares_count)}</span>
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${current.is_saved ? styles.saved : ''}`}
-                onClick={handleSave}
-                disabled={isOwner}
-              >
-                <i className={`bx ${current.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
-              </button>
-
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={() => setShareToFriendOpen(true)}
-                disabled={isOwner}
-                title={t('post.shareToFriend')}
-              >
-                <i className="bx bx-message-rounded-detail" />
-              </button>
-            </div>
-
-            {shareOpen && (
-              <div className={styles.shareBox}>
-                <textarea
-                  className={styles.shareInput}
-                  value={shareText}
-                  onChange={(e) => setShareText(e.target.value)}
-                  rows={2}
-                  placeholder={t('postDetail.sharePlaceholder')}
-                />
-                <div className={styles.shareActions}>
-                  <button type="button" className={styles.shareCancel} onClick={() => setShareOpen(false)}>
-                    {t('postDetail.cancel')}
+                <div className={styles.stats}>
+                  <span>{t('postDetail.likeCount', { count: formatCount(current.likes_count) })}</span>
+                  <button type="button" className={styles.statLink} onClick={scrollToComments}>
+                    {t('postDetail.commentCount', { count: formatCount(current.comments_count) })}
                   </button>
-                  <button type="button" className={styles.shareSubmit} onClick={handleShare} disabled={sharing}>
-                    {sharing && <i className="bx bx-loader-circle bx-spin" />}
-                    <span>{t('postDetail.shareButton')}</span>
+                  <span>{t('postDetail.shareCount', { count: formatCount(current.shares_count) })}</span>
+                  <span>{t('postDetail.viewCount', { count: formatCount(current.views_count) })}</span>
+                </div>
+
+                <div className={styles.actionBar}>
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn} ${current.is_liked ? styles.liked : ''}`}
+                    onClick={handleLike}
+                    aria-pressed={current.is_liked}
+                  >
+                    <i
+                      className={`bx ${current.is_liked ? 'bxs-heart' : 'bx-heart'}${likePop ? ` ${styles.likePopIcon}` : ''}`}
+                    />
+                    <span>{formatCount(current.likes_count)}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    onClick={scrollToComments}
+                  >
+                    <i className="bx bx-message-rounded" />
+                    <span>{formatCount(current.comments_count)}</span>
+                  </button>
+
+                  <div className={styles.shareWrap}>
+                    <button
+                      type="button"
+                      className={`${styles.actionBtn}${current.is_shared ? ` ${styles.sharedBtn}` : ''}`}
+                      onClick={() => setShareOpen((v) => !v)}
+                      disabled={isOwner}
+                      aria-haspopup="dialog"
+                      aria-expanded={shareOpen}
+                      title={current.is_shared ? t('post.sharedState') : undefined}
+                    >
+                      <i className={current.is_shared ? 'bx bxs-check-circle' : 'bx bx-share-alt'} />
+                      <span>{formatCount(current.shares_count)}</span>
+                    </button>
+                    {shareOpen && (
+                      <div className={styles.sharePopover} onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          ref={shareInputRef}
+                          className={styles.shareInput}
+                          value={shareText}
+                          onChange={(e) => setShareText(e.target.value)}
+                          rows={2}
+                          placeholder={t('postDetail.sharePlaceholder')}
+                        />
+                        <div className={styles.shareActions}>
+                          <button
+                            type="button"
+                            className={styles.shareCancel}
+                            onClick={() => setShareOpen(false)}
+                          >
+                            {t('postDetail.cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.shareSubmit}
+                            onClick={handleShare}
+                            disabled={sharing}
+                          >
+                            <span>{t('postDetail.shareButton')}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.actionSpacer} />
+
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn} ${current.is_saved ? styles.saved : ''}`}
+                    onClick={handleSave}
+                    disabled={isOwner}
+                    aria-pressed={current.is_saved}
+                  >
+                    <i className={`bx ${current.is_saved ? 'bxs-bookmark' : 'bx-bookmark'}`} />
                   </button>
                 </div>
               </div>
-            )}
 
-            <div className={styles.commentsSection}>
-              <div className={styles.commentsHeader}>
-                <span>{t('postDetail.comments')}</span>
-                <div className={styles.commentSort}>
-                  <button
-                    type="button"
-                    className={`${styles.commentSortBtn} ${commentSort === 'newest' ? styles.commentSortActive : ''}`}
-                    onClick={() => handleSortChange('newest')}
-                  >
-                    {t('postDetail.sortNewest')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.commentSortBtn} ${commentSort === 'oldest' ? styles.commentSortActive : ''}`}
-                    onClick={() => handleSortChange('oldest')}
-                  >
-                    {t('postDetail.sortOldest')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.commentSortBtn} ${commentSort === 'relevant' ? styles.commentSortActive : ''}`}
-                    onClick={() => handleSortChange('relevant')}
-                  >
-                    {t('postDetail.sortRelevant')}
-                  </button>
-                </div>
-              </div>
-              <div className={styles.commentsList}>
-                {comments.length === 0 && !commentsLoading && (
-                  <div className={styles.noComments}>{t('postDetail.noComments')}</div>
-                )}
-                {commentTree.map(renderComment)}
-                {comments.length > 0 && comments.length < commentTotal && (
-                  <div className={styles.loadMoreWrap}>
-                    <button type="button" className={styles.loadMoreBtn} onClick={loadMoreComments}>
-                      {t('postDetail.loadMore')}
+              <div className={styles.commentsSection} ref={commentsRef}>
+                <div className={styles.commentsHeader}>
+                  <span>{t('postDetail.comments')}</span>
+                  <div className={styles.commentSort} role="tablist" aria-label={t('postDetail.comments')}>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={commentSort === 'newest'}
+                      className={`${styles.commentSortBtn} ${commentSort === 'newest' ? styles.commentSortActive : ''}`}
+                      onClick={() => handleSortChange('newest')}
+                    >
+                      {t('postDetail.sortNewest')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={commentSort === 'oldest'}
+                      className={`${styles.commentSortBtn} ${commentSort === 'oldest' ? styles.commentSortActive : ''}`}
+                      onClick={() => handleSortChange('oldest')}
+                    >
+                      {t('postDetail.sortOldest')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={commentSort === 'relevant'}
+                      className={`${styles.commentSortBtn} ${commentSort === 'relevant' ? styles.commentSortActive : ''}`}
+                      onClick={() => handleSortChange('relevant')}
+                    >
+                      {t('postDetail.sortRelevant')}
                     </button>
                   </div>
-                )}
-                {commentsLoading && (
-                  <div className={styles.commentsLoading}>
-                    <i className="bx bx-loader-circle bx-spin" />
-                  </div>
-                )}
+                </div>
+                <div className={styles.commentsList}>
+                  {comments.length === 0 && !commentsLoading && (
+                    <div className={styles.emptyComments}>
+                      <div className={styles.emptyIcon}>
+                        <i className="bx bx-message-rounded-dots" />
+                      </div>
+                      <p className={styles.emptyTitle}>{t('postDetail.emptyCommentsTitle')}</p>
+                      <p className={styles.emptyHint}>{t('postDetail.emptyCommentsHint')}</p>
+                    </div>
+                  )}
+                  {commentTree.map(renderComment)}
+                  {comments.length > 0 && comments.length < commentTotal && (
+                    <div className={styles.loadMoreWrap}>
+                      <button type="button" className={styles.loadMoreBtn} onClick={loadMoreComments} disabled={commentsLoading}>
+                        {t('postDetail.loadMore')}
+                      </button>
+                    </div>
+                  )}
+                  {commentsLoading && comments.length > 0 && (
+                    <div className={styles.skelRow}>
+                      <div className={`skeleton ${styles.skelAvatar}`} />
+                      <div className={styles.skelLines}>
+                        <div className={`skeleton ${styles.skelLineShort}`} />
+                        <div className={`skeleton ${styles.skelLineLong}`} />
+                      </div>
+                    </div>
+                  )}
+                  {commentsLoading && comments.length === 0 && (
+                    <div aria-label={t('postDetail.commentsSkeletonLabel')}>
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className={styles.skelRow}>
+                          <div className={`skeleton ${styles.skelAvatar}`} />
+                          <div className={styles.skelLines}>
+                            <div className={`skeleton ${styles.skelLineShort}`} />
+                            <div className={`skeleton ${styles.skelLineLong}`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
+
+            <div className={styles.commentForm}>
+              {replyingTo && (
+                <div className={styles.replyChip}>
+                  <span>
+                    {t('postDetail.replyingTo')} @{replyingTo.username}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.cancelReplyBtn}
+                    onClick={() => setReplyingTo(null)}
+                    aria-label={t('postDetail.cancelReply')}
+                  >
+                    <i className="bx bx-x" />
+                  </button>
+                </div>
+              )}
+              {current.comments_enabled ? (
+                <div className={styles.commentInputRow}>
+                  <div className={styles.composerAvatar}>
+                    {myProfile?.avatar_uri ? (
+                      <ExternalImage src={myProfile.avatar_uri} alt="" />
+                    ) : (
+                      <i className="bx bxs-user" />
+                    )}
+                  </div>
+                  <input
+                    ref={commentInputRef}
+                    className={styles.commentInput}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSubmitComment()
+                      }
+                    }}
+                    placeholder={t('postDetail.commentPlaceholder')}
+                    aria-label={t('postDetail.commentButton')}
+                  />
+                  {commentRuneLen >= COMMENT_COUNTER_START && (
+                    <span
+                      className={`${styles.charCount}${overLimit ? ` ${styles.charCountOver}` : ''}`}
+                      title={overLimit ? t('postDetail.charLimit') : undefined}
+                    >
+                      {commentRuneLen}/{COMMENT_MAX_LENGTH}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.commentSubmit}
+                    onClick={handleSubmitComment}
+                    disabled={submittingComment || commentText.trim() === '' || overLimit}
+                    aria-label={t('postDetail.commentButton')}
+                  >
+                    <i className="bx bx-send" />
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.commentsDisabled}>
+                  <i className="bx bx-message-rounded-x" />
+                  <span>{t('postDetail.commentsDisabled')}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div className={styles.commentForm}>
-          {replyingTo && (
-            <div className={styles.replyChip}>
-              <span>
-                {t('postDetail.replyingTo')} @{replyingTo.username}
-              </span>
-              <button
-                type="button"
-                className={styles.cancelReplyBtn}
-                onClick={() => setReplyingTo(null)}
-                aria-label={t('postDetail.cancelReply')}
-              >
-                <i className="bx bx-x" />
-              </button>
-            </div>
-          )}
-          {current.comments_enabled ? (
-            <div className={styles.commentInputRow}>
-              <input
-                ref={commentInputRef}
-                className={styles.commentInput}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSubmitComment()
-                  }
-                }}
-                placeholder={t('postDetail.commentPlaceholder')}
-              />
-              <button
-                type="button"
-                className={styles.commentSubmit}
-                onClick={handleSubmitComment}
-                disabled={submittingComment || commentText.trim() === ''}
-                aria-label={t('postDetail.commentButton')}
-              >
-                {submittingComment ? (
-                  <i className="bx bx-loader-circle bx-spin" />
-                ) : (
-                  <i className="bx bx-send" />
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className={styles.commentsDisabled}>
-              <i className="bx bx-message-rounded-x" />
-              <span>{t('postDetail.commentsDisabled')}</span>
-            </div>
-          )}
-        </div>
       </div>
+
+      {confirmDelete && (
+        <div className={styles.confirmOverlay} onClick={() => setConfirmDelete(false)}>
+          <div
+            className={styles.confirmDialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-label={t('postDetail.deleteTitle')}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className={styles.confirmTitle}>{t('postDetail.deleteTitle')}</h3>
+            <p className={styles.confirmText}>{t('postDetail.deleteMessage')}</p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.confirmCancel} onClick={() => setConfirmDelete(false)}>
+                {t('postDetail.cancel')}
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDanger}
+                onClick={handleDelete}
+                disabled={deleting}
+                autoFocus
+              >
+                {t('postDetail.confirmDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {current && (
         <ShareModal
           open={shareToFriendOpen}

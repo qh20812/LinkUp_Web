@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
 import { isGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import { isEmojifyiUrl } from '../../utils/emojifyi'
@@ -83,4 +84,38 @@ export function renderEmojiContent(
     })
   })
   return out
+}
+
+const POST_TOKEN_RE = /(:[a-z0-9+_-]+:)|((?<![\p{L}\p{N}])#[\p{L}\p{N}_]+)/giu
+
+export function renderPostContent(
+  content: string,
+  map: Map<string, EmojiItem>,
+  keyPrefix: string,
+  emojiClassName = '',
+  hashtagClassName = '',
+): ReactNode[] {
+  const parts = content.split(POST_TOKEN_RE)
+  return parts.map((part, i) => {
+    if (!part) return null
+    const key = `${keyPrefix}-${i}`
+    if (part.startsWith(':') && part.endsWith(':')) {
+      const emoji = map.get(part)
+      if (emoji) return <EmojiImage key={key} emoji={emoji} className={emojiClassName} />
+      return part
+    }
+    if (part.startsWith('#') && part.length > 1) {
+      return (
+        <Link
+          key={key}
+          href={`/search?q=${encodeURIComponent(part)}`}
+          className={hashtagClassName}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </Link>
+      )
+    }
+    return part
+  })
 }

@@ -3,8 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useTranslation } from '../../hooks/useTranslation'
-import { useTheme } from '../../hooks/useTheme'
+import NavControls from '../NavControls'
 import styles from './AuthLayout.module.css'
 
 export default function AuthLayout({
@@ -14,9 +13,6 @@ export default function AuthLayout({
   children: React.ReactNode
   showFooter?: boolean
 }) {
-  const { language, setLanguage } = useTranslation()
-  const { theme, toggleTheme } = useTheme()
-
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -32,25 +28,7 @@ export default function AuthLayout({
         </Link>
 
         <div className={styles.controls}>
-          <div className={styles.toggleGroup} suppressHydrationWarning>
-            <button
-              className={`${styles.toggleBtn}${language === 'vi' ? ` ${styles.toggleActive}` : ''}`}
-              onClick={() => setLanguage('vi')}
-              suppressHydrationWarning
-            >
-              VI
-            </button>
-            <button
-              className={`${styles.toggleBtn}${language === 'en' ? ` ${styles.toggleActive}` : ''}`}
-              onClick={() => setLanguage('en')}
-              suppressHydrationWarning
-            >
-              EN
-            </button>
-          </div>
-          <button className={styles.iconBtn} onClick={toggleTheme} aria-label="Toggle theme">
-            <i className={`bx ${theme === 'light' ? 'bx-moon' : 'bx-sun'}`} />
-          </button>
+          <NavControls />
         </div>
       </header>
 

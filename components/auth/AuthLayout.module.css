@@ -1,18 +1,30 @@
+/* Fixed-height shell: the page itself never scrolls — only .formPane does.
+   Chrome floats on a tinted canvas (Track 3 language): glass header/footer
+   + the split rendered as one floating card. */
 .shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
 }
 
 .header {
   height: 56px;
+  flex: 0 0 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-lg);
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
   position: relative;
   z-index: 10;
 }
@@ -43,60 +55,29 @@
   gap: var(--space-md);
 }
 
-.toggleGroup {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.toggleBtn {
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggleActive {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-bg);
-}
-
-.iconBtn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.15rem;
-}
-
-.iconBtn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
 .main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .footer {
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--color-border);
+  flex: 0 0 auto;
+  padding: 10px var(--space-lg);
   text-align: center;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
-  background: var(--color-card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
 }
 
 @media (max-width: 576px) {
@@ -104,8 +85,8 @@
     padding: 0 var(--space-md);
   }
 
-  .toggleGroup {
-    display: none;
+  .controls {
+    gap: var(--space-sm);
   }
 
   .footer {

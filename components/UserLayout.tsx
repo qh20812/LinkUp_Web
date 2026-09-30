@@ -16,6 +16,7 @@ import styles from './UserLayout.module.css'
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMessages = pathname === '/messages'
+  const hideNavbar = pathname === '/packages'
 
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
@@ -70,7 +71,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <LeftSidebar />
               </div>
               <div className={styles.center}>
-                {(!isMessages || isMobile) && (
+                {!hideNavbar && (!isMessages || isMobile) && (
                   <UserNavbar
                     leftOpen={leftOpen}
                     onToggleLeft={() => setLeftOpen((prev) => !prev)}

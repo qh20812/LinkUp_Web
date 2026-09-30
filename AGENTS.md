@@ -63,7 +63,7 @@ The three layout groups are independent — they share no chrome components.
 - **Login route is `/login`** (inside `(auth)` group), not `/admin/login`.
 - **Navbar height** is 56px (+1px border). Subtract 57px total for viewport calculations.
 - **Theme:** `ThemeContext` reads/writes `data-theme` attribute on `<html>` + `localStorage` key `theme`.
-- **Toast:** `useToast()` hook, 4 types (`success`/`error`/`warning`/`info`), auto-dismiss 4s.
+- **Toast:** `useToast()` hook, 4 types (`success`/`error`/`warning`/`info`), auto-dismiss 4s (paused on hover/focus), max 3 visible + dedupe by `type+title`, optional `action: {label, onClick}` (Undo), swipe-to-dismiss on mobile. API: `toast({ type, title, message?, duration?, action? })`.
 - **Notifications:** `NotificationContext` manages WebSocket connection (`/api/ws?token=...`), unread count, dropdown list, and preferences. Supports notification grouping (`groupNotifications` util). Exponential backoff reconnection.
 - **`next.config.ts` sets `output: "standalone"`** — conditionalize or remove for `next dev`.
 - **Translation:** `useTranslation()` returns `{ t, language, setLanguage }`. Keys via dot-notation `t('key')`. Always add keys to both `locales/vi.json` and `locales/en.json`.
@@ -98,6 +98,6 @@ The three layout groups are independent — they share no chrome components.
 | `/admin/notifications` | Done | List with read/unread filter, pagination, mark-read, preferences |
 | `/admin/ads` | Done | Ad management, analytics, status toggle |
 | `/admin/settings` | Done | Site settings management |
-| `/admin/profile` | Stub | Coming soon |
+| `/admin/profile` | Done | Lean profile (ADMIN + SUPER_ADMIN): avatar upload, display name/bio edit, read-only account info, change password |
 
 **Shared components:** `Modal`, `Pagination`, `StatCard` in `components/` — reuse instead of inlining.

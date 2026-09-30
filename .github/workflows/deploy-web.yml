@@ -75,6 +75,9 @@ jobs:
             docker load -i /tmp/web.tar.gz
             cd /opt/linkup
             docker compose up -d --no-build web
+            # Re-resolve upstream IPs: container may have been recreated with a new IP
+            docker exec linkup-nginx nginx -s reload
+            sleep 2
             echo "Waiting for web (up to 60s)..."
             for i in $(seq 1 20); do
               if curl -skf -o /dev/null https://localhost/ 2>/dev/null; then

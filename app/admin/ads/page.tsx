@@ -5,20 +5,11 @@ import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { updateAdStatus, deleteAd, getAdAnalytics } from '../../../api/admin'
-import type { AdminAdListItem, AdminAdListResponse, AdPerformance } from '../../../types'
+import { updateAdStatus, deleteAd } from '../../../api/admin'
+import { getUserRoleFromToken } from '../../../utils/auth'
+import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
+import type { AdminAdListItem, AdminAdListResponse } from '../../../types'
 import styles from './Ads.module.css'
-
-function getUserRoleFromToken(): string | null {
-  try {
-    const token = localStorage.getItem('token')
-    if (!token) return null
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    return payload.role || null
-  } catch {
-    return null
-  }
-}
 
 export default function AdsPage() {
   const { t } = useTranslation()
@@ -34,11 +25,10 @@ export default function AdsPage() {
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null)
 
   const [analyticsTarget, setAnalyticsTarget] = useState<AdminAdListItem | null>(null)
-  const [analyticsData, setAnalyticsData] = useState<AdPerformance | null>(null)
-  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   const [statusTarget, setStatusTarget] = useState<AdminAdListItem | null>(null)
   const [statusValue, setStatusValue] = useState<string>('')
+  const [rejectionReason, setRejectionReason] = useState('')
 
   const [deleteTarget, setDeleteTarget] = useState<AdminAdListItem | null>(null)
 
@@ -55,7 +45,7 @@ export default function AdsPage() {
   const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  const [userRole] = useState<string | null>(() => getUserRoleFromToken())
+  const [userRole] = useState(() => getUserRoleFromToken())
   const canDelete = userRole === null || userRole === 'SUPER_ADMIN'
   const canSetActive = userRole === null || userRole === 'SUPER_ADMIN'
 
@@ -85,28 +75,20 @@ export default function AdsPage() {
     return () => document.removeEventListener('click', handleClick)
   }, [openMenuId])
 
-  const handleOpenAnalytics = async (ad: AdminAdListItem) => {
+  const handleOpenAnalytics = (ad: AdminAdListItem) => {
     setAnalyticsTarget(ad)
-    setAnalyticsData(null)
-    setAnalyticsLoading(true)
-    try {
-      const res = await getAdAnalytics(ad.id)
-      setAnalyticsData(res.data)
-    } catch (err) {
-      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
-    } finally {
-      setAnalyticsLoading(false)
-    }
   }
 
   const handleConfirmStatusChange = async () => {
     if (!statusTarget || !statusValue) return
+    if (statusValue === 'rejected' && !rejectionReason.trim()) return
     setActionLoading(true)
     try {
-      await updateAdStatus(statusTarget.id, statusValue)
+      await updateAdStatus(statusTarget.id, statusValue, statusValue === 'rejected' ? rejectionReason : undefined)
       toast({ title: t('ads.statusUpdated'), type: 'success' })
       setStatusTarget(null)
       setStatusValue('')
+      setRejectionReason('')
       invalidate('/admin/ads')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
@@ -161,6 +143,8 @@ export default function AdsPage() {
       active: styles.badgeActive,
       paused: styles.badgePaused,
       completed: styles.badgeCompleted,
+      pending: styles.badgePending,
+      rejected: styles.badgeRejected,
     }
     return map[status] ?? ''
   }
@@ -170,6 +154,8 @@ export default function AdsPage() {
       active: t('ads.active'),
       paused: t('ads.paused'),
       completed: t('ads.completed'),
+      pending: t('ads.pending'),
+      rejected: t('ads.rejected'),
     }
     return map[status] ?? status
   }
@@ -215,6 +201,8 @@ export default function AdsPage() {
             <option value="">{t('ads.allStatuses')}</option>
             <option value="active">{t('ads.active')}</option>
             <option value="paused">{t('ads.paused')}</option>
+            <option value="pending">{t('ads.pending')}</option>
+            <option value="rejected">{t('ads.rejected')}</option>
             <option value="completed">{t('ads.completed')}</option>
           </select>
         </div>
@@ -361,77 +349,19 @@ export default function AdsPage() {
       </div>
 
       {analyticsTarget && (
-        <div className={styles.overlay} onClick={() => { setAnalyticsTarget(null); setAnalyticsData(null) }}>
-          <div className={`${styles.modal} ${styles.modalWide}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>{t('ads.analyticsTitle')}</h2>
-              <button className={styles.modalClose} onClick={() => { setAnalyticsTarget(null); setAnalyticsData(null) }}>
-                <i className="bx bx-x" />
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              {analyticsLoading ? (
-                <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t('common.loading')}</p>
-              ) : analyticsData ? (
-                <>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>{t('posts.title')}</span>
-                    <span className={styles.detailValue}>{analyticsData.title}</span>
-                  </div>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>{t('ads.partner')}</span>
-                    <span className={styles.detailValue}>{analyticsTarget.partner_name}</span>
-                  </div>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>{t('ads.status')}</span>
-                    <span className={styles.detailValue}>
-                      <span className={`${styles.badge} ${statusBadgeClass(analyticsData.status)}`}>
-                        {statusLabel(analyticsData.status)}
-                      </span>
-                    </span>
-                  </div>
-                  <div className={styles.detailRow} style={{ borderBottom: '1px solid var(--color-divider)', marginBottom: 'var(--space-lg)' }}>
-                    <span className={styles.detailLabel}>{t('ads.budget')}</span>
-                    <span className={styles.detailValue}>{formatCurrency(analyticsData.budget)}</span>
-                  </div>
-                  <div className={styles.statsGrid}>
-                    <div className={styles.statCard}>
-                      <div className={styles.statValue}>{formatNumber(analyticsData.impressions)}</div>
-                      <div className={styles.statLabel}>{t('ads.impressions')}</div>
-                    </div>
-                    <div className={styles.statCard}>
-                      <div className={`${styles.statValue} ${styles.statHighlight}`}>{formatNumber(analyticsData.clicks)}</div>
-                      <div className={styles.statLabel}>{t('ads.clicks')}</div>
-                    </div>
-                    <div className={styles.statCard}>
-                      <div className={`${styles.statValue} ${styles.statHighlight}`}>{formatNumber(analyticsData.interactions)}</div>
-                      <div className={styles.statLabel}>{t('ads.interactions')}</div>
-                    </div>
-                    <div className={styles.statCard}>
-                      <div className={styles.statValue}>{formatCtr(analyticsData.ctr)}</div>
-                      <div className={styles.statLabel}>{t('ads.ctr')}</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>{t('common.error')}</p>
-              )}
-            </div>
-            <div className={styles.modalFooter}>
-              <button className={styles.btnCancel} onClick={() => { setAnalyticsTarget(null); setAnalyticsData(null) }}>
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AdAnalyticsModal
+          open
+          adId={analyticsTarget.id}
+          onClose={() => setAnalyticsTarget(null)}
+        />
       )}
 
       {statusTarget && (
-        <div className={styles.overlay} onClick={() => { setStatusTarget(null); setStatusValue('') }}>
+        <div className={styles.overlay} onClick={() => { setStatusTarget(null); setStatusValue(''); setRejectionReason('') }}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>{t('ads.confirmChangeStatus')}</h2>
-              <button className={styles.modalClose} onClick={() => { setStatusTarget(null); setStatusValue('') }}>
+              <button className={styles.modalClose} onClick={() => { setStatusTarget(null); setStatusValue(''); setRejectionReason('') }}>
                 <i className="bx bx-x" />
               </button>
             </div>
@@ -440,7 +370,7 @@ export default function AdsPage() {
                 {t('ads.changeStatusTo')}: <strong>{statusTarget.title}</strong>
               </p>
               <div className={styles.radioGroup}>
-                {['active', 'paused', 'completed'].map((s) => {
+                {['active', 'paused', 'completed', 'rejected'].map((s) => {
                   const isAllowed = s !== 'active' || canSetActive
                   return (
                     <label
@@ -465,12 +395,29 @@ export default function AdsPage() {
                   )
                 })}
               </div>
+              {statusValue === 'rejected' && (
+                <div style={{ marginTop: 'var(--space-md)' }}>
+                  <label className={styles.confirmText} style={{ fontWeight: 600, display: 'block', marginBottom: 'var(--space-sm)' }}>
+                    Lý do từ chối:
+                  </label>
+                  <textarea
+                    className={styles.rejectionInput}
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={3}
+                    placeholder="Nhập lý do từ chối..."
+                  />
+                </div>
+              )}
             </div>
             <div className={styles.modalFooter}>
-              <button className={styles.btnCancel} onClick={() => { setStatusTarget(null); setStatusValue('') }}>
+              <button className={styles.btnCancel} onClick={() => { setStatusTarget(null); setStatusValue(''); setRejectionReason('') }}>
                 {t('common.cancel')}
               </button>
-              <button className={styles.btnPrimary} disabled={actionLoading || !statusValue || statusValue === statusTarget.status} onClick={handleConfirmStatusChange}>
+              <button
+                className={styles.btnPrimary}
+                disabled={actionLoading || !statusValue || statusValue === statusTarget.status || (statusValue === 'rejected' && !rejectionReason.trim())}
+                onClick={handleConfirmStatusChange}>
                 {actionLoading ? t('common.loading') : t('common.confirm')}
               </button>
             </div>

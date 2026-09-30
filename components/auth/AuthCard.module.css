@@ -1,18 +1,54 @@
+/* min-height:100% → fits pane: card centers; taller than pane: wrap grows
+   with content, card sticks to top and .formPane scrolls (no top clipping). */
 .wrap {
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  width: 100%;
   padding: var(--space-xl) var(--space-md);
-  background: var(--color-bg);
+  background: transparent;
 }
 
 .card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  animation: authCardIn 200ms ease-out both;
+}
+
+@keyframes authCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 576px) {
+  .wrap {
+    padding: var(--space-lg) var(--space-sm);
+    background: transparent;
+  }
+
+  /* Keep a light glass card on mobile — drop the shadow, not the surface. */
+  .card {
+    padding: var(--space-lg);
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
 }

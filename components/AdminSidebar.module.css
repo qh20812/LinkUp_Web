@@ -1,10 +1,15 @@
 .sidebar {
   position: fixed;
-  top: 0;
-  left: 0;
-  background: var(--color-bg);
+  top: var(--space-md);
+  left: var(--space-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
   width: 230px;
-  height: 100%;
+  height: calc(100dvh - var(--space-md) * 2);
   z-index: 2000;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -21,44 +26,10 @@
   width: 60px;
 }
 
-/* Logo */
-.logo {
-  font-size: 24px;
-  font-weight: 700;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  color: var(--color-primary);
-  z-index: 500;
-  padding-bottom: 20px;
-  box-sizing: content-box;
-}
-
-.logoImg {
-  min-width: 60px;
-  display: flex;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.logoName {
-  font: var(--text-h2);
-  font-size: 20px;
-  color: var(--color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.close .logoName {
-  display: none;
-}
-
-/* Side menu */
+/* Side menu — the sidebar starts directly with the menu (brand lives centered in the navbar) */
 .sideMenu {
   width: 100%;
-  margin-top: 48px;
+  margin-top: var(--space-md);
   flex: 1;
 }
 
@@ -71,38 +42,13 @@
 }
 
 .sideMenu li.active {
-  background: var(--color-bg-secondary);
-  position: relative;
-}
-
-.sideMenu li.active::before {
-  content: "";
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  top: -40px;
-  right: 0;
-  box-shadow: 20px 20px 0 var(--color-bg-secondary);
-  z-index: -1;
-}
-
-.sideMenu li.active::after {
-  content: "";
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  bottom: -40px;
-  right: 0;
-  box-shadow: 20px -20px 0 var(--color-bg-secondary);
-  z-index: -1;
+  background: transparent;
 }
 
 .sideMenu li a {
   width: 100%;
   height: 100%;
-  background: var(--color-bg);
+  background: transparent;
   display: flex;
   align-items: center;
   border-radius: 48px;
@@ -110,10 +56,15 @@
   color: var(--color-text);
   white-space: nowrap;
   overflow-x: hidden;
-  transition: all 0.3s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sideMenu li a:hover {
+  background: var(--color-bg-secondary);
 }
 
 .sideMenu li.active a {
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
@@ -160,38 +111,13 @@
 }
 
 .footerMenu li.active {
-  background: var(--color-bg-secondary);
-  position: relative;
-}
-
-.footerMenu li.active::before {
-  content: "";
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  top: -40px;
-  right: 0;
-  box-shadow: 20px 20px 0 var(--color-bg-secondary);
-  z-index: -1;
-}
-
-.footerMenu li.active::after {
-  content: "";
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  bottom: -40px;
-  right: 0;
-  box-shadow: 20px -20px 0 var(--color-bg-secondary);
-  z-index: -1;
+  background: transparent;
 }
 
 .footerMenu li a {
   width: 100%;
   height: 100%;
-  background: var(--color-bg);
+  background: transparent;
   display: flex;
   align-items: center;
   border-radius: 48px;
@@ -199,10 +125,15 @@
   color: var(--color-text);
   white-space: nowrap;
   overflow-x: hidden;
-  transition: all 0.3s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.footerMenu li a:hover {
+  background: var(--color-bg-secondary);
 }
 
 .footerMenu li.active a {
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
@@ -244,7 +175,7 @@
 .logoutMenu li button {
   width: 100%;
   height: 100%;
-  background: var(--color-bg);
+  background: transparent;
   display: flex;
   align-items: center;
   border-radius: 48px;
@@ -252,7 +183,12 @@
   color: var(--color-text);
   white-space: nowrap;
   overflow-x: hidden;
-  transition: all 0.3s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.logoutMenu li a:hover,
+.logoutMenu li button:hover {
+  background: var(--color-bg-secondary);
 }
 
 .logoutMenu li a i,
@@ -298,16 +234,12 @@
   .sidebar {
     width: 60px;
   }
-
-  .logoName {
-    display: none;
-  }
 }
 
 @media screen and (max-width: 576px) {
   .sidebar {
     width: 230px;
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% - var(--space-md)));
   }
 
   .sidebar.mobileOpen {

@@ -4,12 +4,11 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTranslation } from '../hooks/useTranslation'
-import { useTheme } from '../hooks/useTheme'
+import NavControls from './NavControls'
 import styles from './Navbar.module.css'
 
 export default function Navbar() {
-  const { t, language, setLanguage } = useTranslation()
-  const { theme, toggleTheme } = useTheme()
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -23,53 +22,17 @@ export default function Navbar() {
 
           <div className={`${styles.links}${menuOpen ? ` ${styles.linksOpen}` : ''}`}>
             <div className={styles.mobileControls}>
-              <div className={styles.toggleGroup} suppressHydrationWarning>
-                <button
-                  className={`${styles.toggleBtn}${language === 'vi' ? ` ${styles.toggleActive}` : ''}`}
-                  onClick={() => setLanguage('vi')}
-                  suppressHydrationWarning
-                >
-                  VI
-                </button>
-                <button
-                  className={`${styles.toggleBtn}${language === 'en' ? ` ${styles.toggleActive}` : ''}`}
-                  onClick={() => setLanguage('en')}
-                  suppressHydrationWarning
-                >
-                  EN
-                </button>
-              </div>
-              <button className={styles.iconBtn} onClick={toggleTheme} aria-label="Toggle theme">
-                <i className={`bx ${theme === 'light' ? 'bx-moon' : 'bx-sun'}`} />
-              </button>
+              <NavControls />
             </div>
           </div>
         </div>
 
         <div className={styles.right}>
           <div className={styles.desktopControls}>
-            <div className={styles.toggleGroup} suppressHydrationWarning>
-              <button
-                className={`${styles.toggleBtn}${language === 'vi' ? ` ${styles.toggleActive}` : ''}`}
-                onClick={() => setLanguage('vi')}
-                suppressHydrationWarning
-              >
-                VI
-              </button>
-              <button
-                className={`${styles.toggleBtn}${language === 'en' ? ` ${styles.toggleActive}` : ''}`}
-                onClick={() => setLanguage('en')}
-                suppressHydrationWarning
-              >
-                EN
-              </button>
-            </div>
-            <button className={styles.iconBtn} onClick={toggleTheme} aria-label="Toggle theme">
-              <i className={`bx ${theme === 'light' ? 'bx-moon' : 'bx-sun'}`} />
-            </button>
+            <NavControls />
           </div>
 
-          <Link href="/login" className={styles.adminBtn}>
+          <Link href="/login" className={styles.loginBtn}>
             <i className="bx bx-user" />
             {t('nav.login')}
           </Link>
@@ -77,7 +40,8 @@ export default function Navbar() {
           <button
             className={styles.menuToggle}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={t('nav.toggleMenu')}
+            data-tooltip={t('nav.toggleMenu')}
           >
             <i className={`bx ${menuOpen ? 'bx-x' : 'bx-menu'}`} />
           </button>

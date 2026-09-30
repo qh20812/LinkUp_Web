@@ -1,17 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
-import GifPicker from './GifPicker'
-import EmojiPicker from './EmojiPicker'
+import CreatePostModal from './CreatePostModal'
 import styles from './PostComposer.module.css'
 import { request } from '../api/api'
-import { createPost } from '../api/posts'
-import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import type { EmojiOption } from '../utils/emojifyi'
-import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
+import type { ViewProfileResponse } from '../types'
 
 function useProfile() {
   const { data, error } = useSWR<ViewProfileResponse>(
@@ -22,437 +18,46 @@ function useProfile() {
   return { profile: data, loading: !data && !error }
 }
 
-const CONTENT_MAX = 5000
-const TITLE_MAX = 150
+type InitialPicker = 'media' | 'emoji' | 'gif' | undefined
 
-function serializeEmojiContent(el: HTMLElement): string {
-  let out = ''
-  const walk = (node: Node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      out += node.textContent ?? ''
-      return
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) return
-    const n = node as HTMLElement
-    if (n.dataset.code) {
-      out += n.dataset.code
-      return
-    }
-    if (n.dataset.emoji) {
-      // Bọc URL bằng space — URL ảnh emoji liền nhau không separator sẽ bị coi là 1 URL duy nhất khi render.
-      if (out && !/\s$/.test(out)) out += ' '
-      out += n.dataset.emoji + ' '
-      return
-    }
-    const tag = n.tagName
-    if (tag === 'BR') {
-      out += '\n'
-      return
-    }
-    if (tag === 'DIV' || tag === 'P') {
-      if (out && !out.endsWith('\n')) out += '\n'
-      node.childNodes.forEach(walk)
-      if (!out.endsWith('\n')) out += '\n'
-      return
-    }
-    node.childNodes.forEach(walk)
-  }
-  walk(el)
-  // Chuẩn hóa: bỏ space thừa trước \n và space cuối (do URL emoji được bọc space).
-  return out.replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ +$/, '')
-}
-
-function insertNodeAtCaret(el: HTMLElement, node: Node) {
-  el.focus()
-  const sel = window.getSelection()
-  let range: Range
-  if (sel && sel.rangeCount > 0 && el.contains(sel.getRangeAt(0).commonAncestorContainer)) {
-    range = sel.getRangeAt(0)
-  } else {
-    range = document.createRange()
-    range.selectNodeContents(el)
-    range.collapse(false)
-  }
-  range.deleteContents()
-  range.insertNode(node)
-  range.setStartAfter(node)
-  range.collapse(true)
-  sel?.removeAllRanges()
-  sel?.addRange(range)
-}
-
-const PRIVACY_OPTIONS: { value: PostStatus; icon: string; key: string }[] = [
-  { value: 'public', icon: 'bx-globe', key: 'composer.privacy.public' },
-  { value: 'friend', icon: 'bx-group', key: 'composer.privacy.friend' },
-  { value: 'private', icon: 'bx-lock-alt', key: 'composer.privacy.private' },
-]
-
-export default function PostComposer({ onPosted }: { onPosted?: (post: FeedPost) => void }) {
+export default function PostComposer() {
   const { t } = useTranslation()
-  const { toast } = useToast()
   const { profile } = useProfile()
-  const [expanded, setExpanded] = useState(false)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [privacy, setPrivacy] = useState<PostStatus>('public')
-  const [privacyOpen, setPrivacyOpen] = useState(false)
-  const [media, setMedia] = useState<{ file: File; url: string }[]>([])
-  const [gif, setGif] = useState<GifItem | null>(null)
-  const [emojiOpen, setEmojiOpen] = useState(false)
-  const [gifOpen, setGifOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [commentsDisabled, setCommentsDisabled] = useState(false)
-  const privacyRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
-  const emojiRef = useRef<HTMLDivElement>(null)
-  const gifRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const [initialPicker, setInitialPicker] = useState<InitialPicker>(undefined)
 
-  useEffect(() => {
-    if (!privacyOpen) return
-    const handleClick = (e: MouseEvent) => {
-      if (privacyRef.current && !privacyRef.current.contains(e.target as Node)) {
-        setPrivacyOpen(false)
-      }
-    }
-    document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
-  }, [privacyOpen])
-
-  useEffect(() => {
-    if (!emojiOpen && !gifOpen) return
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (emojiRef.current?.contains(target)) return
-      if (gifRef.current?.contains(target)) return
-      setEmojiOpen(false)
-      setGifOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [emojiOpen, gifOpen])
-
-  useEffect(() => {
-    const urls = media.map((m) => m.url)
-    return () => {
-      for (const u of urls) URL.revokeObjectURL(u)
-    }
-  }, [media])
-
-  const handleCancel = () => {
-    setExpanded(false)
-    setTitle('')
-    setContent('')
-    if (contentRef.current) contentRef.current.innerHTML = ''
-    setPrivacy('public')
-    setPrivacyOpen(false)
-    setMedia([])
-    setGif(null)
-    setEmojiOpen(false)
-    setGifOpen(false)
-    setError(null)
-    setCommentsDisabled(false)
+  const openModal = (picker?: Exclude<InitialPicker, undefined>) => {
+    setInitialPicker(picker)
+    setOpen(true)
   }
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
-    if (files.length === 0) return
-    setMedia((prev) => [...prev, ...files.map((file) => ({ file, url: URL.createObjectURL(file) }))])
-    setError(null)
-    e.target.value = ''
-  }
-
-  const removeMedia = (index: number) => {
-    setMedia((prev) => prev.filter((_, i) => i !== index))
-    setError(null)
-  }
-
-  const removeGif = () => {
-    setGif(null)
-    setError(null)
-  }
-
-  const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
-    const el = e.currentTarget
-    setContent(serializeEmojiContent(el))
-    setError(null)
-  }
-
-  const insertEmoji = (emoji: EmojiOption) => {
-    const el = contentRef.current
-    if (!el) {
-      setContent((prev) => prev + emoji.url)
-      return
-    }
-    const img = document.createElement('img')
-    img.src = emoji.url
-    img.alt = emoji.title || 'emoji'
-    img.dataset.emoji = emoji.url
-    img.className = 'emojiInline'
-    insertNodeAtCaret(el, img)
-    setContent(serializeEmojiContent(el))
-    setError(null)
-  }
-
-  const selectGif = (item: GifItem) => {
-    setGif(item)
-    setGifOpen(false)
-    setError(null)
-  }
-
-  const contentLength = Array.from(content).length
-  const currentPrivacy = PRIVACY_OPTIONS.find((o) => o.value === privacy) ?? PRIVACY_OPTIONS[0]
-
-  const validate = (): string | null => {
-    const trimmedTitle = title.trim()
-    const trimmedContent = content.trim()
-    const hasFiles = media.length > 0 || gif !== null
-
-    if (trimmedTitle !== '' && (trimmedTitle.length < 5 || trimmedTitle.length > TITLE_MAX)) {
-      return t('composer.errorTitleLength')
-    }
-    if (!hasFiles && trimmedContent === '') {
-      return t('composer.errorContentRequired')
-    }
-    if (contentLength > CONTENT_MAX) {
-      return t('composer.errorMaxLength')
-    }
-    return null
-  }
-
-  const handleSubmit = async () => {
-    const validationError = validate()
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-
-    setError(null)
-    setSubmitting(true)
-    try {
-      const res = await createPost({
-        title: title.trim(),
-        content: content.trim(),
-        status: privacy,
-        files: media.map((m) => m.file),
-        gifUrl: gif?.full,
-        commentsEnabled: !commentsDisabled,
-      })
-      toast({ type: 'success', title: t('composer.success') })
-      setExpanded(false)
-      setTitle('')
-      setContent('')
-      if (contentRef.current) contentRef.current.innerHTML = ''
-      setPrivacy('public')
-      setPrivacyOpen(false)
-      setMedia([])
-      setGif(null)
-      setEmojiOpen(false)
-      setGifOpen(false)
-      setCommentsDisabled(false)
-      onPosted?.(res.data)
-    } catch (e) {
-      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
-    } finally {
-      setSubmitting(false)
-    }
+  const handleClose = () => {
+    setOpen(false)
+    setInitialPicker(undefined)
   }
 
   return (
     <div className={styles.card}>
-      {!expanded ? (
-        <button type="button" className={styles.idle} onClick={() => setExpanded(true)}>
-          <div className={styles.avatar}>
-            {profile?.avatar_uri ? (
-              <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatarImg} />
-            ) : (
-              <i className="bx bxs-user" />
-            )}
-          </div>
-          <span className={styles.placeholder}>{t('composer.placeholder')}</span>
-          <span className={styles.plusBtn}>
-            <i className="bx bx-plus" />
-          </span>
-        </button>
-      ) : (
-        <div className={styles.expanded}>
-          <div className={styles.expandedHeader}>
-            <div className={styles.avatar}>
-              {profile?.avatar_uri ? (
-                <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatarImg} />
-              ) : (
-                <i className="bx bxs-user" />
-              )}
-            </div>
-          </div>
-          <div className={styles.formArea}>
-            <input
-              type="text"
-              className={styles.titleInput}
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                setError(null)
-              }}
-              maxLength={TITLE_MAX}
-              placeholder={t('composer.titlePlaceholder')}
-            />
-            <div
-              ref={contentRef}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-label={t('composer.contentPlaceholder')}
-              data-placeholder={t('composer.contentPlaceholder')}
-              className={styles.contentInput}
-              onInput={handleContentChange}
-            />
-          </div>
-          {error && <p className={styles.errorText}>{error}</p>}
-          {media.length > 0 && (
-            <div className={styles.mediaPreview}>
-              {media.map((m, i) => (
-                <div key={m.url} className={styles.mediaItem}>
-                  {m.file.type.startsWith('video/') ? (
-                    <>
-                      <video src={m.url} muted playsInline preload="metadata" className={styles.mediaEl} />
-                      <i className={`bx bx-play-circle ${styles.playIcon}`} />
-                    </>
-                  ) : (
-                    <ExternalImage src={m.url} alt="" className={styles.mediaEl} />
-                  )}
-                  <button
-                    type="button"
-                    className={styles.removeBtn}
-                    onClick={() => removeMedia(i)}
-                    aria-label="Remove"
-                  >
-                    <i className="bx bx-x" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {gif && (
-            <div className={styles.mediaPreview}>
-              <div className={styles.mediaItem}>
-                <ExternalImage src={gif.preview} alt={gif.title ?? ''} className={styles.mediaEl} />
-                <button type="button" className={styles.removeBtn} onClick={removeGif} aria-label="Remove">
-                  <i className="bx bx-x" />
-                </button>
-              </div>
-            </div>
-          )}
-          <div className={styles.footer}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              className={styles.fileInput}
-              onChange={handleFiles}
-            />
-            <button
-              type="button"
-              className={styles.mediaBtn}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <i className="bx bx-image-add" />
-              <span>{t('composer.media')}</span>
-            </button>
-            <div className={styles.pickerWrap} ref={emojiRef}>
-              <button
-                type="button"
-                className={`${styles.mediaBtn}${emojiOpen ? ` ${styles.mediaBtnActive}` : ''}`}
-                onClick={() => {
-                  setEmojiOpen((v) => !v)
-                  setGifOpen(false)
-                }}
-              >
-                <i className="bx bxs-smile" />
-                <span>{t('composer.emoji')}</span>
-              </button>
-              {emojiOpen && (
-                <EmojiPicker
-                  placement="bottom"
-                  onSelect={insertEmoji}
-                  onClose={() => setEmojiOpen(false)}
-                  ignoreRef={emojiRef}
-                />
-              )}
-            </div>
-            <div className={styles.pickerWrap} ref={gifRef}>
-              <button
-                type="button"
-                className={`${styles.mediaBtn}${gifOpen ? ` ${styles.mediaBtnActive}` : ''}`}
-                onClick={() => {
-                  setGifOpen((v) => !v)
-                  setEmojiOpen(false)
-                }}
-              >
-                <i className="bx bx-movie" />
-                <span>{t('composer.gif')}</span>
-              </button>
-              {gifOpen && <GifPicker onSelect={selectGif} onClose={() => setGifOpen(false)} />}
-            </div>
-            <button
-              type="button"
-              className={`${styles.mediaBtn} ${styles.commentsToggle}${commentsDisabled ? ` ${styles.commentsToggleOn}` : ''}`}
-              onClick={() => setCommentsDisabled((v) => !v)}
-              aria-pressed={commentsDisabled}
-            >
-              <i className="bx bx-message-rounded-x" />
-              <span>{t('composer.disableComments')}</span>
-            </button>
-            <div className={styles.privacyWrap} ref={privacyRef}>
-              <button
-                type="button"
-                className={styles.privacyBtn}
-                onClick={() => setPrivacyOpen((v) => !v)}
-              >
-                <i className={`bx ${currentPrivacy.icon}`} />
-                <span>{t(currentPrivacy.key)}</span>
-                <i className="bx bx-chevron-down" />
-              </button>
-              {privacyOpen && (
-                <div className={styles.privacyMenu}>
-                  {PRIVACY_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`${styles.privacyItem}${opt.value === privacy ? ` ${styles.privacyItemActive}` : ''}`}
-                      onClick={() => {
-                        setPrivacy(opt.value)
-                        setPrivacyOpen(false)
-                      }}
-                    >
-                      <i className={`bx ${opt.icon}`} />
-                      <span>{t(opt.key)}</span>
-                      {opt.value === privacy && <i className="bx bx-check" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className={`${styles.charCount}${contentLength > CONTENT_MAX ? ` ${styles.charCountOver}` : ''}`}>
-              {t('composer.charCount', { count: contentLength, max: CONTENT_MAX })}
-            </span>
-            <button type="button" className={styles.cancelBtn} onClick={handleCancel}>
-              {t('composer.cancel')}
-            </button>
-            <button
-              type="button"
-              className={styles.postBtn}
-              onClick={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting && <i className="bx bx-loader-circle bx-spin" />}
-              <span>{t('composer.post')}</span>
-            </button>
-          </div>
-        </div>
-      )}
+      <div className={styles.avatar}>
+        {profile?.avatar_uri ? (
+          <ExternalImage src={profile.avatar_uri} alt="" className={styles.avatarImg} />
+        ) : (
+          <i className="bx bxs-user" />
+        )}
+      </div>
+      <button type="button" className={styles.placeholder} onClick={() => openModal()}>
+        {t('composer.placeholder')}
+      </button>
+      <button
+        type="button"
+        className={styles.photoBtn}
+        onClick={() => openModal('media')}
+        aria-label={t('composer.media')}
+        title={t('composer.media')}
+      >
+        <i className="bx bx-image-add" />
+      </button>
+      <CreatePostModal open={open} onClose={handleClose} initialPicker={initialPicker} />
     </div>
   )
 }

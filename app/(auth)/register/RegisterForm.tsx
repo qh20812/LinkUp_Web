@@ -1,89 +1,98 @@
 'use client'
 
-import React, { useState } from 'react'
-import Image from 'next/image'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { register } from '../../../api/auth'
+import { ApiError } from '../../../api/api'
 import { clearSWRCache } from '../../../api/swr'
+import {
+  emailError,
+  displayNameError,
+  registerPasswordError,
+  confirmPasswordError,
+  focusFirstInvalid,
+} from '../../../utils/authValidation'
+import { checkPassword, passwordStrength } from '../../../utils/passwordStrength'
 import AuthCard from '../../../components/auth/AuthCard'
 import AuthSplit from '../../../components/auth/AuthSplit'
+import AuthField from '../../../components/auth/AuthField'
+import PasswordInput from '../../../components/auth/PasswordInput'
+import FormAlert from '../../../components/auth/FormAlert'
 import GoogleAuthButton from '../../../components/auth/GoogleAuthButton'
-import styles from './RegisterForm.module.css'
+import shared from '../../../components/auth/authShared.module.css'
 
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-const DISPLAY_NAME_REGEX = /^[\p{L}\p{M}\d ]+$/u
+type FieldName = 'displayName' | 'email' | 'password' | 'confirmPassword' | 'terms'
+type Touched = Partial<Record<FieldName, boolean>>
 
-interface FieldErrors {
-  displayName?: string
-  email?: string
-  password?: string
-  confirmPassword?: string
-}
+const REQUIREMENTS: Array<{ key: keyof ReturnType<typeof checkPassword>; label: string }> = [
+  { key: 'length', label: 'register.req.length' },
+  { key: 'upper', label: 'register.req.upper' },
+  { key: 'lower', label: 'register.req.lower' },
+  { key: 'digit', label: 'register.req.digit' },
+  { key: 'special', label: 'register.req.special' },
+]
+
+const STRENGTH_LABEL = ['0', '1', '2', '3', '4'] as const
 
 export default function RegisterForm() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [agreed, setAgreed] = useState(false)
+  const [touched, setTouched] = useState<Touched>({})
+  const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const { t } = useTranslation()
   const router = useRouter()
 
-  const validate = (): boolean => {
-    const errors: FieldErrors = {}
+  const errors = useMemo(
+    () => ({
+      displayName: displayNameError(displayName),
+      email: emailError(email),
+      password: registerPasswordError(password),
+      confirmPassword: confirmPasswordError(confirmPassword, password),
+      terms: agreed ? undefined : ('termsRequired' as const),
+    }),
+    [displayName, email, password, confirmPassword, agreed],
+  )
 
-    if (!displayName.trim()) {
-      errors.displayName = t('register.displayNameRequired')
-    } else if (Array.from(displayName.trim()).length < 3) {
-      errors.displayName = t('register.displayNameTooShort')
-    } else if (Array.from(displayName.trim()).length > 55) {
-      errors.displayName = t('register.displayNameTooLong')
-    } else if (!DISPLAY_NAME_REGEX.test(displayName.trim())) {
-      errors.displayName = t('register.displayNameInvalid')
-    }
+  const showError = (field: FieldName) =>
+    submitted || touched[field] ? errors[field] && t(`register.${errors[field]}`) : undefined
 
-    if (!email.trim()) {
-      errors.email = t('register.emailRequired')
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      errors.email = t('register.emailInvalid')
-    }
+  const checks = checkPassword(password)
+  const score = passwordStrength(password)
+  // Non-empty password always lights at least one segment — an empty meter
+  // would read as "no rating".
+  const filled = password ? Math.max(1, score) : 0
+  const toneClass =
+    score <= 1 ? shared.toneWeak : score === 2 ? shared.toneFair : shared.toneStrong
 
-    if (!password) {
-      errors.password = t('register.passwordRequired')
-    } else if (password.length < 8) {
-      errors.password = t('register.passwordTooShort')
-    } else if (password.length > 50) {
-      errors.password = t('register.passwordTooLong')
-    } else if (
-      !/[A-Z]/.test(password) ||
-      !/[a-z]/.test(password) ||
-      !/[0-9]/.test(password) ||
-      !/[^A-Za-z0-9]/.test(password)
-    ) {
-      errors.password = t('register.passwordComplexity')
-    }
+  const confirmMatches = confirmPassword.length > 0 && confirmPassword === password
 
-    if (!confirmPassword) {
-      errors.confirmPassword = t('register.confirmRequired')
-    } else if (confirmPassword !== password) {
-      errors.confirmPassword = t('register.confirmMismatch')
-    }
-
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
-  }
+  // Desktop-only autofocus (mobile keyboard would cover the form).
+  useEffect(() => {
+    if (window.innerWidth >= 768) nameRef.current?.focus()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validate()) return
+    setSubmitted(true)
+
+    const invalid = (Object.keys(errors) as FieldName[]).filter((k) => errors[k])
+    if (invalid.length > 0) {
+      focusFirstInvalid(invalid)
+      return
+    }
+
     setLoading(true)
+    setServerError(null)
     try {
       const res = await register(displayName.trim(), email.trim(), password)
 
@@ -101,8 +110,11 @@ export default function RegisterForm() {
 
       router.push('/onboarding')
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('register.error')
-      toast({ type: 'error', title: message })
+      if (err instanceof ApiError) {
+        setServerError(err.message)
+      } else {
+        toast({ type: 'error', title: err instanceof Error ? err.message : t('register.error') })
+      }
     } finally {
       setLoading(false)
     }
@@ -111,107 +123,160 @@ export default function RegisterForm() {
   return (
     <AuthSplit>
       <AuthCard>
-        <div className={styles.logo}>
-        <Image src="/S-Logo-Rmbg.png" alt="LinkUp" width={500} height={500} className={styles.logoImg} priority />
-        <span className={styles.logoText}>LinkUp</span>
-      </div>
+        <h1 className={shared.title}>{t('register.title')}</h1>
+        <p className={shared.subtitle}>{t('register.subtitle')}</p>
 
-        <h1 className={styles.title}>{t('register.title')}</h1>
-        <p className={styles.subtitle}>{t('register.subtitle')}</p>
+        <GoogleAuthButton textKey="register.google.button" />
 
-        <GoogleAuthButton />
-
-        <div className={styles.divider}>
+        <div className={shared.divider}>
           <span>{t('register.or')}</span>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.field}>
-            <label htmlFor="displayName">{t('register.displayName')}</label>
-            <input
-              id="displayName"
-              type="text"
-              placeholder={t('register.displayNamePlaceholder')}
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              autoComplete="name"
-            />
-            {fieldErrors.displayName && <span className={styles.fieldError}>{fieldErrors.displayName}</span>}
-          </div>
+        <form onSubmit={handleSubmit} className={shared.form} noValidate>
+          {serverError && <FormAlert message={serverError} />}
 
-          <div className={styles.field}>
-            <label htmlFor="email">{t('register.email')}</label>
-            <input
-              id="email"
-              type="email"
-              placeholder={t('register.emailPlaceholder')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            {fieldErrors.email && <span className={styles.fieldError}>{fieldErrors.email}</span>}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="password">{t('register.password')}</label>
-            <div className={styles.passwordWrapper}>
+          <AuthField
+            id="displayName"
+            label={t('register.displayName')}
+            error={showError('displayName')}
+          >
+            {(aria) => (
               <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder={t('register.passwordPlaceholder')}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...aria}
+                ref={nameRef}
+                id="displayName"
+                type="text"
+                className={shared.input}
+                placeholder={t('register.displayNamePlaceholder')}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                onBlur={() => setTouched((s) => ({ ...s, displayName: true }))}
                 required
-                autoComplete="new-password"
+                autoComplete="name"
               />
-              <button
-                type="button"
-                className={styles.eyeBtn}
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                <i className={`bx ${showPassword ? 'bx-hide' : 'bx-show'}`} />
-              </button>
-            </div>
-            {fieldErrors.password && <span className={styles.fieldError}>{fieldErrors.password}</span>}
-          </div>
+            )}
+          </AuthField>
 
-          <div className={styles.field}>
-            <label htmlFor="confirmPassword">{t('register.confirmPassword')}</label>
-            <div className={styles.passwordWrapper}>
+          <AuthField id="email" label={t('register.email')} error={showError('email')}>
+            {(aria) => (
               <input
+                {...aria}
+                id="email"
+                type="email"
+                className={shared.input}
+                placeholder={t('register.emailPlaceholder')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setTouched((s) => ({ ...s, email: true }))}
+                required
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+            )}
+          </AuthField>
+
+          <AuthField id="password" label={t('register.password')} error={showError('password')}>
+            {(aria) => (
+              <>
+                <PasswordInput
+                  {...aria}
+                  id="password"
+                  placeholder={t('register.passwordPlaceholder')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((s) => ({ ...s, password: true }))}
+                  required
+                  autoComplete="new-password"
+                />
+                {password && (
+                  <div className={`${shared.meter} ${toneClass}`}>
+                    <div className={shared.meterBars} aria-hidden="true">
+                      {[0, 1, 2, 3].map((i) => (
+                        <span
+                          key={i}
+                          className={`${shared.seg}${i < filled ? ` ${shared.on}` : ''}`}
+                        />
+                      ))}
+                    </div>
+                    <span className={shared.meterLabel} aria-live="polite">
+                      {t(`register.strength.${STRENGTH_LABEL[score]}`)}
+                    </span>
+                  </div>
+                )}
+                <ul className={shared.checks}>
+                  {REQUIREMENTS.map((req) => {
+                    const met = checks[req.key]
+                    return (
+                      <li key={req.key} className={`${shared.check}${met ? ` ${shared.checkMet}` : ''}`}>
+                        <i className={`bx ${met ? 'bx-check-circle' : 'bx-x-circle'}`} aria-hidden="true" />
+                        {t(req.label)}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </>
+            )}
+          </AuthField>
+
+          <AuthField
+            id="confirmPassword"
+            label={t('register.confirmPassword')}
+            error={showError('confirmPassword')}
+            hint={
+              confirmMatches && !errors.confirmPassword ? (
+                <span className={shared.hint}>{t('register.confirmMatchOk')}</span>
+              ) : undefined
+            }
+          >
+            {(aria) => (
+              <PasswordInput
+                {...aria}
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
                 placeholder={t('register.confirmPasswordPlaceholder')}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => setTouched((s) => ({ ...s, confirmPassword: true }))}
                 required
                 autoComplete="new-password"
               />
-              <button
-                type="button"
-                className={styles.eyeBtn}
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                tabIndex={-1}
-                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-              >
-                <i className={`bx ${showConfirmPassword ? 'bx-hide' : 'bx-show'}`} />
-              </button>
+            )}
+          </AuthField>
+
+          <div>
+            <div className={shared.checkboxRow}>
+              <input
+                id="terms"
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => {
+                  setAgreed(e.target.checked)
+                  if (e.target.checked) setTouched((s) => ({ ...s, terms: true }))
+                }}
+                aria-invalid={Boolean(showError('terms'))}
+                aria-describedby={showError('terms') ? 'terms-error' : undefined}
+              />
+              <label htmlFor="terms">{t('register.terms')}</label>
             </div>
-            {fieldErrors.confirmPassword && <span className={styles.fieldError}>{fieldErrors.confirmPassword}</span>}
+            <div id="terms-error" className={shared.checkboxError} role="alert">
+              {showError('terms')}
+            </div>
           </div>
 
-          <button type="submit" className={styles.button} disabled={loading}>
-            {loading ? '...' : t('register.submit')}
+          <button
+            type="submit"
+            className={shared.button}
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? t('register.submitting') : t('register.submit')}
           </button>
         </form>
 
-        <p className={styles.footer}>
+        <p className={shared.footer}>
           {t('register.haveAccount')}{' '}
-          <Link href="/login" className={styles.footerLink}>
+          <Link href="/login" className={shared.footerLink}>
             {t('register.loginLink')}
           </Link>
         </p>

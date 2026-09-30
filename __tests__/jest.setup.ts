@@ -28,3 +28,13 @@ if (!globalThis.crypto?.subtle) {
     configurable: true,
   })
 }
+
+// jsdom không cung cấp ResizeObserver — stub tối giản cho các effect đo kích thước.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  ;(globalThis as Record<string, unknown>).ResizeObserver = ResizeObserverStub
+}

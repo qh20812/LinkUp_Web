@@ -3,11 +3,15 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import useSWR from 'swr'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
 import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
+import { getFeedAds, trackAdAction } from '../api/partner'
+import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
-import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem } from '../types'
+import { request } from '../api/api'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
@@ -49,14 +53,23 @@ function FeedContent() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
   const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
+  const [feedAds, setFeedAds] = useState<FeedAd[]>([])
+  const [adIndex, setAdIndex] = useState(0)
+  const [trackedAds, setTrackedAds] = useState<Set<string>>(new Set())
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
   const currentUserId = getTokenPayload()?.user_id
+  const { data: myProfile } = useSWR<ViewProfileResponse>(
+    '/profile',
+    (key: string) => request<ViewProfileResponse>(key),
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  )
 
   const filter = tab === 'following' ? 'following' : undefined
 
@@ -70,6 +83,12 @@ function FeedContent() {
   useEffect(() => {
     loadStories()
   }, [loadStories])
+
+  useEffect(() => {
+    getFeedAds()
+      .then((res) => setFeedAds(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => {})
+  }, [])
 
   const prevFollowedRef = useRef<Set<string>>(new Set())
 
@@ -210,6 +229,7 @@ function FeedContent() {
 
   const handleShare = (postId: string) => {
     setSelectedPostId(postId)
+    setSharePostId(postId)
   }
 
   const handleFollow = async (userId: string) => {
@@ -284,11 +304,12 @@ function FeedContent() {
 
   return (
     <div className={styles.container}>
-      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+      <PostComposer />
       <StoryBar
         stories={stories}
         loading={storyLoading}
         currentUserId={currentUserId}
+        avatarUri={myProfile?.avatar_uri}
         onSelectStory={(_userId, userStories) => setStoryViewer(userStories)}
         onCreateStory={() => setShowCreateStory(true)}
         onMuteUser={(userId) => {
@@ -300,23 +321,70 @@ function FeedContent() {
             }))
         }}
       />
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onLike={handleLike}
-          onSave={handleSave}
-          onComment={handleComment}
-          onShare={handleShare}
-          onFollow={handleFollow}
-          onOpenDetail={setSelectedPostId}
-        />
-      ))}
+      {posts.map((post, idx) => {
+        const showAd = feedAds.length > 0 && (idx + 1) % 6 === 0 && idx > 0
+        const ad = showAd ? feedAds[adIndex % feedAds.length] : null
+        if (showAd && ad) {
+          setAdIndex((prev) => prev + 1)
+        }
+        return (
+          <div key={post.id}>
+            {ad && (
+              <div className={styles.adCard}>
+                <div className={styles.adBadge}>Tài trợ</div>
+                {ad.media_uri && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={ad.media_uri}
+                    alt={ad.title}
+                    className={styles.adImage}
+                    onLoad={() => {
+                      if (!trackedAds.has(ad.id)) {
+                        setTrackedAds((prev) => new Set(prev).add(ad.id))
+                        trackAdAction(ad.id, 'impression').catch(() => {})
+                      }
+                    }}
+                  />
+                )}
+                <div className={styles.adContent}>
+                  <h4 className={styles.adTitle}>{ad.title}</h4>
+                  <p className={styles.adText}>{ad.content}</p>
+                  <a
+                    href={ad.target_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.adCta}
+                    onClick={() => trackAdAction(ad.id, 'click').catch(() => {})}
+                  >
+                    Xem thêm
+                  </a>
+                </div>
+              </div>
+            )}
+            <PostCard
+              post={post}
+              onLike={handleLike}
+              onSave={handleSave}
+              onComment={handleComment}
+              onShare={handleShare}
+              onFollow={handleFollow}
+              onOpenDetail={setSelectedPostId}
+            />
+          </div>
+        )
+      })}
 
       {loading && (
-        <div className={styles.loadingMore}>
-          <i className="bx bx-loader-circle bx-spin" />
-          <span>{t('common.loading')}</span>
+        <div className={styles.skeleton} role="status" aria-label={t('common.loading')}>
+          <div className={styles.skelHeader}>
+            <div className={styles.skelAvatar} />
+            <div className={styles.skelLines}>
+              <div className={styles.skelLine} style={{ width: '35%' }} />
+              <div className={styles.skelLine} style={{ width: '20%' }} />
+            </div>
+          </div>
+          <div className={styles.skelLine} style={{ width: '70%' }} />
+          <div className={styles.skelLine} style={{ width: '50%' }} />
         </div>
       )}
 
@@ -351,7 +419,11 @@ function FeedContent() {
           key={detailPost.id}
           post={detailPost}
           open
-          onClose={() => setSelectedPostId(null)}
+          initialShareOpen={sharePostId === detailPost.id}
+          onClose={() => {
+            setSelectedPostId(null)
+            setSharePostId(null)
+          }}
           onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
           onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
         />

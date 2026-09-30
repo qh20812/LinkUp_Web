@@ -42,7 +42,18 @@ function PostDetailView({ id }: { id: string }) {
   if (loading) {
     return (
       <div className={styles.center}>
-        <i className="bx bx-loader-circle bx-spin" />
+        <div className={styles.skelCard} role="status" aria-label="Đang tải bài viết">
+          <div className={styles.skelRow}>
+            <div className={styles.skelAvatar} />
+            <div className={styles.skelLines}>
+              <div className={styles.skelLine} style={{ width: '35%' }} />
+              <div className={styles.skelLine} style={{ width: '20%' }} />
+            </div>
+          </div>
+          <div className={styles.skelLine} style={{ width: '75%' }} />
+          <div className={styles.skelLine} style={{ width: '55%' }} />
+          <div className={styles.skelMedia} />
+        </div>
       </div>
     )
   }
