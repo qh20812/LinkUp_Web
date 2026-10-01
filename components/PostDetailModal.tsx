@@ -153,6 +153,13 @@ interface PostDetailModalProps {
   initialShareOpen?: boolean
 }
 
+// Server có thể trả media: null cho bài không có media (thay vì []) —
+// chuẩn hóa ngay tại state để mọi chỗ đọc current.media đều an toàn.
+function withMedia(post: FeedPost): FeedPost {
+  if (post.media) return post
+  return { ...post, media: [] }
+}
+
 export default function PostDetailModal({
   post,
   open,
@@ -164,7 +171,7 @@ export default function PostDetailModal({
   const { t } = useTranslation()
   const { toast } = useToast()
   const { followUser: ctxFollowUser, unfollowUser: ctxUnfollowUser } = useFollowContext()
-  const [current, setCurrent] = useState<FeedPost>(post)
+  const [current, setCurrent] = useState<FeedPost>(() => withMedia(post))
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [comments, setComments] = useState<CommentItem[]>([])
   const [commentPage, setCommentPage] = useState(1)
@@ -236,10 +243,11 @@ export default function PostDetailModal({
     getPostDetail(post.id)
       .then((res) => {
         setCurrent((c) => {
-          if (!c) return res.data
+          if (!c) return withMedia(res.data)
           return {
             ...c,
             ...res.data,
+            media: res.data.media ?? c.media ?? [],
             avatar_uri: res.data.avatar_uri || c.avatar_uri,
             display_name: res.data.display_name || c.display_name,
             username: res.data.username || c.username,
@@ -694,7 +702,7 @@ export default function PostDetailModal({
   return (
     <div className={styles.overlay} onClick={requestClose}>
       <div
-        className={styles.modal}
+        className={`${styles.modal}${hasMedia ? '' : ` ${styles.modalNoMedia}`}`}
         role="dialog"
         aria-modal="true"
         aria-label={t('postDetail.dialogLabel')}

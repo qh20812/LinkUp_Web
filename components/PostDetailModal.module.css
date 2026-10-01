@@ -37,6 +37,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Bài chỉ có text: modal gọn theo nội dung thay vì phình bằng modal có media. */
+.modalNoMedia {
+  width: min(680px, 100%);
+  height: auto;
+  max-height: 92vh;
+}
+
 /* === Media pane (left) === */
 
 .mediaPane {
