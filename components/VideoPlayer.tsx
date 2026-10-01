@@ -20,6 +20,9 @@ export default function VideoPlayer({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // True khi user bấm pause thủ công → scroll quay lại không tự resume.
+  // Auto-pause do lướt qua không chạm ref này nên vẫn tự resume.
+  const userPausedRef = useRef(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [volume, setVolume] = useState(1)
@@ -53,10 +56,12 @@ export default function VideoPlayer({ src }: { src: string }) {
     const v = videoRef.current
     if (!v) return
     if (v.paused) {
-      v.play()
+      userPausedRef.current = false
+      v.play()?.catch?.(() => {})
       setPlaying(true)
       startHideTimer()
     } else {
+      userPausedRef.current = true
       v.pause()
       setPlaying(false)
       setShowControls(true)
@@ -198,14 +203,52 @@ export default function VideoPlayer({ src }: { src: string }) {
     if (!v) return
     const onTimeUpdate = () => setCurrentTime(v.currentTime)
     const onDurationChange = () => setDuration(v.duration || 0)
+    // Đồng bộ state khi video pause/play từ bên ngoài (observer, PiP, trình duyệt)
+    const onPlaySync = () => setPlaying(true)
+    const onPauseSync = () => setPlaying(false)
     v.addEventListener('timeupdate', onTimeUpdate)
     v.addEventListener('loadedmetadata', onDurationChange)
     v.addEventListener('durationchange', onDurationChange)
+    v.addEventListener('play', onPlaySync)
+    v.addEventListener('pause', onPauseSync)
     return () => {
       v.removeEventListener('timeupdate', onTimeUpdate)
       v.removeEventListener('loadedmetadata', onDurationChange)
       v.removeEventListener('durationchange', onDurationChange)
+      v.removeEventListener('play', onPlaySync)
+      v.removeEventListener('pause', onPauseSync)
     }
+  }, [])
+
+  // Tự pause khi lướt qua (out-of-view), tự resume khi lướt lại
+  // trừ khi user đã pause thủ công.
+  useEffect(() => {
+    const el = containerRef.current
+    const v = videoRef.current
+    if (!el || !v) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          if (!v.paused) v.pause()
+        } else if (!userPausedRef.current) {
+          if (v.paused) v.play()?.catch?.(() => {})
+        }
+      },
+      { threshold: 0.5 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  // Pause khi chuyển tab / ẩn trang
+  useEffect(() => {
+    const onHidden = () => {
+      const v = videoRef.current
+      if (document.hidden && v && !v.paused) v.pause()
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    return () => document.removeEventListener('visibilitychange', onHidden)
   }, [])
 
   useEffect(() => {
@@ -245,7 +288,8 @@ export default function VideoPlayer({ src }: { src: string }) {
         playsInline
         loop
         autoPlay
-        onPlay={() => setPlaying(true)}
+        onPlay={() => { userPausedRef.current = false; setPlaying(true) }}
+        onPause={() => setPlaying(false)}
         onError={() => setError(true)}
         className={styles.video}
         onClick={togglePlay}
