@@ -12,7 +12,7 @@ import { createPost } from '../api/posts'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
-import type { EmojiOption } from '../utils/emojifyi'
+import { isEmojifyiUrl, retryImgOnFail, type EmojiOption } from '../utils/emojifyi'
 import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
 
 interface CreatePostModalProps {
@@ -56,6 +56,11 @@ function escapeHtml(text: string): string {
 function contentToHtml(text: string, emojiByCode: Map<string, EmotionEmojiItem>): string {
   return escapeHtml(text)
     .replace(/\n/g, '<br>')
+    .replace(/https?:\/\/[^\s<]+/g, (url) =>
+      isEmojifyiUrl(url)
+        ? `<img class="emojiInline" src="${escapeHtml(url)}" alt="emoji" data-emoji="${escapeHtml(url)}">`
+        : url,
+    )
     .replace(/:[a-zA-Z0-9_+-]+:/g, (code) => {
       const emoji = emojiByCode.get(code)
       if (!emoji) return code
@@ -346,6 +351,7 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     img.alt = emoji.title || 'emoji'
     img.dataset.emoji = emoji.url
     img.className = 'emojiInline'
+    img.onerror = retryImgOnFail
     insertNodeAtCaret(el, img)
     setContent(serializeEmojiContent(el))
     setError(null)

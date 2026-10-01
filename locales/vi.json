@@ -253,6 +253,8 @@
     "gifClose": "Đóng",
     "emojiSearch": "Tìm biểu tượng cảm xúc...",
     "emojiEmpty": "Không tìm thấy biểu tượng cảm xúc",
+    "emojiError": "Không tải được emoji. Vui lòng thử lại.",
+    "emojiRateLimit": "Dịch vụ emoji đang giới hạn — thử lại sau {seconds} giây.",
     "emojiCat": {
       "positive": "Vui",
       "neutral": "Bình thường",

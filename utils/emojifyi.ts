@@ -66,6 +66,40 @@ export function isSingleEmojifyiUrl(text: string): boolean {
 
 // ===== Fetch =====
 
+/** API trả 429 (rate limit 60 req/phút) — ném ra để picker báo đúng ngữ cảnh. */
+export class EmojiRateLimitError extends Error {
+  /** Epoch ms hết hạn rate-limit. */
+  readonly until: number
+  constructor(until: number) {
+    super('EmojiFYI rate limited')
+    this.name = 'EmojiRateLimitError'
+    this.until = until
+  }
+}
+
+let rateLimitedUntil = 0
+
+/**
+ * onError cho ảnh emoji (CDN emojifyi có thể trả 429 khi dồn request).
+ * Retry tối đa 3 lần với delay tăng dần + jitter để né storm đồng pha;
+ * quá số lượt thì im lặng (giữ alt/broken icon).
+ */
+export function retryImgOnFail(e: unknown): void {
+  const target = (e as { currentTarget?: EventTarget | null } | null)?.currentTarget
+  if (!(target instanceof HTMLImageElement)) return
+  const img = target
+  const tries = Number(img.dataset.retry ?? '0')
+  if (tries >= 3) return
+  img.dataset.retry = String(tries + 1)
+  const base = img.dataset.src || img.src
+  img.dataset.src = base
+  const delay = 500 * 2 ** tries + Math.floor(Math.random() * 600)
+  window.setTimeout(() => {
+    if (!img.isConnected) return
+    img.src = `${base}${base.includes('?') ? '&' : '?'}retry=${tries + 1}`
+  }, delay)
+}
+
 interface SearchItem {
   character: string
   cldr_name: string
@@ -101,9 +135,16 @@ function toOption(r: SearchItem): EmojiOption {
 }
 
 async function emojifyiGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  if (Date.now() < rateLimitedUntil) throw new EmojiRateLimitError(rateLimitedUntil)
   const url = new URL(`${EMOJIFYI_API}${path}`)
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
   const res = await fetch(url.toString())
+  if (res.status === 429) {
+    const retryAfter = Number(res.headers.get('Retry-After'))
+    const seconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 60
+    rateLimitedUntil = Date.now() + seconds * 1000
+    throw new EmojiRateLimitError(rateLimitedUntil)
+  }
   if (!res.ok) throw new Error(`EmojiFYI ${res.status}`)
   return (await res.json()) as T
 }
@@ -198,4 +239,5 @@ export function clearEmojifyiCache(): void {
   browseItems = null
   browseSlugs = null
   browseCategoryIdx = 0
+  rateLimitedUntil = 0
 }

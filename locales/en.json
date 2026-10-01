@@ -253,6 +253,8 @@
     "gifClose": "Close",
     "emojiSearch": "Search emoji...",
     "emojiEmpty": "No emoji found",
+    "emojiError": "Couldn't load emoji. Please try again.",
+    "emojiRateLimit": "Emoji service is rate-limited — retry in {seconds}s.",
     "emojiCat": {
       "positive": "Happy",
       "neutral": "Neutral",

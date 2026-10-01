@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls, separateGiphyUrls } from '@/utils/giphy'
 import { emojifyiImageUrl, isEmojifyiUrl, isSingleEmojifyiUrl, stripEmojifyiUrls } from '@/utils/emojifyi'
 import { emojiSrc } from '@/utils/emojis'
-import { renderEmojiContent } from '@/components/messages/EmojiImage'
+import { renderEmojiContent, renderPostContent } from '@/components/messages/EmojiImage'
 import { serializeContent } from '@/components/messages/Composer'
 import { truncateAvoidingUrl } from '@/components/PostCard'
 import type { EmojiItem } from '@/types'
@@ -181,6 +181,71 @@ describe('renderEmojiContent', () => {
     expect(markup).toContain('<img')
     expect(markup).toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif"')
     expect(markup).toContain('abc')
+  })
+})
+
+describe('renderPostContent', () => {
+  const like: EmojiItem = { id: 'e1', code: ':like:', image_uri: 'https://media.giphy.com/media/like-id/200w.gif' }
+  const map = new Map<string, EmojiItem>([[':like:', like]])
+
+  test('renders emojifyi url as inline img (không hiện URL thô)', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderPostContent(`hi ${EMOJIFYI_URL} bye`, new Map(), 'k')}</>,
+    )
+    expect(markup).toContain('<img')
+    expect(markup).toContain(`src="${EMOJIFYI_URL}"`)
+    expect(markup).toContain('alt="emoji"')
+    expect(markup).not.toContain(`>https://cdn.emojifyi`)
+  })
+
+  test('renders giphy url as still img', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderPostContent(`hi ${GIPHY_URL} bye`, new Map(), 'k')}</>,
+    )
+    expect(markup).toContain('<img')
+    expect(markup).toContain('src="https://media.giphy.com/media/QM3VscCkwB54O6lSee/200w_s.gif"')
+  })
+
+  test('renders merged giphy urls (legacy content) as separate images', () => {
+    const url2 = 'https://media.giphy.com/media/adv74AcNdtP0tj9hLj/200w.gif'
+    const markup = renderToStaticMarkup(
+      <>{renderPostContent(`${GIPHY_URL}${url2}`, new Map(), 'k')}</>,
+    )
+    expect(markup.match(/<img/g) ?? []).toHaveLength(2)
+  })
+
+  test('keeps non-emoji urls as plain text', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderPostContent('see https://example.com/a.png', new Map(), 'k')}</>,
+    )
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain('https://example.com/a.png')
+  })
+
+  test('renders legacy :code: as emoji image when mapped', () => {
+    const markup = renderToStaticMarkup(<>{renderPostContent('go :like:', map, 'k')}</>)
+    expect(markup).toContain('<img')
+    expect(markup).toContain('src="https://media.giphy.com/media/like-id/200w.gif"')
+  })
+
+  test('keeps unknown :code: as plain text', () => {
+    const markup = renderToStaticMarkup(<>{renderPostContent('x :unknown:', map, 'k')}</>)
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain(':unknown:')
+  })
+
+  test('keeps #hashtag text (next/link được mock nên chỉ check nội dung)', () => {
+    const markup = renderToStaticMarkup(<>{renderPostContent('see #tag', new Map(), 'k')}</>)
+    expect(markup).toContain('#tag')
+    expect(markup).not.toContain('<img')
+  })
+
+  test('renders emojifyi + hashtag + code combined', () => {
+    const markup = renderToStaticMarkup(
+      <>{renderPostContent(`:like: #tag ${EMOJIFYI_URL2}`, map, 'k')}</>,
+    )
+    expect(markup.match(/<img/g) ?? []).toHaveLength(2)
+    expect(markup).toContain('#tag')
   })
 })
 

@@ -3,7 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import styles from './EmojiPicker.module.css'
 import { useTranslation } from '../hooks/useTranslation'
-import { fetchEmojifyiEmojis, type EmojiOption } from '../utils/emojifyi'
+import {
+  fetchEmojifyiEmojis,
+  EmojiRateLimitError,
+  retryImgOnFail,
+  type EmojiOption,
+} from '../utils/emojifyi'
 
 interface EmojiPickerProps {
   onSelect: (emoji: EmojiOption) => void
@@ -65,8 +70,15 @@ export default function EmojiPicker({
         offsetRef.current = offset + res.items.length
         setError(null)
       })
-      .catch(() => {
-        if (requestIdRef.current === id) setError(tRef.current('composer.gifError'))
+      .catch((err: unknown) => {
+        if (requestIdRef.current !== id) return
+        setError(
+          err instanceof EmojiRateLimitError
+            ? tRef.current('composer.emojiRateLimit', {
+                seconds: Math.max(1, Math.ceil((err.until - Date.now()) / 1000)),
+              })
+            : tRef.current('composer.emojiError'),
+        )
       })
       .finally(() => {
         if (requestIdRef.current === id) setLoading(false)
@@ -137,7 +149,13 @@ export default function EmojiPicker({
             aria-label={e.title}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={e.preview} alt={e.title} loading="lazy" decoding="async" />
+            <img
+              src={e.preview}
+              alt={e.title}
+              loading="lazy"
+              decoding="async"
+              onError={retryImgOnFail}
+            />
           </button>
         ))}
         {loading && !closed && (

@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
 import { isGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
-import { isEmojifyiUrl } from '../../utils/emojifyi'
+import { isEmojifyiUrl, retryImgOnFail } from '../../utils/emojifyi'
 import type { EmojiItem } from '../../types'
 import styles from './EmojiImage.module.css'
 
@@ -32,6 +32,45 @@ export function EmojiImage({ emoji, className }: EmojiImageProps) {
 const EMOJI_RE = /(:[a-z0-9+_-]+:)/gi
 const URL_RE = /(https?:\/\/[^\s]+)/gi
 
+/** Text segment → node: URL ảnh emoji (GIPHY cũ / emojifyi mới) render thành ảnh inline. */
+function renderTextSegments(part: string, keyPrefix: string, emojiClassName: string): ReactNode[] {
+  const segs = part.split(URL_RE)
+  const out: ReactNode[] = []
+  segs.forEach((seg, j) => {
+    if (!seg) return
+    if (j % 2 === 1 && isGiphyUrl(seg)) {
+      out.push(
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`${keyPrefix}-g${j}`}
+          src={giphyStillUrl(seg)}
+          alt="emoji"
+          className={emojiClassName || styles.inlineGiphy}
+          loading="lazy"
+          decoding="async"
+          onError={retryImgOnFail}
+        />,
+      )
+    } else if (j % 2 === 1 && isEmojifyiUrl(seg)) {
+      out.push(
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`${keyPrefix}-e${j}`}
+          src={seg}
+          alt="emoji"
+          className={emojiClassName || styles.inlineGiphy}
+          loading="lazy"
+          decoding="async"
+          onError={retryImgOnFail}
+        />,
+      )
+    } else {
+      out.push(seg)
+    }
+  })
+  return out
+}
+
 export function renderEmojiContent(
   content: string,
   map: Map<string, EmojiItem>,
@@ -50,38 +89,7 @@ export function renderEmojiContent(
         return
       }
     }
-    // Trong text thường, URL ảnh emoji (GIPHY cũ / emojifyi mới) render thành ảnh inline.
-    const segs = part.split(URL_RE)
-    segs.forEach((seg, j) => {
-      if (!seg) return
-      if (j % 2 === 1 && isGiphyUrl(seg)) {
-        out.push(
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={`${key}-g${j}`}
-            src={giphyStillUrl(seg)}
-            alt="emoji"
-            className={emojiClassName || styles.inlineGiphy}
-            loading="lazy"
-            decoding="async"
-          />,
-        )
-      } else if (j % 2 === 1 && isEmojifyiUrl(seg)) {
-        out.push(
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={`${key}-e${j}`}
-            src={seg}
-            alt="emoji"
-            className={emojiClassName || styles.inlineGiphy}
-            loading="lazy"
-            decoding="async"
-          />,
-        )
-      } else {
-        out.push(seg)
-      }
-    })
+    out.push(...renderTextSegments(part, key, emojiClassName))
   })
   return out
 }
@@ -95,17 +103,22 @@ export function renderPostContent(
   emojiClassName = '',
   hashtagClassName = '',
 ): ReactNode[] {
-  const parts = content.split(POST_TOKEN_RE)
-  return parts.map((part, i) => {
-    if (!part) return null
+  const parts = separateGiphyUrls(content).split(POST_TOKEN_RE)
+  const out: ReactNode[] = []
+  parts.forEach((part, i) => {
+    if (!part) return
     const key = `${keyPrefix}-${i}`
     if (part.startsWith(':') && part.endsWith(':')) {
       const emoji = map.get(part)
-      if (emoji) return <EmojiImage key={key} emoji={emoji} className={emojiClassName} />
-      return part
+      if (emoji) {
+        out.push(<EmojiImage key={key} emoji={emoji} className={emojiClassName} />)
+        return
+      }
+      out.push(part)
+      return
     }
     if (part.startsWith('#') && part.length > 1) {
-      return (
+      out.push(
         <Link
           key={key}
           href={`/search?q=${encodeURIComponent(part)}`}
@@ -113,9 +126,11 @@ export function renderPostContent(
           onClick={(e) => e.stopPropagation()}
         >
           {part}
-        </Link>
+        </Link>,
       )
+      return
     }
-    return part
+    out.push(...renderTextSegments(part, key, emojiClassName))
   })
+  return out
 }
