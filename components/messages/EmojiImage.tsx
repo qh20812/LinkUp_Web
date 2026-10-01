@@ -121,7 +121,7 @@ export function renderPostContent(
       out.push(
         <Link
           key={key}
-          href={`/search?q=${encodeURIComponent(part)}`}
+          href={`/hashtag/${encodeURIComponent(part.slice(1))}`}
           className={hashtagClassName}
           onClick={(e) => e.stopPropagation()}
         >

@@ -261,7 +261,7 @@ export default function RightSidebar() {
                     className={styles.dropdownItem}
                     onClick={() => {
                       setDropdownOpen(false)
-                      router.push(`/search?q=%23${encodeURIComponent(tag.name)}`)
+                      router.push(`/hashtag/${encodeURIComponent(tag.name)}`)
                     }}
                   >
                     <div className={styles.dropdownHashtagIcon}>
@@ -329,7 +329,7 @@ export default function RightSidebar() {
                   <li key={item.name}>
                     <button
                       className={styles.listItem}
-                      onClick={() => router.push(`/search?q=${item.name}`)}
+                      onClick={() => router.push(`/hashtag/${encodeURIComponent(item.name)}`)}
                     >
                       <span className={styles.hashTag}>#{item.name}</span>
                       <span className={styles.meta}>{formatCount(item.post_count)} {t('rightSidebar.posts')}</span>

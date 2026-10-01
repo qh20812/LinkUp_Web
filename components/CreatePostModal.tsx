@@ -9,11 +9,12 @@ import EmojiPicker from './EmojiPicker'
 import styles from './CreatePostModal.module.css'
 import { request } from '../api/api'
 import { createPost } from '../api/posts'
+import { search } from '../api/search'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
 import { isEmojifyiUrl, retryImgOnFail, type EmojiOption } from '../utils/emojifyi'
-import type { ViewProfileResponse, PostStatus, FeedPost, GifItem } from '../types'
+import type { ViewProfileResponse, PostStatus, FeedPost, GifItem, HashtagSearchResult } from '../types'
 
 interface CreatePostModalProps {
   open: boolean
@@ -130,6 +131,20 @@ const PRIVACY_OPTIONS: { value: PostStatus; icon: string; key: string }[] = [
   { value: 'private', icon: 'bx-lock-alt', key: 'composer.privacy.private' },
 ]
 
+// Hashtag đang gõ dở ngay trước caret (để gợi ý autocomplete).
+const TAG_QUERY_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]*)$/u
+
+function getCaretTagQuery(el: HTMLElement): string | null {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  const range = sel.getRangeAt(0)
+  if (!range.collapsed || !el.contains(range.commonAncestorContainer)) return null
+  const node = range.startContainer
+  if (node.nodeType !== Node.TEXT_NODE || !node.textContent) return null
+  const m = node.textContent.slice(0, range.startOffset).match(TAG_QUERY_RE)
+  return m ? m[1] : null
+}
+
 export default function CreatePostModal({ open, onClose, initialPicker }: CreatePostModalProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -148,6 +163,9 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   const [error, setError] = useState<string | null>(null)
   const [commentsDisabled, setCommentsDisabled] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
+  const [tagQuery, setTagQuery] = useState<string | null>(null)
+  const [tagSuggestions, setTagSuggestions] = useState<HashtagSearchResult[]>([])
+  const [tagHighlight, setTagHighlight] = useState(0)
 
   const privacyRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -211,6 +229,8 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     setError(null)
     setCommentsDisabled(false)
     setDraftRestored(false)
+    setTagQuery(null)
+    setTagSuggestions([])
   }, [])
 
   const writeDraft = useCallback(() => {
@@ -338,6 +358,73 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
     setContent(serializeEmojiContent(e.currentTarget))
     setError(null)
+    if (contentRef.current) setTagQuery(getCaretTagQuery(contentRef.current))
+  }
+
+  const updateTagQuery = useCallback(() => {
+    if (!contentRef.current) return
+    const q = getCaretTagQuery(contentRef.current)
+    setTagQuery(q)
+    if (q === null) setTagSuggestions([])
+  }, [])
+
+  // Gợi ý hashtag (debounce) theo query đang gõ.
+  useEffect(() => {
+    if (tagQuery === null || tagQuery.length === 0) return
+    const timer = setTimeout(() => {
+      search(`#${tagQuery}`, 'hashtags')
+        .then((res) => {
+          setTagSuggestions(res.hashtags ?? [])
+          setTagHighlight(0)
+        })
+        .catch(() => {})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [tagQuery])
+
+  const applyTagSuggestion = useCallback((name: string) => {
+    const el = contentRef.current
+    if (!el) return
+    el.focus()
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+    const range = sel.getRangeAt(0)
+    const node = range.startContainer
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent) return
+    const m = node.textContent.slice(0, range.startOffset).match(TAG_QUERY_RE)
+    if (!m) return
+    const hashIdx = range.startOffset - m[1].length - 1
+    const r = document.createRange()
+    r.setStart(node, hashIdx)
+    r.setEnd(node, range.startOffset)
+    r.deleteContents()
+    const text = document.createTextNode(`#${name} `)
+    r.insertNode(text)
+    r.setStartAfter(text)
+    r.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(r)
+    setContent(serializeEmojiContent(el))
+    setTagQuery(null)
+    setTagSuggestions([])
+    setError(null)
+  }, [])
+
+  const handleContentKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (tagQuery === null || tagSuggestions.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setTagHighlight((prev) => (prev + 1) % tagSuggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setTagHighlight((prev) => (prev - 1 + tagSuggestions.length) % tagSuggestions.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      applyTagSuggestion(tagSuggestions[tagHighlight].name)
+    } else if (e.key === 'Escape') {
+      setTagQuery(null)
+      setTagSuggestions([])
+    }
   }
 
   const insertEmoji = (emoji: EmojiOption) => {
@@ -480,7 +567,32 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
               data-placeholder={t('composer.contentPlaceholder')}
               className={styles.contentInput}
               onInput={handleContentChange}
+              onKeyUp={updateTagQuery}
+              onClick={updateTagQuery}
+              onKeyDown={handleContentKeyDown}
             />
+            {tagQuery !== null && tagSuggestions.length > 0 && (
+              <div className={styles.tagSuggest} role="listbox" aria-label="Hashtag">
+                {tagSuggestions.map((s, i) => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    role="option"
+                    aria-selected={i === tagHighlight}
+                    className={`${styles.tagSuggestItem}${i === tagHighlight ? ` ${styles.tagSuggestActive}` : ''}`}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      applyTagSuggestion(s.name)
+                    }}
+                    onMouseEnter={() => setTagHighlight(i)}
+                  >
+                    <i className="bx bx-hash" aria-hidden="true" />
+                    <span className={styles.tagSuggestName}>#{s.name}</span>
+                    <span className={styles.tagSuggestCount}>{s.post_count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {contentLength >= CHAR_WARN_AT && (
               <span
                 className={`${styles.charCount}${contentLength > CONTENT_MAX ? ` ${styles.charCountOver}` : ` ${styles.charCountWarn}`}`}

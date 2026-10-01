@@ -111,14 +111,17 @@ interface MediaGridProps {
 }
 
 function MediaGrid({ media, onMediaClick, burst }: MediaGridProps) {
-  if (media.length === 0) return null
-  const count = Math.min(media.length, 4)
+  // Server có thể trả media: null cho bài không có media (thay vì []) —
+  // chuẩn hóa để tránh crash khi đọc .length.
+  const items = media ?? []
+  if (items.length === 0) return null
+  const count = Math.min(items.length, 4)
   const gridClass = [styles.grid1, styles.grid2, styles.grid3, styles.grid4][count - 1] || styles.grid1
-  const extraCount = media.length - 4
+  const extraCount = items.length - 4
 
   return (
     <div className={`${styles.mediaGrid} ${gridClass}`} onClick={onMediaClick}>
-      {media.slice(0, 4).map((m, i) => (
+      {items.slice(0, 4).map((m, i) => (
         <MediaItem
           key={m.id}
           m={m}
@@ -158,7 +161,7 @@ function LazyMediaGrid({ media, onMediaClick, burst }: { media: FeedPost['media'
     return () => obs.disconnect()
   }, [])
 
-  if (media.length === 0) return null
+  if ((media ?? []).length === 0) return null
 
   if (!visible) {
     return <div ref={ref} className={styles.mediaSkeleton} />
@@ -381,7 +384,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
                 )}
               </p>
             )}
-            {post.shared_post.media.length > 0 && (
+            {(post.shared_post.media ?? []).length > 0 && (
               <MediaGrid media={post.shared_post.media} onMediaClick={navigateToPost} />
             )}
           </div>
@@ -406,7 +409,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
                 )}
               </div>
             )}
-            {!post.title && !post.content && post.media.length === 0 && (
+            {!post.title && !post.content && (post.media ?? []).length === 0 && (
               <p className={styles.emptyBody}>{t('post.noContent')}</p>
             )}
           </>

@@ -2104,5 +2104,12 @@
     "freeDescription": "Skip payment, activate the package instantly",
     "vnpay": "Pay with VNPay",
     "vnpayComingSoon": "Coming Soon"
+  },
+  "hashtag": {
+    "posts": "posts",
+    "empty": "No posts with this hashtag yet.",
+    "loadMore": "Load more",
+    "back": "Go back",
+    "error": "Failed to load posts."
   }
 }

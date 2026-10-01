@@ -232,7 +232,7 @@ function SearchContent() {
           <button
             key={tag.name}
             className={styles.hashtagItem}
-            onClick={() => router.push(`/search?q=%23${encodeURIComponent(tag.name)}`)}
+            onClick={() => router.push(`/hashtag/${encodeURIComponent(tag.name)}`)}
           >
             <div className={styles.hashtagIcon}>
               <i className="bx bx-hash" />

@@ -2094,5 +2094,12 @@
     "freeDescription": "Bỏ qua thanh toán, kích hoạt gói ngay",
     "vnpay": "Thanh toán qua VNPay",
     "vnpayComingSoon": "Sắp ra mắt"
+  },
+  "hashtag": {
+    "posts": "bài viết",
+    "empty": "Chưa có bài viết nào với hashtag này.",
+    "loadMore": "Xem thêm",
+    "back": "Quay lại",
+    "error": "Không thể tải bài viết."
   }
 }

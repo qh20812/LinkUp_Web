@@ -145,3 +145,12 @@ export const getUserMedia = (userID: string, page = 1, pageSize = 20) => {
   params.set('page_size', String(pageSize))
   return request<UserMediaResponse>(`/posts/user/${userID}/media?${params.toString()}`)
 }
+
+export const getPostsByHashtag = (name: string, page = 1, pageSize = 10) => {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('page_size', String(pageSize))
+  return request<{ hashtag: string; page: number; page_size: number; data: FeedPost[] }>(
+    `/posts/hashtag/${encodeURIComponent(name)}?${params.toString()}`,
+  )
+}
