@@ -1,8 +1,12 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect } from 'react'
+import { useTranslation } from '../hooks/useTranslation'
+import styles from './VideoPlayer.module.css'
 
 const HIDE_DELAY = 2500
+const SEEK_STEP = 10
+const SPEEDS = [0.5, 1, 1.25, 1.5, 2]
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00'
@@ -12,10 +16,15 @@ function formatTime(seconds: number): string {
 }
 
 export default function VideoPlayer({ src }: { src: string }) {
+  const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
+  const [volume, setVolume] = useState(1)
+  const [speed, setSpeed] = useState(1)
+  const [speedMenuOpen, setSpeedMenuOpen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const [pip, setPip] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -28,7 +37,10 @@ export default function VideoPlayer({ src }: { src: string }) {
 
   const startHideTimer = useCallback(() => {
     clearHideTimer()
-    hideTimerRef.current = setTimeout(() => setShowControls(false), HIDE_DELAY)
+    hideTimerRef.current = setTimeout(() => {
+      setShowControls(false)
+      setSpeedMenuOpen(false)
+    }, HIDE_DELAY)
   }, [clearHideTimer])
 
   const revealControls = useCallback(() => {
@@ -36,8 +48,8 @@ export default function VideoPlayer({ src }: { src: string }) {
     if (playing) startHideTimer()
   }, [playing, startHideTimer])
 
-  const togglePlay = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
+  const togglePlay = useCallback((e?: React.SyntheticEvent) => {
+    e?.stopPropagation()
     const v = videoRef.current
     if (!v) return
     if (v.paused) {
@@ -52,17 +64,50 @@ export default function VideoPlayer({ src }: { src: string }) {
     }
   }, [startHideTimer, clearHideTimer])
 
-  const toggleMute = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
+  const seekBy = useCallback((delta: number) => {
+    const v = videoRef.current
+    if (!v || !Number.isFinite(v.duration)) return
+    v.currentTime = Math.min(Math.max(0, v.currentTime + delta), v.duration || 0)
+    setCurrentTime(v.currentTime)
+  }, [])
+
+  const applyVolume = useCallback((next: number, nextMuted: boolean) => {
     const v = videoRef.current
     if (!v) return
-    v.muted = !v.muted
-    setMuted(v.muted)
+    v.volume = next
+    v.muted = nextMuted
+    setVolume(next)
+    setMuted(nextMuted)
+  }, [])
+
+  const toggleMute = useCallback((e?: React.SyntheticEvent) => {
+    e?.stopPropagation()
+    const v = videoRef.current
+    if (!v) return
+    if (v.muted || v.volume === 0) {
+      applyVolume(volume > 0 ? volume : 1, false)
+    } else {
+      applyVolume(v.volume, true)
+    }
+    if (playing) startHideTimer()
+  }, [applyVolume, playing, startHideTimer, volume])
+
+  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation()
+    applyVolume(Number(e.target.value), Number(e.target.value) === 0)
+    if (playing) startHideTimer()
+  }, [applyVolume, playing, startHideTimer])
+
+  const handleSpeedSelect = useCallback((next: number) => {
+    const v = videoRef.current
+    if (v) v.playbackRate = next
+    setSpeed(next)
+    setSpeedMenuOpen(false)
     if (playing) startHideTimer()
   }, [playing, startHideTimer])
 
-  const toggleFullscreen = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
+  const toggleFullscreen = useCallback((e?: React.SyntheticEvent) => {
+    e?.stopPropagation()
     const v = videoRef.current
     if (!v) return
     if (document.fullscreenElement) {
@@ -72,8 +117,8 @@ export default function VideoPlayer({ src }: { src: string }) {
     }
   }, [])
 
-  const togglePip = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
+  const togglePip = useCallback((e?: React.SyntheticEvent) => {
+    e?.stopPropagation()
     const v = videoRef.current
     if (!v) return
     if (document.pictureInPictureElement === v) {
@@ -105,6 +150,36 @@ export default function VideoPlayer({ src }: { src: string }) {
     seekTo(e.clientX, track)
   }, [seekTo])
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key.toLowerCase() === 'k') {
+      e.preventDefault()
+      togglePlay()
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      seekBy(SEEK_STEP)
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      seekBy(-SEEK_STEP)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const v = videoRef.current
+      if (v) applyVolume(Math.min(1, Math.round((v.volume + 0.1) * 100) / 100), false)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const v = videoRef.current
+      if (v) {
+        const next = Math.max(0, Math.round((v.volume - 0.1) * 100) / 100)
+        applyVolume(next, next === 0)
+      }
+    } else if (e.key.toLowerCase() === 'm') {
+      toggleMute()
+    } else if (e.key.toLowerCase() === 'f') {
+      toggleFullscreen()
+    } else if (e.key === 'Escape' && speedMenuOpen) {
+      setSpeedMenuOpen(false)
+    }
+  }, [togglePlay, seekBy, applyVolume, toggleMute, toggleFullscreen, speedMenuOpen])
+
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
@@ -134,6 +209,13 @@ export default function VideoPlayer({ src }: { src: string }) {
   }, [])
 
   useEffect(() => {
+    if (!speedMenuOpen) return
+    const close = () => setSpeedMenuOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [speedMenuOpen])
+
+  useEffect(() => {
     return () => clearHideTimer()
   }, [clearHideTimer])
 
@@ -141,16 +223,17 @@ export default function VideoPlayer({ src }: { src: string }) {
     startHideTimer()
   }, [startHideTimer])
 
+  const progress = duration ? (currentTime / duration) * 100 : 0
+  const volumeIcon = muted || volume === 0 ? 'bx-volume-mute' : volume < 0.5 ? 'bx-volume-low' : 'bx-volume-full'
+
   return (
     <div
-      className="videoPlayer"
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        background: '#000',
-      }}
+      ref={containerRef}
+      className={styles.player}
+      tabIndex={0}
+      role="region"
+      aria-label={t('video.label')}
+      onKeyDown={handleKeyDown}
       onMouseEnter={revealControls}
       onMouseMove={revealControls}
       onMouseLeave={() => { if (playing) startHideTimer() }}
@@ -164,236 +247,122 @@ export default function VideoPlayer({ src }: { src: string }) {
         autoPlay
         onPlay={() => setPlaying(true)}
         onError={() => setError(true)}
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        className={styles.video}
         onClick={togglePlay}
       />
 
       {error && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--color-bg-secondary)',
-            color: 'var(--color-text-secondary)',
-            fontSize: 14,
-          }}
-        >
-          <i className="bx bx-video-off" style={{ fontSize: 48, marginBottom: 8 }} />
-          <span>Video not available</span>
+        <div className={styles.error} role="alert">
+          <i className="bx bx-video-off" aria-hidden="true" />
+          <span>{t('video.unavailable')}</span>
         </div>
       )}
 
       {showControls && (
         <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            background: playing ? 'linear-gradient(transparent 60%, rgba(0,0,0,0.5))' : 'rgba(0,0,0,0.25)',
-            transition: 'opacity 0.2s',
-            cursor: 'pointer',
-          }}
+          className={`${styles.overlay} ${playing ? '' : styles.paused}`}
           onClick={togglePlay}
         >
           {!playing && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 28,
-                pointerEvents: 'none',
-              }}
-            >
+            <div className={styles.bigPlay} aria-hidden="true">
               <i className="bx bx-play" />
             </div>
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              width: '100%',
-              padding: '2px 10px',
-              boxSizing: 'border-box',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span style={{ color: '#fff', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-              {formatTime(currentTime)}
-            </span>
+          <div className={styles.seekRow} onClick={(e) => e.stopPropagation()}>
+            <span className={styles.time}>{formatTime(currentTime)}</span>
             <div
+              className={styles.seekTrack}
+              role="slider"
+              aria-label={t('video.seek')}
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration)}
+              aria-valuenow={Math.round(currentTime)}
+              aria-valuetext={`${formatTime(currentTime)} / ${formatTime(duration)}`}
+              tabIndex={0}
               onPointerDown={(e) => handleSeekPointer(e, e.currentTarget)}
-              style={{
-                flex: 1,
-                height: 16,
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                touchAction: 'none',
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); seekBy(5) }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); seekBy(-5) }
               }}
             >
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: 4,
-                  borderRadius: 2,
-                  background: 'rgba(255,255,255,0.3)',
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: '100%',
-                    borderRadius: 2,
-                    background: '#fff',
-                    width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                    transform: 'translate(-50%, -50%)',
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    background: '#fff',
-                  }}
-                />
+              <div className={styles.seekRail}>
+                <div className={styles.seekFill} style={{ width: `${progress}%` }} />
+                <div className={styles.seekThumb} style={{ left: `${progress}%` }} />
               </div>
             </div>
-            <span style={{ color: '#fff', fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-              {formatTime(duration)}
-            </span>
+            <span className={styles.time}>{formatTime(duration)}</span>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              padding: '4px 6px',
-              width: '100%',
-              boxSizing: 'border-box',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#fff',
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 6,
-                fontSize: 20,
-                opacity: 0.9,
-              }}
-              onClick={togglePlay}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-            >
-              <i className={`bx ${playing ? 'bx-pause' : 'bx-play'}`} />
+          <div className={styles.controlRow} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className={styles.btn} onClick={togglePlay} aria-label={playing ? t('video.pause') : t('video.play')} title={playing ? t('video.pause') : t('video.play')}>
+              <i className={`bx ${playing ? 'bx-pause' : 'bx-play'}`} aria-hidden="true" />
             </button>
 
-            <button
-              type="button"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#fff',
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 6,
-                fontSize: 20,
-                opacity: 0.9,
-              }}
-              onClick={toggleMute}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-            >
-              <i className={`bx ${muted ? 'bx-volume-mute' : 'bx-volume-full'}`} />
+            <button type="button" className={styles.btn} onClick={() => seekBy(-SEEK_STEP)} aria-label={t('video.rewind')} title={t('video.rewind')}>
+              <i className="bx bx-rotate-left" aria-hidden="true" />
+            </button>
+            <button type="button" className={styles.btn} onClick={() => seekBy(SEEK_STEP)} aria-label={t('video.forward')} title={t('video.forward')}>
+              <i className="bx bx-rotate-right" aria-hidden="true" />
             </button>
 
-            <div style={{ flex: 1 }} />
+            <div className={styles.volumeWrap}>
+              <button type="button" className={styles.btn} onClick={toggleMute} aria-label={muted ? t('video.unmute') : t('video.mute')} title={muted ? t('video.unmute') : t('video.mute')} aria-pressed={!muted}>
+                <i className={`bx ${volumeIcon}`} aria-hidden="true" />
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={muted ? 0 : volume}
+                onChange={handleVolumeChange}
+                onClick={(e) => e.stopPropagation()}
+                className={styles.volumeSlider}
+                aria-label={t('video.volume')}
+              />
+            </div>
 
-            {typeof document !== 'undefined' && document.pictureInPictureEnabled && (
+            <div className={styles.spacer} />
+
+            <div className={styles.speedWrap} onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  width: 36,
-                  height: 36,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 6,
-                  fontSize: 20,
-                  opacity: pip ? 1 : 0.9,
-                }}
-                onClick={togglePip}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                className={`${styles.btn} ${styles.speedBtn}`}
+                onClick={(e) => { e.stopPropagation(); setSpeedMenuOpen((v) => !v) }}
+                aria-label={t('video.speed')}
+                title={t('video.speed')}
+                aria-haspopup="menu"
+                aria-expanded={speedMenuOpen}
               >
-                <i className="bx bx-slideshow" />
+                {speed}x
+              </button>
+              {speedMenuOpen && (
+                <div className={styles.speedMenu} role="menu" aria-label={t('video.speed')}>
+                  {SPEEDS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={s === speed}
+                      className={`${styles.speedItem} ${s === speed ? styles.active : ''}`}
+                      onClick={() => handleSpeedSelect(s)}
+                    >
+                      {s}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {typeof document !== 'undefined' && document.pictureInPictureEnabled && (
+              <button type="button" className={`${styles.btn} ${pip ? styles.activeBtn : ''}`} onClick={togglePip} aria-label={t('video.pip')} title={t('video.pip')} aria-pressed={pip}>
+                <i className="bx bx-slideshow" aria-hidden="true" />
               </button>
             )}
 
-            <button
-              type="button"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#fff',
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 6,
-                fontSize: 20,
-                opacity: 0.9,
-              }}
-              onClick={toggleFullscreen}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-            >
-              <i className="bx bx-fullscreen" />
+            <button type="button" className={styles.btn} onClick={toggleFullscreen} aria-label={t('video.fullscreen')} title={t('video.fullscreen')}>
+              <i className="bx bx-fullscreen" aria-hidden="true" />
             </button>
           </div>
         </div>

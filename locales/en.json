@@ -198,6 +198,21 @@
     "copied": "Link copied",
     "commentsSkeletonLabel": "Loading comments"
   },
+  "video": {
+    "label": "Video player",
+    "play": "Play",
+    "pause": "Pause",
+    "rewind": "Rewind 10 seconds",
+    "forward": "Forward 10 seconds",
+    "seek": "Video seek bar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "volume": "Volume",
+    "speed": "Playback speed",
+    "pip": "Picture in picture",
+    "fullscreen": "Fullscreen",
+    "unavailable": "Video not available"
+  },
   "saved": {
     "title": "Saved Posts",
     "subtitle": "Posts you've saved to your bookmarks",

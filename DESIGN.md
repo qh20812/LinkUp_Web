@@ -798,6 +798,14 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 - **Never** hardcode red/pink values — always `--color-heart` tokens (dark mode override required)
 - **Empty post:** a post with no title, no content, **and** no media renders a single muted placeholder line (`post.noContent`, italic `--color-text-secondary`). Media-only posts show no annotation — the media is the content
 - **View count (owner-only):** the author's own posts replace the (formerly disabled) Save button in the right action cluster with an eye stat — `bx-show` icon + compact count (`post.viewCount`, uses the shared `formatCount`). Other users' posts keep the Save button unchanged. The modal stats row keeps showing views to everyone
+- **Video player (`components/VideoPlayer.tsx` + `VideoPlayer.module.css` — shared by PostCard media grid and Post Detail Modal carousel):**
+  - Control row (left → right): play/pause → rewind 10s (`bx-rotate-left`) → forward 10s (`bx-rotate-right`) → mute + volume slider → spacer → speed (`1x`) → PiP (`bx-slideshow`, only when `document.pictureInPictureEnabled`) → fullscreen (`bx-fullscreen`). Seek bar with current/total time sits above the row
+  - **Volume:** mute toggle + `input[type=range]` (`0…1`, step `0.05`); dragging sets `video.volume` and unmutes (0 = muted); mute button restores the previous volume. Slider reveals on hover/`focus-within`, always visible on coarse pointers
+  - **Speed menu:** popover above the `Nx` button with `0.5x / 1x / 1.25x / 1.5x / 2x` (`role="menu"` + `menuitemradio`); closes on outside click / Escape. No quality selector — backend stores a single `file_uri` per video (no renditions/HLS), so quality switching is out of scope
+  - **Keyboard:** container is `tabIndex=0` + `role="region"` (`video.label`); `Space/K` play-pause, `←/→` ∓10s, `↑/↓` volume ±0.1, `M` mute, `F` fullscreen, `Escape` closes the speed menu. Seek track is itself a `role="slider"` (`←/→` = ∓5s there) with `aria-valuetext "m:ss / m:ss"`
+  - **Chrome:** controls float on the dark video scrim, so glyphs stay white-on-dark in both themes (functional exception to the token rule); layout tokens (`--space-*`, `--radius-*`, `--color-primary-light` focus ring) still apply. Styles live in the CSS Module — never inline
+  - **i18n:** every label via `t('video.*')` (`label/play/pause/rewind/forward/seek/mute/unmute/volume/speed/pip/fullscreen/unavailable`) in both `locales/vi.json` and `locales/en.json`
+  - Auto-hide `2.5s` while playing; error state = `role="alert"` with `video.unavailable`
 
 **Post Detail Modal (`components/PostDetailModal.tsx`):**
 

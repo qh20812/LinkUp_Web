@@ -198,6 +198,21 @@
     "copied": "Đã sao chép liên kết",
     "commentsSkeletonLabel": "Đang tải bình luận"
   },
+  "video": {
+    "label": "Trình phát video",
+    "play": "Phát",
+    "pause": "Tạm dừng",
+    "rewind": "Tua lại 10 giây",
+    "forward": "Tua tới 10 giây",
+    "seek": "Thanh thời gian video",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "volume": "Âm lượng",
+    "speed": "Tốc độ phát",
+    "pip": "Ảnh trong ảnh",
+    "fullscreen": "Toàn màn hình",
+    "unavailable": "Video không khả dụng"
+  },
   "saved": {
     "title": "Bài viết đã lưu",
     "subtitle": "Danh sách bài viết bạn đã lưu vào mục Bookmark",
