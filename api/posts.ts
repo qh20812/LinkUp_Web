@@ -22,6 +22,20 @@ export const getFeedPosts = (cursor: string | null, pageSize = 10, filter?: stri
 export const getPostDetail = (postId: string) =>
   request<{ data: FeedPost }>(`/posts/${postId}`)
 
+// Dedup phía client: mỗi post chỉ báo impression 1 lần mỗi lần tải trang
+// (server dedup tiếp 1 user/post/ngày).
+const reportedPostViews = new Set<string>()
+
+export const trackPostView = (postId: string, source: 'feed' | 'detail' = 'feed') => {
+  const key = `${source}:${postId}`
+  if (reportedPostViews.has(key)) return Promise.resolve({ counted: false })
+  reportedPostViews.add(key)
+  return request<{ counted: boolean }>(`/posts/${postId}/view`, {
+    method: 'POST',
+    body: JSON.stringify({ source }),
+  }).catch(() => ({ counted: false }))
+}
+
 export const getComments = (postId: string, page = 1, pageSize = 10, sort: string = 'newest') => {
   const params = new URLSearchParams()
   params.set('page', String(page))

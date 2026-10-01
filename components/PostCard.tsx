@@ -10,6 +10,7 @@ import { separateGiphyUrls } from '../utils/giphy'
 import styles from './PostCard.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
+import { trackPostView } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
 import ShareModal from './messages/ShareModal'
 import type { FeedPost } from '../types'
@@ -34,6 +35,11 @@ function formatRelativeTime(dateStr: string, t: (key: string) => string): string
 }
 
 const CONTENT_TRUNCATE_LENGTH = 200
+
+// Ngưỡng impression chuẩn viewable (theo X/MRC cho video):
+// bài hiện ≥50% trong viewport liên tục 2s mới tính 1 view.
+const IMPRESSION_THRESHOLD = 0.5
+const IMPRESSION_MIN_TIME_MS = 2000
 
 /** Cắt nội dung dài, không cắt giữa URL (URL GIPHY bị cắt dở sẽ hỏng ảnh). */
 export function truncateAvoidingUrl(content: string, max: number): string {
@@ -173,6 +179,35 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const prevLikedRef = useRef(post.is_liked)
   const lastTapRef = useRef(0)
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cardRef = useRef<HTMLElement>(null)
+
+  // Báo impression khi bài hiển thị đủ ngưỡng trên feed (khách vãng lai không tính).
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    if (!getTokenPayload()?.user_id) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (timer === undefined) {
+            timer = setTimeout(() => {
+              trackPostView(post.id, 'feed')
+            }, IMPRESSION_MIN_TIME_MS)
+          }
+        } else if (timer !== undefined) {
+          clearTimeout(timer)
+          timer = undefined
+        }
+      },
+      { threshold: IMPRESSION_THRESHOLD },
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }, [post.id])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -258,7 +293,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const isOwn = post.user_id === currentUserId
 
   return (
-    <article className={styles.card}>
+    <article ref={cardRef} className={styles.card}>
       <div className={styles.header}>
         <Link href={`/profile/${post.user_id}`} className={styles.author} onClick={(e) => e.stopPropagation()}>
           <div className={styles.avatar}>
