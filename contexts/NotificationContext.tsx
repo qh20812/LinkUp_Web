@@ -16,6 +16,7 @@ import type {
 import {
   getUnreadCount,
   getNotifications,
+  getSummary,
   markAsRead as apiMarkAsRead,
   markAllAsRead as apiMarkAllAsRead,
   getPreferences,
@@ -81,6 +82,17 @@ export function NotificationProvider({
       setNotifications(groupNotifications(res.data));
     } catch (err) {
       console.error("Failed to fetch notifications dropdown:", err);
+    }
+  }, []);
+
+  // Poll gộp: 1 request lấy cả count + preview (server: /summary).
+  const refreshSummary = useCallback(async () => {
+    try {
+      const res = await getSummary();
+      setUnreadCount(res.count);
+      setNotifications(groupNotifications(res.preview ?? []));
+    } catch (err) {
+      console.error("Failed to refresh notification summary:", err);
     }
   }, []);
 
@@ -237,21 +249,30 @@ export function NotificationProvider({
     initData();
     connectWS();
 
+    // Backup poll: WS là kênh realtime chính, poll chỉ để vỡ lỡ frame.
+    // - 60s thay vì 30s, 1 request gộp (/summary) thay vì 2.
+    // - Bỏ qua khi tab ẩn (background tab chiếm đa số, poll là vô ích).
     const pollInterval = setInterval(() => {
-      if (isComponentMounted) {
-        refreshUnreadCount().catch(() => {});
-        fetchDropdownNotifications().catch(() => {});
+      if (isComponentMounted && document.visibilityState === "visible") {
+        refreshSummary().catch(() => {});
       }
-    }, 30000);
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (!isComponentMounted || document.visibilityState !== "visible") return;
+      refreshSummary().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       isComponentMounted = false;
       clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [refreshUnreadCount, fetchDropdownNotifications]);
+  }, [refreshUnreadCount, fetchDropdownNotifications, refreshSummary]);
 
   return (
     <NotificationContext.Provider

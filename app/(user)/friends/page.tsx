@@ -14,6 +14,7 @@ import {
   rejectFriendRequest,
   unfriend,
 } from '../../../api/friends'
+import { createDirectChat } from '../../../api/chats'
 import type {
   FriendUser,
   FriendSuggestionUser,
@@ -39,6 +40,22 @@ export default function FriendsPage() {
     <Suspense fallback={<div className={styles.page} />}>
       <FriendsContent />
     </Suspense>
+  )
+}
+
+function SkeletonList({ count = 5 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={styles.skeletonItem} aria-hidden>
+          <div className={styles.skeletonAvatar} />
+          <div className={styles.skeletonContent}>
+            <div className={styles.skeletonLine} />
+            <div className={styles.skeletonLineShort} />
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -80,6 +97,9 @@ function FriendsContent() {
 
   const [unfriendTarget, setUnfriendTarget] = useState<FriendUser | null>(null)
   const [unfriending, setUnfriending] = useState(false)
+
+  const [query, setQuery] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const loadRequests = useCallback(async () => {
     if (requestsLoadingRef.current) return
@@ -147,10 +167,9 @@ function FriendsContent() {
   }, [t])
 
   useEffect(() => {
-    if (mainTab !== 'requests') return
     const id = requestAnimationFrame(() => loadRequests())
     return () => cancelAnimationFrame(id)
-  }, [mainTab, loadRequests])
+  }, [loadRequests])
 
   useEffect(() => {
     if (mainTab === 'suggestions') loadSuggestions()
@@ -193,6 +212,43 @@ function FriendsContent() {
       return () => observer.disconnect()
     }
   }, [mainTab, friendsHasMore, loadFriends])
+
+  useEffect(() => {
+    if (!openMenuId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenuId(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [openMenuId])
+
+  const [retryRequests, setRetryRequests] = useState(0)
+  const [retrySuggestions, setRetrySuggestions] = useState(0)
+  const [retryFriends, setRetryFriends] = useState(0)
+
+  useEffect(() => {
+    if (retryRequests === 0) return
+    const id = requestAnimationFrame(() => loadRequests())
+    return () => cancelAnimationFrame(id)
+  }, [retryRequests, loadRequests])
+
+  useEffect(() => {
+    if (retrySuggestions === 0) return
+    const id = requestAnimationFrame(() => {
+      suggestionsPageRef.current = 0
+      loadSuggestions()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [retrySuggestions, loadSuggestions])
+
+  useEffect(() => {
+    if (retryFriends === 0) return
+    const id = requestAnimationFrame(() => {
+      friendsPageRef.current = 0
+      loadFriends()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [retryFriends, loadFriends])
 
   const runAction = useCallback(
     async (fn: Promise<unknown>, onSuccess: () => void, successMsg: string) => {
@@ -250,7 +306,21 @@ function FriendsContent() {
     )
   }
 
+  const handleMessage = async (user: FriendUser) => {
+    setOpenMenuId(null)
+    try {
+      const res = await createDirectChat(user.user_id)
+      router.push(`/messages?chat_id=${encodeURIComponent(res.chat_id)}`)
+    } catch (err) {
+      toast({
+        type: 'error',
+        title: err instanceof Error ? err.message : t('common.error'),
+      })
+    }
+  }
+
   const handleUnfriend = (user: FriendUser) => {
+    setOpenMenuId(null)
     setUnfriendTarget(user)
   }
 
@@ -269,6 +339,24 @@ function FriendsContent() {
     }
   }
 
+  const formatTime = (dateStr: string): string => {
+    if (!dateStr) return ''
+    const now = new Date()
+    const past = new Date(dateStr)
+    if (Number.isNaN(past.getTime())) return ''
+    const diffMs = now.getTime() - past.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return t('notifications.justNow')
+    if (diffMins < 60)
+      return t('notifications.minutesAgo').replace('{minutes}', String(diffMins))
+    if (diffHours < 24)
+      return t('notifications.hoursAgo').replace('{hours}', String(diffHours))
+    return t('notifications.daysAgo').replace('{days}', String(diffDays))
+  }
+
   if (initializing) {
     return <div className={styles.page} />
   }
@@ -278,76 +366,112 @@ function FriendsContent() {
     return <div className={styles.page} />
   }
 
+  const visibleFriends = friends.filter((f) =>
+    f.display_name.toLowerCase().includes(query.trim().toLowerCase()),
+  )
+
+  const renderEmpty = (
+    icon: string,
+    titleKey: string,
+    hintKey: string,
+    cta?: { labelKey: string; href: string },
+  ) => (
+    <div className={styles.empty}>
+      <span className={styles.emptyIcon}>
+        <i className={`bx ${icon}`} aria-hidden />
+      </span>
+      <p className={styles.emptyTitle}>{t(titleKey)}</p>
+      <p className={styles.emptyHint}>{t(hintKey)}</p>
+      {cta && (
+        <div className={styles.emptyActions}>
+          <Link href={cta.href} className={styles.emptyPrimary}>
+            {t(cta.labelKey)}
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderError = (message: string, onRetry: () => void) => (
+    <div className={styles.errorBox} role="alert">
+      <i className="bx bx-error-circle" aria-hidden />
+      <p>{message}</p>
+      <button type="button" className={styles.retryBtn} onClick={onRetry}>
+        {t('common.retry') || 'Thử lại'}
+      </button>
+    </div>
+  )
+
   const renderRequests = () => {
     const items = subTab === 'received' ? received : sent
     if (requestsLoading) {
       return (
-        <div className={styles.center}>
-          <i className="bx bx-loader-circle bx-spin" />
-          <span>{t('common.loading')}</span>
+        <div className={styles.cardList}>
+          <SkeletonList />
         </div>
       )
     }
     if (requestsError && items.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-error-circle" />
-          <p>{requestsError}</p>
-          <button className={styles.retryBtn} onClick={loadRequests}>
-            {t('common.retry') || 'Thử lại'}
-          </button>
-        </div>
-      )
+      return renderError(requestsError, () => setRetryRequests((c) => c + 1))
     }
     if (items.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-user-x" />
-          <p>{subTab === 'received' ? t('friends.emptyReceived') : t('friends.emptySent')}</p>
-        </div>
+      return renderEmpty(
+        'bx-user-x',
+        subTab === 'received' ? 'friends.emptyReceived' : 'friends.emptySent',
+        subTab === 'received' ? 'friends.emptyHintReceived' : 'friends.emptyHintSent',
+        subTab === 'received'
+          ? { labelKey: 'friends.viewSuggestions', href: '/friends?mainTab=suggestions' }
+          : undefined,
       )
     }
     return (
       <div className={styles.cardList}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`${styles.card} ${styles.cardLink}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => router.push(`/profile/${item.user_id}`)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                router.push(`/profile/${item.user_id}`)
-              }
-            }}
-          >
-            <div className={styles.cardAvatar}>
-              {item.avatar_uri ? <ExternalImage src={item.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+        {items.map((item, i) => {
+          const time = formatTime(item.created_at)
+          return (
+            <div
+              key={item.id || item.user_id}
+              className={`${styles.card} ${styles.cardLink}`}
+              style={{ '--index': i } as React.CSSProperties}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/profile/${item.user_id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  router.push(`/profile/${item.user_id}`)
+                }
+              }}
+            >
+              <div className={styles.cardAvatar}>
+                {item.avatar_uri ? <ExternalImage src={item.avatar_uri} alt="" /> : <i className="bx bxs-user" aria-hidden />}
+              </div>
+              <div className={styles.cardMeta}>
+                <span className={styles.cardName}>{item.display_name}</span>
+                {time && <span className={styles.cardSub}>{time}</span>}
+              </div>
+              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                {subTab === 'received' ? (
+                  <>
+                    <button className={styles.primaryBtn} onClick={() => handleAccept(item)}>
+                      <i className="bx bx-check" aria-hidden />
+                      {t('friends.accept')}
+                    </button>
+                    <button className={styles.ghostBtn} onClick={() => handleReject(item)}>
+                      <i className="bx bx-x" aria-hidden />
+                      {t('friends.reject')}
+                    </button>
+                  </>
+                ) : (
+                  <button className={styles.ghostBtn} onClick={() => handleRevoke(item)}>
+                    <i className="bx bx-undo" aria-hidden />
+                    {t('friends.revoke')}
+                  </button>
+                )}
+              </div>
             </div>
-            <span className={styles.cardName}>{item.display_name}</span>
-            {subTab === 'received' ? (
-              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                <button className={styles.primaryBtn} onClick={() => handleAccept(item)}>
-                  <i className="bx bx-check" />
-                  {t('friends.accept')}
-                </button>
-                <button className={styles.ghostBtn} onClick={() => handleReject(item)}>
-                  <i className="bx bx-x" />
-                  {t('friends.reject')}
-                </button>
-              </div>
-            ) : (
-              <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                <button className={styles.ghostBtn} onClick={() => handleRevoke(item)}>
-                  <i className="bx bx-undo" />
-                  {t('friends.revoke')}
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     )
   }
@@ -355,38 +479,30 @@ function FriendsContent() {
   const renderSuggestions = () => {
     if (suggestionsInitial) {
       return (
-        <div className={styles.center}>
-          <i className="bx bx-loader-circle bx-spin" />
-          <span>{t('common.loading')}</span>
+        <div className={styles.cardList}>
+          <SkeletonList />
         </div>
       )
     }
     if (suggestionsError && suggestions.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-error-circle" />
-          <p>{suggestionsError}</p>
-          <button className={styles.retryBtn} onClick={() => { suggestionsPageRef.current = 0; loadSuggestions() }}>
-            {t('common.retry') || 'Thử lại'}
-          </button>
-        </div>
-      )
+      return renderError(suggestionsError, () => setRetrySuggestions((c) => c + 1))
     }
     if (suggestions.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-user-plus" />
-          <p>{t('friends.emptySuggestions')}</p>
-        </div>
+      return renderEmpty(
+        'bx-user-plus',
+        'friends.emptySuggestions',
+        'friends.emptyHintSuggestions',
+        { labelKey: 'friends.viewSuggestions', href: '/friends?mainTab=list' },
       )
     }
     return (
       <>
         <div className={styles.cardList}>
-          {suggestions.map((user) => (
+          {suggestions.map((user, i) => (
             <div
               key={user.user_id}
               className={`${styles.card} ${styles.cardLink}`}
+              style={{ '--index': i % 20 } as React.CSSProperties}
               role="button"
               tabIndex={0}
               onClick={() => router.push(`/profile/${user.user_id}`)}
@@ -398,7 +514,7 @@ function FriendsContent() {
               }}
             >
               <div className={styles.cardAvatar}>
-                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" aria-hidden />}
               </div>
               <div className={styles.cardMeta}>
                 <span className={styles.cardName}>{user.display_name}</span>
@@ -417,12 +533,12 @@ function FriendsContent() {
               <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                 {user._friendStatus === 'sent' ? (
                   <button className={`${styles.primaryBtn} ${styles.btnDisabled}`} disabled>
-                    <i className="bx bx-check" />
+                    <i className="bx bx-check" aria-hidden />
                     {t('friends.sent')}
                   </button>
                 ) : (
                   <button className={styles.primaryBtn} onClick={() => handleAddFriend(user)}>
-                    <i className="bx bx-user-plus" />
+                    <i className="bx bx-user-plus" aria-hidden />
                     {t('friends.addFriend')}
                   </button>
                 )}
@@ -431,15 +547,13 @@ function FriendsContent() {
           ))}
         </div>
         {suggestionsLoading && (
-          <div className={styles.loadingMore}>
-            <i className="bx bx-loader-circle bx-spin" />
-            <span>{t('common.loading')}</span>
+          <div className={styles.cardList}>
+            <SkeletonList count={2} />
           </div>
         )}
         {!suggestionsHasMore && suggestions.length > 0 && (
           <div className={styles.endMessage}>{t('friends.end')}</div>
         )}
-        <div ref={suggestionsSentinelRef} className={styles.sentinel} />
       </>
     )
   }
@@ -447,38 +561,40 @@ function FriendsContent() {
   const renderFriends = () => {
     if (friendsInitial) {
       return (
-        <div className={styles.center}>
-          <i className="bx bx-loader-circle bx-spin" />
-          <span>{t('common.loading')}</span>
+        <div className={styles.cardList}>
+          <SkeletonList />
         </div>
       )
     }
     if (friendsError && friends.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-error-circle" />
-          <p>{friendsError}</p>
-          <button className={styles.retryBtn} onClick={() => { friendsPageRef.current = 0; loadFriends() }}>
-            {t('common.retry') || 'Thử lại'}
-          </button>
-        </div>
-      )
+      return renderError(friendsError, () => setRetryFriends((c) => c + 1))
     }
     if (friends.length === 0) {
-      return (
-        <div className={styles.empty}>
-          <i className="bx bx-group" />
-          <p>{t('friends.emptyList')}</p>
-        </div>
+      return renderEmpty(
+        'bx-group',
+        'friends.emptyList',
+        'friends.emptyHintList',
+        { labelKey: 'friends.viewSuggestions', href: '/friends?mainTab=suggestions' },
+      )
+    }
+    if (visibleFriends.length === 0) {
+      return renderEmpty(
+        'bx-search-alt',
+        'friends.noSearchResult',
+        'friends.noSearchResultHint',
       )
     }
     return (
       <>
+        <div className={styles.listMeta}>
+          {t('friends.listCount').replace('{count}', String(visibleFriends.length))}
+        </div>
         <div className={styles.cardList}>
-          {friends.map((user) => (
+          {visibleFriends.map((user, i) => (
             <div
               key={user.user_id}
               className={`${styles.card} ${styles.cardLink}`}
+              style={{ '--index': i % 20 } as React.CSSProperties}
               role="button"
               tabIndex={0}
               onClick={() => router.push(`/profile/${user.user_id}`)}
@@ -490,81 +606,160 @@ function FriendsContent() {
               }}
             >
               <div className={styles.cardAvatar}>
-                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" />}
+                {user.avatar_uri ? <ExternalImage src={user.avatar_uri} alt="" /> : <i className="bx bxs-user" aria-hidden />}
               </div>
               <span className={styles.cardName}>{user.display_name}</span>
               <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                <button className={styles.dangerBtn} onClick={() => handleUnfriend(user)}>
-                  <i className="bx bx-user-x" />
-                  {t('friends.unfriend')}
-                </button>
+                <div className={styles.menuWrap}>
+                  <button
+                    type="button"
+                    className={styles.menuBtn}
+                    aria-label={t('common.actions')}
+                    aria-expanded={openMenuId === user.user_id}
+                    aria-haspopup="menu"
+                    onClick={() => setOpenMenuId((prev) => (prev === user.user_id ? null : user.user_id))}>
+                    <i className="bx bx-dots-horizontal-rounded" aria-hidden />
+                  </button>
+                  {openMenuId === user.user_id && (
+                    <>
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        aria-hidden
+                        className={styles.menuBackdrop}
+                        onClick={() => setOpenMenuId(null)}
+                      />
+                      <div className={styles.menu} role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.menuItem}
+                        onClick={() => { setOpenMenuId(null); router.push(`/profile/${user.user_id}`) }}>
+                        <i className="bx bx-user" aria-hidden />
+                        {t('sidebar.profile')}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={styles.menuItem}
+                        onClick={() => handleMessage(user)}>
+                        <i className="bx bx-message-rounded" aria-hidden />
+                        {t('sidebar.messages')}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`${styles.menuItem} ${styles.menuDanger}`}
+                        onClick={() => handleUnfriend(user)}>
+                        <i className="bx bx-user-x" aria-hidden />
+                        {t('friends.unfriend')}
+                      </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
         {friendsLoading && (
-          <div className={styles.loadingMore}>
-            <i className="bx bx-loader-circle bx-spin" />
-            <span>{t('common.loading')}</span>
+          <div className={styles.cardList}>
+            <SkeletonList count={2} />
           </div>
         )}
-        {!friendsHasMore && friends.length > 0 && (
+        {!friendsHasMore && visibleFriends.length > 0 && (
           <div className={styles.endMessage}>{t('friends.end')}</div>
         )}
-        <div ref={friendsSentinelRef} className={styles.sentinel} />
       </>
     )
   }
 
   return (
     <div className={styles.page}>
-      <div className={styles.tabs}>
-        <Link
-          href="/friends"
-          className={`${styles.tab} ${mainTab === 'requests' ? styles.tabActive : ''}`}
-        >
-          <i className="bx bxs-user-detail" />
-          {t('friends.tabRequests')}
-          {received.length > 0 && <span className={styles.badge}>{Math.min(received.length, MAX_REQUESTS)}</span>}
-        </Link>
-        <Link
-          href="/friends?mainTab=suggestions"
-          className={`${styles.tab} ${mainTab === 'suggestions' ? styles.tabActive : ''}`}
-        >
-          <i className="bx bxs-user-plus" />
-          {t('friends.tabSuggestions')}
-        </Link>
-        <Link
-          href="/friends?mainTab=list"
-          className={`${styles.tab} ${mainTab === 'list' ? styles.tabActive : ''}`}
-        >
-          <i className="bx bxs-group" />
-          {t('friends.tabList')}
-        </Link>
+      <h1 className={styles.srOnly}>{t('friends.title')}</h1>
+      <div className={styles.toolbar}>
+        <div className={styles.segmented} role="tablist" aria-label={t('friends.title')}>
+          <Link
+            href="/friends"
+            role="tab"
+            aria-selected={mainTab === 'requests'}
+            className={`${styles.segment} ${mainTab === 'requests' ? styles.segmentActive : ''}`}
+          >
+            <i className="bx bxs-user-detail" aria-hidden />
+            {t('friends.tabRequests')}
+            {received.length > 0 && <span className={styles.badge}>{Math.min(received.length, MAX_REQUESTS)}</span>}
+          </Link>
+          <Link
+            href="/friends?mainTab=suggestions"
+            role="tab"
+            aria-selected={mainTab === 'suggestions'}
+            className={`${styles.segment} ${mainTab === 'suggestions' ? styles.segmentActive : ''}`}
+          >
+            <i className="bx bxs-user-plus" aria-hidden />
+            {t('friends.tabSuggestions')}
+          </Link>
+          <Link
+            href="/friends?mainTab=list"
+            role="tab"
+            aria-selected={mainTab === 'list'}
+            className={`${styles.segment} ${mainTab === 'list' ? styles.segmentActive : ''}`}
+          >
+            <i className="bx bxs-group" aria-hidden />
+            {t('friends.tabList')}
+          </Link>
+        </div>
+        {mainTab === 'list' && (
+          <div className={styles.searchBox}>
+            <i className="bx bx-search" aria-hidden />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('friends.searchPlaceholder')}
+              aria-label={t('friends.searchPlaceholder')}
+              className={styles.searchInput}
+            />
+            {query && (
+              <button
+                type="button"
+                className={styles.searchClear}
+                onClick={() => setQuery('')}
+                aria-label={t('common.close')}>
+                <i className="bx bx-x" aria-hidden />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {mainTab === 'requests' && (
-        <>
-          <div className={styles.subTabs}>
-            <Link
-              href="/friends"
-              className={`${styles.subTab} ${subTab === 'received' ? styles.subTabActive : ''}`}
-            >
-              {t('friends.tabReceived')}
-            </Link>
-            <Link
-              href="/friends?mainTab=requests&subTab=sent"
-              className={`${styles.subTab} ${subTab === 'sent' ? styles.subTabActive : ''}`}
-            >
-              {t('friends.tabSent')}
-            </Link>
-          </div>
-          {renderRequests()}
-        </>
+        <div className={styles.chips} role="toolbar" aria-label={t('friends.tabRequests')}>
+          <Link
+            href="/friends"
+            aria-pressed={subTab === 'received'}
+            className={`${styles.chip} ${subTab === 'received' ? styles.chipActive : ''}`}
+          >
+            {t('friends.tabReceived')}
+          </Link>
+          <Link
+            href="/friends?mainTab=requests&subTab=sent"
+            aria-pressed={subTab === 'sent'}
+            className={`${styles.chip} ${subTab === 'sent' ? styles.chipActive : ''}`}
+          >
+            {t('friends.tabSent')}
+          </Link>
+        </div>
       )}
 
+      {mainTab === 'requests' && renderRequests()}
       {mainTab === 'suggestions' && renderSuggestions()}
       {mainTab === 'list' && renderFriends()}
+      {mainTab === 'suggestions' && suggestionsHasMore && (
+        <div ref={suggestionsSentinelRef} className={styles.sentinel} />
+      )}
+      {mainTab === 'list' && friendsHasMore && (
+        <div ref={friendsSentinelRef} className={styles.sentinel} />
+      )}
 
       <Modal
         open={unfriendTarget !== null}

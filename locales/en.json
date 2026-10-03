@@ -248,6 +248,15 @@
     "emptySent": "You haven't sent any friend requests.",
     "emptySuggestions": "No friend suggestions.",
     "emptyList": "You have no friends yet.",
+    "emptyHintReceived": "When someone sends you a request, they'll show up here.",
+    "emptyHintSent": "Invites you've sent will show up here.",
+    "emptyHintSuggestions": "No suggestions right now — check back later.",
+    "emptyHintList": "Add friends to see their feed and chat together.",
+    "viewSuggestions": "See friend suggestions",
+    "searchPlaceholder": "Search friends...",
+    "listCount": "{count} friends",
+    "noSearchResult": "No matching friends.",
+    "noSearchResultHint": "Try a different name.",
     "end": "You've seen it all."
   },
   "composer": {

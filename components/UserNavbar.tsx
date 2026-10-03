@@ -32,7 +32,9 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
       '/messages': 'sidebar.messages',
     }[pathname]
   })()
+  const isProfilePage = pathname === '/profile' || pathname.startsWith('/profile/')
   const isDetail = !showTabs && !pageTitleKey
+  const showBack = isDetail || isProfilePage
   const [query, setQuery] = useState('')
 
   const handleBack = () => {
@@ -65,7 +67,7 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
         <i className={`bx ${leftOpen ? 'bx-x' : 'bx-menu'}`} />
       </button>
 
-      {isDetail && (
+      {showBack && (
         <button
           type="button"
           className={styles.backButton}

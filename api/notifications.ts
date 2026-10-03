@@ -1,5 +1,6 @@
 import { request } from "./api";
 import type {
+  NotificationItem,
   NotificationListResponse,
   NotificationPreferences,
 } from "../types";
@@ -25,6 +26,12 @@ export const markAllAsRead = () =>
 
 export const getUnreadCount = () =>
   request<{ count: number }>("/notifications/unread-count");
+
+// Gộp count + 5 tin mới nhất cho dropdown poll: 1 round-trip thay vì 2.
+export const getSummary = () =>
+  request<{ count: number; preview: NotificationItem[] }>(
+    "/notifications/summary"
+  );
 
 export const getPreferences = () =>
   request<{ data: NotificationPreferences }>("/notifications/preferences");

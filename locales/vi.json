@@ -248,6 +248,15 @@
     "emptySent": "Bạn chưa gửi lời mời kết bạn nào.",
     "emptySuggestions": "Không có gợi ý kết bạn nào.",
     "emptyList": "Bạn chưa có bạn bè.",
+    "emptyHintReceived": "Khi có người gửi lời mời kết bạn, họ sẽ hiện ở đây.",
+    "emptyHintSent": "Những lời mời bạn đã gửi sẽ hiện ở đây.",
+    "emptyHintSuggestions": "Hiện chưa có gợi ý nào — hãy quay lại sau.",
+    "emptyHintList": "Kết bạn để xem bảng tin của họ và trò chuyện cùng nhau.",
+    "viewSuggestions": "Xem gợi ý kết bạn",
+    "searchPlaceholder": "Tìm bạn bè...",
+    "listCount": "{count} bạn bè",
+    "noSearchResult": "Không tìm thấy bạn bè nào.",
+    "noSearchResultHint": "Thử tìm bằng tên khác.",
     "end": "Đã xem hết."
   },
   "composer": {
