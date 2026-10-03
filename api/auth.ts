@@ -19,6 +19,13 @@ export const googleLogin = (idToken: string) =>
     body: JSON.stringify({ id_token: idToken }),
   })
 
+// Flow auth-code (nút Google custom): gửi code, server đổi lấy ID token.
+export const googleLoginWithCode = (code: string) =>
+  request<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  })
+
 export const verifyEmail = (token: string) =>
   request<VerifyEmailResponse>('/auth/verify-email', {
     method: 'POST',

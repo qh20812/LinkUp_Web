@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
+import { useGoogleLogin } from '@react-oauth/google'
 import { useToast } from '../../contexts/ToastContext'
 import { useTranslation } from '../../hooks/useTranslation'
-import { googleLogin, decodeToken } from '../../api/auth'
+import { googleLoginWithCode, decodeToken } from '../../api/auth'
 import { request } from '../../api/api'
 import { clearSWRCache, seedProfileCache } from '../../api/swr'
 import { getPostAuthPath } from '../../utils/auth'
@@ -47,32 +47,14 @@ interface GoogleAuthButtonProps {
 
 export default function GoogleAuthButton({ textKey = 'login.google.button' }: GoogleAuthButtonProps) {
   const [loading, setLoading] = useState(false)
-  const [width, setWidth] = useState<number>()
-  const wrapRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const { t } = useTranslation()
   const router = useRouter()
 
-  // Feed GSI the exact pixel width so its invisible iframe covers the whole
-  // custom button — no dead click zones around the inner Google button.
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver((entries) => {
-      const w = Math.round(entries[0].contentRect.width)
-      if (w > 0) setWidth((prev) => (prev === w ? prev : w))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const handleSuccess = async (credentialResponse: CredentialResponse) => {
-    const credential = credentialResponse.credential
-    if (!credential) return
-
+  const handleCode = async (code: string) => {
     setLoading(true)
     try {
-      const res = await googleLogin(credential)
+      const res = await googleLoginWithCode(code)
       localStorage.setItem('token', res.tokens.access_token)
       localStorage.setItem('refresh_token', res.tokens.refresh_token)
       clearSWRCache()
@@ -93,40 +75,32 @@ export default function GoogleAuthButton({ textKey = 'login.google.button' }: Go
     }
   }
 
-  const handleError = () => {
-    toast({ type: 'error', title: t('login.google.error') })
-  }
-
-  if (loading) {
-    return (
-      <button type="button" className={styles.loading} disabled aria-busy>
-        {t('common.loading')}
-      </button>
-    )
-  }
+  // Flow auth-code trên nút thật: không còn iframe tàng hình, không còn
+  // vùng chết — click luôn chạm đúng nút này.
+  const login = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: (codeResponse) => {
+      if (!codeResponse.code) {
+        toast({ type: 'error', title: t('login.google.error') })
+        return
+      }
+      void handleCode(codeResponse.code)
+    },
+    onError: () => {
+      toast({ type: 'error', title: t('login.google.error') })
+    },
+  })
 
   return (
-    <div className={styles.wrap} ref={wrapRef}>
-      {/* Visual only — not focusable, hidden from AT; the GSI iframe below is
-          the real, accessible control. */}
-      <span className={styles.googleBtn}>
-        <GoogleGlyph />
-        <span>{t(textKey)}</span>
-      </span>
-
-      <div className={styles.overlay}>
-        <GoogleLogin
-          onSuccess={handleSuccess}
-          onError={handleError}
-          type="standard"
-          theme="outline"
-          size="large"
-          shape="rectangular"
-          text={textKey.includes('register') ? 'signup_with' : 'signin_with'}
-          width={width}
-          containerProps={{ className: styles.gsi, style: { height: '100%' } }}
-        />
-      </div>
-    </div>
+    <button
+      type="button"
+      className={styles.googleBtn}
+      onClick={() => login()}
+      disabled={loading}
+      aria-busy={loading}
+    >
+      <GoogleGlyph />
+      <span>{loading ? t('common.loading') : t(textKey)}</span>
+    </button>
   )
 }
