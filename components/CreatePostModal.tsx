@@ -174,6 +174,9 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   const emojiRef = useRef<HTMLDivElement>(null)
   const gifRef = useRef<HTMLDivElement>(null)
   const mediaUrlsRef = useRef<string[]>([])
+  // Idempotency key cho lần đăng hiện tại: giữ nguyên qua draft restore để
+  // retry/timeout không đẻ bài trùng; cấp key mới sau mỗi lần đăng thành công.
+  const clientKeyRef = useRef<string | null>(null)
 
   const emotions = useMemo(() => getEmotionEmojis(), [])
   const emojiByCode = useMemo(() => new Map(emotions.map((e) => [e.code, e])), [emotions])
@@ -480,6 +483,12 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     setError(null)
     setSubmitting(true)
     try {
+      if (!clientKeyRef.current) {
+        clientKeyRef.current =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      }
       const res = await createPost({
         title: title.trim(),
         content: content.trim(),
@@ -487,8 +496,13 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
         files: media.map((m) => m.file),
         gifUrl: gif?.full,
         commentsEnabled: !commentsDisabled,
+        clientKey: clientKeyRef.current,
       })
       toast({ type: 'success', title: t('composer.success') })
+      if (res.warnings && res.warnings.length > 0) {
+        toast({ type: 'warning', title: t('composer.mediaWarning'), message: res.warnings.join('\n') })
+      }
+      clientKeyRef.current = null
       try {
         localStorage.removeItem(DRAFT_KEY)
       } catch {

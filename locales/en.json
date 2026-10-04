@@ -294,6 +294,8 @@
     "errorContentRequired": "Please enter some content",
     "errorMaxLength": "Content cannot exceed 5000 characters",
     "success": "Post published successfully!",
+    "mediaWarning": "Some attachments were skipped",
+    "mediaReady": "Video finished processing",
     "draftRestored": "Draft restored",
     "discardDraft": "Discard"
   },

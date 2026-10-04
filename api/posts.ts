@@ -98,7 +98,7 @@ export const savePost = (postId: string) =>
 export const getEmojis = () =>
   request<{ data: EmojiItem[] }>('/emojis')
 
-export const createPost = ({ title, content, status, files = [], gifUrl, communityID, commentsEnabled = true }: CreatePostInput) => {
+export const createPost = ({ title, content, status, files = [], gifUrl, communityID, commentsEnabled = true, clientKey }: CreatePostInput) => {
   const formData = new FormData()
   if (title) formData.append('title', title)
   if (content) formData.append('content', content)
@@ -108,11 +108,15 @@ export const createPost = ({ title, content, status, files = [], gifUrl, communi
   formData.append('comments_enabled', String(commentsEnabled))
   for (const file of files) formData.append('media', file)
 
+  // Idempotency-Key: server dedupe khi user nhấn Đăng 2 lần / retry sau timeout.
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${typeof window !== 'undefined' ? (localStorage.getItem('token') ?? '') : ''}`,
+  }
+  if (clientKey) headers['Idempotency-Key'] = clientKey
+
   return fetch('/api/posts', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${typeof window !== 'undefined' ? (localStorage.getItem('token') ?? '') : ''}`,
-    },
+    headers,
     body: formData,
   }).then(async (res) => {
     if (!res.ok) {

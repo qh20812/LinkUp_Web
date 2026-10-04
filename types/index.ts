@@ -153,6 +153,7 @@ export interface CreatePostInput {
   gifUrl?: string
   communityID?: string
   commentsEnabled?: boolean
+  clientKey?: string
 }
 
 export interface GifItem {
@@ -166,6 +167,13 @@ export interface GifItem {
 
 export interface CreatePostResponse {
   data: FeedPost
+  warnings?: string[]
+}
+
+export interface MediaReadyEvent {
+  post_id: string
+  media_id: string
+  file_uri: string
 }
 
 export interface CommentItem {

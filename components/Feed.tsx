@@ -11,7 +11,7 @@ import { getFeedAds, trackAdAction } from '../api/partner'
 import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
 import { request } from '../api/api'
-import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse } from '../types'
+import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse, MediaReadyEvent } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
@@ -132,6 +132,32 @@ function FeedContent() {
     }
     window.addEventListener('post:created', handler as EventListener)
     return () => window.removeEventListener('post:created', handler as EventListener)
+  }, [setPosts])
+
+  // Video xử lý xong ở background (WS media:ready): thay URL staging bằng
+  // URL Cloudinary ngay trong post đang hiển thị, không cần reload feed.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<MediaReadyEvent>).detail
+      if (!detail?.post_id) return
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== detail.post_id) return p
+          const media = [...(p.media ?? [])]
+          const idx = media.findIndex((m) => m.id === detail.media_id)
+          const updated = {
+            ...(idx >= 0 ? media[idx] : { id: detail.media_id, user_id: p.user_id, file_type: 'video/mp4' }),
+            file_uri: detail.file_uri,
+            status: 'approved',
+          }
+          if (idx >= 0) media[idx] = updated
+          else media.push(updated)
+          return { ...p, media }
+        }),
+      )
+    }
+    window.addEventListener('media:ready', handler as EventListener)
+    return () => window.removeEventListener('media:ready', handler as EventListener)
   }, [setPosts])
 
   const fetchNext = useCallback(async () => {

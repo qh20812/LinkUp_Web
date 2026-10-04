@@ -12,7 +12,10 @@ import type {
   NotificationItem,
   NotificationGroup,
   NotificationPreferences,
+  MediaReadyEvent,
 } from "../types";
+import { useToast } from "./ToastContext";
+import { useTranslation } from "../hooks/useTranslation";
 import {
   getUnreadCount,
   getNotifications,
@@ -53,11 +56,20 @@ export function NotificationProvider({
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] =
     useState<NotificationPreferences | null>(null);
+  const { toast } = useToast();
+  const { t } = useTranslation();
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(1000);
   const closedByUserRef = useRef(false);
   const maxReconnectDelay = 30000;
+  // Giữ bản mới nhất cho WS handler mà không làm effect reconnect.
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  useEffect(() => {
+    toastRef.current = toast;
+    tRef.current = t;
+  });
 
   const closeWs = useCallback(() => {
     closedByUserRef.current = true;
@@ -211,6 +223,17 @@ export function NotificationProvider({
             } else if (message.type === "presence:update") {
               window.dispatchEvent(
                 new CustomEvent("presence:update", { detail: message.data }),
+              );
+            } else if (message.type === "media:ready") {
+              const ready = message.data as MediaReadyEvent;
+              toastRef.current({
+                type: "success",
+                title: tRef.current("composer.mediaReady"),
+              });
+              window.dispatchEvent(
+                new CustomEvent<MediaReadyEvent>("media:ready", {
+                  detail: ready,
+                }),
               );
             }
           } catch (err) {

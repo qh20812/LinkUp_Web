@@ -294,6 +294,8 @@
     "errorContentRequired": "Vui lòng nhập nội dung bài viết",
     "errorMaxLength": "Nội dung không được vượt quá 5000 ký tự",
     "success": "Đăng bài thành công!",
+    "mediaWarning": "Một số file đính kèm bị bỏ qua",
+    "mediaReady": "Video đã xử lý xong",
     "draftRestored": "Đã khôi phục bản nháp",
     "discardDraft": "Xoá"
   },
