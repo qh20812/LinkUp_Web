@@ -352,8 +352,8 @@ export default function ChatWindow({
   if (!conversation && mode !== 'group') {
     return (
       <div className={styles.empty}>
-        <i className="bx bx-message-rounded-dots" />
-        <p>{t('chat.selectHint')}</p>
+        <span className={styles.emptyIcon}><i className="bx bx-message-rounded-dots" /></span>
+        <p className={styles.emptyTitle}>{t('chat.selectHint')}</p>
       </div>
     )
   }
@@ -605,18 +605,24 @@ export default function ChatWindow({
       ) : (
         <div className={styles.messages} ref={scrollRef} onScroll={handleMessagesScroll}>
           {room.loading && (
-            <div className={styles.center}>{t('common.loading')}</div>
+            <div className={styles.center} role="status" aria-label={t('chat.loadingConversations')}>
+              <span className={styles.loadMoreDots} aria-hidden><span /><span /><span /></span>
+            </div>
           )}
 
           {!room.loading && timeline.length === 0 && (
-            <div className={styles.center}>
-              <p>{t('chat.noMessages')}</p>
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}><i className="bx bx-message-rounded" /></span>
+              <p className={styles.emptyTitle}>{t('chat.noMessages')}</p>
+              <p className={styles.emptyHint}>{t('chat.e2eTitle')}</p>
             </div>
           )}
 
           {!room.loading && timeline.length > 0 && (room.hasMore || room.loadingMore) && (
-            <div className={styles.loadMore}>
-              {room.loadingMore && <i className="bx bx-loader-circle" />}
+            <div className={styles.loadMore} role="status">
+              {room.loadingMore && (
+                <span className={styles.loadMoreDots} aria-hidden><span /><span /><span /></span>
+              )}
               <span>{room.loadingMore ? t('chat.loadingOlder') : t('chat.scrollForOlder')}</span>
             </div>
           )}
@@ -1085,9 +1091,21 @@ export default function ChatWindow({
                         )}
                         <div className={styles.msgLine}>
                           {msg.decrypt_failed ? (
-                            <span className={styles.deletedText}>
-                              <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                            </span>
+                            room.retryDecrypt ? (
+                              <button
+                                type="button"
+                                className={styles.retryDecrypt}
+                                onClick={() => room.retryDecrypt?.(msg.id)}
+                                title={t('chat.retryDecrypt')}
+                                aria-label={t('chat.retryDecrypt')}
+                              >
+                                <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                              </button>
+                            ) : (
+                              <span className={styles.deletedText}>
+                                <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                              </span>
+                            )
                           ) : (
                             <span className={styles.msgText}>
                               {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}
@@ -1148,9 +1166,21 @@ export default function ChatWindow({
                       (msg.content && !isSingleVideo && !singleEmoji && !singleGiphy && !singleEmojifyi) ? (
                         <div className={styles.msgLine}>
                           {msg.decrypt_failed ? (
-                            <span className={styles.deletedText}>
-                              <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
-                            </span>
+                            room.retryDecrypt ? (
+                              <button
+                                type="button"
+                                className={styles.retryDecrypt}
+                                onClick={() => room.retryDecrypt?.(msg.id)}
+                                title={t('chat.retryDecrypt')}
+                                aria-label={t('chat.retryDecrypt')}
+                              >
+                                <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                              </button>
+                            ) : (
+                              <span className={styles.deletedText}>
+                                <i className="bx bxs-lock-alt" /> {t('chat.undecryptable')}
+                              </span>
+                            )
                           ) : (
                             <span className={styles.msgText}>
                               {renderEmojiContent(msg.content, emojiCodeMap, msg.id, styles.emojiInline)}

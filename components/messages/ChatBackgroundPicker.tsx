@@ -15,28 +15,21 @@ import type { ChatBackground } from '../../types'
 import styles from './ChatBackgroundPicker.module.css'
 
 const SOLID_COLORS = [
-  '#FFE4C4', '#E8D5B7', '#B5D8CC', '#AEC6CF', '#C7CEEA', '#F6C6CE',
-  '#F0E68C', '#DDA0DD', '#98FB98', '#FFB6C1', '#B0E0E6', '#D2B48C',
-  '#E6E6FA', '#FFF0F5', '#F5FFFA', '#F0FFF0', '#F5F5DC', '#FAEBD7',
-  '#FFE4E1', '#FFF8DC', '#F5F5F5', '#FAFAFA',
+  '#12A5A1', '#0E8B88', '#0A6E6B', '#0A1F44', '#14315E', '#1E4A7A',
+  '#B5D8CC', '#AEC6CF', '#C7CEEA', '#E6F4F3', '#F5F5F5', '#1A1A1A',
 ]
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #667eea, #764ba2)',
-  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #12A5A1, #0A1F44)',
+  'linear-gradient(135deg, #12A5A1, #0E8B88)',
+  'linear-gradient(135deg, #0A1F44, #3B4A6B)',
   'linear-gradient(135deg, #4facfe, #00f2fe)',
   'linear-gradient(135deg, #43e97b, #38f9d7)',
-  'linear-gradient(135deg, #fa709a, #fee140)',
-  'linear-gradient(135deg, #a18cd1, #fbc2eb)',
-  'linear-gradient(135deg, #fad0c4, #ffd1ff)',
-  'linear-gradient(135deg, #ffecd2, #fcb69f)',
+  'linear-gradient(135deg, #667eea, #764ba2)',
   'linear-gradient(135deg, #89f7fe, #66a6ff)',
-  'linear-gradient(135deg, #fddb92, #d1fdff)',
-  'linear-gradient(135deg, #c1dfc4, #deecdd)',
-  'linear-gradient(135deg, #0ba360, #3cba92)',
-  'linear-gradient(135deg, #ff9a9e, #fecfef)',
   'linear-gradient(135deg, #a1c4fd, #c2e9fb)',
-  'linear-gradient(135deg, #d4fc79, #96e6a1)',
+  'linear-gradient(135deg, #0ba360, #3cba92)',
+  'linear-gradient(135deg, #c1dfc4, #deecdd)',
 ]
 
 const PRESETS = [

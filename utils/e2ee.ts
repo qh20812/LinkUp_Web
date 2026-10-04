@@ -109,6 +109,13 @@ export function wasPartnerChanged(chatId: string): boolean {
   return partnerChangedChats.has(chatId)
 }
 
+// Xóa khóa chuẩn đã cache của chat để lần resolve sau đọc lại từ server.
+// Dùng khi nhận event key-updated hoặc khi live decrypt thất bại (đối phương
+// vừa setup key sau mình) — thay vì bắt user F5.
+export function invalidateChatKeyCache(chatId: string): void {
+  chatKeyCache.delete(chatId)
+}
+
 // Đảm bảo có khóa chat E2E cho chat_id trong IndexedDB của máy này. Chưa có
 // thì ưu tiên khóa wrap trên server (server = nguồn chuẩn) giải mã về adopt;
 // nếu chat chưa từng được set-up thì tạo khóa mới (bọc cho cả hai bên, first-

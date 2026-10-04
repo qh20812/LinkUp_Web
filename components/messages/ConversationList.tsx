@@ -70,6 +70,12 @@ export default function ConversationList({
     ? groupConversations.filter((c) => c.name.toLowerCase().includes(normalized))
     : groupConversations
 
+  // Unread = incoming last message not seen by me (derived from seen_by — never fake counts)
+  const isUnread = (lastMessage: ChatConversation['last_message']) =>
+    !!lastMessage &&
+    lastMessage.sender_id !== myUserId &&
+    !(lastMessage.seen_by ?? []).includes(myUserId)
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
@@ -112,19 +118,28 @@ export default function ConversationList({
 
       <div className={styles.list}>
         {loading && conversations.length === 0 && groupConversations.length === 0 && (
-          <div className={styles.center}>
-            <span>{t('common.loading')}</span>
+          <div role="status" aria-label={t('chat.loadingConversations')}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className={styles.skelRow} aria-hidden>
+                <div className={styles.skelAvatar} />
+                <div className={styles.skelLines}>
+                  <div className={`${styles.skelLine} ${styles.skelLineWide}`} />
+                  <div className={`${styles.skelLine} ${styles.skelLineShort}`} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
         {!loading && filteredDirect.length === 0 && filteredGroups.length === 0 && (
           <div className={styles.center}>
-            <i className="bx bx-message-rounded-dots" />
-            <p>
+            <span className={styles.emptyIcon}><i className="bx bx-message-rounded-dots" /></span>
+            <p className={styles.emptyTitle}>
               {normalized
                 ? t('chat.noResults')
                 : t('chat.noConversations')}
             </p>
+            {!normalized && <p className={styles.emptyHint}>{t('chat.noConversationsHint')}</p>}
           </div>
         )}
 
@@ -137,12 +152,13 @@ export default function ConversationList({
               const mediaKey = conv.last_message
                 ? mediaPreviewKey(conv.last_message)
                 : null
+              const unread = isUnread(conv.last_message)
               return (
               <button
                 key={conv.chat_id}
                 className={`${styles.row} ${
                   conv.chat_id === activeChatId ? styles.active : ''
-                }`}
+                } ${unread ? styles.rowUnread : ''}`}
                 onClick={() => onSelect(conv)}
               >
                 <div className={styles.avatar}>
@@ -158,11 +174,14 @@ export default function ConversationList({
                     <span className={styles.name}>
                       {conv.partner.display_name || t('chat.unknown')}
                     </span>
-                    {conv.last_message && (
-                      <span className={styles.time}>
-                        {formatChatTime(conv.last_message.created_at, t)}
-                      </span>
-                    )}
+                    <span className={styles.rowRight}>
+                      {conv.last_message && (
+                        <span className={`${styles.time} ${unread ? styles.timeUnread : ''}`}>
+                          {formatChatTime(conv.last_message.created_at, t)}
+                        </span>
+                      )}
+                      {unread && <span className={styles.unreadDot} aria-label={t('chat.unread')} />}
+                    </span>
                   </div>
                   <span className={styles.preview}>
                     {conv.last_message ? (
@@ -199,6 +218,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onPinChat(conv.chat_id) }}
                       title={t('chat.pin')}
+                      aria-label={t('chat.pin')}
                     >
                       <i className="bx bx-pin" />
                     </button>
@@ -208,6 +228,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onMuteChat(conv.chat_id) }}
                       title={t('chat.mute')}
+                      aria-label={t('chat.mute')}
                     >
                       <i className="bx bx-bell" />
                     </button>
@@ -217,6 +238,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onArchiveChat(conv.chat_id) }}
                       title={t('chat.archive')}
+                      aria-label={t('chat.archive')}
                     >
                       <i className="bx bx-archive" />
                     </button>
@@ -237,12 +259,13 @@ export default function ConversationList({
               const mediaKey = group.last_message
                 ? mediaPreviewKey(group.last_message)
                 : null
+              const unread = isUnread(group.last_message)
               return (
               <button
                 key={group.chat_id}
                 className={`${styles.row} ${
                   group.chat_id === activeChatId ? styles.active : ''
-                }`}
+                } ${unread ? styles.rowUnread : ''}`}
                 onClick={() => onSelectGroup?.(group)}
               >
                 <div className={styles.avatar}>
@@ -255,11 +278,14 @@ export default function ConversationList({
                 <div className={styles.meta}>
                   <div className={styles.rowTop}>
                     <span className={styles.name}>{group.name}</span>
-                    {group.last_message && (
-                      <span className={styles.time}>
-                        {formatChatTime(group.last_message.created_at, t)}
-                      </span>
-                    )}
+                    <span className={styles.rowRight}>
+                      {group.last_message && (
+                        <span className={`${styles.time} ${unread ? styles.timeUnread : ''}`}>
+                          {formatChatTime(group.last_message.created_at, t)}
+                        </span>
+                      )}
+                      {unread && <span className={styles.unreadDot} aria-label={t('chat.unread')} />}
+                    </span>
                   </div>
                   <span className={styles.preview}>
                     {group.member_count} {t('chat.members')}
@@ -280,6 +306,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onPinChat(group.chat_id) }}
                       title={t('chat.pin')}
+                      aria-label={t('chat.pin')}
                     >
                       <i className="bx bx-pin" />
                     </button>
@@ -289,6 +316,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onMuteChat(group.chat_id) }}
                       title={t('chat.mute')}
+                      aria-label={t('chat.mute')}
                     >
                       <i className="bx bx-bell" />
                     </button>
@@ -298,6 +326,7 @@ export default function ConversationList({
                       className={styles.actionBtn}
                       onClick={(e) => { e.stopPropagation(); onArchiveChat(group.chat_id) }}
                       title={t('chat.archive')}
+                      aria-label={t('chat.archive')}
                     >
                       <i className="bx bx-archive" />
                     </button>

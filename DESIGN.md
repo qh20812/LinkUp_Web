@@ -845,10 +845,12 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 ### Messages (`/messages`)
 
-**Purpose:** Focused private/group communication. Conversation-first experience.
+**Purpose:** Focused private/group communication. Conversation-first experience (premium minimal glass — same language as Profile).
 **Layout:** Conversation List + Chat Window (Track 5)
-**Conversation List:** Search, recent conversations, unread indicators, participant avatar, conversation preview, timestamp
-**Chat Window:** ChatHeader, customizable background, MessageList with grouping, MessageComposer
+**Conversation List (floating glass panel):** panel = `--glass-bg-strong` + blur + `--glass-border` + `radius-lg` inset 16px (floating sheet on mobile); search pill (`radius-pill`, `:focus-within` primary border + ring); rows = inset `radius-md` cards (hover lift + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal (always visible on touch, `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint)
+**Chat Window:** header = true glass (translucent `color-mix` + `blur(20px)` over scrolling messages — never blur over a solid surface); bubbles own = `135deg primary→primary-hover` gradient + glow + 18px/6px tail, theirs = elevated surface + `shadow-sm`; seen ticks turn primary when seen; reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
+**Composer:** floating glass pill (`radius-20`, blur, `shadow`) with borderless input in a `bg-secondary` pill track (`:focus-within` ring); action icons 40px circle hover `primary-light`; send = gradient + glow with press scale; attachment bar = elevated card
+**Backgrounds:** solid/gradient palettes restricted to the brand family (turquoise/teal/navy first); picker tabs = segmented pills
 **Messaging MUST follow the Messaging Design System defined in Section 11.**
 
 ### Notifications (`/notifications`)
@@ -1313,6 +1315,16 @@ All interactive controls require: accessible labels, keyboard support, visible f
 - Media should be lazy-loaded where appropriate
 - Infinite scroll must remain functional
 - Realtime updates must remain functional
+
+### 11.38 E2E Key Updates (live decrypt recovery)
+
+- Server emits `chat:e2e_key_updated` (`{chat_id}`) on the chat WS hub to every participant **except** the caller after `StoreChatKeys` (rekey of own row emits nothing — nobody else is affected)
+- Wire format is `WsEvent` (`{"type","payload"}`) — never `OutgoingMessage` (`{"type","data"}`), which the chat client cannot parse
+- Client rules (no F5 ever required):
+  - Live `message:new` E2E decrypt fails → `refreshKeys()` (clear key cache + re-run `ensureChatKey`) → retry decrypt once
+  - On `chat:e2e_key_updated` for the open chat → refresh + retry all pending `decrypt_failed` messages
+  - Retry pending messages whenever E2E status → `ready` or local keys update — never once-guard per chat
+  - The "cannot decrypt" placeholder is a retry button (`chat.retryDecrypt`), the last-resort net
 
 ---
 

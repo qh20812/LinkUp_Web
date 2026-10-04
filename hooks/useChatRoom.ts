@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage, HistoryCursor, MessageReaction, PinnedMessage } from '../types'
 import type { ChatSocket } from './useChatSocket'
 import type { ChatE2E } from './useChatE2E'
+import { E2E_KEYS_UPDATED_EVENT } from '../utils/e2ee'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from './useTranslation'
 
@@ -47,6 +48,8 @@ export interface ChatRoom {
   pinMessage: (messageId: string) => void
   unpinMessage: (messageId: string) => void
   loadMoreMessages: () => void
+  // Optional để GroupChatRoom (không E2E client) vẫn dùng chung ChatWindow.
+  retryDecrypt?: (messageId: string) => void
 }
 
 function dedupeByID(list: ChatMessage[]): ChatMessage[] {
@@ -163,7 +166,6 @@ export function useChatRoom({
   const hasMoreRef = useRef(false)
   const nextCursorRef = useRef<HistoryCursor | null>(null)
   const loadingMoreRef = useRef(false)
-  const e2eReadyChatRef = useRef<string | null>(null)
 
   const socketSubscribe = socket.subscribe
   const socketStatus = socket.status
@@ -313,6 +315,24 @@ export function useChatRoom({
       let resolved = msg
       if (msg.chat_id === activeChatIdRef.current) {
         resolved = (await decryptIncoming([msg]))[0]
+        // Tin E2E của đối phương giải mã thất bại ngay khi đến → đối phương có
+        // thể vừa setup key sau mình (key mới đã nằm trên server): refresh key
+        // rồi thử lại 1 lần thay vì kẹt placeholder chờ F5.
+        if (
+          resolved.e2e_version === 1 &&
+          resolved.decrypt_failed &&
+          resolved.sender_id !== myUserIdRef.current &&
+          encryption
+        ) {
+          try {
+            await encryption.refreshKeys()
+            if (msg.chat_id === activeChatIdRef.current) {
+              resolved = (await decryptIncoming([msg]))[0]
+            }
+          } catch {
+            /* giữ placeholder + nút thử lại */
+          }
+        }
         const pending = pendingIdsRef.current
         if (pending.length > 0 && resolved.sender_id === myUserIdRef.current) {
           const tempID = pending[0]
@@ -338,7 +358,7 @@ export function useChatRoom({
       }
       onNewMessageRef.current?.(msg)
     },
-    [decryptIncoming, socket, socketSend],
+    [decryptIncoming, encryption, socket, socketSend],
   )
 
   const handleTyping = useCallback((payload: unknown) => {
@@ -446,6 +466,25 @@ export function useChatRoom({
     )
   }, [])
 
+  // Server báo khóa E2E của chat vừa đổi (đối phương setup/rekey) → adopt key
+  // mới rồi giải mã lại các tin đang kẹt placeholder trong phòng đang mở.
+  const handleKeyUpdated = useCallback(
+    (payload: unknown) => {
+      const data = payload as { chat_id?: string }
+      if (!data || data.chat_id !== activeChatIdRef.current) return
+      if (!encryption) return
+      const chatID = data.chat_id
+      void encryption.refreshKeys().then(() => {
+        if (activeChatIdRef.current !== chatID) return
+        void decryptIncoming(messagesRef.current).then((decrypted) => {
+          if (activeChatIdRef.current !== chatID) return
+          setMessages((prev) => mergeDecrypted(prev, decrypted))
+        })
+      })
+    },
+    [decryptIncoming, encryption],
+  )
+
   const handleError = useCallback((payload: unknown) => {
     const data = payload as { message?: string }
     if (!data || !data.message) return
@@ -463,6 +502,7 @@ export function useChatRoom({
       socketSubscribe('message:history', handleHistory),
       socketSubscribe('message:history_more', handleHistoryMore),
       socketSubscribe('message:new', handleNewMessage),
+      socketSubscribe('chat:e2e_key_updated', handleKeyUpdated),
       socketSubscribe('typing', handleTyping),
       socketSubscribe('message:deleted', handleDeleted),
       socketSubscribe('message:search_result', handleSearchResult),
@@ -479,6 +519,7 @@ export function useChatRoom({
     handleHistory,
     handleHistoryMore,
     handleNewMessage,
+    handleKeyUpdated,
     handleTyping,
     handleDeleted,
     handleSearchResult,
@@ -491,18 +532,40 @@ export function useChatRoom({
   ])
 
   // Join không còn chờ khóa E2E → lịch sử có thể đến trước khi khóa setup
-  // xong, nên khi khóa trở nên sẵn sàng sẽ giải mã lại các tin còn giữ bản mã
-  // hóa (đang hiển thị placeholder). Giải mã một lần cho từng hội thoại.
+  // xong, nên khi khóa trở nên sẵn sàng (hoặc key đổi giữa phiên) sẽ giải mã
+  // lại các tin còn giữ bản mã hóa (đang hiển thị placeholder). Không once-guard:
+  // tin nào đã decrypted thì bộ lọc loại ngay nên chạy lại nhiều lần vẫn rẻ.
   useEffect(() => {
     if (!encryption || e2eStatus !== 'ready') return
     const chatID = activeChatIdRef.current
-    if (e2eReadyChatRef.current === chatID) return
-    e2eReadyChatRef.current = chatID
-    void decryptIncoming(messagesRef.current).then((decrypted) => {
+    const pending = messagesRef.current.filter(
+      (m) => m.e2e_version === 1 && m.content && !m.deleted && !m.decrypted,
+    )
+    if (pending.length === 0) return
+    void decryptIncoming(pending).then((decrypted) => {
       if (activeChatIdRef.current !== chatID) return
       setMessages((prev) => mergeDecrypted(prev, decrypted))
     })
   }, [e2eStatus, encryption, decryptIncoming])
+
+  // Key đổi giữa phiên do chính máy này adopt (notifyKeysUpdated) → thử lại
+  // các tin đang kẹt mà không cần chờ e2eStatus đổi.
+  useEffect(() => {
+    const handler = () => {
+      const chatID = activeChatIdRef.current
+      if (!chatID) return
+      const pending = messagesRef.current.filter(
+        (m) => m.e2e_version === 1 && m.content && !m.deleted && !m.decrypted,
+      )
+      if (pending.length === 0) return
+      void decryptIncoming(pending).then((decrypted) => {
+        if (activeChatIdRef.current !== chatID) return
+        setMessages((prev) => mergeDecrypted(prev, decrypted))
+      })
+    }
+    window.addEventListener(E2E_KEYS_UPDATED_EVENT, handler)
+    return () => window.removeEventListener(E2E_KEYS_UPDATED_EVENT, handler)
+  }, [decryptIncoming])
 
   // Tin ghim E2E cũng chờ khóa: nếu pinned_list đến trước khi khóa sẵn sàng,
   // giải mã lại khi khóa setup xong. Chạy lại khi status/khóa đổi (vd: rekey)
@@ -735,6 +798,28 @@ export function useChatRoom({
     socketSend('chat:history:more', { chat_id: chatID, cursor: nextCursorRef.current })
   }, [socket, socketSend])
 
+  // Lưới an toàn cuối cùng: user bấm vào placeholder để refresh key + thử lại.
+  const retryDecrypt = useCallback(
+    (messageId: string) => {
+      const chatID = activeChatIdRef.current
+      if (!chatID || !encryption) return
+      const target = messagesRef.current.find((m) => m.id === messageId)
+      if (!target || target.decrypted) return
+      void (async () => {
+        try {
+          await encryption.refreshKeys()
+        } catch {
+          /* thử decrypt bằng key hiện có */
+        }
+        if (activeChatIdRef.current !== chatID) return
+        const [resolved] = await decryptIncoming([target])
+        if (activeChatIdRef.current !== chatID) return
+        setMessages((prev) => mergeDecrypted(prev, [resolved]))
+      })()
+    },
+    [decryptIncoming, encryption],
+  )
+
   return {
     messages,
     loading,
@@ -754,5 +839,6 @@ export function useChatRoom({
     pinMessage,
     unpinMessage,
     loadMoreMessages,
+    retryDecrypt,
   }
 }

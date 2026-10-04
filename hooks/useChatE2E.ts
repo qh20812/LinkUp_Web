@@ -5,6 +5,7 @@ import {
   decryptChat,
   encryptMessage as e2eEncrypt,
   ensureChatKey,
+  invalidateChatKeyCache,
   wasPartnerChanged,
 } from '../utils/e2ee'
 
@@ -15,6 +16,7 @@ export interface ChatE2E {
   ready: boolean
   encrypt: (plain: string) => Promise<string>
   decrypt: (cipher: string) => Promise<string>
+  refreshKeys: () => Promise<ChatE2EStatus>
 }
 
 interface UseChatE2EOptions {
@@ -89,8 +91,34 @@ export function useChatE2E({
     [chatId],
   )
 
+  // Chạy lại ensureChatKey bất chấp prevChat guard — dùng khi live decrypt
+  // thất bại (đối phương vừa setup key sau mình) hoặc khi nhận event
+  // chat:e2e_key_updated. Xóa cache trước để đọc lại khóa mới từ server.
+  const refreshKeys = useCallback(async (): Promise<ChatE2EStatus> => {
+    if (!chatId || !partnerUserId || !myUserId) return 'unavailable'
+    invalidateChatKeyCache(chatId)
+    setStatus('loading')
+    try {
+      const key = await ensureChatKey({ chatId, myUserId, partnerUserId })
+      if (key) {
+        chatKeyRef.current = key
+        setStatus('ready')
+        return 'ready'
+      }
+      if (wasPartnerChanged(chatId)) {
+        setStatus('partner_changed')
+        return 'partner_changed'
+      }
+      setStatus('legacy')
+      return 'legacy'
+    } catch {
+      setStatus('legacy')
+      return 'legacy'
+    }
+  }, [chatId, partnerUserId, myUserId])
+
   return useMemo(
-    () => ({ status, ready: status === 'ready', encrypt, decrypt }),
-    [status, encrypt, decrypt],
+    () => ({ status, ready: status === 'ready', encrypt, decrypt, refreshKeys }),
+    [status, encrypt, decrypt, refreshKeys],
   )
 }
