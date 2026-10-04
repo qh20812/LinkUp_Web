@@ -76,7 +76,8 @@
     "toggleTheme": "Theme mode",
     "language": "Language",
     "toggleMenu": "Toggle menu",
-    "ads": "Ads"
+    "ads": "Ads",
+    "violationRules": "Violation rules"
   },
   "userNavbar": {
     "explore": "Explore",
@@ -626,7 +627,10 @@
     "reviewed": "Reviewed",
     "user": "User",
     "post": "Post",
-    "comment": "Comment"
+    "comment": "Comment",
+    "targetContent": "Reported content",
+    "viewFull": "View full",
+    "inPost": "in post"
   },
   "media": {
     "title": "Media Management",
@@ -1503,7 +1507,16 @@
     "rbac.MISSING_AD_ID": "Missing ad ID",
     "rbac.AD_NOT_FOUND": "Advertisement not found",
     "rbac.AD_ACCESS_DENIED": "Access denied. You do not own this advertisement",
-    "ban.NOT_FOUND": "Ban record not found"
+    "ban.NOT_FOUND": "Ban record not found",
+    "violation.RULE_TITLE_REQUIRED": "Violation rule title is required",
+    "violation.RULE_TITLE_TOO_SHORT": "Violation rule title must be at least 5 characters",
+    "violation.RULE_TITLE_TOO_LONG": "Violation rule title must be at most 255 characters",
+    "violation.RULE_DESC_TOO_LONG": "Violation rule description must be at most 2000 characters",
+    "violation.RULE_TITLE_DUPLICATE": "Violation rule title already exists",
+    "violation.RULE_NOT_FOUND": "Violation rule not found",
+    "violation.RULE_INACTIVE": "This violation rule has been disabled",
+    "violation.RULE_TARGET_MISMATCH": "This violation rule does not apply to this target type",
+    "violation.RULE_IN_USE": "This rule is used by reports and can only be disabled, not deleted"
   },
   "userSettings": {
     "subtitle": "Manage your privacy, storage, sessions and account",
@@ -2147,5 +2160,54 @@
     "loadMore": "Load more",
     "back": "Go back",
     "error": "Failed to load posts."
+  },
+  "report": {
+    "title": "Report violation",
+    "menuReport": "Report",
+    "postTitle": "Report post",
+    "commentTitle": "Report comment",
+    "userTitle": "Report user",
+    "selectReason": "Select a violation reason",
+    "otherReason": "Other reason",
+    "detailLabel": "Details",
+    "detailPlaceholder": "Describe the violation clearly so moderators can act faster...",
+    "submit": "Submit report",
+    "success": "Report submitted successfully",
+    "loadFailed": "Could not load reasons, please try again",
+    "selectRequired": "Please select a violation reason",
+    "detailRequired": "Please enter details",
+    "detailOptional": "Details (optional)",
+    "detailHint": "More detail helps moderators act faster."
+  },
+  "violationRules": {
+    "title": "Violation rules",
+    "subtitle": "Reasons shown when users report content",
+    "create": "Add rule",
+    "edit": "Edit rule",
+    "colTitle": "Title",
+    "colScope": "Applies to",
+    "colSeverity": "Severity",
+    "colOrder": "Order",
+    "colStatus": "Status",
+    "active": "Active",
+    "inactive": "Disabled",
+    "activate": "Enable",
+    "deactivate": "Disable",
+    "titleLabel": "Title",
+    "descLabel": "Description",
+    "scopeLabel": "Applies to",
+    "severityLabel": "Severity",
+    "orderLabel": "Display order",
+    "scopeAll": "All",
+    "scopePost": "Posts",
+    "scopeComment": "Comments",
+    "scopeUser": "Users",
+    "sevLow": "Low",
+    "sevMedium": "Medium",
+    "sevHigh": "High",
+    "createSuccess": "Rule created successfully",
+    "updateSuccess": "Rule updated successfully",
+    "statusSuccess": "Status updated successfully",
+    "empty": "No rules yet"
   }
 }

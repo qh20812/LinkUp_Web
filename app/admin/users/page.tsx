@@ -9,6 +9,7 @@ import { updateUserStatus, banUser } from '../../../api/admin'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminUserListItem, AdminUserListResponse } from '../../../types'
 import styles from './Users.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 function getUserRoleFromToken(): string | null {
   try {
@@ -227,7 +228,7 @@ export default function UsersPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : users.length === 0 ? (
           <div className={styles.empty}>

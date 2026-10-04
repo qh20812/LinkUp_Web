@@ -26,7 +26,8 @@ import {
 } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
 import ShareModal from './messages/ShareModal'
-import type { FeedPost, CommentItem, EmojiItem, ViewProfileResponse } from '../types'
+import ReportModal from './ReportModal'
+import type { FeedPost, CommentItem, EmojiItem, ViewProfileResponse, ReportTargetType } from '../types'
 
 const COMMENT_PAGE_SIZE = 10
 const COMMENT_MAX_LENGTH = 1000
@@ -186,6 +187,7 @@ export default function PostDetailModal({
   const [sharing, setSharing] = useState(false)
   const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [togglingComments, setTogglingComments] = useState(false)
@@ -692,6 +694,17 @@ export default function PostDetailModal({
             {t('postDetail.reply')}
           </button>
         )}
+        {currentUserId !== null && node.comment.user_id !== currentUserId && (
+          <button
+            type="button"
+            className={styles.reportBtn}
+            onClick={() => setReportTarget({ type: 'comment', id: node.comment.id })}
+            aria-label={t('report.menuReport')}
+            title={t('report.menuReport')}
+          >
+            <i className="bx bx-flag" />
+          </button>
+        )}
       </div>
       {node.replies.length > 0 && (
         <div className={styles.commentReplies}>{node.replies.map(renderComment)}</div>
@@ -828,6 +841,19 @@ export default function PostDetailModal({
                       <i className="bx bx-link" />
                       <span>{t('post.copyLink')}</span>
                     </button>
+                    {!isOwner && (
+                      <button
+                        type="button"
+                        className={styles.moreItem}
+                        onClick={() => {
+                          setMenuOpen(false)
+                          setReportTarget({ type: 'post', id: current.id })
+                        }}
+                      >
+                        <i className="bx bx-flag" />
+                        <span>{t('report.menuReport')}</span>
+                      </button>
+                    )}
                     {isOwner && (
                       <>
                         <button
@@ -1205,6 +1231,14 @@ export default function PostDetailModal({
           open={shareToFriendOpen}
           onClose={() => setShareToFriendOpen(false)}
           postId={current.id}
+        />
+      )}
+      {reportTarget && (
+        <ReportModal
+          open
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onClose={() => setReportTarget(null)}
         />
       )}
     </div>

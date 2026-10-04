@@ -5,6 +5,7 @@ import styles from './ProfileMenu.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { blockUser } from '../../api/block'
+import ReportModal from '../ReportModal'
 
 interface ProfileMenuProps {
   userID: string
@@ -16,6 +17,7 @@ export default function ProfileMenu({ userID, isSelf }: ProfileMenuProps) {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [blocking, setBlocking] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,8 +48,8 @@ export default function ProfileMenu({ userID, isSelf }: ProfileMenuProps) {
   }
 
   const handleReport = () => {
-    toast({ type: 'info', title: t('profile.reportComingSoon') })
     setIsOpen(false)
+    setReportOpen(true)
   }
 
   return (
@@ -67,6 +69,12 @@ export default function ProfileMenu({ userID, isSelf }: ProfileMenuProps) {
           </button>
         </div>
       )}
+      <ReportModal
+        open={reportOpen}
+        targetType="user"
+        targetId={userID}
+        onClose={() => setReportOpen(false)}
+      />
     </div>
   )
 }

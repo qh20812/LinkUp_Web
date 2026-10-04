@@ -24,6 +24,9 @@ import type {
   ViewProfileResponse,
   AdminSettingsResponse,
   AdminSettingsInput,
+  ViolationRule,
+  ViolationRuleListResponse,
+  AdminViolationRuleInput,
 } from "../types";
 
 // Dashboard
@@ -118,6 +121,32 @@ export const reviewReport = (id: string, input: AdminReportReviewInput) =>
   request<{ message: string }>(`/admin/reports/${id}/decision`, {
     method: "POST",
     body: JSON.stringify(input),
+  });
+
+// Violation rules
+export const getAdminViolationRules = (filters?: { target_type?: string; keyword?: string }) => {
+  const params = new URLSearchParams({ include_inactive: "true" });
+  if (filters?.target_type) params.set("target_type", filters.target_type);
+  if (filters?.keyword) params.set("keyword", filters.keyword);
+  return request<ViolationRuleListResponse>(`/admin/violation-rules?${params}`);
+};
+
+export const createViolationRule = (input: AdminViolationRuleInput) =>
+  request<{ message: string; rule: ViolationRule }>(`/admin/violation-rules`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateViolationRule = (id: string, input: AdminViolationRuleInput) =>
+  request<{ message: string; rule: ViolationRule }>(`/admin/violation-rules/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+
+export const setViolationRuleActive = (id: string, isActive: boolean) =>
+  request<{ message: string }>(`/admin/violation-rules/${id}/active`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_active: isActive }),
   });
 
 // Media

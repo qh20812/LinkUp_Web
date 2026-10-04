@@ -14,6 +14,7 @@ import {
 } from "../../../api/admin";
 import type { AdminGroupListItem, AdminGroupListResponse } from "../../../types";
 import styles from "./Groups.module.css";
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function GroupsPage() {
   const { t, language } = useTranslation();
@@ -216,7 +217,7 @@ export default function GroupsPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : items.length === 0 ? (
           <div className={styles.empty}>

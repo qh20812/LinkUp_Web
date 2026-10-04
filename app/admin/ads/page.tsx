@@ -10,6 +10,7 @@ import { getUserRoleFromToken } from '../../../utils/auth'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
 import type { AdminAdListItem, AdminAdListResponse } from '../../../types'
 import styles from './Ads.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function AdsPage() {
   const { t } = useTranslation()
@@ -214,7 +215,7 @@ export default function AdsPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : items.length === 0 ? (
           <div className={styles.empty}>

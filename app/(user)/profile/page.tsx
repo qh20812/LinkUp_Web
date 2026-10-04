@@ -18,6 +18,7 @@ import ProfileEditModal from '../../../components/profile/ProfileEditModal'
 import ProfileSkeleton from '../../../components/profile/ProfileSkeleton'
 import StoryViewer from '../../../components/story/StoryViewer'
 import type { ViewProfileResponse, StoryItem } from '../../../types'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function MyProfilePage() {
   const { t } = useTranslation()
@@ -137,7 +138,7 @@ export default function MyProfilePage() {
       <div className={styles.page}>
         <div className={styles.loadingWrap}>
           <i className={`bx ${errorType === 'network' ? 'bx-wifi-off' : 'bx-error'}`} style={{ fontSize: 40, marginBottom: 'var(--space-sm)' }} />
-          <p>{error}</p>
+          <p>{toErrorMessage(error)}</p>
         </div>
       </div>
     )

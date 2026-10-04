@@ -851,6 +851,32 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Chat Window:** ChatHeader, customizable background, MessageList with grouping, MessageComposer
 **Messaging MUST follow the Messaging Design System defined in Section 11.**
 
+### Notifications (`/notifications`)
+
+**Purpose:** Triage attention. Newest-first, scannable, zero-inbox workflow.
+**Layout:** Track 3 center column, transparent canvas (no page-level H1 — the navbar owns the visible title per Track 3; page keeps an `sr-only` H1 for heading hierarchy)
+**Toolbar (one row):** segmented glass control left (Tất cả / Chưa đọc + orange count badge / Đã đọc — same recipe as §4 Nav Controls, hover guarded with `:hover:not(.segmentActive)`) + actions right (`margin-left: auto`): "mark all read" primary-light pill (only when `unreadCount > 0`) + 36px circular settings button opening an inline preferences popover (glass, reuses `NotificationsForm` — never navigates away to `/settings`)
+**Type filter:** horizontal scrollable chips row (Tất cả · Thích · Bình luận · Theo dõi · Kết bạn · Cộng đồng · Tin nhắn · Cuộc gọi · Kiểm duyệt) — 32px pills, active = `primary-light` + primary text; client-side filter on fetched data, persisted in `?kind=` (no backend change)
+**Time grouping:** sections Hôm nay / Hôm qua / 7 ngày qua / Cũ hơn with pill separators (§11.13 style: 11–12px/500/muted pill on hairline rules)
+**Notification card (12px, `shadow-sm`, hover `shadow-md`):** avatar 40px + 22px type chip overlaid bottom-right (same `color-mix 14%` chip language as the dropdown §4); no-avatar fallback = 40px icon chip. Content 2-line clamp (sender `600` + text), meta line `time · typeLabel · và N người khác`. Unread = `primary-light` wash + 3px primary left bar + 8px primary dot; read hover = card + shadow lift. Hover/focus reveals a 28px ✓ mark-read circle (always visible on touch). Whole card is `role="button"` + Enter/Space; type colors use tokens only (`--color-heart/info/primary/accent/success/danger`) — hardcoded hex banned
+**Data:** `useSWRInfinite` (pageSize 20, `unreadOnly` only for the unread tab; read tab filters client-side across loaded pages) + `IntersectionObserver` sentinel (`rootMargin: 320px`) + "Tải thêm" fallback button. Realtime via `NotificationContext` WS (optimistic mark-read + `invalidate`)
+**States:** skeletons matching card dimensions (no spinners); error box (`role="alert"`) + primary-light retry pill; composed empty (64px primary-wash bell circle + title + hint + CTAs "Khám phá bạn bè" / "Cài đặt thông báo")
+**Motion:** `rise` entrance (`opacity + translateY(8px)`, 200ms) staggered 40ms via `--index`; `prefers-reduced-motion` disables all
+**Mobile ≤576px:** toolbar wraps (segmented scrolls, actions drop below); card padding 12px; empty CTAs full-width
+
+### Friends (`/friends`)
+
+**Purpose:** Manage relationships. Requests first, discovery second, list third.
+**Layout:** Track 3 center column, transparent canvas (navbar owns the title; page keeps an `sr-only` H1). Tab state in URL (`?mainTab=requests|suggestions|list&subTab=received|sent`) — shareable, back-button safe
+**Toolbar (one row):** segmented glass control (Lời mời + orange badge / Gợi ý / Bạn bè) + scoped search pill right (list tab only): `bg-secondary` pill, magnifier + borderless input, `max-width: 320px`, `:focus-within` primary border; filters client-side by display name with clear (✕) button and a `Caption` count line ("N bạn bè"). Mobile: search goes full-width below
+**Sub-filter (requests tab only):** chips row (Đã nhận / Đã gửi), same chip language as notifications
+**Request card (12px, stagger):** avatar 40px + name `600` + meta `relative time` (`notifications.*` keys reused) + actions right: Chấp nhận (turquoise compact pill) / Từ chối (ghost); sent tab shows Thu hồi (ghost). Accept removes the row optimistically + prunes the user from suggestions
+**Suggestion card:** same chrome + mutual lines (`N bạn chung`, `Chung với: names +M người khác`); "Thêm bạn" morphs to disabled "Đã gửi ✓" (§8 follow-button pattern)
+**Friend row:** avatar + name + ⋯ overflow menu (glass popover per §4: Xem hồ sơ → `/profile/:id`, Nhắn tin → `createDirectChat` → `/messages?chat_id=`, Hủy kết bạn danger → existing confirm `Modal`). Destructive action never sits inline. Menu closes on backdrop click / item click / Escape; toggle `aria-expanded` + `aria-haspopup="menu"`
+**States:** skeleton cards everywhere (initial + load-more batches — zero spinners); composed empties with per-tab hints + cross-tab CTA (`viewSuggestions`); error box + retry (retry resets page cursor via state flag, never touches refs in render)
+**Data notes:** friend-request list is fetched on mount on every tab (badge correctness); `*Initial` flags flip in loader `finally` (never stuck on loading); ESLint `react-hooks/refs` rule: no `.current` access inside render-called helpers — pagination cursors live in refs touched only from callbacks/effects, retry goes through state flags
+**Motion/responsive/a11y:** same `rise` + 40ms stagger + reduced-motion treatment as notifications; rows are `role="button"` + Enter/Space with inner buttons `stopPropagation`; ≤576px actions stay in-row (wrap, not column-stacked)
+
 ### Admin Dashboard (`/admin/dashboard`)
 
 **Purpose:** Platform overview. Key metrics at a glance.

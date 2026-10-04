@@ -29,6 +29,7 @@ import type {
   StatusCount,
 } from '../../../types'
 import styles from './Dashboard.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 interface MergedChartPoint {
   date: string
@@ -277,7 +278,7 @@ export default function DashboardPage() {
       {error && (
         <div className={styles.error}>
           <i className="bx bx-error-circle" />
-          <p>{error}</p>
+          <p>{toErrorMessage(error)}</p>
         </div>
       )}
 

@@ -9,7 +9,9 @@ import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminReportListItem, AdminReportDetailResponse, AdminReportListResponse } from '../../../types'
 import Pagination from '../../../components/Pagination'
 import Modal from '../../../components/Modal'
+import ExternalImage from '../../../components/ExternalImage'
 import styles from './Reports.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 function getUserRoleFromToken(): string | null {
   try {
@@ -232,7 +234,7 @@ export default function ReportsPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : reports.length === 0 ? (
           <div className={styles.empty}>
@@ -266,7 +268,7 @@ export default function ReportsPage() {
                         {targetTypeLabel(report.target_type)}
                       </span>
                     </td>
-                    <td>{reportTypeLabel(report.report_type)}</td>
+                    <td>{report.violation_rule_title ?? reportTypeLabel(report.report_type)}</td>
                     <td>
                       <span className={`${styles.badge} ${statusBadgeClass(report.status)}`}>
                         {statusLabel(report.status)}
@@ -352,6 +354,118 @@ export default function ReportsPage() {
         {detailLoading && <p style={{ textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>}
         {detailTarget && !detailLoading && (
           <>
+            {(detailTarget.target_post || detailTarget.target_comment || detailTarget.target_user) && (
+              <div className={styles.previewBlock}>
+                <span className={styles.detailLabel}>{t('reports.targetContent')}</span>
+                {detailTarget.target_post && (
+                  <div className={styles.previewCard}>
+                    <div className={styles.previewAuthor}>
+                      <span className={styles.previewAvatar}>
+                        {detailTarget.target_post.owner_avatar_uri ? (
+                          <ExternalImage src={detailTarget.target_post.owner_avatar_uri} alt="" />
+                        ) : (
+                          <i className="bx bxs-user" />
+                        )}
+                      </span>
+                      <span className={styles.previewMeta}>
+                        <strong>{detailTarget.target_post.owner_display_name || detailTarget.target_post.owner_username}</strong>
+                        <span className={styles.previewSub}>
+                          @{detailTarget.target_post.owner_username} · {formatDate(detailTarget.target_post.created_at)}
+                        </span>
+                      </span>
+                      <span className={`${styles.badge} ${styles.badgeTargetType}`}>
+                        {detailTarget.target_post.status}
+                      </span>
+                    </div>
+                    {detailTarget.target_post.title && (
+                      <p className={styles.previewTitle}>{detailTarget.target_post.title}</p>
+                    )}
+                    {detailTarget.target_post.excerpt && (
+                      <p className={styles.previewExcerpt}>{detailTarget.target_post.excerpt}</p>
+                    )}
+                    {detailTarget.target_post.media_uris?.length > 0 && (
+                      <div className={styles.previewMedia}>
+                        {detailTarget.target_post.media_uris.slice(0, 3).map((uri) => (
+                          <ExternalImage key={uri} src={uri} alt="" className={styles.previewThumb} />
+                        ))}
+                      </div>
+                    )}
+                    <a
+                      className={styles.viewFullLink}
+                      href={`/posts/${detailTarget.target_post.post_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <i className="bx bx-link-external" /> {t('reports.viewFull')}
+                    </a>
+                  </div>
+                )}
+                {detailTarget.target_comment && (
+                  <div className={styles.previewCard}>
+                    <div className={styles.previewAuthor}>
+                      <span className={styles.previewAvatar}>
+                        {detailTarget.target_comment.owner_avatar_uri ? (
+                          <ExternalImage src={detailTarget.target_comment.owner_avatar_uri} alt="" />
+                        ) : (
+                          <i className="bx bxs-user" />
+                        )}
+                      </span>
+                      <span className={styles.previewMeta}>
+                        <strong>{detailTarget.target_comment.owner_display_name || detailTarget.target_comment.owner_username}</strong>
+                        <span className={styles.previewSub}>
+                          @{detailTarget.target_comment.owner_username} · {formatDate(detailTarget.target_comment.created_at)}
+                        </span>
+                      </span>
+                      <span className={`${styles.badge} ${styles.badgeTargetType}`}>
+                        {detailTarget.target_comment.status}
+                      </span>
+                    </div>
+                    <p className={styles.previewExcerpt}>{detailTarget.target_comment.content}</p>
+                    {detailTarget.target_comment.post_title && (
+                      <p className={styles.previewContext}>
+                        {t('reports.inPost')} “{detailTarget.target_comment.post_title}”
+                      </p>
+                    )}
+                    <a
+                      className={styles.viewFullLink}
+                      href={`/posts/${detailTarget.target_comment.post_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <i className="bx bx-link-external" /> {t('reports.viewFull')}
+                    </a>
+                  </div>
+                )}
+                {detailTarget.target_user && (
+                  <div className={styles.previewCard}>
+                    <div className={styles.previewAuthor}>
+                      <span className={styles.previewAvatar}>
+                        {detailTarget.target_user.avatar_uri ? (
+                          <ExternalImage src={detailTarget.target_user.avatar_uri} alt="" />
+                        ) : (
+                          <i className="bx bxs-user" />
+                        )}
+                      </span>
+                      <span className={styles.previewMeta}>
+                        <strong>{detailTarget.target_user.display_name || detailTarget.target_user.username}</strong>
+                        <span className={styles.previewSub}>@{detailTarget.target_user.username}</span>
+                      </span>
+                      <span className={`${styles.badge} ${styles.badgeTargetType}`}>
+                        {detailTarget.target_user.status}
+                      </span>
+                    </div>
+                    <a
+                      className={styles.viewFullLink}
+                      href={`/profile/${detailTarget.target_user.user_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <i className="bx bx-link-external" /> {t('reports.viewFull')}
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
             <div className={styles.detailRow}>
               <span className={styles.detailLabel}>{t('reports.reporter')}</span>
               <span className={styles.detailValue}>
@@ -375,10 +489,12 @@ export default function ReportsPage() {
               <span className={styles.detailLabel}>{t('reports.reasonDetail')}</span>
               <span className={styles.detailValue}>{detailTarget.reason_detail || '-'}</span>
             </div>
-            {detailTarget.violation_rule_id && (
+            {(detailTarget.violation_rule_id || detailTarget.violation_rule_title) && (
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t('reports.violationRule')}</span>
-                <span className={styles.detailValue}>{detailTarget.violation_rule_id}</span>
+                <span className={styles.detailValue}>
+                  {detailTarget.violation_rule_title ?? detailTarget.violation_rule_id}
+                </span>
               </div>
             )}
             <div className={styles.detailRow}>

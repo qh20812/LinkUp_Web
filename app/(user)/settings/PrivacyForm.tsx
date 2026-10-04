@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation'
 import { getPrivacy, updatePrivacy } from '../../../api/settings'
 import type { PrivacySettingsResponse } from '../../../types'
 import styles from './Settings.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function PrivacyForm() {
   const { t } = useTranslation()
@@ -83,7 +84,7 @@ export default function PrivacyForm() {
     return (
       <div className={styles.empty}>
         <i className="bx bx-error-circle" />
-        <p>{error}</p>
+        <p>{toErrorMessage(error)}</p>
       </div>
     )
   }

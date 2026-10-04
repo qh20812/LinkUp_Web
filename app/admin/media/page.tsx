@@ -14,6 +14,7 @@ import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
 import ExternalImage from '../../../components/ExternalImage'
 import styles from "./Media.module.css";
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 type TabType = "grouped" | "flagged" | "rejected";
 type ReviewAction = "approve" | "reject";
@@ -300,7 +301,7 @@ export default function MediaPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : activeTab === "grouped" ? (
           groups.length === 0 ? (

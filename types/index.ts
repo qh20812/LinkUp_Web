@@ -356,6 +356,50 @@ export interface AdminHidePostInput {
 }
 
 // ===== Reports =====
+export type ReportTargetType = "post" | "comment" | "user";
+
+export interface ViolationRule {
+  id: string;
+  title: string;
+  description: string;
+  applicable_to: string;
+  severity: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ViolationRuleListResponse {
+  rules: ViolationRule[];
+  total: number;
+}
+
+export interface ViolationRuleResponse {
+  rule: ViolationRule;
+}
+
+export interface CreateReportInput {
+  target_type: ReportTargetType;
+  target_id: string;
+  report_type: string;
+  violation_rule_id?: string;
+  reason_detail: string;
+}
+
+export interface UpdateReportInput {
+  report_type: string;
+  violation_rule_id?: string;
+  reason_detail: string;
+}
+
+export interface AdminViolationRuleInput {
+  title: string;
+  description?: string;
+  applicable_to?: string;
+  severity?: string;
+  sort_order?: number;
+}
+
 export interface AdminReportListItem {
   id: string
   reporter_id: string
@@ -367,6 +411,7 @@ export interface AdminReportListItem {
   target_comment_id?: string
   report_type: string
   violation_rule_id?: string
+  violation_rule_title?: string
   reason_detail: string
   status: string
   created_at: string
@@ -381,6 +426,45 @@ export interface AdminReportListResponse {
 
 export interface AdminReportDetailResponse extends AdminReportListItem {
   post_owner_id?: string
+  target_post?: AdminReportTargetPost
+  target_comment?: AdminReportTargetComment
+  target_user?: AdminReportTargetUser
+}
+
+export interface AdminReportTargetPost {
+  post_id: string
+  owner_id: string
+  owner_username: string
+  owner_display_name: string
+  owner_avatar_uri: string
+  title: string
+  excerpt: string
+  media_uris: string[]
+  status: string
+  likes_count: number
+  comments_count: number
+  created_at: string
+}
+
+export interface AdminReportTargetComment {
+  comment_id: string
+  content: string
+  owner_id: string
+  owner_username: string
+  owner_display_name: string
+  owner_avatar_uri: string
+  post_id: string
+  post_title: string
+  status: string
+  created_at: string
+}
+
+export interface AdminReportTargetUser {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_uri: string
+  status: string
 }
 
 export interface AdminReportReviewInput {

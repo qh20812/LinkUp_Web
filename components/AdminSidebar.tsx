@@ -20,6 +20,7 @@ const menuItems = [
   { key: 'users', icon: 'bx bx-group', href: '/admin/users' },
   { key: 'posts', icon: 'bx bx-file', href: '/admin/posts' },
   { key: 'reports', icon: 'bx bx-flag', href: '/admin/reports' },
+  { key: 'violationRules', icon: 'bx bx-list-check', href: '/admin/violation-rules' },
   { key: 'media', icon: 'bx bx-image', href: '/admin/media' },
   { key: 'groups', icon: 'bx bx-chat', href: '/admin/groups' },
   { key: 'communities', icon: 'bx bx-world', href: '/admin/communities' },

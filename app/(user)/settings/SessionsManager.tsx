@@ -7,6 +7,7 @@ import { getSessions, revokeSession, revokeOtherSessions } from '../../../api/se
 import type { UserSessionDTO } from '../../../types'
 import { formatDateTime } from '../../../lib/formatters'
 import styles from './Settings.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function SessionsManager() {
   const { t } = useTranslation()
@@ -87,7 +88,7 @@ export default function SessionsManager() {
     return (
       <div className={styles.empty}>
         <i className="bx bx-error-circle" />
-        <p>{error}</p>
+        <p>{toErrorMessage(error)}</p>
       </div>
     )
   }

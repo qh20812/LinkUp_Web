@@ -13,6 +13,7 @@ import { getTokenPayload } from '../api/auth'
 import { trackPostView } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
 import ShareModal from './messages/ShareModal'
+import ReportModal from './ReportModal'
 import type { FeedPost } from '../types'
 
 const EMOJI_CODE_MAP = emojiByCode(getEmotionEmojis())
@@ -177,6 +178,8 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [likePop, setLikePop] = useState(false)
   const [burst, setBurst] = useState(false)
   const prevLikedRef = useRef(post.is_liked)
@@ -234,8 +237,11 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   }, [])
 
   useEffect(() => {
-    if (!shareMenuOpen) return
-    const close = () => setShareMenuOpen(false)
+    if (!shareMenuOpen && !moreOpen) return
+    const close = () => {
+      setShareMenuOpen(false)
+      setMoreOpen(false)
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
     }
@@ -245,7 +251,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
       document.removeEventListener('click', close)
       document.removeEventListener('keydown', onKey)
     }
-  }, [shareMenuOpen])
+  }, [shareMenuOpen, moreOpen])
 
   // Tách URL GIPHY dính nhau TRƯỚC khi cắt — chuỗi liền mạch không có space
   // sẽ bị truncateAvoidingUrl trả về '...' (mất trắng nội dung).
@@ -339,6 +345,39 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             </span>
           </div>
         </Link>
+        {!isOwn && (
+          <div className={styles.moreWrap}>
+            <button
+              type="button"
+              className={styles.moreBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                setMoreOpen((v) => !v)
+              }}
+              aria-label={t('common.more')}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+            >
+              <i className="bx bx-dots-horizontal-rounded" />
+            </button>
+            {moreOpen && (
+              <div className={styles.moreMenu} role="menu" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.moreItem}
+                  onClick={() => {
+                    setMoreOpen(false)
+                    setReportOpen(true)
+                  }}
+                >
+                  <i className="bx bx-flag" />
+                  <span>{t('report.menuReport')}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div
@@ -521,6 +560,12 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         open={shareToFriendOpen}
         onClose={() => setShareToFriendOpen(false)}
         postId={post.id}
+      />
+      <ReportModal
+        open={reportOpen}
+        targetType="post"
+        targetId={post.id}
+        onClose={() => setReportOpen(false)}
       />
     </article>
   )

@@ -21,6 +21,7 @@ import StoryEditorModal from './story/StoryEditorModal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useFollowContext } from '../contexts/FollowContext'
 import { useToast } from '../contexts/ToastContext'
+import { toErrorMessage } from '../utils/errorMessage'
 
 const PAGE_SIZE = 10
 
@@ -301,7 +302,7 @@ function FeedContent() {
       <div className={styles.container}>
         <div className={styles.errorBox}>
           <i className="bx bx-error-circle" />
-          <p>{error}</p>
+          <p>{toErrorMessage(error)}</p>
           <button className={styles.retryBtn} onClick={() => { cursorRef.current = null; fetchNext() }}>
             {t('common.retry') || 'Thử lại'}
           </button>

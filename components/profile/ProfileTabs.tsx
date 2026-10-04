@@ -13,6 +13,7 @@ import ProfileFriendsTab from './ProfileFriendsTab'
 import ProfileAboutTab from './ProfileAboutTab'
 import MediaLightbox from './MediaLightbox'
 import type { FeedPost, EmojiItem, MediaItem, ViewProfileResponse } from '../../types'
+import { toErrorMessage } from '../../utils/errorMessage'
 
 const PAGE_SIZE = 10
 const MEDIA_PAGE_SIZE = 18
@@ -303,7 +304,7 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
         ) : (
           <>
             {!loading && error && posts.length === 0 && (
-              <div className={styles.loadingWrap}><p>{error}</p></div>
+              <div className={styles.loadingWrap}><p>{toErrorMessage(error)}</p></div>
             )}
 
             {!loading && !error && posts.length === 0 && (

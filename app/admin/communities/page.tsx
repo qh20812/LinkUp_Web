@@ -9,6 +9,7 @@ import { getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archive
 import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem, AdminCommunityListResponse } from '../../../types'
 import ExternalImage from '../../../components/ExternalImage'
 import styles from './Communities.module.css'
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 export default function CommunitiesPage() {
   const { t } = useTranslation()
@@ -341,7 +342,7 @@ export default function CommunitiesPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : items.length === 0 ? (
           <div className={styles.empty}>

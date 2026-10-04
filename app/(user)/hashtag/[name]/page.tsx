@@ -15,6 +15,7 @@ import PostDetailModal from '../../../../components/PostDetailModal'
 import { useTranslation } from '../../../../hooks/useTranslation'
 import { useFollowContext } from '../../../../contexts/FollowContext'
 import { useToast } from '../../../../contexts/ToastContext'
+import { toErrorMessage } from '../../../../utils/errorMessage'
 
 const PAGE_SIZE = 10
 
@@ -173,7 +174,7 @@ export default function HashtagPage() {
       ) : error && posts.length === 0 ? (
         <div className={styles.errorBox}>
           <i className="bx bx-error-circle" />
-          <p>{error}</p>
+          <p>{toErrorMessage(error)}</p>
           <button className={styles.retryBtn} onClick={() => fetchPage(1, name)}>
             {t('common.retry') || 'Thử lại'}
           </button>

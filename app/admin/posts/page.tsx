@@ -13,6 +13,7 @@ import type {
   AdminHidePostInput,
 } from "../../../types";
 import styles from "./Posts.module.css";
+import { toErrorMessage } from '../../../utils/errorMessage'
 
 function getUserRoleFromToken(): string | null {
   try {
@@ -218,7 +219,7 @@ export default function PostsPage() {
         ) : error ? (
           <div className={styles.empty}>
             <i className="bx bx-error-circle" />
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         ) : posts.length === 0 ? (
           <div className={styles.empty}>

@@ -7,6 +7,7 @@ import { searchFriends } from '../../api/chats'
 import { getFriends } from '../../api/friends'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './UserPickerModal.module.css'
+import { toErrorMessage } from '../../utils/errorMessage'
 
 export interface UserSearchItem {
   id: string
@@ -131,7 +132,7 @@ export default function UserPickerModal({ open, onClose, onPick }: UserPickerMod
         )}
         {!searching && friendsState.loaded && error && (
           <div className={styles.center}>
-            <p>{error}</p>
+            <p>{toErrorMessage(error)}</p>
           </div>
         )}
         {!searching && friendsState.loaded && !error && displayList.length === 0 && (

@@ -76,7 +76,8 @@
     "toggleTheme": "Chế độ sáng/tối",
     "language": "Ngôn ngữ",
     "toggleMenu": "Chuyển đổi menu",
-    "ads": "Quảng cáo"
+    "ads": "Quảng cáo",
+    "violationRules": "Quy tắc vi phạm"
   },
   "userNavbar": {
     "explore": "Khám phá",
@@ -626,7 +627,10 @@
     "reviewed": "Đã xem",
     "user": "Người dùng",
     "post": "Bài viết",
-    "comment": "Bình luận"
+    "comment": "Bình luận",
+    "targetContent": "Nội dung bị báo cáo",
+    "viewFull": "Xem đầy đủ",
+    "inPost": "trong bài viết"
   },
   "media": {
     "title": "Quản lý media",
@@ -1493,7 +1497,16 @@
     "rbac.MISSING_AD_ID": "Thiếu ad ID",
     "rbac.AD_NOT_FOUND": "Không tìm thấy quảng cáo",
     "rbac.AD_ACCESS_DENIED": "Truy cập bị từ chối. Bạn không sở hữu quảng cáo này",
-    "ban.NOT_FOUND": "Không tìm thấy bản ghi ban"
+    "ban.NOT_FOUND": "Không tìm thấy bản ghi ban",
+    "violation.RULE_TITLE_REQUIRED": "Tiêu đề quy tắc vi phạm không được để trống",
+    "violation.RULE_TITLE_TOO_SHORT": "Tiêu đề quy tắc vi phạm phải có ít nhất 5 ký tự",
+    "violation.RULE_TITLE_TOO_LONG": "Tiêu đề quy tắc vi phạm không được vượt quá 255 ký tự",
+    "violation.RULE_DESC_TOO_LONG": "Mô tả quy tắc vi phạm không được vượt quá 2000 ký tự",
+    "violation.RULE_TITLE_DUPLICATE": "Tiêu đề quy tắc vi phạm đã tồn tại",
+    "violation.RULE_NOT_FOUND": "Quy tắc vi phạm không tồn tại",
+    "violation.RULE_INACTIVE": "Quy tắc vi phạm này đã bị vô hiệu hóa",
+    "violation.RULE_TARGET_MISMATCH": "Quy tắc vi phạm không áp dụng cho loại đối tượng này",
+    "violation.RULE_IN_USE": "Quy tắc đang được dùng bởi các báo cáo, chỉ có thể tắt chứ không thể xóa"
   },
   "userSettings": {
     "subtitle": "Quản lý quyền riêng tư, dung lượng, phiên đăng nhập và tài khoản",
@@ -2137,5 +2150,54 @@
     "loadMore": "Xem thêm",
     "back": "Quay lại",
     "error": "Không thể tải bài viết."
+  },
+  "report": {
+    "title": "Báo cáo vi phạm",
+    "menuReport": "Báo cáo",
+    "postTitle": "Báo cáo bài viết",
+    "commentTitle": "Báo cáo bình luận",
+    "userTitle": "Báo cáo người dùng",
+    "selectReason": "Chọn lý do vi phạm",
+    "otherReason": "Lý do khác",
+    "detailLabel": "Mô tả chi tiết",
+    "detailPlaceholder": "Mô tả rõ nội dung vi phạm để quản trị viên xử lý nhanh hơn...",
+    "submit": "Gửi báo cáo",
+    "success": "Báo cáo đã được gửi thành công",
+    "loadFailed": "Không tải được danh sách lý do, vui lòng thử lại",
+    "selectRequired": "Vui lòng chọn lý do vi phạm",
+    "detailRequired": "Vui lòng nhập mô tả chi tiết",
+    "detailOptional": "Mô tả chi tiết (không bắt buộc)",
+    "detailHint": "Càng chi tiết, quản trị viên xử lý càng nhanh."
+  },
+  "violationRules": {
+    "title": "Quy tắc vi phạm",
+    "subtitle": "Danh sách lý do hiển thị khi người dùng báo cáo",
+    "create": "Thêm quy tắc",
+    "edit": "Sửa quy tắc",
+    "colTitle": "Tiêu đề",
+    "colScope": "Phạm vi",
+    "colSeverity": "Mức độ",
+    "colOrder": "Thứ tự",
+    "colStatus": "Trạng thái",
+    "active": "Đang bật",
+    "inactive": "Đã tắt",
+    "activate": "Bật",
+    "deactivate": "Tắt",
+    "titleLabel": "Tiêu đề",
+    "descLabel": "Mô tả",
+    "scopeLabel": "Áp dụng cho",
+    "severityLabel": "Mức độ nghiêm trọng",
+    "orderLabel": "Thứ tự hiển thị",
+    "scopeAll": "Tất cả",
+    "scopePost": "Bài viết",
+    "scopeComment": "Bình luận",
+    "scopeUser": "Người dùng",
+    "sevLow": "Thấp",
+    "sevMedium": "Trung bình",
+    "sevHigh": "Cao",
+    "createSuccess": "Tạo quy tắc thành công",
+    "updateSuccess": "Cập nhật quy tắc thành công",
+    "statusSuccess": "Cập nhật trạng thái thành công",
+    "empty": "Chưa có quy tắc nào"
   }
 }
