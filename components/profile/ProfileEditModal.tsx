@@ -178,6 +178,21 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     }
   }
 
+  const isDirty =
+    displayName !== profile.display_name ||
+    bio.trim() !== profile.bio ||
+    hometownProvince !== profile.hometown_province ||
+    currentProvince !== profile.current_province ||
+    currentWard !== profile.current_ward ||
+    work !== profile.work ||
+    workOther !== profile.work_other ||
+    education !== profile.education ||
+    website !== profile.website ||
+    (dateOfBirth ? new Date(dateOfBirth).toISOString() !== profile.date_of_birth : false) ||
+    isPrivateProfile !== profile.is_private_profile ||
+    isPrivatePosts !== profile.is_private_posts ||
+    allowStrangerFriend !== profile.allow_stranger_friend_request
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -396,7 +411,7 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
 
         <div className={styles.modalFooter}>
           <button className={styles.cancelBtn} onClick={onClose}>{t('common.cancel')}</button>
-          <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+          <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !isDirty}>
             {saving ? t('common.loading') : t('profile.saveChanges')}
           </button>
         </div>

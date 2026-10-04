@@ -41,20 +41,23 @@ export default function MutualFriends({ userID }: MutualFriendsProps) {
     <div className={styles.container}>
       <div className={styles.avatars}>
         {mutuals.slice(0, 4).map((user) => (
-          <div
+          <button
             key={user.user_id}
+            type="button"
             className={styles.avatarWrap}
             onClick={() => router.push(`/profile/${user.user_id}`)}
+            aria-label={user.display_name}
+            title={user.display_name}
           >
             <Image
               src={user.avatar_uri || '/default-avatar.svg'}
-              alt={user.display_name}
-              width={28}
-              height={28}
+              alt=""
+              width={24}
+              height={24}
               className={styles.avatar}
               unoptimized
             />
-          </div>
+          </button>
         ))}
       </div>
       <span className={styles.label}>

@@ -31,14 +31,18 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
   min-width: 180px;
   z-index: 20;
   overflow: hidden;
-  animation: dropIn 0.15s ease;
+  padding: 6px;
+  transform-origin: top right;
+  animation: dropIn 0.18s ease-out;
 }
 
 @keyframes dropIn {
@@ -59,16 +63,18 @@
   padding: var(--space-sm) var(--space-md);
   width: 100%;
   border: none;
+  border-radius: var(--radius-sm);
   background: none;
   cursor: pointer;
   font: var(--text-body);
   color: var(--color-text);
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .menuItem:hover {
-  background: var(--color-bg-secondary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .menuItem:disabled {

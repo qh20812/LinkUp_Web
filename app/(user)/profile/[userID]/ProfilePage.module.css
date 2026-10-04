@@ -3,6 +3,37 @@
   padding: var(--space-lg) var(--space-md);
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Feed + rail split (community-detail language) */
+.bodyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-md);
+  align-items: start;
+  margin-top: var(--space-md);
+}
+
+.feedCol {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .bodyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .headerRow {
   position: relative;
 }

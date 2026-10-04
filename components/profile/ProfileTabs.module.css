@@ -2,88 +2,162 @@
   width: 100%;
 }
 
+/* Sticky glass pill bar (community-detail language) */
 .tabBar {
   display: flex;
-  border-bottom: 1px solid var(--color-divider);
-  background: var(--color-card);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  overflow: hidden;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: calc(56px + var(--space-md));
+  z-index: 50;
+  margin-bottom: var(--space-md);
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Sliding thumb behind the active tab (segmented-control language) */
+.tabThumb {
+  position: absolute;
+  top: var(--space-sm);
+  bottom: var(--space-sm);
+  left: 0;
+  width: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  transition: left 0.25s cubic-bezier(0.21, 1.02, 0.73, 1), width 0.25s cubic-bezier(0.21, 1.02, 0.73, 1);
+  pointer-events: none;
 }
 
 .tab {
-  flex: 1;
-  display: flex;
+  flex: 1 0 auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  padding: var(--space-md) var(--space-sm);
+  padding: 10px 18px;
+  min-height: 40px;
   border: none;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-secondary);
   font: var(--text-body);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
   position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
 }
 
-.tab:hover {
+.tab:hover:not(.tabActive) {
   background: var(--color-bg-secondary);
   color: var(--color-text);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .tabActive {
   color: var(--color-primary);
 }
 
-.tabActive::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tabActive .tabCount {
   background: var(--color-primary);
+  color: #fff;
 }
 
 .tabContent {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  animation: tabRise 0.2s ease-out both;
+}
+
+@keyframes tabRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .postItem {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-sm);
 }
 
-.postItem:last-child {
-  border-bottom: none;
-}
-
-/* Loading & Empty States */
+/* Loading & Empty States — skeleton dots only (§9: no spinners) */
 .loadingWrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-sm);
   padding: var(--space-xl);
   color: var(--color-text-secondary);
 }
 
-.loadingSpinner {
-  width: 32px;
-  height: 32px;
-  border: var(--space-xs) solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-circle);
-  animation: spin 0.8s linear infinite;
+.loadingDots {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.loadingDots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.4;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.loadingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loadingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .emptyState {
@@ -91,17 +165,37 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-sm);
   padding: var(--space-xl);
   color: var(--color-text-secondary);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .emptyIcon {
-  font-size: 48px;
-  margin-bottom: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 28px;
+  margin-bottom: var(--space-xs);
+}
+
+.emptyTitle {
+  font: var(--text-body);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
 }
 
 .emptyText {
-  font: var(--text-body);
+  font: var(--text-caption);
+  margin: 0;
 }
 
 .pinnedBadge {
@@ -168,11 +262,80 @@
 
 @media (max-width: 576px) {
   .tab {
-    padding: var(--space-sm) var(--space-xs);
+    padding: 8px 14px;
     font-size: 13px;
+    min-height: 44px;
+  }
+
+  .tabBar {
+    top: calc(56px + var(--space-sm));
   }
 
   .postItem {
     padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* Photo strip preview above the feed (posts tab) */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-sm);
+}
+
+.stripItem {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.stripItem img,
+.stripItem video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.stripItem:hover img,
+.stripItem:hover video {
+  transform: scale(1.05);
+}
+
+.stripItem:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  .strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabContent {
+    animation: none;
+  }
+
+  .tabThumb {
+    transition: none;
+  }
+
+  .loadingDots span {
+    animation: none;
+    opacity: 0.7;
   }
 }

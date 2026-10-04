@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { getProfileByUserID } from '../../../../api/profile'
+import { getProfileByUserID, updateProfile, uploadAvatar, uploadCover } from '../../../../api/profile'
 import { checkUserStory, getUserStories } from '../../../../api/stories'
 import { startDirectChat, createChatInvite } from '../../../../api/chats'
 import { getTokenPayload } from '../../../../api/auth'
 import { useTranslation } from '../../../../hooks/useTranslation'
+import { useToast } from '../../../../contexts/ToastContext'
 import { useFollowContext } from '../../../../contexts/FollowContext'
 import { useFollowStats } from '../../../../hooks/profile/useFollowStats'
 import ProfileHeader from '../../../../components/profile/ProfileHeader'
@@ -15,6 +16,8 @@ import ProfileTabs from '../../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../../components/profile/ProfileFollowersModal'
 import ProfileSkeleton from '../../../../components/profile/ProfileSkeleton'
 import ProfileMenu from '../../../../components/profile/ProfileMenu'
+import ProfileEditModal from '../../../../components/profile/ProfileEditModal'
+import ProfileRail from '../../../../components/profile/ProfileRail'
 import MutualFriends from '../../../../components/profile/MutualFriends'
 import StoryViewer from '../../../../components/story/StoryViewer'
 import type { ViewProfileResponse, StoryItem } from '../../../../types'
@@ -29,6 +32,7 @@ export default function ProfilePage() {
 
 function ProfileView({ userID }: { userID: string }) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const router = useRouter()
   const { followUser: ctxFollowUser } = useFollowContext()
 
@@ -40,6 +44,8 @@ function ProfileView({ userID }: { userID: string }) {
   const [messageBusy, setMessageBusy] = useState(false)
   const [inviteSent, setInviteSent] = useState(false)
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [hasStory, setHasStory] = useState(false)
   const [viewerStories, setViewerStories] = useState<StoryItem[] | null>(null)
 
@@ -121,6 +127,58 @@ function ProfileView({ userID }: { userID: string }) {
     } catch { /* ignore */ }
   }
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}/profile/${userID}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: profile?.display_name ?? 'LinkUp', url })
+        return
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      toast({ type: 'success', title: t('profile.linkCopied') })
+    } catch {
+      toast({ type: 'error', title: t('common.error') })
+    }
+  }
+
+  const handleAvatarChange = async (file: File) => {
+    if (uploading) return
+    setUploading(true)
+    try {
+      const uploadRes = await uploadAvatar(file)
+      const avatarUri = uploadRes.data?.file_uri
+      if (!avatarUri) throw new Error(t('common.error'))
+      const res = await updateProfile({ avatar_uri: avatarUri })
+      setProfile(res.data)
+      toast({ type: 'success', title: t('profile.changeAvatar') })
+    } catch (err) {
+      toast({ type: 'error', title: err instanceof Error ? err.message : t('common.error') })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleCoverChange = async (file: File) => {
+    if (uploading) return
+    setUploading(true)
+    try {
+      const uploadRes = await uploadCover(file)
+      const coverUri = uploadRes.data?.file_uri
+      if (!coverUri) throw new Error(t('common.error'))
+      const res = await updateProfile({ cover_uri: coverUri })
+      setProfile(res.data)
+      toast({ type: 'success', title: t('profile.changeCover') })
+    } catch (err) {
+      toast({ type: 'error', title: err instanceof Error ? err.message : t('common.error') })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -143,6 +201,7 @@ function ProfileView({ userID }: { userID: string }) {
 
   return (
     <div className={styles.page}>
+      <h1 className={styles.srOnly}>{profile.display_name}</h1>
       <ProfileHeader
         profile={profile}
         stats={stats}
@@ -159,6 +218,10 @@ function ProfileView({ userID }: { userID: string }) {
         onMessage={handleMessage}
         onOpenFollowers={() => setModalType('followers')}
         onOpenFollowing={() => setModalType('following')}
+        onAvatarChange={isSelf ? handleAvatarChange : undefined}
+        onCoverChange={isSelf ? handleCoverChange : undefined}
+        onEdit={isSelf ? () => setEditOpen(true) : undefined}
+        onShare={handleShare}
         onViewStory={handleViewStory}
         onViewAvatar={() => {/* TODO: open lightbox */}}
         menuSlot={
@@ -168,19 +231,30 @@ function ProfileView({ userID }: { userID: string }) {
             </div>
           ) : undefined
         }
+        mutualSlot={
+          !isSelf && currentUserID && !isPrivate ? (
+            <MutualFriends userID={userID} />
+          ) : undefined
+        }
       />
 
-      {!isSelf && currentUserID && !isPrivate && (
-        <MutualFriends userID={userID} />
-      )}
-
       {!isPrivate && (
-        <ProfileTabs
-          userID={userID}
-          isSelf={isSelf}
-          profile={profile}
-          onFollow={isSelf ? undefined : handlePostFollow}
-        />
+        <div className={styles.bodyGrid}>
+          <div className={styles.feedCol}>
+            <ProfileTabs
+              userID={userID}
+              isSelf={isSelf}
+              profile={profile}
+              onFollow={isSelf ? undefined : handlePostFollow}
+            />
+          </div>
+          <ProfileRail
+            userID={userID}
+            profile={profile}
+            isSelf={isSelf}
+            onEdit={() => setEditOpen(true)}
+          />
+        </div>
       )}
 
       {modalType && (
@@ -189,6 +263,18 @@ function ProfileView({ userID }: { userID: string }) {
           userID={userID}
           currentUserID={currentUserID ?? undefined}
           onClose={() => setModalType(null)}
+        />
+      )}
+
+      {editOpen && (
+        <ProfileEditModal
+          profile={profile}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => {
+            setProfile(updated)
+            setEditOpen(false)
+            toast({ type: 'success', title: t('profile.saveChanges') })
+          }}
         />
       )}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import styles from './ProfileTabs.module.css'
 import mediaStyles from './ProfileMediaGrid.module.css'
@@ -57,6 +57,13 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
   const [mediaLoading, setMediaLoading] = useState(false)
   const [mediaHasMore, setMediaHasMore] = useState(true)
+
+  // Photo strip preview (posts tab)
+  const [stripPhotos, setStripPhotos] = useState<MediaItem[]>([])
+
+  // Sliding thumb position
+  const tabBarRef = useRef<HTMLDivElement>(null)
+  const [thumb, setThumb] = useState({ left: 0, width: 0, visible: false })
 
   const fetchPosts = useCallback(async (reset = false) => {
     if (loadingRef.current) return
@@ -128,6 +135,46 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
     fetchPosts(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Photo strip: 6 ảnh mới nhất cho tab posts
+  useEffect(() => {
+    let cancelled = false
+    getUserMedia(userID, 1, 6)
+      .then((res) => { if (!cancelled) setStripPhotos(res.data ?? []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [userID])
+
+  // Rail "Xem tất cả" điều hướng tab từ bên ngoài
+  useEffect(() => {
+    const tabs: ProfileTab[] = ['posts', 'media', 'saved', 'friends', 'about']
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail
+      if (tabs.includes(tab)) setActiveTab(tab as ProfileTab)
+    }
+    window.addEventListener('profile:goto-tab', handler)
+    return () => window.removeEventListener('profile:goto-tab', handler)
+  }, [])
+
+  const updateThumb = useCallback(() => {
+    const bar = tabBarRef.current
+    if (!bar) return
+    const btn = bar.querySelector(`[data-tab="${activeTab}"]`) as HTMLElement | null
+    if (!btn) return
+    setThumb({ left: btn.offsetLeft, width: btn.offsetWidth, visible: true })
+  }, [activeTab])
+
+  useLayoutEffect(() => {
+    updateThumb()
+  }, [updateThumb])
+
+  useEffect(() => {
+    window.addEventListener('resize', updateThumb)
+    if (document.fonts) {
+      document.fonts.ready.then(() => updateThumb()).catch(() => {})
+    }
+    return () => window.removeEventListener('resize', updateThumb)
+  }, [updateThumb])
 
   useEffect(() => {
     if (activeTab === 'media') return
@@ -230,20 +277,26 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
 
   return (
     <div className={styles.tabsContainer}>
-      <div className={styles.tabBar}>
+      <div className={styles.tabBar} ref={tabBarRef} role="tablist" aria-label={t('profile.tabsLabel')}>
+        {thumb.visible && (
+          <span className={styles.tabThumb} aria-hidden style={{ left: thumb.left, width: thumb.width }} />
+        )}
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            data-tab={tab.key}
+            aria-selected={activeTab === tab.key}
             className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
-            <i className={tab.icon} />
+            <i className={tab.icon} aria-hidden />
             <span>{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className={styles.tabContent}>
+      <div className={styles.tabContent} role="tabpanel">
         {activeTab === 'friends' ? (
           <ProfileFriendsTab userID={userID} />
         ) : activeTab === 'about' && profile ? (
@@ -253,7 +306,7 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
             {mediaItems.length === 0 && !mediaLoading && (
               <div className={styles.emptyState}>
                 <span className={styles.emptyIcon}><i className="bx bx-image" /></span>
-                <p className={styles.emptyText}>{t('profile.noMedia')}</p>
+                <p className={styles.emptyTitle}>{t('profile.noMedia')}</p>
               </div>
             )}
             {mediaItems.length === 0 && mediaLoading && (
@@ -293,7 +346,9 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
               </div>
             )}
             {mediaLoading && (
-              <div className={styles.loadingWrap}><div className={styles.loadingSpinner} /></div>
+              <div className={styles.loadingWrap} role="status">
+                <div className={styles.loadingDots} aria-hidden><span /><span /><span /></div>
+              </div>
             )}
             {mediaHasMore && mediaItems.length > 0 && (
               <button className={styles.loadMoreBtn} onClick={handleMediaScroll}>
@@ -303,6 +358,26 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
           </>
         ) : (
           <>
+            {activeTab === 'posts' && stripPhotos.length > 0 && (
+              <div className={styles.strip}>
+                {stripPhotos.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={styles.stripItem}
+                    onClick={() => setActiveTab('media')}
+                    aria-label={t('profile.tabMedia')}
+                  >
+                    {item.file_type.startsWith('video') ? (
+                      <video src={item.file_uri} muted preload="metadata" />
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={item.file_uri} alt="" loading="lazy" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {!loading && error && posts.length === 0 && (
               <div className={styles.loadingWrap}><p>{toErrorMessage(error)}</p></div>
             )}
@@ -312,7 +387,7 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
                 <span className={styles.emptyIcon}>
                   <i className={activeTab === 'saved' ? 'bx bx-bookmark' : 'bx bx-file'} />
                 </span>
-                <p className={styles.emptyText}>
+                <p className={styles.emptyTitle}>
                   {activeTab === 'saved' ? t('profile.noSavedPosts') : t('profile.noPosts')}
                 </p>
               </div>
@@ -351,7 +426,9 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
             ))}
 
             {loading && (
-              <div className={styles.loadingWrap}><div className={styles.loadingSpinner} /></div>
+              <div className={styles.loadingWrap} role="status">
+                <div className={styles.loadingDots} aria-hidden><span /><span /><span /></div>
+              </div>
             )}
 
             {!hasMore && posts.length > 0 && (

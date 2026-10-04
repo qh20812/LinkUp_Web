@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) 0;
+  padding: 0;
 }
 
 .avatars {
@@ -10,18 +10,24 @@
 }
 
 .avatarWrap {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-circle);
   border: 2px solid var(--color-card);
   overflow: hidden;
   cursor: pointer;
   margin-left: -8px;
   background: var(--color-bg-secondary);
+  padding: 0;
 }
 
 .avatarWrap:first-child {
   margin-left: 0;
+}
+
+.avatarWrap:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .avatar {
@@ -32,5 +38,6 @@
 
 .label {
   font: var(--text-caption);
+  font-weight: 500;
   color: var(--color-text-secondary);
 }

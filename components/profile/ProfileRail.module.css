@@ -1,0 +1,250 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  position: sticky;
+  top: calc(56px + var(--space-md));
+  align-self: start;
+  max-height: calc(100dvh - 56px - var(--space-md) * 2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  animation: railRise 0.25s ease-out both;
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.card:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+@keyframes railRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.cardTitle {
+  font: var(--text-body);
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bio {
+  font: var(--text-caption);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.factList {
+  list-style: none;
+  margin: 0 0 var(--space-xs);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.factItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font: var(--text-caption);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.factItem i {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.factItem span {
+  word-break: break-word;
+}
+
+.factLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.factLink:hover {
+  text-decoration: underline;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.avatarBtn {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.avatarBtn:hover {
+  transform: scale(1.03);
+}
+
+.avatarBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.photoBtn {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.photoBtn img,
+.videoThumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoBtn:hover img,
+.photoBtn:hover .videoThumb video {
+  opacity: 0.85;
+}
+
+.photoBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.videoThumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.videoThumb i {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 16px;
+}
+
+.viewAllBtn {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font: var(--text-caption);
+  font-weight: 600;
+  padding: 8px 12px;
+  margin: var(--space-xs) 0 var(--space-xs);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.viewAllBtn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.viewAllBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}

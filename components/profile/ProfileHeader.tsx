@@ -23,6 +23,55 @@ function formatJoinDate(dateStr: string, t: (key: string) => string): string {
   return t('profile.joinedDate').replace('{month}', String(month)).replace('{year}', String(year))
 }
 
+function formatCompact(n: number): string {
+  if (n < 1000) return new Intl.NumberFormat('vi-VN').format(n)
+  return new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(n)
+}
+
+function useCountUp(value: number, duration = 800): number {
+  const [display, setDisplay] = useState(value)
+  const fromRef = useRef(value)
+  useEffect(() => {
+    const from = fromRef.current
+    if (from === value) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot sync for reduced-motion, no animation loop
+      setDisplay(value)
+      fromRef.current = value
+      return
+    }
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- rAF animation frame, not a cascading render
+      setDisplay(Math.round(from + (value - from) * eased))
+      if (p < 1) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        fromRef.current = value
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value, duration])
+  return display
+}
+
+// Remount theo key={src} nên state loaded tự reset khi cover đổi — không cần effect
+function CoverPhoto({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <ExternalImage
+      src={src}
+      alt=""
+      className={`${styles.coverImg} ${styles.coverFade} ${loaded ? styles.coverFadeLoaded : ''}`}
+      onLoad={() => setLoaded(true)}
+    />
+  )
+}
+
 interface ProfileHeaderProps {
   profile: ViewProfileResponse
   stats: FollowStats | null
@@ -44,9 +93,11 @@ interface ProfileHeaderProps {
   onCoverChange?: (file: File) => void
   onSaved?: (profile: ViewProfileResponse) => void
   onEdit?: () => void
+  onShare?: () => void
   onViewStory?: () => void
   onViewAvatar?: () => void
   menuSlot?: React.ReactNode
+  mutualSlot?: React.ReactNode
 }
 
 export default function ProfileHeader({
@@ -68,25 +119,46 @@ export default function ProfileHeader({
   onOpenFollowing,
   onAvatarChange,
   onCoverChange,
-  onSaved,
   onEdit,
+  onShare,
   onViewStory,
   onViewAvatar,
   menuSlot,
+  mutualSlot,
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
   const { isOnline, prefetchPresence } = usePresence()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarWrapRef = useRef<HTMLDivElement>(null)
-  const [editMode, setEditMode] = useState(false)
-  const [editName, setEditName] = useState(profile.display_name)
-  const [editBio, setEditBio] = useState(profile.bio)
-  const [editPrivateProfile, setEditPrivateProfile] = useState(profile.is_private_profile)
-  const [editPrivatePosts, setEditPrivatePosts] = useState(profile.is_private_posts)
-  const [editAllowStrangerFriend, setEditAllowStrangerFriend] = useState(profile.allow_stranger_friend_request)
-  const [saving, setSaving] = useState(false)
+  const coverParallaxRef = useRef<HTMLDivElement>(null)
   const [showAvatarMenu, setShowAvatarMenu] = useState(false)
+
+  const followerCount = useCountUp(stats?.follower_count ?? 0)
+  const followingCount = useCountUp(stats?.following_count ?? 0)
+  const friendCount = useCountUp(profile.friend_count ?? 0)
+  const online = isOnline(targetUserID || '')
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const el = coverParallaxRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        if (rect.bottom < 0 || rect.top > window.innerHeight) return
+        const shift = Math.min(24, Math.max(0, -rect.top) * 0.15)
+        el.style.transform = `translateY(${shift}px)`
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
 
   useEffect(() => {
     if (!showAvatarMenu) return
@@ -146,173 +218,20 @@ export default function ProfileHeader({
   }
 
   const handleEdit = () => {
-    setEditName(profile.display_name)
-    setEditBio(profile.bio)
-    setEditPrivateProfile(profile.is_private_profile)
-    setEditPrivatePosts(profile.is_private_posts)
-    setEditAllowStrangerFriend(profile.allow_stranger_friend_request)
-    setEditMode(true)
-  }
-
-  const handleCancel = () => setEditMode(false)
-
-  const handleSave = async () => {
-    if (saving) return
-    setSaving(true)
-    try {
-      const { updateProfile } = await import('../../api/profile')
-      const res = await updateProfile({
-        display_name: editName,
-        bio: editBio,
-        is_private_profile: editPrivateProfile,
-        is_private_posts: editPrivatePosts,
-        allow_stranger_friend_request: editAllowStrangerFriend,
-      })
-      if (onSaved) onSaved(res.data)
-      setEditMode(false)
-    } catch {
-      /* toast handled by parent if needed */
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (isSelf && editMode) {
-    return (
-      <div className={styles.headerCard}>
-        <div className={styles.coverWrap}>
-          {profile.cover_uri ? (
-            <ExternalImage src={profile.cover_uri} alt="" className={styles.coverImg} />
-          ) : (
-            <div className={styles.coverFallback} />
-          )}
-        </div>
-        <div className={styles.headerBody}>
-          <div className={styles.headerTop}>
-            <div className={styles.avatarWrap} ref={avatarWrapRef} onClick={handleAvatarClick}>
-              <StoryAvatar
-                src={profile.avatar_uri || ''}
-                name={profile.display_name}
-                hasStory={hasStory}
-                hasViewed={hasStoryViewed}
-                size={96}
-              />
-              <OnlineIndicator isOnline={isOnline(targetUserID || '')} />
-              {isSelf && (
-                <div className={styles.avatarOverlay}>
-                  <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>
-                  <span className={styles.avatarOverlayText}>{t('profile.changeAvatar')}</span>
-                </div>
-              )}
-              {renderAvatarMenu()}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handleAvatarFileChange}
-              />
-            </div>
-            <div className={styles.userInfo}>
-              <p className={styles.displayName}>{profile.display_name}</p>
-              {profile.username && <p className={styles.username}>@{profile.username}</p>}
-              {profile.bio && (
-                <p className={styles.bio}>{renderEmojiContent(profile.bio, EMOJI_CODE_MAP, 'bio-edit')}</p>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.editForm}>
-            <label className={styles.fieldLabel}>{t('profile.editDisplayName')}</label>
-            <input
-              className={styles.input}
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              maxLength={50}
-            />
-            <label className={styles.fieldLabel}>{t('profile.editBio')}</label>
-            <textarea
-              className={`${styles.input} ${styles.textarea}`}
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              maxLength={200}
-            />
-
-            <div className={styles.privacySection}>
-              <span className={styles.privacyTitle}>{t('profile.privacySection')}</span>
-
-              <div className={styles.settingRow}>
-                <div className={styles.settingInfo}>
-                  <span className={styles.settingLabel}>{t('profile.privateProfile')}</span>
-                  <span className={styles.settingHint}>{t('profile.privateProfileHint')}</span>
-                </div>
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={editPrivateProfile}
-                    onChange={(e) => setEditPrivateProfile(e.target.checked)}
-                  />
-                  <span className={styles.toggleTrack}>
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-              </div>
-
-              <div className={styles.settingRow}>
-                <div className={styles.settingInfo}>
-                  <span className={styles.settingLabel}>{t('profile.privatePosts')}</span>
-                  <span className={styles.settingHint}>{t('profile.privatePostsHint')}</span>
-                </div>
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={editPrivatePosts}
-                    onChange={(e) => setEditPrivatePosts(e.target.checked)}
-                  />
-                  <span className={styles.toggleTrack}>
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-              </div>
-
-              <div className={styles.settingRow}>
-                <div className={styles.settingInfo}>
-                  <span className={styles.settingLabel}>{t('profile.allowStrangerFriend')}</span>
-                  <span className={styles.settingHint}>{t('profile.allowStrangerFriendHint')}</span>
-                </div>
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={editAllowStrangerFriend}
-                    onChange={(e) => setEditAllowStrangerFriend(e.target.checked)}
-                  />
-                  <span className={styles.toggleTrack}>
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div className={styles.editActions}>
-              <button className={styles.cancelBtn} onClick={handleCancel}>{t('common.cancel')}</button>
-              <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-                {saving ? t('common.loading') : t('profile.saveChanges')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    onEdit?.()
   }
 
   return (
     <div className={styles.headerCard}>
       <div className={styles.coverWrap} onClick={handleCoverClick}>
-        {profile.cover_uri ? (
-          <ExternalImage src={profile.cover_uri} alt="" className={styles.coverImg} />
-        ) : (
-          <div className={styles.coverFallback} />
-        )}
+        <div className={styles.coverParallax} ref={coverParallaxRef} aria-hidden={!!profile.cover_uri}>
+          {profile.cover_uri ? (
+            <CoverPhoto key={profile.cover_uri} src={profile.cover_uri} />
+          ) : (
+            <div className={styles.coverFallback} />
+          )}
+        </div>
+        <div className={styles.coverScrim} aria-hidden />
         {isSelf && (
           <>
             <div className={styles.coverOverlay}>
@@ -332,6 +251,7 @@ export default function ProfileHeader({
       {menuSlot}
 
       <div className={styles.headerBody}>
+        <div className={styles.glassCard}>
         <div className={styles.headerTop}>
           <div className={styles.avatarWrap} ref={avatarWrapRef} onClick={handleAvatarClick}>
             <StoryAvatar
@@ -339,9 +259,10 @@ export default function ProfileHeader({
               name={profile.display_name}
               hasStory={hasStory}
               hasViewed={hasStoryViewed}
-              size={96}
+              size={120}
             />
-            <OnlineIndicator isOnline={isOnline(targetUserID || '')} />
+            {online && <span className={styles.onlinePulse} aria-hidden />}
+            <OnlineIndicator isOnline={online} />
             {isSelf && (
               <div className={styles.avatarOverlay}>
                 <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>
@@ -361,7 +282,30 @@ export default function ProfileHeader({
           </div>
           <div className={styles.userInfo}>
             <p className={styles.displayName}>{profile.display_name}</p>
-            {profile.username && <p className={styles.username}>@{profile.username}</p>}
+            {profile.username && (
+              <div className={styles.usernameRow}>
+                <button
+                  type="button"
+                  className={styles.username}
+                  onClick={onShare}
+                  title={t('profile.shareProfile')}
+                  aria-label={t('profile.shareProfile')}
+                >
+                  @{profile.username} <i className="bx bx-copy" aria-hidden />
+                </button>
+                {onShare && (
+                  <button
+                    type="button"
+                    className={`${styles.iconBtn} ${styles.shareBtn}`}
+                    onClick={onShare}
+                    aria-label={t('profile.shareProfile')}
+                    title={t('profile.shareProfile')}
+                  >
+                    <i className="bx bx-share-alt" aria-hidden />
+                  </button>
+                )}
+              </div>
+            )}
             {isPrivate ? (
               <span className={styles.privateLabel}>
                 <i className="bx bx-lock-alt" /> {t('profile.private')}
@@ -372,7 +316,7 @@ export default function ProfileHeader({
             <div className={styles.meta}>
               {profile.post_count > 0 && (
                 <span className={styles.metaItem}>
-                  <i className="bx bx-file" /> {profile.post_count} {t('profile.postsCount')}
+                  <i className="bx bx-file" /> {formatCompact(profile.post_count)} {t('profile.postsCount')}
                 </span>
               )}
               {profile.created_at && (
@@ -381,6 +325,7 @@ export default function ProfileHeader({
                 </span>
               )}
             </div>
+            {mutualSlot && <div className={styles.mutualSlot}>{mutualSlot}</div>}
           </div>
         </div>
 
@@ -388,24 +333,28 @@ export default function ProfileHeader({
           <div
             className={styles.statItem}
             onClick={onOpenFollowers}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowers?.() } }}
             role={onOpenFollowers ? 'button' : undefined}
             tabIndex={onOpenFollowers ? 0 : undefined}
+            aria-label={t('profile.followers')}
           >
-            <span className={styles.statValue}>{stats?.follower_count ?? 0}</span>
+            <span className={styles.statValue}>{formatCompact(followerCount)}</span>
             <span className={styles.statLabel}>{t('profile.followers')}</span>
           </div>
           <div
             className={styles.statItem}
             onClick={onOpenFollowing}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowing?.() } }}
             role={onOpenFollowing ? 'button' : undefined}
             tabIndex={onOpenFollowing ? 0 : undefined}
+            aria-label={t('profile.following')}
           >
-            <span className={styles.statValue}>{stats?.following_count ?? 0}</span>
+            <span className={styles.statValue}>{formatCompact(followingCount)}</span>
             <span className={styles.statLabel}>{t('profile.following')}</span>
           </div>
           {profile.friend_count > 0 && (
             <div className={styles.statItem}>
-              <span className={styles.statValue}>{profile.friend_count}</span>
+              <span className={styles.statValue}>{formatCompact(friendCount)}</span>
               <span className={styles.statLabel}>{t('profile.friends')}</span>
             </div>
           )}
@@ -413,7 +362,7 @@ export default function ProfileHeader({
 
         {isSelf ? (
           <div className={styles.actionRow}>
-            <button className={styles.editBtn} onClick={() => onEdit ? onEdit() : handleEdit()}>
+            <button className={styles.editBtn} onClick={handleEdit}>
               <i className="bx bx-edit" /> {t('profile.editProfile')}
             </button>
             <Link href="/settings" className={styles.settingsBtn}>
@@ -425,7 +374,7 @@ export default function ProfileHeader({
             {targetUserID && <FriendButton userID={targetUserID} />}
             <button
               type="button"
-              className={`${styles.editBtn} ${
+              className={`${styles.ctaBtn} ${
                 inviteSent || messageBusy ? styles.actionBtnDisabled : ''
               }`}
               onClick={onMessage}
@@ -440,7 +389,7 @@ export default function ProfileHeader({
             </button>
             <button
               type="button"
-              className={`${styles.followBtn} ${isFollowing ? styles.followBtnActive : ''}`}
+              className={styles.primaryBtn}
               onClick={onFollow}
               disabled={followBusy}
             >
@@ -449,6 +398,7 @@ export default function ProfileHeader({
             </button>
           </div>
         ) : null}
+        </div>
       </div>
     </div>
   )

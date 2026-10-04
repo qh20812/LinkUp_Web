@@ -14,8 +14,9 @@
   background: var(--color-bg-secondary);
 }
 
-.gridItem:hover {
-  opacity: 0.85;
+.gridItem:hover .gridMedia {
+  transform: scale(1.04);
+  opacity: 0.9;
 }
 
 .gridMedia {
@@ -23,6 +24,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.25s ease, opacity 0.2s ease;
 }
 
 .skeleton {
