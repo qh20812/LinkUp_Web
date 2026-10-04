@@ -57,7 +57,7 @@ describe('CommunityHeader', () => {
     const community = buildCommunityDetail({ member_count: 5432 })
     renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
 
-    expect(screen.getByText(/5,432/)).toBeInTheDocument()
+    expect(screen.getByText(/5[.,]432/)).toBeInTheDocument()
   })
 
   it('renders creator link with correct href', () => {

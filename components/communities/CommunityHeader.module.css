@@ -3,38 +3,93 @@
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .coverWrap {
   position: relative;
   height: 200px;
   overflow: hidden;
+  background: var(--color-bg-secondary);
 }
 
 .cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .coverFallback {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  overflow: hidden;
+}
+
+.orbA,
+.orbB {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.orbA {
+  width: 220px;
+  height: 220px;
+  left: -60px;
+  top: -80px;
+}
+
+.orbB {
+  width: 160px;
+  height: 160px;
+  right: 10%;
+  bottom: -70px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.coverOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 55%);
+  pointer-events: none;
+}
+
+.privacyBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+}
+
+.privacyPublic {
+  color: var(--color-success);
+}
+
+.privacyInvitation {
+  color: var(--color-info);
 }
 
 .infoSection {
-  padding: var(--space-lg);
-  padding-top: 0;
+  padding: 0 var(--space-lg) var(--space-lg);
 }
 
 .avatarWrap {
-  width: 128px;
-  height: 128px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid var(--color-card);
-  margin-top: -64px;
+  border: 3px solid var(--color-card);
+  margin-top: -40px;
   position: relative;
   z-index: 1;
   background: var(--color-bg-secondary);
@@ -54,7 +109,7 @@
   width: 100%;
   height: 100%;
   color: var(--color-text-secondary);
-  font-size: 48px;
+  font-size: 32px;
 }
 
 .nameRow {
@@ -65,45 +120,114 @@
   margin-top: var(--space-md);
 }
 
+.titleBlock {
+  min-width: 0;
+  flex: 1;
+}
+
 .name {
-  font-size: 24px;
-  font-weight: 700;
+  font: var(--text-h2);
+  color: var(--color-text);
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .description {
   font-size: 14px;
   color: var(--color-text-secondary);
-  margin-top: var(--space-sm);
+  margin: var(--space-xs) 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.codeCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.codeCta:hover {
+  background: var(--color-primary-light);
+}
+
+.codeCta:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .statsRow {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   margin-top: var(--space-md);
   font-size: 13px;
   color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.statPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--color-bg-secondary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .statItem {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.privacyBadge {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 500;
 }
 
 .creatorLink {
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .creatorLink:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .coverWrap {
+    height: 140px;
+  }
+  .avatarWrap {
+    width: 64px;
+    height: 64px;
+    margin-top: -32px;
+  }
+  .nameRow {
+    flex-direction: column;
+  }
+  .actions {
+    width: 100%;
+  }
+  .actions > * {
+    flex: 1;
+  }
 }

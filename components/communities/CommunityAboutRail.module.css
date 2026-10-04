@@ -1,0 +1,145 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.linkBtn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.linkBtn:hover {
+  background: var(--color-primary-light);
+}
+
+.linkBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin: 0 0 var(--space-sm);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: 13px;
+}
+
+.fact dt {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.fact dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.avatarStack {
+  display: flex;
+  align-items: center;
+}
+
+.stackAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-card);
+  background: var(--color-bg-secondary);
+}
+
+.stackAvatar + .stackAvatar,
+.stackMore {
+  margin-left: -10px;
+}
+
+.stackMore {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--color-card);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.rulesPreview {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}

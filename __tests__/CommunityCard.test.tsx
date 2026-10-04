@@ -6,7 +6,7 @@ import {
   buildCommunityDetail,
 } from './test-utils'
 
-// Mock next/navigation
+// Mock next/navigation (Link renders <a>, useRouter unused by card now but kept safe)
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
@@ -77,13 +77,42 @@ describe('CommunityCard', () => {
     const community = buildCommunity({ avatar_uri: '' })
     const { container } = renderWithProviders(<CommunityCard community={community} />)
 
-    expect(container.querySelector('.bx.bxs-chat')).toBeInTheDocument()
+    expect(container.querySelector('.bx.bx-group')).toBeInTheDocument()
   })
 
-  it('has role="link" for accessibility', () => {
+  it('renders as a link to the detail page', () => {
     const community = buildCommunity()
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByRole('link')).toBeInTheDocument()
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', `/communities/${community.id}`)
+  })
+
+  it('shows enter-code action for invitation_only communities', () => {
+    const community = buildCommunity({ privacy: 'invitation_only' })
+    renderWithProviders(<CommunityCard community={community} />)
+
+    expect(screen.getByText(/communities\.enterCode/)).toBeInTheDocument()
+  })
+
+  it('shows manage action for owned communities', () => {
+    const community = buildCommunity({ is_creator: true })
+    renderWithProviders(<CommunityCard community={community} />)
+
+    expect(screen.getByText(/communities\.manage/)).toBeInTheDocument()
+  })
+
+  it('renders cover image when background_uri is provided', () => {
+    const community = buildCommunity({ background_uri: 'https://example.com/cover.jpg' })
+    const { container } = renderWithProviders(<CommunityCard community={community} />)
+
+    const imgs = container.querySelectorAll('img')
+    const srcs = Array.from(imgs).map((img) => img.getAttribute('src'))
+    expect(srcs).toContain('https://example.com/cover.jpg')
+  })
+
+  it('keeps buildCommunityDetail helper in sync', () => {
+    const detail = buildCommunityDetail()
+    expect(detail.background_uri).toBeDefined()
   })
 })

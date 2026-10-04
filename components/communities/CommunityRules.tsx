@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { getCommunityRules, deleteCommunityRule } from '../../api/communities'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
+import Modal from '../Modal'
 import CommunityRuleForm from './CommunityRuleForm'
 import type { CommunityRule } from '../../types'
 import styles from './CommunityRules.module.css'
@@ -24,6 +25,8 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
 
   const [showForm, setShowForm] = useState(false)
   const [editingRule, setEditingRule] = useState<CommunityRule | undefined>()
+  const [deleteTarget, setDeleteTarget] = useState<CommunityRule | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const rules = data?.rules ?? []
 
@@ -48,17 +51,21 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
 
   let number = 0
 
-  const handleDelete = async (ruleID: string) => {
-    if (!confirm(t('communities.ruleDeleteConfirm'))) return
+  const handleDelete = async () => {
+    if (!deleteTarget || deleting) return
+    setDeleting(true)
     try {
-      await deleteCommunityRule(communityID, ruleID)
+      await deleteCommunityRule(communityID, deleteTarget.id)
       toast({ type: 'success', title: t('communities.ruleDeleteSuccess') })
+      setDeleteTarget(null)
       mutate()
     } catch (err: unknown) {
       toast({
         type: 'error',
         title: err instanceof Error ? err.message : t('communities.ruleError'),
       })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -144,8 +151,9 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
                         </button>
                         <button
                           className={`${styles.ruleActionBtn} ${styles.ruleActionDanger}`}
-                          onClick={() => handleDelete(rule.id)}
+                          onClick={() => setDeleteTarget(rule)}
                           title={t('common.delete')}
+                          aria-label={`${t('common.delete')}: ${rule.title}`}
                         >
                           <i className="bx bx-trash" />
                         </button>
@@ -158,6 +166,41 @@ export default function CommunityRules({ communityID, isAdmin = false }: Communi
           )
         })
       )}
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => { if (!deleting) setDeleteTarget(null) }}
+        title={t('communities.ruleDeleteTitle')}
+        footer={
+          <div className={styles.modalFooter}>
+            <button
+              type="button"
+              className={styles.cancelBtn}
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              className={styles.dangerBtn}
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? t('common.deleting') : t('common.delete')}
+            </button>
+          </div>
+        }
+      >
+        <p className={styles.confirmText}>
+          {t('communities.ruleDeleteConfirm')}
+          {deleteTarget && (
+            <>
+              {' — “'}{deleteTarget.title}” 
+            </>
+          )}
+        </p>
+      </Modal>
     </div>
   )
 }

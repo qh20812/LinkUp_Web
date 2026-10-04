@@ -142,8 +142,10 @@ export default function CommunityFeed({ communityID, membershipStatus }: Communi
       ))}
 
       {loadingMore && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 24, color: 'var(--color-text-secondary)', fontSize: 14 }}>
-          <i className="bx bx-loader-circle bx-spin" />
+        <div className={styles.loadMoreRow} aria-hidden>
+          <div className={styles.loadMoreDots}>
+            <span /><span /><span />
+          </div>
         </div>
       )}
 

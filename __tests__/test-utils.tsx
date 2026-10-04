@@ -161,6 +161,7 @@ export function buildCommunity(overrides?: Partial<CommunityListItem>): Communit
     name: `Community ${id}`,
     description: 'A test community',
     avatar_uri: '',
+    background_uri: '',
     privacy: 'public',
     member_count: 10,
     is_creator: false,

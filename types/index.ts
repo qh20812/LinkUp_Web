@@ -569,6 +569,7 @@ export interface CommunityListItem {
   name: string
   description: string
   avatar_uri: string
+  background_uri?: string
   privacy: 'public' | 'invitation_only'
   member_count: number
   is_creator: boolean
