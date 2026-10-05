@@ -87,7 +87,9 @@
     "openLeft": "Mở sidebar trái",
     "closeLeft": "Đóng sidebar trái",
     "openRight": "Mở sidebar phải",
-    "closeRight": "Đóng sidebar phải"
+    "closeRight": "Đóng sidebar phải",
+    "openSearch": "Mở tìm kiếm",
+    "closeSearch": "Đóng tìm kiếm"
   },
   "sidebar": {
     "home": "Trang chủ",
@@ -108,6 +110,7 @@
     "suggestions": "Gợi ý theo dõi",
     "follow": "Theo dõi",
     "viewMore": "Xem thêm",
+    "viewLess": "Thu gọn",
     "posts": "bài viết",
     "following": "Đã theo dõi",
     "followSuccess": "Đã theo dõi thành công",

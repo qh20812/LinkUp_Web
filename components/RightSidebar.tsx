@@ -20,6 +20,7 @@ function formatCount(n: number): string {
 
 const MIN_CHARS = 2
 const DEBOUNCE_MS = 300
+const TRENDING_INITIAL_COUNT = 5
 
 export default function RightSidebar() {
   const { t } = useTranslation()
@@ -29,6 +30,7 @@ export default function RightSidebar() {
   const [trending, setTrending] = useState<TrendingHashtag[]>([])
   const [trendingReady, setTrendingReady] = useState(false)
   const [trendingError, setTrendingError] = useState(false)
+  const [trendingExpanded, setTrendingExpanded] = useState(false)
 
   const [suggestions, setSuggestions] = useState<FollowSuggestionUser[]>([])
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
@@ -325,7 +327,7 @@ export default function RightSidebar() {
           ) : (
             <>
               <ul className={styles.list}>
-                {trending.map((item) => (
+                {(trendingExpanded ? trending : trending.slice(0, TRENDING_INITIAL_COUNT)).map((item) => (
                   <li key={item.name}>
                     <button
                       className={styles.listItem}
@@ -337,7 +339,15 @@ export default function RightSidebar() {
                   </li>
                 ))}
               </ul>
-              <button className={styles.viewMore}>{t('rightSidebar.viewMore')}</button>
+              {trending.length > TRENDING_INITIAL_COUNT && (
+                <button
+                  className={styles.viewMore}
+                  onClick={() => setTrendingExpanded((v) => !v)}
+                  aria-expanded={trendingExpanded}
+                >
+                  {t(trendingExpanded ? 'rightSidebar.viewLess' : 'rightSidebar.viewMore')}
+                </button>
+              )}
             </>
           )}
         </section>

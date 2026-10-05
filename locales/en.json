@@ -87,7 +87,9 @@
     "openLeft": "Open left sidebar",
     "closeLeft": "Close left sidebar",
     "openRight": "Open right sidebar",
-    "closeRight": "Close right sidebar"
+    "closeRight": "Close right sidebar",
+    "openSearch": "Open search",
+    "closeSearch": "Close search"
   },
   "sidebar": {
     "home": "Home",
@@ -108,6 +110,7 @@
     "suggestions": "Suggestions",
     "follow": "Follow",
     "viewMore": "View More",
+    "viewLess": "Show less",
     "posts": "posts",
     "following": "Following",
     "followSuccess": "Followed successfully",

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, type FormEvent } from 'react'
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './UserNavbar.module.css'
@@ -36,6 +36,38 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
   const isDetail = !showTabs && !pageTitleKey
   const showBack = isDetail || isProfilePage
   const [query, setQuery] = useState('')
+  // Mobile (≤768px): search collapses to an icon toggle so the
+  // Explore/Following tabs stay visible. Tapping expands the form full-width.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchToggleRef = useRef<HTMLButtonElement>(null)
+  const prevPathname = useRef(pathname)
+
+  // Collapse the expanded search on navigation (e.g. after submit).
+  useEffect(() => {
+    if (prevPathname.current !== pathname) {
+      prevPathname.current = pathname
+      setSearchOpen(false)
+    }
+  }, [pathname])
+
+  // Autofocus the input when expanded.
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+
+  // Escape closes the expanded search and returns focus to the toggle.
+  useEffect(() => {
+    if (!searchOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSearchOpen(false)
+        searchToggleRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [searchOpen])
 
   const handleBack = () => {
     if (pathname === '/search') {
@@ -52,11 +84,19 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
   const handleSearch = (e: FormEvent) => {
     e.preventDefault()
     const q = query.trim()
-    if (q) router.push(`/search?q=${encodeURIComponent(q)}`)
+    if (q) {
+      setSearchOpen(false)
+      router.push(`/search?q=${encodeURIComponent(q)}`)
+    }
+  }
+
+  const handleCloseSearch = () => {
+    setSearchOpen(false)
+    searchToggleRef.current?.focus()
   }
 
   return (
-    <nav className={styles.nav}>
+    <nav className={`${styles.nav}${searchOpen ? ` ${styles.navSearchOpen}` : ''}`}>
       <button
         type="button"
         className={styles.menuBtn}
@@ -78,18 +118,46 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
         </button>
       )}
 
-      <form className={styles.searchForm} onSubmit={handleSearch}>
-        <i className="bx bx-search" />
+      <form className={styles.searchForm} onSubmit={handleSearch} role="search">
+        <i className="bx bx-search" aria-hidden="true" />
         <input
+          ref={searchInputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('common.search')}
+          aria-label={t('common.search')}
           className={styles.searchInput}
         />
       </form>
 
-      {showTabs && (
+      {!searchOpen && (
+        <button
+          ref={searchToggleRef}
+          type="button"
+          className={styles.searchToggle}
+          onClick={() => setSearchOpen(true)}
+          aria-expanded={searchOpen}
+          aria-label={t('userNavbar.openSearch')}
+          title={t('userNavbar.openSearch')}
+        >
+          <i className="bx bx-search" aria-hidden="true" />
+        </button>
+      )}
+
+      {searchOpen && (
+        <button
+          type="button"
+          className={styles.searchClose}
+          onClick={handleCloseSearch}
+          aria-label={t('userNavbar.closeSearch')}
+          title={t('userNavbar.closeSearch')}
+        >
+          <i className="bx bx-x" aria-hidden="true" />
+        </button>
+      )}
+
+      {!searchOpen && showTabs && (
         <div className={styles.tabs}>
           <Link
             href="/?tab=explore"
@@ -106,11 +174,11 @@ function UserNavbarContent({ leftOpen, onToggleLeft, rightOpen, onToggleRight, s
         </div>
       )}
 
-      {pageTitleKey && (
+      {!searchOpen && pageTitleKey && (
         <div className={styles.pageTitle}>{t(pageTitleKey)}</div>
       )}
 
-      {showRightToggle && (
+      {!searchOpen && showRightToggle && (
         <button
           type="button"
           className={styles.collapseBtn}

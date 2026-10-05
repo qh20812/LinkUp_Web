@@ -24,6 +24,7 @@
   border-radius: 999px;
   background: var(--color-bg-secondary);
   flex: 1;
+  min-width: 0;
   max-width: 400px;
 }
 
@@ -35,6 +36,7 @@
 
 .searchInput {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   font-size: 14px;
@@ -106,6 +108,39 @@
   color: var(--color-primary-hover);
 }
 
+/* Collapsed search toggle + expanded-search close button.
+   Desktop: hidden (inline search pill is always visible).
+   Mobile (≤768px): the pill hides, the toggle shows; when expanded
+   (.navSearchOpen) the form returns full-width and tabs hide. */
+.searchToggle,
+.searchClose {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.searchToggle:hover,
+.searchClose:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-light);
+}
+
+.searchToggle:focus-visible,
+.searchClose:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .pageTitle {
   flex: 1;
   min-width: 0;
@@ -135,6 +170,70 @@
   .menuBtn {
     display: inline-flex;
   }
+
+  .nav {
+    gap: 8px;
+    padding: 0 var(--space-sm);
+  }
+
+  /* Collapse the pill into an icon so Explore/Following tabs stay visible. */
+  .searchForm {
+    display: none;
+  }
+
+  .searchToggle {
+    display: inline-flex;
+  }
+
+  /* Expanded state: full-width search, siblings yield. */
+  .navSearchOpen .searchForm {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    animation: searchExpand 0.18s ease-out;
+  }
+
+  .navSearchOpen .searchToggle,
+  .navSearchOpen .tabs,
+  .navSearchOpen .pageTitle,
+  .navSearchOpen .collapseBtn {
+    display: none;
+  }
+
+  .navSearchOpen .searchClose {
+    display: inline-flex;
+  }
+
+  .tabs {
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 6px 12px;
+  }
+}
+
+@keyframes searchExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navSearchOpen .searchForm {
+    animation: none;
+  }
+
+  .searchToggle,
+  .searchClose {
+    transition: none;
+  }
 }
 
 .tabs {
@@ -143,6 +242,7 @@
   justify-content: center;
   gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
 .tab {
@@ -154,6 +254,7 @@
   border-radius: 999px;
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab:hover {
