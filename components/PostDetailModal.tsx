@@ -6,6 +6,7 @@ import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
 import { renderPostContent } from './messages/EmojiImage'
 import { emojiByCode, getEmotionEmojis } from '../utils/emojis'
+import { runeLength } from '../utils/text'
 import styles from './PostDetailModal.module.css'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
@@ -86,10 +87,6 @@ function formatCount(n: number): string {
 
 function isVideo(fileType: string): boolean {
   return fileType.startsWith('video/')
-}
-
-function runeLength(text: string): number {
-  return Array.from(text).length
 }
 
 interface CommentNode {

@@ -549,7 +549,7 @@ Messaging is a dedicated workspace with its own spatial architecture:
 
 - Conversation List: `280–360px`, fixed left panel
 - Chat Header: `68–76px`, fixed at top
-- Message Composer: `48–56px`, fixed at bottom
+- Message Composer: `48–56px`, fixed at bottom. Mobile (≤768px): the 4 action buttons (emoji/gif/file/voice) collapse into a `+` toggle so the input keeps ~70% of the row; tapping expands them as a full-width second row (44px targets). Input auto-grows to 120px max, placeholder truncates with ellipsis
 - Message area: independently scrollable, fills remaining height
 - When an active conversation is open, DO NOT create additional page-level vertical scroll
 

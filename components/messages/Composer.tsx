@@ -11,6 +11,7 @@ import { useAudioRecorder, type VoiceRecording } from '../../hooks/useAudioRecor
 import { formatCallDuration } from '../../utils/chat'
 import VoicePlayer from './VoicePlayer'
 import { isGiphyUrl } from '../../utils/giphy'
+import { runeLength } from '../../utils/text'
 import { isEmojifyiUrl, type EmojiOption } from '../../utils/emojifyi'
 import type { ChatMessage, GifItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
@@ -115,6 +116,10 @@ interface ComposerProps {
 }
 
 const MAX_ATTACHMENTS = 10
+// Matches the server's ValidateSendMessage limit (2000 runes).
+const CHAT_MESSAGE_MAX_LENGTH = 2000
+// Show the character counter once the user reaches 90% of the limit.
+const CHAT_COUNTER_START = 1800
 
 export default function Composer({
   room,
@@ -158,10 +163,16 @@ export default function Composer({
   } = useAudioRecorder()
   const [pendingVoice, setPendingVoice] = useState<VoiceRecording | null>(null)
   const [voiceUploading, setVoiceUploading] = useState(false)
+  // Mobile (≤768px): 4 action buttons collapse into a "+" toggle so the
+  // input keeps ~70% of the row. Tapping expands them as a second row.
+  const [actionsOpen, setActionsOpen] = useState(false)
 
   const sendTyping = room.sendTyping
 
   const hasContent = Boolean(value.trim())
+  const contentLength = runeLength(value)
+  const overLimit = contentLength > CHAT_MESSAGE_MAX_LENGTH
+  const showCounter = contentLength > CHAT_COUNTER_START || overLimit
 
   useEffect(() => {
     return () => {
@@ -171,6 +182,15 @@ export default function Composer({
       sendTyping(false)
     }
   }, [sendTyping])
+
+  // Collapse the mobile actions tray when switching conversations.
+  const prevChatId = useRef(chatId)
+  useEffect(() => {
+    if (prevChatId.current !== chatId) {
+      prevChatId.current = chatId
+      setActionsOpen(false)
+    }
+  }, [chatId])
 
   // Forward: khi có tin chuyển tiếp được chọn, điền sẵn nội dung vào khung soạn
   // để người dùng có thể sửa trước khi gửi. Gắn forwarded_from khi click gửi.
@@ -411,6 +431,10 @@ export default function Composer({
   const send = async (opts?: { emojiId?: string; mediaId?: string; mediaUri?: string; mediaType?: string }) => {
     const canAutoEmoji = Boolean(!value.trim() && forwarding?.emoji_id)
     if (!value.trim() && !canAutoEmoji && !opts?.emojiId && !opts?.mediaId && attachments.length === 0) return
+    if (runeLength(value) > CHAT_MESSAGE_MAX_LENGTH) {
+      toast({ type: 'error', title: t('chat.messageTooLong', { max: CHAT_MESSAGE_MAX_LENGTH }) })
+      return
+    }
     const text = value
     const replyId = replyingTo?.id || undefined
     const forwardedId = forwarding?.id
@@ -587,7 +611,17 @@ export default function Composer({
           </button>
         </div>
       )}
-      <div className={styles.composerRow}>
+      <div className={`${styles.composerRow}${actionsOpen ? ` ${styles.composerActionsOpen}` : ''}`}>
+        <button
+          type="button"
+          className={styles.actionsToggle}
+          onClick={() => setActionsOpen((v) => !v)}
+          aria-expanded={actionsOpen}
+          aria-label={t(actionsOpen ? 'chat.collapseActions' : 'chat.expandActions')}
+          title={t(actionsOpen ? 'chat.collapseActions' : 'chat.expandActions')}
+        >
+          <i className={`bx ${actionsOpen ? 'bx-x' : 'bx-plus'}`} />
+        </button>
         <div className={styles.composerActions}>
           <button
             ref={toggleEmojiRef}
@@ -696,13 +730,20 @@ export default function Composer({
           <button
             className={styles.sendBtn}
             onClick={() => send()}
-            disabled={(!value.trim() && !forwarding?.emoji_id && attachments.length === 0) || uploading}
+            disabled={(!value.trim() && !forwarding?.emoji_id && attachments.length === 0) || uploading || overLimit}
             aria-label={t('chat.send')}
           >
             <i className={uploading ? 'bx bx-loader-circle bx-spin' : 'bx bx-send'} />
           </button>
         )}
       </div>
+      {showCounter && (
+        <div className={styles.composerFooter}>
+          <span className={`${styles.composerCounter}${overLimit ? ` ${styles.composerCounterOver}` : ''}`}>
+            {contentLength}/{CHAT_MESSAGE_MAX_LENGTH}
+          </span>
+        </div>
+      )}
       <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFile} />
       {emojiOpen && (
         <div ref={pickerRef}>
