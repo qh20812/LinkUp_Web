@@ -1475,3 +1475,14 @@ When an AI coding agent works on LinkUp:
 - Break working API calls, WebSocket logic, or data persistence
 
 **Use this document as the authoritative visual and interaction specification for LinkUp.**
+
+---
+
+## 16. PWA (Installability)
+
+The web app is installable (Chromium install prompt + iOS Add to Home Screen):
+
+- Manifest (`app/manifest.ts` → `/manifest.webmanifest`): name/short_name `LinkUp`, `start_url` + `scope` `/`, `display: standalone`, `background_color #FFFFFF`, `theme_color #12A5A1` (Fresh Turquoise)
+- Icons (`public/icons/`, derived from `S-Logo.png`): `icon-192.png` + `icon-512.png` (any), `maskable-512.png` (artwork centered in safe zone on the sampled navy `#002436`), `apple-touch-icon.png` 180px
+- Service worker (`public/sw.js`, registered production-only via `ServiceWorkerRegister`): installability-only — network passthrough, **no caching** (authenticated real-time content must never go stale)
+- Root layout metadata: `manifest` link, `appleWebApp capable`, `viewportFit: cover`, matching `themeColor`
