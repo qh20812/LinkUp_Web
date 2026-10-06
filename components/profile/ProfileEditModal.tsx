@@ -10,8 +10,7 @@ import { useToast } from '../../contexts/ToastContext'
 import SearchSelect from '../SearchSelect'
 import DatePicker from '../DatePicker'
 import EmojiPicker from '../EmojiPicker'
-import type { EmojiOption } from '../../utils/emojifyi'
-import type { ViewProfileResponse } from '../../types'
+import type { ViewProfileResponse, EmojiItem } from '../../types'
 import LocationPicker from './location/LocationPicker'
 import WebsitePreview from './WebsitePreview'
 
@@ -93,15 +92,14 @@ export default function ProfileEditModal({ profile, onClose, onSaved }: ProfileE
     )
   }
 
-  const insertEmoji = (emoji: EmojiOption) => {
-    const ch = emoji.url
+  const insertEmoji = (emoji: EmojiItem) => {
+    // Native: chèn ký tự thẳng vào bio, không cần bọc space như URL ảnh cũ.
+    const ch = emoji.character || emoji.code
     const sel = bioSelRef.current ?? [bio.length, bio.length]
     const start = Math.min(sel[0], sel[1])
     const end = Math.max(sel[0], sel[1])
     const before = bio.slice(0, start)
-    // Bọc URL bằng space — 2 emoji liền nhau không separator sẽ render thành 1 ảnh.
-    const sep = before && !/\s$/.test(before) ? ' ' : ''
-    const inserted = `${sep}${ch} `
+    const inserted = ch
     const next = before + inserted + bio.slice(end)
     if (next.length > 200) return
     setBio(next)

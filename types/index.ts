@@ -72,7 +72,29 @@ export interface EmojiItem {
   id: string
   code: string
   image_uri: string
+  /** Ký tự unicode render native (vd "😀") — client mới dùng field này. */
+  character: string
+  name: string
+  keywords: string
+  category: string
+  sort_order: number
+  is_reaction: boolean
 }
+
+/** Category emoji của server (tab picker) — khớp seeddata backend. */
+export const EMOJI_CATEGORIES = [
+  'smileys',
+  'people',
+  'nature',
+  'food',
+  'travel',
+  'activity',
+  'objects',
+  'symbols',
+  'flags',
+] as const
+
+export type EmojiCategory = (typeof EMOJI_CATEGORIES)[number]
 
 export interface TrendingHashtag {
   name: string

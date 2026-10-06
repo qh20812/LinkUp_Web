@@ -12,9 +12,9 @@ import { createPost } from '../api/posts'
 import { search } from '../api/search'
 import { useToast } from '../contexts/ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
-import { getEmotionEmojis, type EmotionEmojiItem } from '../utils/emojis'
-import { isEmojifyiUrl, retryImgOnFail, type EmojiOption } from '../utils/emojifyi'
-import type { ViewProfileResponse, PostStatus, FeedPost, GifItem, HashtagSearchResult } from '../types'
+import { legacyCodeCharMap } from '../utils/emojis'
+import { isEmojifyiUrl } from '../utils/emojifyi'
+import type { ViewProfileResponse, PostStatus, FeedPost, GifItem, HashtagSearchResult, EmojiItem } from '../types'
 
 interface CreatePostModalProps {
   open: boolean
@@ -54,7 +54,7 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function contentToHtml(text: string, emojiByCode: Map<string, EmotionEmojiItem>): string {
+function contentToHtml(text: string, codeCharMap: Map<string, string>): string {
   return escapeHtml(text)
     .replace(/\n/g, '<br>')
     .replace(/https?:\/\/[^\s<]+/g, (url) =>
@@ -62,11 +62,8 @@ function contentToHtml(text: string, emojiByCode: Map<string, EmotionEmojiItem>)
         ? `<img class="emojiInline" src="${escapeHtml(url)}" alt="emoji" data-emoji="${escapeHtml(url)}">`
         : url,
     )
-    .replace(/:[a-zA-Z0-9_+-]+:/g, (code) => {
-      const emoji = emojiByCode.get(code)
-      if (!emoji) return code
-      return `<img class="emojiInline" src="${escapeHtml(emoji.image_uri)}" alt="${escapeHtml(emoji.code)}" data-code="${escapeHtml(emoji.code)}">`
-    })
+    // Token :code: cũ -> ký tự native (text thường, serialize giữ nguyên).
+    .replace(/:[a-zA-Z0-9_+-]+:/g, (code) => codeCharMap.get(code) ?? code)
 }
 
 function serializeEmojiContent(el: HTMLElement): string {
@@ -178,8 +175,7 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
   // retry/timeout không đẻ bài trùng; cấp key mới sau mỗi lần đăng thành công.
   const clientKeyRef = useRef<string | null>(null)
 
-  const emotions = useMemo(() => getEmotionEmojis(), [])
-  const emojiByCode = useMemo(() => new Map(emotions.map((e) => [e.code, e])), [emotions])
+  const codeCharMap = useMemo(() => legacyCodeCharMap(), [])
 
   useEffect(() => {
     if (!privacyOpen) return
@@ -289,11 +285,11 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     if (draft.content) {
       setContent(draft.content)
       if (contentRef.current) {
-        contentRef.current.innerHTML = contentToHtml(draft.content, emojiByCode)
+        contentRef.current.innerHTML = contentToHtml(draft.content, codeCharMap)
       }
     }
     setDraftRestored(true)
-  }, [open, emojiByCode])
+  }, [open, codeCharMap])
 
   useEffect(() => {
     if (!open || !initialPicker) return
@@ -430,19 +426,14 @@ export default function CreatePostModal({ open, onClose, initialPicker }: Create
     }
   }
 
-  const insertEmoji = (emoji: EmojiOption) => {
+  const insertEmoji = (emoji: EmojiItem) => {
     const el = contentRef.current
     if (!el) {
-      setContent((prev) => prev + emoji.url)
+      setContent((prev) => prev + emoji.character)
       return
     }
-    const img = document.createElement('img')
-    img.src = emoji.url
-    img.alt = emoji.title || 'emoji'
-    img.dataset.emoji = emoji.url
-    img.className = 'emojiInline'
-    img.onerror = retryImgOnFail
-    insertNodeAtCaret(el, img)
+    // Native: chèn text thường — serialize giữ nguyên, không cần <img>/separator.
+    insertNodeAtCaret(el, document.createTextNode(emoji.character || emoji.code))
     setContent(serializeEmojiContent(el))
     setError(null)
   }

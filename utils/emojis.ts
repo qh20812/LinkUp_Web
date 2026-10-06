@@ -1,14 +1,14 @@
-import { getEmojis } from '../api/posts'
-import { emojifyiImageUrl } from './emojifyi'
+import { getReactionEmojis } from '../api/posts'
 import type { EmojiItem } from '../types'
 
 let cache: Map<string, EmojiItem> | null = null
 let inflight: Promise<Map<string, EmojiItem>> | null = null
 
+/** Map emoji reaction của server (scope=reactions, 10 dòng) — nguồn cho chips/toolbars. */
 export function getEmojiMap(): Promise<Map<string, EmojiItem>> {
   if (cache) return Promise.resolve(cache)
   if (!inflight) {
-    inflight = getEmojis()
+    inflight = getReactionEmojis()
       .then((res) => {
         const map = new Map<string, EmojiItem>()
         for (const e of res.data) map.set(e.id, e)
@@ -22,7 +22,17 @@ export function getEmojiMap(): Promise<Map<string, EmojiItem>> {
   return inflight
 }
 
-// ===== Bộ biểu cảm khuôn mặt (client-side, dùng cho picker chat) =====
+/** Ký tự render cho 1 EmojiItem: ưu tiên character native, rồi image_uri cũ, cuối là code. */
+export function emojiChar(item: EmojiItem): string {
+  if (item.character) return item.character
+  const legacy = charForCode(item.code)
+  if (legacy) return legacy
+  return item.code
+}
+
+// ===== Fallback cho token :code: cũ trong nội dung đã lưu =====
+// Nội dung cũ có thể chứa code client (vd :smile:) không còn trong bảng server.
+// Map ký tự unicode cứng (không CDN) để render, không dùng cho picker mới.
 
 export type EmojiGroup = 'positive' | 'neutral' | 'negative'
 
@@ -37,53 +47,52 @@ export interface EmotionEmoji {
 
 export const EMOTION_EMOJIS: EmotionEmoji[] = [
   // Tích cực
-  { code: ':grinning:', emoji: '\u{1F600}', label: 'Grinning face', group: 'positive' },
-  { code: ':smile:', emoji: '\u{1F604}', label: 'Smile', group: 'positive' },
-  { code: ':laughing:', emoji: '\u{1F606}', label: 'Laughing', group: 'positive' },
-  { code: ':joy:', emoji: '\u{1F602}', label: 'Joy', group: 'positive' },
-  { code: ':heart_eyes:', emoji: '\u{1F60D}', label: 'Heart eyes', group: 'positive' },
-  { code: ':kiss:', emoji: '\u{1F618}', label: 'Kiss', group: 'positive' },
-  { code: ':blush:', emoji: '\u{1F60A}', label: 'Blush', group: 'positive' },
-  { code: ':wink:', emoji: '\u{1F609}', label: 'Wink', group: 'positive' },
-  { code: ':cool:', emoji: '\u{1F60E}', label: 'Cool', group: 'positive' },
-  { code: ':smirk:', emoji: '\u{1F60F}', label: 'Smirk', group: 'positive' },
-  { code: ':relieved:', emoji: '\u{1F60C}', label: 'Relieved', group: 'positive' },
-  { code: ':hug:', emoji: '\u{1F917}', label: 'Hug', group: 'positive' },
-  { code: ':star_eyes:', emoji: '\u{1F929}', label: 'Star eyes', group: 'positive' },
-  { code: ':partying:', emoji: '\u{1F973}', label: 'Partying', group: 'positive' },
-  { code: ':thumbsup:', emoji: '\u{1F44D}', label: 'Thumbs up', group: 'positive' },
-  { code: ':clap:', emoji: '\u{1F44F}', label: 'Clap', group: 'positive' },
-  { code: ':fire:', emoji: '\u{1F525}', label: 'Fire', group: 'positive' },
-  { code: ':heart:', emoji: '\u2764', label: 'Heart', group: 'positive' },
-  { code: ':love:', emoji: '\u{1F496}', label: 'Sparkling heart', group: 'positive' },
+  { code: ':grinning:', emoji: '😀', label: 'Grinning face', group: 'positive' },
+  { code: ':smile:', emoji: '😄', label: 'Smile', group: 'positive' },
+  { code: ':laughing:', emoji: '😆', label: 'Laughing', group: 'positive' },
+  { code: ':joy:', emoji: '😂', label: 'Joy', group: 'positive' },
+  { code: ':heart_eyes:', emoji: '😍', label: 'Heart eyes', group: 'positive' },
+  { code: ':kiss:', emoji: '😘', label: 'Kiss', group: 'positive' },
+  { code: ':blush:', emoji: '😊', label: 'Blush', group: 'positive' },
+  { code: ':wink:', emoji: '😉', label: 'Wink', group: 'positive' },
+  { code: ':cool:', emoji: '😎', label: 'Cool', group: 'positive' },
+  { code: ':smirk:', emoji: '😏', label: 'Smirk', group: 'positive' },
+  { code: ':relieved:', emoji: '😌', label: 'Relieved', group: 'positive' },
+  { code: ':hug:', emoji: '🤗', label: 'Hug', group: 'positive' },
+  { code: ':star_eyes:', emoji: '🤩', label: 'Star eyes', group: 'positive' },
+  { code: ':partying:', emoji: '🥳', label: 'Partying', group: 'positive' },
+  { code: ':thumbsup:', emoji: '👍', label: 'Thumbs up', group: 'positive' },
+  { code: ':clap:', emoji: '👏', label: 'Clap', group: 'positive' },
+  { code: ':fire:', emoji: '🔥', label: 'Fire', group: 'positive' },
+  { code: ':heart:', emoji: '❤', label: 'Heart', group: 'positive' },
+  { code: ':love:', emoji: '💖', label: 'Sparkling heart', group: 'positive' },
   // Trung tính
-  { code: ':thinking:', emoji: '\u{1F914}', label: 'Thinking', group: 'neutral' },
-  { code: ':neutral:', emoji: '\u{1F610}', label: 'Neutral face', group: 'neutral' },
-  { code: ':expressionless:', emoji: '\u{1F611}', label: 'Expressionless', group: 'neutral' },
-  { code: ':hmm:', emoji: '\u{1F9D0}', label: 'Monocle', group: 'neutral' },
-  { code: ':shrug:', emoji: '\u{1F937}', label: 'Shrug', group: 'neutral' },
-  { code: ':sleepy:', emoji: '\u{1F62A}', label: 'Sleepy', group: 'neutral' },
-  { code: ':yawning:', emoji: '\u{1F971}', label: 'Yawning', group: 'neutral' },
-  { code: ':tired:', emoji: '\u{1F62B}', label: 'Tired face', group: 'neutral' },
+  { code: ':thinking:', emoji: '🤔', label: 'Thinking', group: 'neutral' },
+  { code: ':neutral:', emoji: '😐', label: 'Neutral face', group: 'neutral' },
+  { code: ':expressionless:', emoji: '😑', label: 'Expressionless', group: 'neutral' },
+  { code: ':hmm:', emoji: '🧐', label: 'Monocle', group: 'neutral' },
+  { code: ':shrug:', emoji: '🤷', label: 'Shrug', group: 'neutral' },
+  { code: ':sleepy:', emoji: '😪', label: 'Sleepy', group: 'neutral' },
+  { code: ':yawning:', emoji: '🥱', label: 'Yawning', group: 'neutral' },
+  { code: ':tired:', emoji: '😫', label: 'Tired face', group: 'neutral' },
   // Tiêu cực
-  { code: ':sad:', emoji: '\u{1F622}', label: 'Sad', group: 'negative' },
-  { code: ':cry:', emoji: '\u{1F62D}', label: 'Crying', group: 'negative' },
-  { code: ':angry:', emoji: '\u{1F621}', label: 'Angry', group: 'negative' },
-  { code: ':rage:', emoji: '\u{1F620}', label: 'Rage', group: 'negative' },
-  { code: ':wow:', emoji: '\u{1F62E}', label: 'Wow', group: 'negative' },
-  { code: ':fear:', emoji: '\u{1F631}', label: 'Screaming', group: 'negative' },
-  { code: ':disappointed:', emoji: '\u{1F61E}', label: 'Disappointed', group: 'negative' },
-  { code: ':worried:', emoji: '\u{1F61F}', label: 'Worried', group: 'negative' },
-  { code: ':confused:', emoji: '\u{1F615}', label: 'Confused', group: 'negative' },
-  { code: ':sick:', emoji: '\u{1F922}', label: 'Sick', group: 'negative' },
+  { code: ':sad:', emoji: '😢', label: 'Sad', group: 'negative' },
+  { code: ':cry:', emoji: '😭', label: 'Crying', group: 'negative' },
+  { code: ':angry:', emoji: '😡', label: 'Angry', group: 'negative' },
+  { code: ':rage:', emoji: '😤', label: 'Rage', group: 'negative' },
+  { code: ':wow:', emoji: '😮', label: 'Wow', group: 'negative' },
+  { code: ':fear:', emoji: '😱', label: 'Screaming', group: 'negative' },
+  { code: ':disappointed:', emoji: '😞', label: 'Disappointed', group: 'negative' },
+  { code: ':worried:', emoji: '😟', label: 'Worried', group: 'negative' },
+  { code: ':confused:', emoji: '😕', label: 'Confused', group: 'negative' },
+  { code: ':sick:', emoji: '🤢', label: 'Sick', group: 'negative' },
 ]
 
-// Code của backend seed (bảng emojis) không có trong EMOTION_EMOJIS.
-// Ký tự lấy từ cmd/seed/core/main.go (image_uri twemoji tương ứng).
+// Code của backend seed cũ không có trong EMOTION_EMOJIS.
 const EXTRA_CODE_TO_CHAR: Record<string, string> = {
-  ':like:': '\u{1F44D}', // 👍
-  ':haha:': '\u{1F602}', // 😂
-  ':rocket:': '\u{1F680}', // 🚀
+  ':like:': '👍',
+  ':haha:': '😂',
+  ':rocket:': '🚀',
 }
 
 function charForCode(code: string): string | null {
@@ -92,23 +101,20 @@ function charForCode(code: string): string | null {
   return EMOTION_EMOJIS.find((e) => e.code === code)?.emoji ?? null
 }
 
-/**
- * Ảnh render cho 1 EmojiItem đã có sẵn (emoji server/backend):
- * ký tự theo code -> ảnh CDN emojifyi (noto) -> giữ nguyên image_uri
- * (twemoji CDN của server) làm dự phòng. Dùng cho reaction tin nhắn (picker + chip + bubble).
- */
-export function emojiSrc(item: EmojiItem): string {
-  const ch = charForCode(item.code)
-  return ch ? emojifyiImageUrl(ch) : item.image_uri
-}
-
 export type EmotionEmojiItem = EmojiItem & { group: EmojiGroup; label: string }
 
+/** @deprecated Chỉ dùng fallback render token :code: cũ. Picker mới lấy từ server. */
 export function getEmotionEmojis(): EmotionEmojiItem[] {
   return EMOTION_EMOJIS.map((e) => ({
     id: `emotion-${e.code.slice(1, -1)}`,
     code: e.code,
-    image_uri: emojifyiImageUrl(e.emoji),
+    image_uri: '',
+    character: e.emoji,
+    name: e.label,
+    keywords: '',
+    category: e.group,
+    sort_order: 0,
+    is_reaction: false,
     group: e.group,
     label: e.label,
   }))
@@ -117,5 +123,13 @@ export function getEmotionEmojis(): EmotionEmojiItem[] {
 export function emojiByCode(items: Iterable<EmojiItem>): Map<string, EmojiItem> {
   const map = new Map<string, EmojiItem>()
   for (const e of items) map.set(e.code, e)
+  return map
+}
+
+/** Map code -> ký tự native cho token :code: cũ (sync, không gọi API). */
+export function legacyCodeCharMap(): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const e of EMOTION_EMOJIS) map.set(e.code, e.emoji)
+  for (const [code, ch] of Object.entries(EXTRA_CODE_TO_CHAR)) map.set(code, ch)
   return map
 }

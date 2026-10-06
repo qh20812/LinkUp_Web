@@ -12,8 +12,8 @@ import { formatCallDuration } from '../../utils/chat'
 import VoicePlayer from './VoicePlayer'
 import { isGiphyUrl } from '../../utils/giphy'
 import { runeLength } from '../../utils/text'
-import { isEmojifyiUrl, type EmojiOption } from '../../utils/emojifyi'
-import type { ChatMessage, GifItem } from '../../types'
+import { isEmojifyiUrl } from '../../utils/emojifyi'
+import type { ChatMessage, GifItem, EmojiItem } from '../../types'
 import type { ChatRoom } from '../../hooks/useChatRoom'
 import styles from './ChatWindow.module.css'
 
@@ -282,13 +282,9 @@ export default function Composer({
     setValue(serializeContent(el))
   }
 
-  const insertEmoji = (emoji: EmojiOption) => {
-    const img = document.createElement('img')
-    img.src = emoji.url
-    img.alt = emoji.title || 'emoji'
-    img.dataset.emoji = emoji.url
-    img.className = 'emojiInline'
-    insertNodeAtCaret(img)
+  const insertEmoji = (emoji: EmojiItem) => {
+    // Native: chèn text thường — serialize giữ nguyên, render không cần ảnh.
+    insertNodeAtCaret(document.createTextNode(emoji.character || emoji.code))
   }
 
   const insertText = (text: string) => {

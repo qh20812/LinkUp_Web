@@ -5,7 +5,7 @@ import ExternalImage from '../ExternalImage'
 import { EmojiImage } from '../messages/EmojiImage'
 import styles from './StoryViewer.module.css'
 import { useTranslation } from '../../hooks/useTranslation'
-import type { StoryAnalytics, StoryAnalyticsViewer } from '../../types'
+import type { StoryAnalytics, StoryAnalyticsViewer, EmojiItem } from '../../types'
 
 export function timeAgo(dateStr: string, t: (key: string) => string): string {
   const now = Date.now()
@@ -30,7 +30,7 @@ function RowEmoji({
   className,
 }: {
   emojiId?: string | null
-  emojiList: { id: string; code: string; image_uri: string }[]
+  emojiList: EmojiItem[]
   className?: string
 }) {
   if (!emojiId) return null
@@ -54,7 +54,7 @@ interface StoryStatsModalProps {
   analytics: StoryAnalytics | null
   loading: boolean
   error: boolean
-  emojiList: { id: string; code: string; image_uri: string }[]
+  emojiList: EmojiItem[]
   onClose: () => void
 }
 

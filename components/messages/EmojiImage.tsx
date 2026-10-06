@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ExternalImage from '../ExternalImage'
 import { isGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import { isEmojifyiUrl, retryImgOnFail } from '../../utils/emojifyi'
+import { emojiChar } from '../../utils/emojis'
 import type { EmojiItem } from '../../types'
 import styles from './EmojiImage.module.css'
 
@@ -15,8 +16,13 @@ interface EmojiImageProps {
 
 export function EmojiImage({ emoji, className }: EmojiImageProps) {
   const [failed, setFailed] = useState(false)
-  if (failed) {
-    return <span className={styles.emojiFallback}>{emoji.code}</span>
+  // Render native trước — image_uri chỉ là dự phòng cho DB chưa migrate.
+  if (emoji.character || failed || !emoji.image_uri) {
+    return (
+      <span className={className} role="img" aria-label={emoji.code}>
+        {emojiChar(emoji)}
+      </span>
+    )
   }
   return (
     <ExternalImage

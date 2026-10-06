@@ -3,15 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import styles from './EmojiPicker.module.css'
 import { useTranslation } from '../hooks/useTranslation'
-import {
-  fetchEmojifyiEmojis,
-  EmojiRateLimitError,
-  retryImgOnFail,
-  type EmojiOption,
-} from '../utils/emojifyi'
+import { getEmojis } from '../api/posts'
+import { EMOJI_CATEGORIES, type EmojiCategory, type EmojiItem } from '../types'
 
 interface EmojiPickerProps {
-  onSelect: (emoji: EmojiOption) => void
+  onSelect: (emoji: EmojiItem) => void
   onClose: () => void
   placement?: 'top' | 'bottom'
   /** Element that toggles this picker — clicks on it are not treated as outside. */
@@ -19,6 +15,7 @@ interface EmojiPickerProps {
 }
 
 const DEBOUNCE_MS = 400
+const PAGE_SIZE = 60
 
 export default function EmojiPicker({
   onSelect,
@@ -32,11 +29,11 @@ export default function EmojiPicker({
     tRef.current = t
   })
   const [query, setQuery] = useState('')
-  const [items, setItems] = useState<EmojiOption[]>([])
+  const [category, setCategory] = useState<EmojiCategory>('smileys')
+  const [items, setItems] = useState<EmojiItem[]>([])
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [closed, setClosed] = useState(false)
   const requestIdRef = useRef(0)
   const offsetRef = useRef(0)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -60,65 +57,62 @@ export default function EmojiPicker({
     }
   }, [onClose, ignoreRef])
 
-  const load = useCallback((q: string, offset: number) => {
+  const load = useCallback((q: string, cat: EmojiCategory, offset: number) => {
     const id = ++requestIdRef.current
-    fetchEmojifyiEmojis({ q, offset })
+    setLoading(true)
+    getEmojis({ q: q || undefined, category: q ? undefined : cat, limit: PAGE_SIZE, offset })
       .then((res) => {
         if (requestIdRef.current !== id) return
-        setItems((prev) => (offset === 0 ? res.items : [...prev, ...res.items]))
-        setHasMore(res.hasMore)
-        offsetRef.current = offset + res.items.length
+        setItems((prev) => (offset === 0 ? res.data : [...prev, ...res.data]))
+        setHasMore(res.has_more)
+        offsetRef.current = offset + res.data.length
         setError(null)
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (requestIdRef.current !== id) return
-        setError(
-          err instanceof EmojiRateLimitError
-            ? tRef.current('composer.emojiRateLimit', {
-                seconds: Math.max(1, Math.ceil((err.until - Date.now()) / 1000)),
-              })
-            : tRef.current('composer.emojiError'),
-        )
+        setError(tRef.current('composer.emojiError'))
       })
       .finally(() => {
         if (requestIdRef.current === id) setLoading(false)
       })
   }, [])
 
-  // Initial browse (offset 0).
+  // Initial browse (offset 0) — defer 1 tick để tránh setState đồng bộ trong effect.
   useEffect(() => {
-    load('', 0)
+    const t = setTimeout(() => load('', 'smileys', 0), 0)
+    return () => clearTimeout(t)
   }, [load])
 
   // Debounced search.
   useEffect(() => {
     const term = query.trim()
-    if (!term) {
-      // quay về catalog khi xóa search
-      if (requestIdRef.current > 0) {
-        offsetRef.current = 0
-        load('', 0)
-      }
-      return
-    }
+    if (!term) return
     const timeout = setTimeout(() => {
-      setLoading(true)
-      load(term, 0)
+      offsetRef.current = 0
+      load(term, category, 0)
     }, DEBOUNCE_MS)
     return () => clearTimeout(timeout)
-  }, [query, load])
+  }, [query, category, load])
+
+  const pickCategory = (cat: EmojiCategory) => {
+    setCategory(cat)
+    setQuery('')
+    offsetRef.current = 0
+    load('', cat, 0)
+    gridRef.current?.scrollTo({ top: 0 })
+  }
 
   const onScroll = () => {
     if (!hasMore || loading) return
     const el = gridRef.current
     if (!el) return
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
-      setLoading(true)
-      load(query.trim(), offsetRef.current)
+      load(query.trim(), category, offsetRef.current)
     }
   }
 
   const pickerClass = `${styles.picker}${placement === 'top' ? ` ${styles.pickerTop}` : ''}`
+  const searching = query.trim() !== ''
 
   return (
     <div className={pickerClass} ref={rootRef} role="dialog" aria-label={t('composer.emoji')}>
@@ -134,6 +128,23 @@ export default function EmojiPicker({
           <i className="bx bx-x" />
         </button>
       </div>
+      {!searching && (
+        <div className={styles.tabs} role="tablist" aria-label={t('composer.emoji')}>
+          {EMOJI_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              role="tab"
+              aria-selected={category === cat}
+              className={`${styles.tab}${category === cat ? ` ${styles.tabActive}` : ''}`}
+              onClick={() => pickCategory(cat)}
+              title={t(`composer.emojiGroups.${cat}`)}
+            >
+              {t(`composer.emojiGroups.${cat}`)}
+            </button>
+          ))}
+        </div>
+      )}
       {error && <p className={styles.errorText}>{error}</p>}
       <div className={styles.grid} ref={gridRef} onScroll={onScroll}>
         {items.map((e) => (
@@ -141,24 +152,16 @@ export default function EmojiPicker({
             key={e.id}
             type="button"
             className={styles.item}
-            onClick={() => {
-              onSelect(e)
-              setClosed(true)
-            }}
-            title={e.title}
-            aria-label={e.title}
+            onClick={() => onSelect(e)}
+            title={e.name || e.code}
+            aria-label={e.name || e.code}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={e.preview}
-              alt={e.title}
-              loading="lazy"
-              decoding="async"
-              onError={retryImgOnFail}
-            />
+            <span className={styles.char} aria-hidden="true">
+              {e.character || e.code}
+            </span>
           </button>
         ))}
-        {loading && !closed && (
+        {loading && (
           <div className={styles.loading}>
             <i className="bx bx-loader-circle bx-spin" />
           </div>
@@ -167,7 +170,6 @@ export default function EmojiPicker({
           <p className={styles.empty}>{t('composer.emojiEmpty')}</p>
         )}
       </div>
-      <div className={styles.attribution}>Powered by EmojiFYI</div>
     </div>
   )
 }

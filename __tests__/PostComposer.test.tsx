@@ -61,7 +61,9 @@ describe('PostComposer (teaser → modal)', () => {
     expect(screen.getByDisplayValue('Bản nháp cũ')).toBeInTheDocument()
     await waitFor(() => {
       const editor = document.querySelector('[role="textbox"]')
-      expect(editor?.innerHTML).toContain('data-code=":smile:"')
+      // Token :code: cũ trong draft được khôi phục thành ký tự native (không <img>).
+      expect(editor?.innerHTML).toContain('😄')
+      expect(editor?.innerHTML).not.toContain('data-code=')
     })
   })
 

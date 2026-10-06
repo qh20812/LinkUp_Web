@@ -290,6 +290,17 @@
       "neutral": "Bình thường",
       "negative": "Buồn bực"
     },
+    "emojiGroups": {
+      "smileys": "Mặt cười",
+      "people": "Con người",
+      "nature": "Thiên nhiên",
+      "food": "Ăn uống",
+      "travel": "Du lịch",
+      "activity": "Hoạt động",
+      "objects": "Đồ vật",
+      "symbols": "Biểu tượng",
+      "flags": "Cờ"
+    },
     "charCount": "{count}/{max}",
     "privacy": {
       "public": "Công khai",

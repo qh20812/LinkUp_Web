@@ -95,8 +95,33 @@ export const savePost = (postId: string) =>
     method: 'POST',
   })
 
-export const getEmojis = () =>
-  request<{ data: EmojiItem[] }>('/emojis')
+export interface EmojiListParams {
+  scope?: 'reactions'
+  q?: string
+  category?: string
+  limit?: number
+  offset?: number
+}
+
+export interface EmojiListResponse {
+  data: EmojiItem[]
+  total: number
+  has_more: boolean
+}
+
+export const getEmojis = (params: EmojiListParams = {}) => {
+  const qs = new URLSearchParams()
+  if (params.scope) qs.set('scope', params.scope)
+  if (params.q?.trim()) qs.set('q', params.q.trim())
+  if (params.category) qs.set('category', params.category)
+  if (params.limit !== undefined) qs.set('limit', String(params.limit))
+  if (params.offset !== undefined) qs.set('offset', String(params.offset))
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  return request<EmojiListResponse>(`/emojis${suffix}`)
+}
+
+/** 10 quick-react cho reaction chips/toolbars — nhẹ, gọi 1 lần. */
+export const getReactionEmojis = () => getEmojis({ scope: 'reactions' })
 
 export const createPost = ({ title, content, status, files = [], gifUrl, communityID, commentsEnabled = true, clientKey }: CreatePostInput) => {
   const formData = new FormData()

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
-import { emojiSrc } from '../../utils/emojis'
+import { emojiChar } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
@@ -115,14 +115,9 @@ export default function MessageToolbar({
                   onClick={() => handleReact(item.id)}
                   title={item.code}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={emojiSrc(item)}
-                    alt={item.code}
-                    className={styles.toolbarReactionPickEmoji}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <span className={styles.toolbarReactionPickEmoji} role="img" aria-label={item.code}>
+                    {emojiChar(item)}
+                  </span>
                 </button>
               ))}
             </div>

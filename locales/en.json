@@ -290,6 +290,17 @@
       "neutral": "Neutral",
       "negative": "Sad"
     },
+    "emojiGroups": {
+      "smileys": "Smileys",
+      "people": "People",
+      "nature": "Nature",
+      "food": "Food",
+      "travel": "Travel",
+      "activity": "Activity",
+      "objects": "Objects",
+      "symbols": "Symbols",
+      "flags": "Flags"
+    },
     "charCount": "{count}/{max}",
     "privacy": {
       "public": "Public",

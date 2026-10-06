@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { giphyMediaUrl, giphyStillUrl, isGiphyUrl, isSingleGiphyUrl, firstGiphyUrl, stripGiphyUrls, separateGiphyUrls } from '@/utils/giphy'
-import { emojifyiImageUrl, isEmojifyiUrl, isSingleEmojifyiUrl, stripEmojifyiUrls } from '@/utils/emojifyi'
-import { emojiSrc } from '@/utils/emojis'
+import { isEmojifyiUrl, isSingleEmojifyiUrl, stripEmojifyiUrls } from '@/utils/emojifyi'
+import { emojiChar, legacyCodeCharMap } from '@/utils/emojis'
 import { renderEmojiContent, renderPostContent } from '@/components/messages/EmojiImage'
 import { serializeContent } from '@/components/messages/Composer'
 import { truncateAvoidingUrl } from '@/components/PostCard'
@@ -82,23 +82,7 @@ describe('giphy url utils', () => {
   })
 })
 
-describe('emojifyi url utils', () => {
-  test('emojifyiImageUrl sinh URL CDN (noto, bỏ fe0f, pad >= 4 hex)', () => {
-    expect(emojifyiImageUrl('\u{1F600}')).toBe(EMOJIFYI_URL)
-    // CDN không có file kèm fe0f -> phải bỏ nó (verify thực tế: ..._fe0f.png trả 404)
-    expect(emojifyiImageUrl('\u{2764}\u{FE0F}')).toBe(
-      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u2764.png',
-    )
-    // codepoint < 0x1000 zero-pad (vd keycap # -> 0023)
-    expect(emojifyiImageUrl('#\u{FE0F}\u{20E3}')).toBe(
-      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u0023_20e3.png',
-    )
-    // chuỗi nhiều codepoint (ZWJ) nối bằng _
-    expect(emojifyiImageUrl('\u{1F469}\u{200D}\u{1F4BB}')).toBe(
-      'https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f469_200d_1f4bb.png',
-    )
-  })
-
+describe('emojifyi url utils (legacy — chỉ render nội dung cũ)', () => {
   test('isEmojifyiUrl chỉ nhận CDN emojifyi', () => {
     expect(isEmojifyiUrl(EMOJIFYI_URL)).toBe(true)
     expect(isEmojifyiUrl('https://cdn.emojifyi.com/images/platforms/noto/emoji_u1f600.png')).toBe(true)
@@ -128,7 +112,17 @@ describe('emojifyi url utils', () => {
 })
 
 describe('renderEmojiContent', () => {
-  const like: EmojiItem = { id: 'e1', code: ':like:', image_uri: 'https://media.giphy.com/media/like-id/200w.gif' }
+  const like: EmojiItem = {
+    id: 'e1',
+    code: ':like:',
+    image_uri: '',
+    character: '👍',
+    name: 'thumbs up',
+    keywords: '',
+    category: 'smileys',
+    sort_order: 1,
+    is_reaction: true,
+  }
   const map = new Map<string, EmojiItem>([[':like:', like]])
 
   test('renders giphy url as inline img (legacy animated -> still)', () => {
@@ -151,11 +145,11 @@ describe('renderEmojiContent', () => {
     expect(markup).toContain('https://example.com/a.png')
   })
 
-  test('renders legacy :code: as emoji image when mapped', () => {
+  test('renders legacy :code: as native character when mapped', () => {
     const markup = renderToStaticMarkup(<>{renderEmojiContent('go :like:', map, 'k')}</>)
-    expect(markup).toContain('<img')
-    expect(markup).toContain('src="https://media.giphy.com/media/like-id/200w.gif"')
-    expect(markup).toContain('alt=":like:"')
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain('👍')
+    expect(markup).toContain('go ')
   })
 
   test('keeps unknown :code: as plain text', () => {
@@ -185,7 +179,17 @@ describe('renderEmojiContent', () => {
 })
 
 describe('renderPostContent', () => {
-  const like: EmojiItem = { id: 'e1', code: ':like:', image_uri: 'https://media.giphy.com/media/like-id/200w.gif' }
+  const like: EmojiItem = {
+    id: 'e1',
+    code: ':like:',
+    image_uri: '',
+    character: '👍',
+    name: 'thumbs up',
+    keywords: '',
+    category: 'smileys',
+    sort_order: 1,
+    is_reaction: true,
+  }
   const map = new Map<string, EmojiItem>([[':like:', like]])
 
   test('renders emojifyi url as inline img (không hiện URL thô)', () => {
@@ -222,10 +226,10 @@ describe('renderPostContent', () => {
     expect(markup).toContain('https://example.com/a.png')
   })
 
-  test('renders legacy :code: as emoji image when mapped', () => {
+  test('renders legacy :code: as native character when mapped', () => {
     const markup = renderToStaticMarkup(<>{renderPostContent('go :like:', map, 'k')}</>)
-    expect(markup).toContain('<img')
-    expect(markup).toContain('src="https://media.giphy.com/media/like-id/200w.gif"')
+    expect(markup).not.toContain('<img')
+    expect(markup).toContain('👍')
   })
 
   test('keeps unknown :code: as plain text', () => {
@@ -240,11 +244,12 @@ describe('renderPostContent', () => {
     expect(markup).not.toContain('<img')
   })
 
-  test('renders emojifyi + hashtag + code combined', () => {
+  test('renders emojifyi + hashtag + code combined (code native, url ảnh)', () => {
     const markup = renderToStaticMarkup(
       <>{renderPostContent(`:like: #tag ${EMOJIFYI_URL2}`, map, 'k')}</>,
     )
-    expect(markup.match(/<img/g) ?? []).toHaveLength(2)
+    expect(markup.match(/<img/g) ?? []).toHaveLength(1)
+    expect(markup).toContain('👍')
     expect(markup).toContain('#tag')
   })
 })
@@ -295,29 +300,41 @@ describe('serializeContent', () => {
   })
 })
 
-describe('emojiSrc (reaction tin nhắn)', () => {
-  const serverItem = (code: string, imageUri = 'https://cdn.example.com/emoji.png'): EmojiItem => ({
+describe('emojiChar (reaction tin nhắn, native)', () => {
+  const serverItem = (code: string, character = '', imageUri = ''): EmojiItem => ({
     id: `server-${code}`,
     code,
     image_uri: imageUri,
+    character,
+    name: code,
+    keywords: '',
+    category: 'smileys',
+    sort_order: 0,
+    is_reaction: true,
   })
 
-  test('map code backend/emotion sang ảnh emojifyi (noto)', () => {
-    const cdn = 'https://cdn.emojifyi.com/images/platforms/noto/emoji_u'
-    expect(emojiSrc(serverItem(':like:'))).toBe(`${cdn}1f44d.png`)
-    expect(emojiSrc(serverItem(':haha:'))).toBe(`${cdn}1f602.png`)
-    expect(emojiSrc(serverItem(':rocket:'))).toBe(`${cdn}1f680.png`)
-    expect(emojiSrc(serverItem(':fire:'))).toBe(`${cdn}1f525.png`)
-    expect(emojiSrc(serverItem(':heart:'))).toBe(`${cdn}2764.png`)
-    expect(emojiSrc(serverItem(':wow:'))).toBe(`${cdn}1f62e.png`)
-    expect(emojiSrc(serverItem(':clap:'))).toBe(`${cdn}1f44f.png`)
-    expect(emojiSrc(serverItem(':sad:'))).toBe(`${cdn}1f622.png`)
-    expect(emojiSrc(serverItem(':angry:'))).toBe(`${cdn}1f621.png`)
-    expect(emojiSrc(serverItem(':love:'))).toBe(`${cdn}1f496.png`)
+  test('ưu tiên character native từ server', () => {
+    expect(emojiChar(serverItem(':like:', '👍'))).toBe('👍')
+    expect(emojiChar(serverItem(':fire:', '🔥'))).toBe('🔥')
   })
 
-  test('giữ image_uri (twemoji CDN của server) khi chưa có map ký tự', () => {
-    expect(emojiSrc(serverItem(':unknown:'))).toBe('https://cdn.example.com/emoji.png')
+  test('fallback map ký tự legacy khi server chưa có character', () => {
+    expect(emojiChar(serverItem(':like:'))).toBe('👍')
+    expect(emojiChar(serverItem(':haha:'))).toBe('😂')
+    expect(emojiChar(serverItem(':rocket:'))).toBe('🚀')
+    expect(emojiChar(serverItem(':smile:'))).toBe('😄')
+  })
+
+  test('giữ image_uri khi chưa có map ký tự (render <img> dự phòng)', () => {
+    // EmojiImage render ảnh khi character rỗng mà image_uri có giá trị —
+    // emojiChar trả code để hiển thị text thay vì vỡ layout.
+    expect(emojiChar(serverItem(':unknown:'))).toBe(':unknown:')
+  })
+
+  test('legacyCodeCharMap phủ code client cũ', () => {
+    const map = legacyCodeCharMap()
+    expect(map.get(':smile:')).toBe('😄')
+    expect(map.get(':like:')).toBe('👍')
   })
 })
 

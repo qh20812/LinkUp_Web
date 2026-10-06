@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslation } from '../../hooks/useTranslation'
-import { emojiSrc } from '../../utils/emojis'
+import { emojiChar } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
 import styles from './ChatWindow.module.css'
 
@@ -17,13 +17,8 @@ export default function EmojiBubble({ message, emojis }: EmojiBubbleProps) {
     return <span className={styles.deletedText}>{t('chat.emojiUnavailable')}</span>
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={emojiSrc(emoji)}
-      alt={emoji.code}
-      className={styles.emojiMsg}
-      loading="lazy"
-      decoding="async"
-    />
+    <span className={styles.emojiMsg} role="img" aria-label={emoji.code}>
+      {emojiChar(emoji)}
+    </span>
   )
 }
