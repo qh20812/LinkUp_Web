@@ -1159,98 +1159,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   11. CALL ACTIVITY — Redesigned per PLAN.md
+   11. CALL ACTIVITY — extracted to CallHistoryBubble(.module.css).
+   Call rows in ChatWindow render <CallHistoryBubble/> (premium glass card);
+   no call-bubble styles live here anymore.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-.callBubble {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  min-width: 180px;
-  max-width: 280px;
-}
-
-.callBubble > i {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-circle);
-}
-
-/* Outgoing — primary blue */
-.callBubble.outgoing > i {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-/* Incoming — green */
-.callBubble.incoming > i {
-  color: var(--color-success);
-  background: var(--color-success-light);
-}
-
-/* Missed — red */
-.callBubble.missed > i {
-  color: var(--color-danger);
-  background: var(--color-danger-light);
-}
-
-/* Mine (outgoing) — white on primary */
-.mine .callBubble > i {
-  color: var(--message-own-text);
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.callContent {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.callLabel {
-  font-weight: 600;
-  font-size: 0.875rem;
-  white-space: nowrap;
-}
-
-.callDuration {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--chat-text);
-  white-space: nowrap;
-}
-
-.callBackBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: var(--color-primary);
-  color: var(--message-own-text);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms ease, opacity 150ms ease;
-}
-
-.callBackBtn:hover {
-  background: var(--color-primary-hover);
-}
-
-.callBackBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 /* ── Avatar Spacer (non-first message in a group) ──────────────────────── */
 .avatarSpacer {
@@ -2491,7 +2403,6 @@
 
 .iconBtn,
 .backBtn,
-.callBackBtn,
 .voicePlayBtn {
   transition: background var(--fast), color var(--fast), transform var(--fast);
 }

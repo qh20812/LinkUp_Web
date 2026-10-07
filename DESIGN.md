@@ -1163,13 +1163,39 @@ Do not use browser-native audio UI. Preferred: `[Play] ━━━━━ waveform 
 
 Include: Play/Pause, waveform visualization, progress, duration. Reuse existing audio playback logic.
 
-### 11.18 Call Activity
+### 11.18 Call Activity (`components/messages/CallHistoryBubble.tsx`)
 
-Call messages are dedicated activity cards with states: outgoing, incoming, completed, missed, declined.
+Call rows are premium glass cards — one component shared by direct (`kind === 'call'`)
+and group (`kind === 'group_call'`) timeline items. Never solid `--color-card` boxes;
+never giant black rectangles.
 
-Card should be: compact, modern, readable, visually distinct. NOT giant black rectangles.
-
-Reuse existing call actions.
+- **Surface:** `--glass-bg-strong` + `blur(--glass-blur)` + `--glass-border` +
+  `radius-lg` + `--glass-shadow`; hover elevates to `shadow-md` (`150ms ease`).
+  Neutral glass on both sides — direction is carried by row alignment + chip icon,
+  not by the turquoise mine gradient. `mine` answered carries a turquoise wash
+  (`color-mix primary 13%` bg, `45%` border) mirroring own text bubbles, while
+  `theirs` answered stays neutral glass. `missed` is a red wash on BOTH sides
+  (`color-mix danger 12%` bg, `55%` border) — the missed signal dominates and
+  direction is carried by alignment + avatar only.
+- **Status chip:** `40px` solid circle + white glyph, one formula for all tones.
+  `outgoing` = primary (`bx-phone-call` / `bx-video`),
+  `incoming` = success (`bx-phone-incoming` / `bx-video`),
+  `missed` = danger (`bx-phone-off` / `bx-video-off`). Missed title also renders
+  in danger text (dark mode: `--color-danger-hover` for contrast).
+- **Text:** title `14px/600` (localised `call.*` / `call.videoCallGroup`), meta
+  `12px/500` muted tabular-nums `{duration} · {clockTime}` (`formatCallDuration` +
+  `formatClockTime`) — duration omitted when `0`/missed so the clock time is
+  always visible. Whole bubble carries `role="group"` with
+  `aria-label="{title}, {meta}"`.
+- **Callback:** circular `36px` icon button (`40px` ≤576px), theme-toggle recipe —
+  `--seg-track-bg` rest, `primary-light` wash + primary icon on hover,
+  `scale(0.94)` press, `focus-visible` 2px primary outline. Shown for incoming
+  only while `!isInCall`. Label via `data-tooltip` + `::after` pill
+  (`--color-text` bg / `--color-card` text, 150ms fade + 2px rise, hidden on touch)
+  + `aria-label` — never native `title`.
+- **Motion:** row entrance reuses `messageAppear`; `prefers-reduced-motion`
+  disables all transitions/press transforms.
+- Reuse existing call actions (`startCall`, `handleRequestJoin`) — no new backend.
 
 ### 11.19 Image / Video / File Messages
 

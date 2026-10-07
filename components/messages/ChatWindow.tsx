@@ -8,7 +8,7 @@ import Modal from '../Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
-import { formatChatDate, formatCallDuration } from '../../utils/chat'
+import { formatChatDate, formatCallDuration, formatClockTime } from '../../utils/chat'
 import { isSingleGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import { isSingleEmojifyiUrl } from '../../utils/emojifyi'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
@@ -40,6 +40,7 @@ import MessageToolbar from './MessageToolbar'
 import MediaStack from './MediaStack'
 import MessageMedia from './MessageMedia'
 import MessageTimestamp from './MessageTimestamp'
+import CallHistoryBubble from './CallHistoryBubble'
 import SeenIndicator from './SeenIndicator'
 import ReactionsRow from './ReactionsRow'
 import EmojiBubble from './EmojiBubble'
@@ -729,14 +730,13 @@ export default function ChatWindow({
               const callMine = callItem.direction === 'outgoing'
               const isVideo = callItem.call_type === 'video'
               const missed = callItem.is_missed
-              const callIcon = callMine ? 'bx-phone-call' : 'bx-phone-incoming'
-              const callDirection = missed ? 'missed' : callMine ? 'outgoing' : 'incoming'
+              const callTone = missed ? 'missed' : callMine ? 'outgoing' : 'incoming'
               const callLabel = missed
                 ? t('call.historyMissed')
                 : isVideo
                   ? t('call.videoCall')
                   : t('call.voiceCall')
-              const showDuration = callItem.duration > 0
+              const callCreatedIso = new Date(callItem.created_at).toISOString()
               return (
                 <Fragment key={`call-${callItem.id}`}>
                   {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
@@ -753,35 +753,23 @@ export default function ChatWindow({
                     {!callMine && !isFirstInGroup && (
                       <div className={styles.avatarSpacer} />
                     )}
-                    <div className={`${styles.bubble} ${styles.callBubble} ${styles[callDirection]}`}>
-                      <i className={`bx ${callIcon}`} />
-                      <div className={styles.callContent}>
-                        <span className={styles.callLabel}>{callLabel}</span>
-                        {showDuration && (
-                          <span className={styles.callDuration}>{formatCallDuration(callItem.duration)}</span>
-                        )}
-                        {!callMine && !isInCall && (
-                          <button
-                            className={styles.callBackBtn}
-                            onClick={() => {
-                              if (isInCall) return
-                              void startCall({
-                                user_id: callItem.other_user.id,
-                                display_name: callItem.other_user.display_name,
-                                avatar_uri: callItem.other_user.avatar_uri,
-                              }, callItem.call_type)
-                            }}
-                          >
-                            <i className="bx bx-phone" />
-                            <span>{t('call.callback')}</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <MessageTimestamp
-                      msg={{ id: callItem.id, created_at: new Date(callItem.created_at).toISOString(), sender_id: '' } as ChatMessage}
+                    <CallHistoryBubble
+                      tone={callTone}
                       mine={callMine}
-                      visible={false}
+                      isVideo={isVideo}
+                      title={callLabel}
+                      durationText={callItem.duration > 0 ? formatCallDuration(callItem.duration) : null}
+                      timeText={formatClockTime(callCreatedIso)}
+                      showAction={!callMine && !isInCall}
+                      actionLabel={t('call.callback')}
+                      onAction={() => {
+                        if (isInCall) return
+                        void startCall({
+                          user_id: callItem.other_user.id,
+                          display_name: callItem.other_user.display_name,
+                          avatar_uri: callItem.other_user.avatar_uri,
+                        }, callItem.call_type)
+                      }}
                     />
                   </div>
                 </Fragment>
@@ -799,8 +787,7 @@ export default function ChatWindow({
                 : 0
               const gcMissed = gc.status === 'missed'
               const gcIsVideo = gc.is_video
-              const gcIcon = gcMine ? 'bx-phone-call' : 'bx-phone-incoming'
-              const gcDirection = gcMissed ? 'missed' : gcMine ? 'outgoing' : 'incoming'
+              const gcTone = gcMissed ? 'missed' : gcMine ? 'outgoing' : 'incoming'
               const gcLabel = gcMissed
                 ? t('call.historyMissed')
                 : gcIsVideo
@@ -824,26 +811,17 @@ export default function ChatWindow({
                     {!gcMine && !isFirstInGroup && (
                       <div className={styles.avatarSpacer} />
                     )}
-                    <div className={`${styles.bubble} ${styles.callBubble} ${styles[gcDirection]}`}>
-                      <i className={`bx ${gcIcon}`} />
-                      <div className={styles.callContent}>
-                        <span className={styles.callLabel}>{gcLabel}</span>
-                        {gcShowDuration && (
-                          <span className={styles.callDuration}>
-                            {String(Math.floor(gcDuration / 60)).padStart(2, '0')}:{String(gcDuration % 60).padStart(2, '0')}
-                          </span>
-                        )}
-                        {gcShowJoin && (
-                          <button
-                            className={styles.callBackBtn}
-                            onClick={() => handleRequestJoin(gc.call_id)}
-                          >
-                            <i className="bx bx-phone" />
-                            {t('groupCall.requestToJoin')}
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <CallHistoryBubble
+                      tone={gcTone}
+                      mine={gcMine}
+                      isVideo={gcIsVideo === true}
+                      title={gcLabel}
+                      durationText={gcShowDuration ? formatCallDuration(gcDuration) : null}
+                      timeText={formatClockTime(new Date(gc.created_at).toISOString())}
+                      showAction={gcShowJoin}
+                      actionLabel={t('groupCall.requestToJoin')}
+                      onAction={() => handleRequestJoin(gc.call_id)}
+                    />
                   </div>
                 </Fragment>
               )
