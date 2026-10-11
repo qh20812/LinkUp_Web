@@ -989,6 +989,7 @@
     "voiceMessage": "Voice message",
     "play": "Play",
     "pause": "Pause",
+    "playbackRate": "Playback speed {rate}x",
     "sendVoice": "Send voice message",
     "cancelVoice": "Cancel voice message",
     "emojiMessage": "[Emoji]",

@@ -7,16 +7,18 @@ import styles from './ChatWindow.module.css'
 interface MediaStackProps {
   msgs: ChatMessage[]
   onOpen?: (msgs: ChatMessage[], index: number) => void
+  /** true = own messages — forwarded to VoicePlayer via MessageMedia. */
+  mine?: boolean
 }
 
-export default function MediaStack({ msgs, onOpen }: MediaStackProps) {
+export default function MediaStack({ msgs, onOpen, mine = false }: MediaStackProps) {
   const count = msgs.length
   const open = (index: number) => onOpen?.(msgs, index)
 
   if (count === 1) {
     return (
       <div className={styles.mediaWrap}>
-        <MessageMedia message={msgs[0]} onClick={() => open(0)} />
+        <MessageMedia message={msgs[0]} onClick={() => open(0)} mine={mine} />
       </div>
     )
   }
@@ -26,7 +28,7 @@ export default function MediaStack({ msgs, onOpen }: MediaStackProps) {
       <div className={styles.mediaStack2}>
         {msgs.map((m, i) => (
           <div key={m.id} className={styles.mediaWrap}>
-            <MessageMedia message={m} onClick={() => open(i)} />
+            <MessageMedia message={m} onClick={() => open(i)} mine={mine} />
           </div>
         ))}
         <span className={styles.mediaCountBadge}>{count}</span>
@@ -49,7 +51,7 @@ export default function MediaStack({ msgs, onOpen }: MediaStackProps) {
             transform: `translateY(${idx * 14}px) rotate(${idx === 1 ? 2 : idx === 2 ? -1.5 : 0}deg)`,
           }}
         >
-          <MessageMedia message={m} />
+          <MessageMedia message={m} mine={mine} />
         </div>
       ))}
       <span className={styles.mediaCountBadge}>{count}</span>

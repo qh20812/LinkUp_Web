@@ -518,12 +518,17 @@ export default function PostDetailModal({
     if (!current || sharing) return
     setSharing(true)
     try {
-      await sharePost(current.id, shareText.trim())
+      const res = await sharePost(current.id, shareText.trim())
       const next = { ...current, shares_count: current.shares_count + 1, is_shared: true }
       setCurrent(next)
       onUpdated?.(next)
       setShareOpen(false)
       setShareText('')
+      // Prepend bài repost vừa tạo lên đầu feed qua event chung với
+      // PostComposer — Feed dedup theo id nên APPEND sau đó không trùng.
+      if (res.data) {
+        window.dispatchEvent(new CustomEvent<FeedPost>('post:created', { detail: res.data }))
+      }
       toast({ type: 'success', title: t('postDetail.shared') })
     } catch (e) {
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })

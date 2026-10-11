@@ -989,6 +989,7 @@
     "voiceMessage": "Tin nhắn thoại",
     "play": "Phát",
     "pause": "Tạm dừng",
+    "playbackRate": "Tốc độ phát {rate}x",
     "sendVoice": "Gửi tin nhắn thoại",
     "cancelVoice": "Hủy tin nhắn thoại",
     "emojiMessage": "[Biểu tượng cảm xúc]",

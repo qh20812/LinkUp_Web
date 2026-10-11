@@ -669,7 +669,7 @@ export default function Composer({
           </div>
         ) : pendingVoice ? (
           <div className={styles.voiceInput}>
-            <VoicePlayer src={pendingVoice.url} duration={pendingVoice.duration} />
+            <VoicePlayer src={pendingVoice.url} duration={pendingVoice.duration} mine={false} flat messageKey="composer-preview" />
           </div>
         ) : (
           <div className={styles.composerWrap}>

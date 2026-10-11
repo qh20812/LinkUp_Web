@@ -15,6 +15,7 @@ import { EmojiImage, renderEmojiContent } from './EmojiImage'
 import GroupInviteBubble from './GroupInviteBubble'
 import VideoLinkPreview from './VideoLinkPreview'
 import { extractVideoUrls } from '../../utils/videoLink'
+import { isVoiceMessage } from '../../utils/chatMediaGroup'
 import {
   emojiByCode,
   getEmotionEmojis,
@@ -685,7 +686,7 @@ export default function ChatWindow({
                     {item.msgs[0].content?.trim() ? (
                       <div className={styles.msgStack}>
                         <div className={`${styles.bubble} ${styles.bubblePlain}`}>
-                          <MediaStack msgs={item.msgs} onOpen={openLightbox} />
+                          <MediaStack msgs={item.msgs} onOpen={openLightbox} mine={mine} />
                           <div className={styles.msgLine}>
                             {item.msgs[0].content?.trim() && (
                               <div className={styles.msgText}>
@@ -715,7 +716,7 @@ export default function ChatWindow({
                         </div>
                       </div>
                     ) : (
-                      <MediaStack msgs={item.msgs} onOpen={openLightbox} />
+                      <MediaStack msgs={item.msgs} onOpen={openLightbox} mine={mine} />
                     )}
                     <MessageTimestamp msg={first} mine={mine} visible={hoveredMsgId === first.id || toolbarHoveredId === first.id} />
                   </div>
@@ -850,6 +851,23 @@ export default function ChatWindow({
                   !msg.media_uri &&
                   !msg.emoji_id &&
                   (singleEmoji !== null || singleGiphy || singleEmojifyi)))
+            // Voice rows ignore content for layout — the player is the sole
+            // surface (duration display built-in), so server-side stray text
+            // must never spawn a caption/outer text bubble behind it.
+            const isVoice = isVoiceMessage(msg)
+            // Standalone audio row: media-only audio (or typeless media-only
+            // leftover) with no reply context renders the player with NO outer
+            // bubble — making a stray white wrapper structurally impossible.
+            // Voice replies keep the legacy wrapped path (quote needs a bubble).
+            const isAudioRow = !msg.deleted &&
+              !msg.decrypt_failed &&
+              !msg.reply_to &&
+              (isVoice ||
+                (Boolean(msg.media_id || msg.media_uri) &&
+                  !msg.content?.trim() &&
+                  !msg.emoji_id &&
+                  !msg.shared_post_id &&
+                  (msg.media_type == null || msg.media_type.startsWith('audio/'))))
             const showSenderName = mode === 'group' && !mine
             const mapMember = showSenderName ? memberNames?.get(msg.sender_id) : null
             const senderDisplayName = msg.sender_name || mapMember?.display_name || null
@@ -967,11 +985,93 @@ export default function ChatWindow({
                       emojis={emojis}
                       onReact={onReact}
                       t={t}
-                      
+
                     />
                   </div>
                   <MessageTimestamp msg={msg} mine={mine} visible={hoveredMsgId === msg.id || toolbarHoveredId === msg.id} />
                 </div>
+                ) : isAudioRow ? (
+                <>
+                {showSenderName && (
+                  <div className={styles.senderLine} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
+                    {senderMember?.avatar_uri ? (
+                      <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
+                    ) : (
+                      <div className={styles.senderAvatarPlaceholder}>
+                        {(senderDisplayName || '?')[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
+                  </div>
+                )}
+                <div
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`}
+                  data-message-id={msg.id}
+                  onMouseEnter={() => setHoveredMsgId(msg.id)}
+                  onMouseLeave={() => setHoveredMsgId(null)}
+                >
+                  {pinnedMessages.some((p) => p.message_id === msg.id) && (
+                    <span className={styles.pinBadge} title={t('chat.pinnedMessage')}>
+                      <i className="bx bx-pin" />
+                    </span>
+                  )}
+                  {!mine && isFirstInGroup && (
+                    <button
+                      className={styles.msgAvatar}
+                      onClick={() => router.push(`/profile/${msg.sender_id}`)}
+                      title={senderDisplayName || t('chat.unknown')}
+                    >
+                      <ExternalImage
+                        src={senderAvatarUri || '/default-avatar.svg'}
+                        alt=""
+                        className={styles.msgAvatarImg}
+                      />
+                    </button>
+                  )}
+                  {!mine && !isFirstInGroup && (
+                    <div className={styles.avatarSpacer} />
+                  )}
+                  <div className={styles.msgStack}>
+                    <MessageMedia message={msg} mine={mine} />
+                    {mine && (
+                      <SeenIndicator
+                        msg={msg}
+                        myUserId={myUserId}
+                        mode={mode}
+                        conversation={conversation}
+                        memberNames={memberNames}
+                        t={t}
+                      />
+                    )}
+                    <ReactionsRow
+                      msg={msg}
+                      myUserId={myUserId}
+                      emojis={emojis}
+                      onReact={onReact}
+                      t={t}
+                    />
+                  </div>
+                  {!msg.deleted && (
+                    <MessageToolbar
+                      msg={msg}
+                      mine={mine}
+                      visible={hoveredMsgId === msg.id || toolbarHoveredId === msg.id}
+                      emojis={emojis}
+                      onReact={onReact}
+                      onReply={() => setReplyingTo(msg)}
+                      onForward={onForward ? () => onForward(msg) : undefined}
+                      onPin={() => pinMessage(msg.id)}
+                      onUnpin={() => unpinMessage(msg.id)}
+                      onDelete={() => setDeleteTarget({ message: msg })}
+                      isPinned={pinnedMessages.some((p) => p.message_id === msg.id)}
+                      canForward={Boolean(onForward && msg.message_category !== 'system' && !msg.is_anonymized)}
+                      onToolbarMouseEnter={() => setToolbarHoveredId(msg.id)}
+                      onToolbarMouseLeave={() => setToolbarHoveredId(null)}
+                    />
+                  )}
+                  <MessageTimestamp msg={msg} mine={mine} visible={hoveredMsgId === msg.id || toolbarHoveredId === msg.id} />
+                </div>
+                </>
                 ) : (
                 <>
                 {showSenderName && (
@@ -1029,11 +1129,11 @@ export default function ChatWindow({
                         <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
                       </div>
                     </div>
-                  ) : msg.media_id && msg.content ? (
+                  ) : msg.media_id && msg.content && !isVoice ? (
                     <div className={styles.msgStack}>
                       <div className={`${styles.bubble} ${styles.bubblePlain}`}>
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} />
+                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} mine={mine} />
                         </div>
                         {mine && (
                           <SeenIndicator
@@ -1112,7 +1212,7 @@ export default function ChatWindow({
                     </div>
                   ) : (
                     <div
-                      className={`${styles.bubble}${(plain || isSingleVideo) ? ` ${styles.bubblePlain}` : ''}`}
+                      className={`${styles.bubble}${(plain || isSingleVideo || isVoice) ? ` ${styles.bubblePlain}` : ''}`}
                     >
                       {msg.reply_to && (
                         <div
@@ -1134,14 +1234,14 @@ export default function ChatWindow({
                       )}
                       {(msg.media_id || msg.media_uri) && (
                         <div className={styles.mediaWrap}>
-                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} />
+                          <MessageMedia message={msg} onClick={() => openLightbox([msg], 0)} mine={mine} />
                         </div>
                       )}
                       {msg.emoji_id && !msg.media_id && !msg.media_uri && (
                         <EmojiBubble message={msg} emojis={emojis} />
                       )}
                       {msg.decrypt_failed ||
-                      (msg.content && !isSingleVideo && !singleEmoji && !singleGiphy && !singleEmojifyi) ? (
+                      (!isVoice && msg.content && !isSingleVideo && !singleEmoji && !singleGiphy && !singleEmojifyi) ? (
                         <div className={styles.msgLine}>
                           {msg.decrypt_failed ? (
                             room.retryDecrypt ? (

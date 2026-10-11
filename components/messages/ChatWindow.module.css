@@ -977,104 +977,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   10. VOICE MESSAGE — Redesigned per PLAN.md
+   10. VOICE MESSAGE — extracted to VoicePlayer(.module.css).
+   Voice rows render <VoicePlayer/> (seek + speed + single-playback);
+   no voice-player styles live here anymore.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-.voiceBubble {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  max-width: 280px;
-}
-
-.bubble .voiceBubble,
-.msgStack .voiceBubble {
-  padding: 0;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-}
-
-.voiceMine {
-  /* inherits mine bubble colors */
-}
-
-.voicePlayBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: var(--radius-circle);
-  background: var(--color-primary);
-  color: var(--message-own-text);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.voicePlayBtn:hover {
-  background: var(--color-primary-hover);
-  transform: scale(1.05);
-}
-
-.voicePlayBtn:active {
-  transform: scale(0.95);
-}
-
-.voiceMine .voicePlayBtn {
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--color-primary);
-}
-
-.voiceMine .voicePlayBtn:hover {
-  background: #fff;
-}
-
-.voiceWaveform {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 28px;
-  min-width: 0;
-}
-
-.voiceWaveBar {
-  flex: 1;
-  min-width: 2px;
-  max-width: 4px;
-  border-radius: 2px;
-  background: var(--chat-border);
-  transition: background 150ms ease;
-}
-
-.voiceWaveBarPlayed {
-  background: var(--color-primary);
-}
-
-.voiceMine .voiceWaveBar {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.voiceMine .voiceWaveBarPlayed {
-  background: #fff;
-}
-
-.voiceDuration {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--chat-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.voiceMine .voiceDuration {
-  color: rgba(255, 255, 255, 0.7);
-}
 
 /* ── Voice Recording Input ──────────────────────────────────────────────── */
 .voiceInput {
@@ -2402,8 +2308,7 @@
 }
 
 .iconBtn,
-.backBtn,
-.voicePlayBtn {
+.backBtn {
   transition: background var(--fast), color var(--fast), transform var(--fast);
 }
 

@@ -51,7 +51,7 @@ export const createComment = (postId: string, content: string, parentId?: string
   })
 
 export const sharePost = (postId: string, content?: string) =>
-  request<{ message: string }>(`/posts/${postId}/share`, {
+  request<{ message: string; data: FeedPost }>(`/posts/${postId}/share`, {
     method: 'POST',
     body: JSON.stringify({ content: content ?? '' }),
   })

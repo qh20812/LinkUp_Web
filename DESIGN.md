@@ -1157,11 +1157,38 @@ If reactions exist, use compact reaction pills attached to the message. Do not m
 
 If reply exists, show compact reply preview above the current message with sender name and original content preview.
 
-### 11.17 Voice Message
+### 11.17 Voice Message (`components/messages/VoicePlayer.tsx`)
 
-Do not use browser-native audio UI. Preferred: `[Play] ━━━━━ waveform ━━━━━ 0:23`
+Do not use browser-native audio UI. Layout: `[Play 40px] [seekable waveform + time row]`,
+time in `elapsed / total` form (`0:06 / 0:23`, tabular-nums); at rest only the total shows.
 
-Include: Play/Pause, waveform visualization, progress, duration. Reuse existing audio playback logic.
+- **Self-contained bubble surface:** voice rows render inside transparent
+  `.bubblePlain`, so `.player` carries its own surface mirroring text bubbles —
+  `padding 10px 14px`, `radius 18px` with the directional `6px` corner, mine =
+  turquoise gradient + turquoise shadow, theirs = `chat-surface-elevated` +
+  `message-other-border` + `shadow-sm`. `width 100%`, `min 220px`, `max 300px`.
+  Unplayed bars use a muted-steel wash (`color-mix text-secondary 38%`), never
+  hairline-border gray — they must read on the white elevated surface.
+- **Flat variant** (`flat` prop, transparent/padding-less) is for the Composer
+  preview pill only — it already has its own surface. Preview uses theirs chrome
+  (`mine={false}`) since the pill is a neutral background.
+
+- **Mine/theirs is explicit:** `mine: boolean` is REQUIRED — threaded from
+  `ChatWindow` (`msg.sender_id === myUserId`) through `MessageMedia`/`MediaStack`.
+  Never infer from auth state. Mine = white play button + white bars on the turquoise
+  bubble; theirs = primary play button + primary played bars on the neutral bubble.
+- **Seek:** click/drag on the waveform (`pointer` events, `touch-action: pan-y` so
+  vertical scroll still works); `role="slider"` + `←/→` (±5s), `Home`/`End`;
+  `aria-valuetext` carries the same `elapsed / total` string.
+- **Speed:** pill cycles `1x → 1.5x → 2x` (`audio.playbackRate`), label via
+  `chat.playbackRate` + custom `data-tooltip` (never native `title`).
+- **Single-playback:** a player that starts dispatches `linkup:voice-play` with its id;
+  all other instances pause — audios never overlap.
+- **Waveform data:** real decoded RMS peaks (`AudioContext.decodeAudioData`),
+  cached per message in a module `Map` (never re-decode on scroll); skeleton shimmer
+  while decoding, deterministic hash only as the error fallback.
+- `prefers-reduced-motion` disables press/skeleton motion. Reuse existing audio
+  playback logic — no new backend.
 
 ### 11.18 Call Activity (`components/messages/CallHistoryBubble.tsx`)
 

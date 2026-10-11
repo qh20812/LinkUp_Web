@@ -129,7 +129,8 @@ function FeedContent() {
   useEffect(() => {
     const handler = (e: Event) => {
       const post = (e as CustomEvent<FeedPost>).detail
-      setPosts((prev) => [post, ...prev])
+      if (!post) return
+      setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]))
     }
     window.addEventListener('post:created', handler as EventListener)
     return () => window.removeEventListener('post:created', handler as EventListener)

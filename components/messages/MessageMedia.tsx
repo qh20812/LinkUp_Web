@@ -11,9 +11,11 @@ import styles from './ChatWindow.module.css'
 interface MessageMediaProps {
   message: ChatMessage
   onClick?: () => void
+  /** true = own message — drives VoicePlayer mine/theirs styling. */
+  mine?: boolean
 }
 
-export default function MessageMedia({ message, onClick }: MessageMediaProps) {
+export default function MessageMedia({ message, onClick, mine = false }: MessageMediaProps) {
   const { t } = useTranslation()
   const { src, isVideo, isAudio, failed, loading, boxRef } = useMessageMedia(message)
   const cachedRatio = mediaRatioCache.get(message.id)
@@ -61,7 +63,7 @@ export default function MessageMedia({ message, onClick }: MessageMediaProps) {
     )
   }
   if (isAudio) {
-    return <VoicePlayer src={src} duration={message.duration_seconds} />
+    return <VoicePlayer src={src} duration={message.duration_seconds} mine={mine} messageKey={message.id} />
   }
   return wrap(
     <span
