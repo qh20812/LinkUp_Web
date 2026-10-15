@@ -9,6 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
 import { mediaPreviewKey } from '../../utils/chatMediaPreview'
+import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage } from '../../utils/chatPreview'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
 import type { ChatConversation, EmojiItem, GroupChatConversation } from '../../types'
@@ -192,7 +193,11 @@ export default function ConversationList({
                         {conv.last_message.forwarded_from
                           ? t('chat.forwardedPreview') + ' · '
                           : ''}
-                        {mediaKey
+                        {conv.last_message.type === 'group_invite' || isInvitePreviewContent(conv.last_message.content)
+                          ? t('chat.groupInviteTitle')
+                          : isSystemPreviewMessage(conv.last_message)
+                            ? getSystemPreviewText(conv.last_message.content, t)
+                            : mediaKey
                           ? t(mediaKey)
                           : conv.last_message.media_id
                             ? t('chat.mediaMessage')
@@ -256,10 +261,23 @@ export default function ConversationList({
               {t('chat.groupChats')}
             </div>
             {filteredGroups.map((group) => {
-              const mediaKey = group.last_message
-                ? mediaPreviewKey(group.last_message)
+              const lastMsg = group.last_message
+              const mediaKey = lastMsg
+                ? mediaPreviewKey(lastMsg)
                 : null
-              const unread = isUnread(group.last_message)
+              const unread = isUnread(lastMsg)
+              // Sender prefix for group previews (system rows already name
+              // the actor inside their translated text, so they need none).
+              // Trimmed list payloads may lack sender_name — then no prefix
+              // rather than a useless "Unknown:".
+              const lastIsSystem = lastMsg ? isSystemPreviewMessage(lastMsg) : false
+              const senderPrefix = !lastMsg || lastIsSystem
+                ? null
+                : lastMsg.sender_id === myUserId
+                  ? t('chat.youPrefix')
+                  : lastMsg.sender_name
+                    ? `${lastMsg.sender_name}: `
+                    : null
               return (
               <button
                 key={group.chat_id}
@@ -288,16 +306,21 @@ export default function ConversationList({
                     </span>
                   </div>
                   <span className={styles.preview}>
-                    {group.member_count} {t('chat.members')}
-                    {group.last_message ? (
+                    {lastMsg ? (
                       <>
-                        {' '}&middot;{' '}
-                        {group.last_message.forwarded_from
+                        {senderPrefix}
+                        {lastMsg.forwarded_from
                           ? t('chat.forwardedPreview') + ' · '
                           : ''}
-                        {mediaKey ? t(mediaKey) : group.last_message.content || t('chat.mediaMessage')}
+                        {lastMsg.type === 'group_invite' || isInvitePreviewContent(lastMsg.content)
+                          ? t('chat.groupInviteTitle')
+                          : lastIsSystem
+                            ? getSystemPreviewText(lastMsg.content, t)
+                            : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}
                       </>
-                    ) : null}
+                    ) : (
+                      <>{group.member_count} {t('chat.members')}</>
+                    )}
                   </span>
                 </div>
                 <div className={styles.actions}>

@@ -383,11 +383,17 @@
 
 .msgRow {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
   max-width: 65%;
   position: relative;
   animation: messageAppear 0.2s ease-out;
+}
+
+/* First row of a sender group — breathing room between groups (§11.7:
+   2–4px within a group via .timelineContent gap, ~16px between groups). */
+.groupFirst {
+  margin-top: 14px;
 }
 
 .msgRow.highlight {
@@ -413,6 +419,10 @@
   .msgRow {
     max-width: 85%;
   }
+
+  .senderLine {
+    max-width: 85%;
+  }
 }
 
 /* ── Bubble ─────────────────────────────────────────────────────────────── */
@@ -432,7 +442,7 @@
 .theirs .bubble {
   background: var(--chat-surface-elevated);
   border: 1px solid var(--message-other-border);
-  border-radius: 18px;
+  border-radius: 16px;
   border-bottom-left-radius: 6px;
   color: var(--message-other-text);
   box-shadow: var(--shadow-sm);
@@ -441,13 +451,20 @@
 .mine .bubble {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: var(--message-own-text);
-  border-radius: 18px;
+  border-radius: 16px;
   border-bottom-right-radius: 6px;
-  box-shadow: 0 4px 14px rgba(18, 165, 161, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
-[data-theme="dark"] .mine .bubble {
-  box-shadow: 0 4px 14px rgba(63, 191, 186, 0.28);
+/* Continuation bubble inside a sender group — tighten the top inner
+   corner so stacked bubbles read as one block; the last bubble keeps
+   the tail. Applied only to real bubbles (never .bubblePlain). */
+.theirs .bubbleCont {
+  border-top-left-radius: 6px;
+}
+
+.mine .bubbleCont {
+  border-top-right-radius: 6px;
 }
 
 .bubblePlain,
@@ -589,6 +606,37 @@
   color: var(--color-primary);
 }
 
+/* Seen ticks inside my turquoise bubble must stay white — primary ticks
+   on a primary surface are unreadable. */
+.mine .seenTicks {
+  color: rgba(255, 255, 255, 0.75);
+  opacity: 1;
+}
+
+.mine .seenTicks.seenOn {
+  color: #ffffff;
+}
+
+/* Links inside text bubbles — readable on both surfaces. */
+.msgText a {
+  text-underline-offset: 2px;
+}
+
+.theirs .msgText a {
+  color: var(--color-primary);
+}
+
+.mine .msgText a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.msgText a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ── Reactions — overlap the bubble edge ────────────────────────────────── */
 .reactionsRow {
   display: flex;
@@ -671,12 +719,18 @@
   border-radius: 50%;
 }
 
-/* ── Sender Line (group chat) ───────────────────────────────────────────── */
+/* ── Sender Line (group chat) — name only, once per sender group (§11.8).
+   The avatar lives in .msgRow (top-aligned); this line carries just the
+   name, indented to align with the bubble column (avatar 34px + gap 8px). ── */
 .senderLine {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
+  margin-left: 42px;
+  margin-bottom: 2px;
+  align-self: flex-start;
+  max-width: 65%;
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition: background 150ms ease;
@@ -684,6 +738,11 @@
 
 .senderLine:hover {
   background: var(--color-bg-secondary);
+}
+
+.senderLine:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .senderAvatar {
@@ -710,8 +769,7 @@
 .senderName {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: underline;
+  color: var(--color-text-secondary);
 }
 
 /* ── System Message ─────────────────────────────────────────────────────── */
@@ -1077,40 +1135,160 @@
 }
 
 /* ── Call Banner (active group call) ────────────────────────────────────── */
+/* ── Call Banner (active / ongoing group call) — floating glass pill over
+   the message list, same chrome language as the date separator. The live
+   state carries a Signal Orange dot (§2: orange = live indicators). ───── */
 .callBanner {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin: var(--space-sm) var(--space-md) 0;
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-success-light);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--glass-shadow);
   font-size: 0.875rem;
-  color: var(--color-success);
+  color: var(--color-text);
+  position: relative;
+  z-index: 2;
 }
 
 .callBanner i {
   font-size: 18px;
+  color: var(--color-primary);
 }
 
-.callBanner span {
+.callBanner > span:not(.liveDot) {
   flex: 1;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.callBanner span.callBannerMeta {
   font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex: none;
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
 }
 
 .callBannerBtn {
-  padding: var(--space-xs) var(--space-sm);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-success);
-  color: #ffffff;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.3;
+  min-height: 32px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: background 150ms ease-out, transform 150ms ease-out;
 }
 
 .callBannerBtn:hover {
-  opacity: 0.9;
+  background: var(--color-bg-secondary);
+}
+
+.callBannerBtn:active {
+  transform: scale(0.96);
+}
+
+.callBannerBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.callBannerBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 576px) {
+  .callBanner {
+    margin: var(--space-sm) var(--space-sm) 0;
+  }
+
+  .callBannerBtn {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot {
+    animation: none;
+  }
+
+  .callBannerBtn {
+    transition: none;
+  }
+
+  .callBannerBtn:active {
+    transform: none;
+  }
+}
+
+/* ── Join-ongoing-call action: compact turquoise pill (§2 accent, §11.18
+   callback recipe — circular icon reserved for CallHistoryBubble). ────── */
+.callBannerJoin {
+  padding: 6px 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  min-height: 32px;
+  cursor: pointer;
+  transition: background 150ms ease-out, transform 150ms ease-out;
+}
+
+.callBannerJoin:hover {
+  background: var(--color-primary-hover);
+}
+
+.callBannerJoin:active {
+  transform: scale(0.96);
+}
+
+.callBannerJoin:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  .callBannerJoin {
+    min-height: 44px;
+    padding: 8px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .callBannerJoin {
+    transition: none;
+  }
+
+  .callBannerJoin:active {
+    transform: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

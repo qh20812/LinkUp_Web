@@ -120,7 +120,8 @@ function getSystemMessageText(
   const actorId = parts[1] || ''
   const extraParam = parts[2] || ''
 
-  const actorName = actorId ? (memberNames?.get(actorId)?.display_name || actorId) : ''
+  // Never leak raw user ids — unknown actors render as "Unknown".
+  const actorName = actorId ? (memberNames?.get(actorId)?.display_name || (t ? t('chat.unknown') : '')) : (t ? t('chat.unknown') : '')
 
   switch (translationKey) {
     case 'member_left':
@@ -145,6 +146,49 @@ function getSystemMessageText(
     default:
       return msg.content
   }
+}
+
+// Sender identity unified across timeline kinds so consecutive text / call /
+// group_call rows from the same sender form ONE visual group (DESIGN §11.5–
+// §11.6): a single top-aligned avatar + a single sender-name line. System
+// rows always break groups — they never merge with user rows.
+function getTimelineSenderId(item: GroupedTimelineItem, myUserId: string): string | null {
+  if (item.kind === 'media_group') return item.msgs[0]?.sender_id ?? null
+  if (item.kind === 'call') {
+    if (!item.item) return null
+    return item.item.direction === 'outgoing' ? myUserId : item.item.other_user.id
+  }
+  if (item.kind === 'group_call') return item.call?.caller_id ?? null
+  const msg = item.msg
+  if (!msg) return null
+  if (msg.message_category === 'system' || msg.sender_id === 'SYSTEM') return `system:${msg.id}`
+  return msg.sender_id
+}
+
+function isSystemTimelineItem(item: GroupedTimelineItem): boolean {
+  if (item.kind !== 'message' || !item.msg) return false
+  const msg = item.msg
+  return (
+    msg.message_category === 'system' ||
+    msg.sender_id === 'SYSTEM' ||
+    msg.type === 'member_invited' ||
+    msg.type === 'member_joined' ||
+    msg.type === 'member_left' ||
+    msg.type === 'admin_transferred' ||
+    msg.type === 'group_settings_updated'
+  )
+}
+
+// True when this item starts a new visual sender group: sender changed,
+// a system row interrupts, or the previous item is a system row.
+function isFirstInSenderGroup(
+  item: GroupedTimelineItem,
+  prev: GroupedTimelineItem | undefined,
+  myUserId: string,
+): boolean {
+  if (!prev) return true
+  if (isSystemTimelineItem(item) || isSystemTimelineItem(prev)) return true
+  return getTimelineSenderId(prev, myUserId) !== getTimelineSenderId(item, myUserId)
 }
 
 export default function ChatWindow({
@@ -291,6 +335,26 @@ export default function ChatWindow({
     void joinGroupCall(joinRequestState.callId)
     setJoinRequestState(null)
   }, [joinRequestState, joinGroupCall])
+
+  // A history item is live while the server hasn't stamped ended_at
+  // (terminal statuses excluded defensively). Independent of my own call
+  // state — drives the bystander "Tham gia" banner + bubble action.
+  const ongoingGroupCall = useMemo(
+    () =>
+      groupCallHistory.find(
+        (gc) => !gc.ended_at && gc.status !== 'ended' && gc.status !== 'missed',
+      ) ?? null,
+    [groupCallHistory],
+  )
+
+  // Bystander join affordance: an ongoing call I'm not part of, while I'm
+  // free (no direct call, no group call of my own running in parallel).
+  const canJoinOngoingCall =
+    mode === 'group' &&
+    ongoingGroupCall !== null &&
+    !isInCall &&
+    !isInGroupCall &&
+    !ongoingGroupCall.participants.includes(myUserId)
 
   useEffect(() => {
     if (partnerUserId) prefetchPresence([partnerUserId])
@@ -475,6 +539,7 @@ export default function ChatWindow({
 
       {mode === 'group' && groupCall && groupCall.chatId === chatId && (groupCallPhase === 'active' || groupCallPhase === 'minimized') && (
         <div className={styles.callBanner}>
+          <span className={styles.liveDot} aria-hidden />
           <i className="bx bx-video" />
           <span>{t('groupCall.inCall')}</span>
           <button
@@ -482,6 +547,21 @@ export default function ChatWindow({
             onClick={() => expandGroupCall()}
           >
             {t('groupCall.expand')}
+          </button>
+        </div>
+      )}
+
+      {canJoinOngoingCall && ongoingGroupCall && (
+        <div className={styles.callBanner} role="status">
+          <span className={styles.liveDot} aria-hidden />
+          <i className="bx bx-video" />
+          <span>{t('groupCall.inCall')} <span className={styles.callBannerMeta}>· {ongoingGroupCall.participants.length}</span></span>
+          <button
+            className={styles.callBannerJoin}
+            onClick={() => handleRequestJoin(ongoingGroupCall.call_id)}
+            aria-label={t('groupCall.requestToJoin')}
+          >
+            {t('groupCall.requestToJoin')}
           </button>
         </div>
       )}
@@ -637,32 +717,24 @@ export default function ChatWindow({
             if (item.kind === 'media_group') {
               const mine = item.msgs[0].sender_id === myUserId
               const first = item.msgs[0]
-              const showSenderName = mode === 'group' && !mine
-              const mapMember = showSenderName ? memberNames?.get(first.sender_id) : null
+              const isFirstInGroup = isFirstInSenderGroup(item, prev, myUserId)
+              const showSenderName = mode === 'group' && !mine && isFirstInGroup
+              const mapMember = mode === 'group' && !mine ? memberNames?.get(first.sender_id) : null
               const senderDisplayName = first.sender_name || mapMember?.display_name || null
               const partnerAvatar = !mine && mode === 'direct' ? conversation?.partner?.avatar_uri : null
               const senderAvatarUri = first.sender_avatar || mapMember?.avatar_uri || partnerAvatar || null
-              const senderMember = showSenderName ? { display_name: senderDisplayName || '', avatar_uri: senderAvatarUri || '' } : null
-              const isFirstInGroup = !prev || prev.kind !== 'message' || !prev.msg || prev.msg.sender_id !== first.sender_id
               return (
                 <Fragment key={`mg-${item.msgs.map((m) => m.id).join('-')}`}>
                   {showDate && (
                     <div className={styles.dateSep}>{itemDate(item)}</div>
                   )}
                   {showSenderName && (
-                    <div className={styles.senderLine} onClick={() => router.push(`/profile/${first.sender_id}`)}>
-                      {senderMember?.avatar_uri ? (
-                        <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
-                      ) : (
-                        <div className={styles.senderAvatarPlaceholder}>
-                          {(senderDisplayName || '?')[0]?.toUpperCase()}
-                        </div>
-                      )}
+                    <div className={`${styles.senderLine} ${styles.groupFirst}`} onClick={() => router.push(`/profile/${first.sender_id}`)}>
                       <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                     </div>
                   )}
                   <div
-                    className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}
+                    className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}`}
                     data-message-id={first.id}
                     onMouseEnter={() => setHoveredMsgId(first.id)}
                     onMouseLeave={() => setHoveredMsgId(null)}
@@ -727,7 +799,7 @@ export default function ChatWindow({
             if (item.kind === 'call') {
               const callItem = item.item
               if (!callItem) return null
-              const isFirstInGroup = !prev || prev.kind !== 'call' || !prev.item || prev.item.other_user.id !== callItem.other_user.id
+              const isFirstInGroup = isFirstInSenderGroup(item, prev, myUserId)
               const callMine = callItem.direction === 'outgoing'
               const isVideo = callItem.call_type === 'video'
               const missed = callItem.is_missed
@@ -741,7 +813,7 @@ export default function ChatWindow({
               return (
                 <Fragment key={`call-${callItem.id}`}>
                   {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
-                  <div className={`${styles.msgRow} ${callMine ? styles.mine : styles.theirs}`}>
+                  <div className={`${styles.msgRow} ${callMine ? styles.mine : styles.theirs}${isFirstInGroup ? ` ${styles.groupFirst}` : ''}`}>
                     {!callMine && isFirstInGroup && (
                       <button className={styles.msgAvatar} title={callItem.other_user.display_name}>
                         <ExternalImage
@@ -780,7 +852,7 @@ export default function ChatWindow({
             if (item.kind === 'group_call') {
               const gc = item.call
               if (!gc) return null
-              const isFirstInGroup = !prev || prev.kind !== 'group_call' || !prev.call || prev.call.caller_id !== gc.caller_id
+              const isFirstInGroup = isFirstInSenderGroup(item, prev, myUserId)
               const gcMine = gc.caller_id === myUserId
               const gcCallerName = memberNames?.get(gc.caller_id)?.display_name || t('chat.unknown')
               const gcDuration = gc.ended_at && gc.created_at
@@ -795,11 +867,15 @@ export default function ChatWindow({
                   ? t('call.videoCallGroup')
                   : t('call.voiceCallGroup')
               const gcShowDuration = !gcMissed && !(activeGroupCallId === gc.call_id) && gcDuration > 0
-              const gcShowJoin = activeGroupCallId === gc.call_id && !gcMine && !gc.participants.includes(myUserId)
+              // Bystander join: ongoing call I'm not part of while I'm free —
+              // independent of activeGroupCallId (which only exists once I've
+              // already joined a call).
+              const gcIsOngoing = !gc.ended_at && gc.status !== 'ended' && gc.status !== 'missed'
+              const gcShowJoin = gcIsOngoing && !gcMine && !gc.participants.includes(myUserId) && !isInCall && !isInGroupCall
               return (
                 <Fragment key={`gc-${gc.call_id}`}>
                   {showDate && <div className={styles.dateSep}>{itemDate(item)}</div>}
-                  <div className={`${styles.msgRow} ${gcMine ? styles.mine : styles.theirs}`}>
+                  <div className={`${styles.msgRow} ${gcMine ? styles.mine : styles.theirs}${isFirstInGroup ? ` ${styles.groupFirst}` : ''}`}>
                     {!gcMine && isFirstInGroup && (
                       <button className={styles.msgAvatar} title={gcCallerName}>
                         <ExternalImage
@@ -868,17 +944,16 @@ export default function ChatWindow({
                   !msg.emoji_id &&
                   !msg.shared_post_id &&
                   (msg.media_type == null || msg.media_type.startsWith('audio/'))))
-            const showSenderName = mode === 'group' && !mine
-            const mapMember = showSenderName ? memberNames?.get(msg.sender_id) : null
+            const isFirstInGroup = isFirstInSenderGroup(item, prev, myUserId)
+            const showSenderName = mode === 'group' && !mine && isFirstInGroup
+            const mapMember = mode === 'group' && !mine ? memberNames?.get(msg.sender_id) : null
             const senderDisplayName = msg.sender_name || mapMember?.display_name || null
             const partnerAvatar = !mine && mode === 'direct' ? conversation?.partner?.avatar_uri : null
             const senderAvatarUri = msg.sender_avatar || mapMember?.avatar_uri || partnerAvatar || null
-            const senderMember = showSenderName ? { display_name: senderDisplayName || '', avatar_uri: senderAvatarUri || '' } : null
             const videoUrls = !msg.deleted && !msg.decrypt_failed && msg.content
               ? extractVideoUrls(msg.content)
               : []
             const isSingleVideo = videoUrls.length === 1 && videoUrls[0] === msg.content?.trim()
-            const isFirstInGroup = !prev || prev.kind !== 'message' || !prev.msg || prev.msg.sender_id !== msg.sender_id
             return (
               <Fragment key={msg.id}>
                 {showDate && (
@@ -891,16 +966,44 @@ export default function ChatWindow({
                     </span>
                   </div>
                 ) : msg.type === 'group_invite' ? (
-                  <div data-message-id={msg.id}>
-                    <GroupInviteBubble
-                      message={msg}
-                      myUserId={myUserId}
-                      onAccepted={onGroupInviteAccepted}
-                    />
+                <>
+                  {showSenderName && (
+                    <div className={`${styles.senderLine} ${styles.groupFirst}`} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
+                      <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
+                    </div>
+                  )}
+                  <div
+                    className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}`}
+                    data-message-id={msg.id}
+                  >
+                    {!mine && isFirstInGroup && (
+                      <button
+                        className={styles.msgAvatar}
+                        onClick={() => router.push(`/profile/${msg.sender_id}`)}
+                        title={senderDisplayName || t('chat.unknown')}
+                      >
+                        <ExternalImage
+                          src={senderAvatarUri || '/default-avatar.svg'}
+                          alt=""
+                          className={styles.msgAvatarImg}
+                        />
+                      </button>
+                    )}
+                    {!mine && !isFirstInGroup && (
+                      <div className={styles.avatarSpacer} />
+                    )}
+                    <div className={styles.msgStack}>
+                      <GroupInviteBubble
+                        message={msg}
+                        myUserId={myUserId}
+                        onAccepted={onGroupInviteAccepted}
+                      />
+                    </div>
                   </div>
+                </>
                 ) : msg.type === 'shared_post' ? (
                 <div
-                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}`}
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs}${isFirstInGroup ? ` ${styles.groupFirst}` : ''}`}
                   onMouseEnter={() => setHoveredMsgId(msg.id)}
                   onMouseLeave={() => setHoveredMsgId(null)}
                 >
@@ -920,7 +1023,7 @@ export default function ChatWindow({
                   {!mine && !isFirstInGroup && (
                     <div className={styles.avatarSpacer} />
                   )}
-                  <div className={styles.bubble}>
+                  <div className={`${styles.bubble}${!isFirstInGroup ? ` ${styles.bubbleCont}` : ''}`}>
                     <div className={styles.sharedPostHeader}>
                       <i className="bx bx-revision" />
                       <span>{t('chat.sharedPost')}</span>
@@ -993,19 +1096,12 @@ export default function ChatWindow({
                 ) : isAudioRow ? (
                 <>
                 {showSenderName && (
-                  <div className={styles.senderLine} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
-                    {senderMember?.avatar_uri ? (
-                      <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
-                    ) : (
-                      <div className={styles.senderAvatarPlaceholder}>
-                        {(senderDisplayName || '?')[0]?.toUpperCase()}
-                      </div>
-                    )}
+                  <div className={`${styles.senderLine} ${styles.groupFirst}`} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
                     <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                   </div>
                 )}
                 <div
-                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`}
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}`}
                   data-message-id={msg.id}
                   onMouseEnter={() => setHoveredMsgId(msg.id)}
                   onMouseLeave={() => setHoveredMsgId(null)}
@@ -1075,19 +1171,12 @@ export default function ChatWindow({
                 ) : (
                 <>
                 {showSenderName && (
-                  <div className={styles.senderLine} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
-                    {senderMember?.avatar_uri ? (
-                      <ExternalImage src={senderMember.avatar_uri} alt="" className={styles.senderAvatar} />
-                    ) : (
-                      <div className={styles.senderAvatarPlaceholder}>
-                        {(senderDisplayName || '?')[0]?.toUpperCase()}
-                      </div>
-                    )}
+                  <div className={`${styles.senderLine} ${styles.groupFirst}`} onClick={() => router.push(`/profile/${msg.sender_id}`)}>
                     <span className={styles.senderName}>{senderDisplayName || t('chat.unknown')}</span>
                   </div>
                 )}
                 <div
-                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}`}
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}`}
                   data-message-id={msg.id}
                   onMouseEnter={() => setHoveredMsgId(msg.id)}
                   onMouseLeave={() => setHoveredMsgId(null)}
@@ -1124,7 +1213,7 @@ export default function ChatWindow({
                     <div className={styles.avatarSpacer} />
                   )}
                   {msg.deleted ? (
-                    <div className={styles.bubble}>
+                    <div className={`${styles.bubble}${!isFirstInGroup ? ` ${styles.bubbleCont}` : ''}`}>
                       <div className={styles.msgLine}>
                         <span className={styles.deletedText}>{t('chat.messageDeleted')}</span>
                       </div>
@@ -1146,7 +1235,7 @@ export default function ChatWindow({
                           />
                         )}
                       </div>
-                      <div className={styles.bubble}>
+                      <div className={`${styles.bubble}${!isFirstInGroup ? ` ${styles.bubbleCont}` : ''}`}>
                         {msg.reply_to && (
                           <div
                             className={styles.replySnippet}
@@ -1212,7 +1301,7 @@ export default function ChatWindow({
                     </div>
                   ) : (
                     <div
-                      className={`${styles.bubble}${(plain || isSingleVideo || isVoice) ? ` ${styles.bubblePlain}` : ''}`}
+                      className={`${styles.bubble}${(plain || isSingleVideo || isVoice) ? ` ${styles.bubblePlain}` : ''}${!isFirstInGroup && !plain && !isSingleVideo && !isVoice ? ` ${styles.bubbleCont}` : ''}`}
                     >
                       {msg.reply_to && (
                         <div

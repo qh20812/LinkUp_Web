@@ -44,17 +44,14 @@ export default function GroupCallRequestJoinModal({
       }
     >
       <div className={styles.content}>
-        <div className={styles.icon}>
+        <div className={styles.icon} aria-hidden>
           <i className="bx bx-video" />
         </div>
         <p className={styles.message}>
           {t('groupCall.joinRequestConfirm')}
         </p>
-        <p className={styles.detail}>
-          {t('groupCall.joinRequestSender', { name: callerName })}
-        </p>
-        <p className={styles.detail}>
-          {t('groupCall.participantsCount', { count: String(participantCount) })}
+        <p className={styles.meta}>
+          {t('groupCall.joinRequestSender', { name: callerName })} · {t('groupCall.participantsCount', { count: String(participantCount) })}
         </p>
       </div>
     </Modal>

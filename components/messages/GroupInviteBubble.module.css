@@ -1,22 +1,43 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GroupInviteBubble — premium glass invite card (DESIGN §11.18 language,
+   shared with CallHistoryBubble). The parent ChatWindow provides the
+   msgRow + avatar/spacer/msgStack chrome, so this module owns only the
+   bubble surface. Tokens only — no hardcoded colors.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .bubble {
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
-  max-width: 320px;
-  min-width: 220px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px 14px;
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  transition: box-shadow 150ms ease;
+}
+
+/* Own invites carry the turquoise wash, mirroring own text bubbles. */
+.mine {
+  background: color-mix(in srgb, var(--color-primary) 13%, var(--glass-bg-strong));
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--glass-border));
+}
+
+.bubble:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .clickable {
   cursor: pointer;
-  transition: background 0.15s;
 }
 
-.clickable:hover {
-  background: var(--color-bg-secondary);
+.clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .header {
@@ -182,10 +203,14 @@
 
 
 @media (max-width: 768px) {
-  .container {
-    width: 100%;
+  .bubble {
+    min-width: 0;
     max-width: 100%;
-    margin: 0;
-    padding: var(--space-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    transition: none;
   }
 }

@@ -7,7 +7,6 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useToast } from '../../contexts/ToastContext'
 import { approveGroupChatInvite, rejectGroupChatInvite } from '../../api/chats'
 import type { ChatMessage, GroupChatInviteContent } from '../../types'
-import styles from './ChatWindow.module.css'
 import inviteStyles from './GroupInviteBubble.module.css'
 
 interface GroupInviteBubbleProps {
@@ -69,13 +68,13 @@ export default function GroupInviteBubble({ message, myUserId, onAccepted }: Gro
 
   if (!invite) return null
 
+  // Pure bubble only — the parent ChatWindow provides the msgRow +
+  // avatar/spacer/msgStack chrome so invites align with every other
+  // bubble in the same sender group.
   return (
     <>
       <div
-        className={`${styles.msgRow} ${isMine ? styles.mine : styles.theirs}`}
-      >
-        <div
-          className={`${inviteStyles.bubble} ${canOpenModal ? inviteStyles.clickable : ''}`}
+        className={`${inviteStyles.bubble}${isMine ? ` ${inviteStyles.mine}` : ''}${canOpenModal ? ` ${inviteStyles.clickable}` : ''}`}
           onClick={canOpenModal ? () => setModalOpen(true) : undefined}
           role={canOpenModal ? 'button' : undefined}
           tabIndex={canOpenModal ? 0 : undefined}
@@ -114,7 +113,6 @@ export default function GroupInviteBubble({ message, myUserId, onAccepted }: Gro
               <span>{t('chat.inviteStatusRejected')}</span>
             </div>
           )}
-        </div>
       </div>
 
       <Modal
