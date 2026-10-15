@@ -683,6 +683,9 @@ export function useChatRoom({
           return
         } catch {
           toast({ type: 'error', title: 'Mã hóa tin nhắn thất bại' })
+          // Roll back the optimistic temp — the server never received it.
+          pendingIdsRef.current = pendingIdsRef.current.filter((id) => id !== tempID)
+          setMessages((prev) => prev.filter((m) => m.id !== tempID))
           return
         }
       }

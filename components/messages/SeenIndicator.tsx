@@ -21,6 +21,15 @@ export default function SeenIndicator({
   t,
 }: SeenIndicatorProps) {
   if (msg.sender_id !== myUserId || msg.deleted) return null
+  // Optimistic temp message (id `temp-*`) not yet echoed by the server —
+  // never label it "sent", let alone "seen".
+  if (msg.id.startsWith('temp-')) {
+    return (
+      <span className={styles.seenTicks} title={t('chat.sending')}>
+        {t('chat.sending')}
+      </span>
+    )
+  }
   const seen = msg.seen_by ?? []
   if (mode === 'group') {
     const isGroupSeen = seen.length > 0
@@ -33,7 +42,7 @@ export default function SeenIndicator({
         className={isGroupSeen ? `${styles.seenTicks} ${styles.seenOn}` : styles.seenTicks}
         title={isGroupSeen ? t('chat.seenBy', { names }) : t('chat.sent')}
       >
-        {isGroupSeen ? `✓✓ ${seen.length}` : '✓'}
+        {isGroupSeen ? t('chat.seen') : t('chat.sent')}
       </span>
     )
   }
@@ -43,7 +52,7 @@ export default function SeenIndicator({
       className={isSeen ? `${styles.seenTicks} ${styles.seenOn}` : styles.seenTicks}
       title={isSeen ? t('chat.seen') : t('chat.sent')}
     >
-      {isSeen ? '✓✓' : '✓'}
+      {isSeen ? t('chat.seen') : t('chat.sent')}
     </span>
   )
 }

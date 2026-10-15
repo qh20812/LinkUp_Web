@@ -436,7 +436,7 @@
   gap: 2px;
   word-break: break-word;
   overflow-wrap: break-word;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
 
 .theirs .bubble {
@@ -453,7 +453,11 @@
   color: var(--message-own-text);
   border-radius: 16px;
   border-bottom-right-radius: 6px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 20px rgba(18, 165, 161, 0.35);
+}
+
+[data-theme="dark"] .mine .bubble {
+  box-shadow: 0 6px 20px rgba(63, 191, 186, 0.35);
 }
 
 /* Continuation bubble inside a sender group — tighten the top inner
@@ -465,6 +469,12 @@
 
 .mine .bubbleCont {
   border-top-right-radius: 6px;
+}
+
+/* Optimistic temp message still in flight — dim the surface while the
+   "Đang gửi…" label underneath stays full opacity. */
+.msgRow[data-sending="true"] .bubble {
+  opacity: 0.7;
 }
 
 .bubblePlain,
@@ -508,7 +518,7 @@
 /* ── Message Text ───────────────────────────────────────────────────────── */
 .msgText {
   font-size: 0.9375rem;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
@@ -606,15 +616,19 @@
   color: var(--color-primary);
 }
 
-/* Seen ticks inside my turquoise bubble must stay white — primary ticks
-   on a primary surface are unreadable. */
-.mine .seenTicks {
-  color: rgba(255, 255, 255, 0.75);
+/* Seen ticks sit below the bubble (Messenger-style): muted at rest,
+   primary once seen (§10). msgStack aligns them under own bubbles. */
+.msgStack .seenTicks {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
   opacity: 1;
+  margin: 2px 2px 0;
+  white-space: nowrap;
 }
 
-.mine .seenTicks.seenOn {
-  color: #ffffff;
+.msgStack .seenTicks.seenOn {
+  color: var(--color-primary);
 }
 
 /* Links inside text bubbles — readable on both surfaces. */
@@ -1243,6 +1257,11 @@
   .callBannerBtn:active {
     transform: none;
   }
+
+  .messageToolbar {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* ── Join-ongoing-call action: compact turquoise pill (§2 accent, §11.18
@@ -1814,7 +1833,7 @@
 .messageToolbar {
   position: absolute;
   top: 0;
-  display: none;
+  display: flex;
   align-items: center;
   gap: 1px;
   padding: 3px 4px;
@@ -1823,18 +1842,39 @@
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-md);
   z-index: var(--z-toolbar);
+  visibility: hidden;
   opacity: 0;
   pointer-events: none;
   transform: translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
   white-space: nowrap;
 }
 
 .toolbarVisible {
   display: flex;
+  visibility: visible;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
+}
+
+/* Invisible hover bridge toward the bubble — covers the dead gap so the
+   cursor can travel from bubble to toolbar without firing a row leave.
+   Hidden together with the toolbar (visibility), zero visual footprint. */
+.messageToolbar::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 12px;
+}
+
+.toolbarTheirs::before {
+  left: -12px;
+}
+
+.toolbarMine::before {
+  right: -12px;
 }
 
 .toolbarTheirs {
@@ -1849,13 +1889,14 @@
   position: relative;
 }
 
+/* Reaction picker + ⋯ menu render position:fixed with inline top/left
+   (or bottom/left) computed at open time — flipped/clamped against the
+   viewport so they are never clipped by the message list or screen edge. */
 .toolbarReactionPicker {
   display: flex;
   align-items: center;
   gap: 2px;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  position: fixed;
   padding: 4px 6px;
   background: var(--color-card);
   border: 1px solid var(--color-border);
@@ -1863,6 +1904,7 @@
   box-shadow: var(--shadow-lg);
   z-index: var(--z-dropdown);
   white-space: nowrap;
+  animation: toolbarPopIn 150ms ease-out;
 }
 
 .toolbarReactionPickBtn {
@@ -1925,9 +1967,7 @@
 }
 
 .toolbarMoreMenu {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
+  position: fixed;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1935,6 +1975,19 @@
   z-index: var(--z-dropdown);
   min-width: 160px;
   padding: var(--space-xs) 0;
+  animation: toolbarPopIn 150ms ease-out;
+}
+
+@keyframes toolbarPopIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbarReactionPicker,
+  .toolbarMoreMenu {
+    animation: none;
+  }
 }
 
 .toolbarMoreMenu button {
@@ -1965,14 +2018,10 @@
 
 /* ── Touch Devices ──────────────────────────────────────────────────────── */
 @media (hover: none) {
-  .messageToolbar {
-    opacity: 0.4;
-    pointer-events: auto;
-  }
-
   .toolbarVisible,
   .messageToolbar:active {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .msgTimestamp {

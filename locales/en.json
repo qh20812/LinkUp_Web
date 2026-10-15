@@ -889,6 +889,7 @@
     "newMessage": "New message",
     "back": "Back",
     "sent": "Sent",
+    "sending": "Sending…",
     "seen": "Seen",
     "seenBy": "Seen by {names}",
     "addReaction": "React",

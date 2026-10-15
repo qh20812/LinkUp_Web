@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from '../../hooks/useTranslation'
 import { emojiChar } from '../../utils/emojis'
 import type { ChatMessage, EmojiItem } from '../../types'
@@ -45,23 +46,88 @@ export default function MessageToolbar({
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
   const [reactionOpen, setReactionOpen] = useState(false)
+  // Fixed-popup coordinates, measured after open (before paint) so the
+  // first visible frame is already flipped/clamped — never viewport-clipped.
+  const [reactionPos, setReactionPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const [morePos, setMorePos] = useState<{ top?: number; bottom?: number; left: number } | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
   const moreBtnRef = useRef<HTMLButtonElement>(null)
   const reactionRef = useRef<HTMLDivElement>(null)
   const reactionBtnRef = useRef<HTMLButtonElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  // Portal target guard for SSR — popups only ever open from user clicks,
+  // which are client-only, but the guard keeps the server render safe.
+  const canPortal = typeof document !== 'undefined'
 
   useEffect(() => {
     if (!moreOpen && !reactionOpen) return
+    const close = () => {
+      setMoreOpen(false)
+      setReactionOpen(false)
+    }
     const handler = (e: MouseEvent) => {
       const target = e.target as Node
       if (moreRef.current?.contains(target) || moreBtnRef.current?.contains(target)) return
       if (reactionRef.current?.contains(target) || reactionBtnRef.current?.contains(target)) return
-      setMoreOpen(false)
-      setReactionOpen(false)
+      // Portal popups live under document.body — their refs still point at
+      // the real DOM nodes, so contains() keeps working after the move.
+      // Without this, mousedown would unmount the popup before click fires.
+      if (pickerRef.current?.contains(target) || moreMenuRef.current?.contains(target)) return
+      close()
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('keydown', onKey)
+    // Fixed popups can't track scrolling content — dismiss instead of
+    // going stale (same pattern as the story overflow menu).
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [moreOpen, reactionOpen])
+
+  // Reaction picker prefers opening downward; flips up near the viewport
+  // bottom (e.g. the latest message) and clamps horizontally.
+  useLayoutEffect(() => {
+    if (!reactionOpen || !reactionBtnRef.current || !pickerRef.current) return
+    const r = reactionBtnRef.current.getBoundingClientRect()
+    const w = pickerRef.current.offsetWidth
+    const h = pickerRef.current.offsetHeight
+    const M = 8
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const left = Math.max(M, Math.min(r.left, vw - w - M))
+    if (vh - r.bottom >= h + 6 + M) {
+      setReactionPos({ top: r.bottom + 6, left })
+    } else {
+      setReactionPos({ bottom: vh - r.top + 6, left })
+    }
+  }, [reactionOpen])
+
+  // The ⋯ menu prefers opening upward (legacy behavior); flips down near
+  // the viewport top and stays right-aligned to its trigger when possible.
+  useLayoutEffect(() => {
+    if (!moreOpen || !moreBtnRef.current || !moreMenuRef.current) return
+    const r = moreBtnRef.current.getBoundingClientRect()
+    const w = moreMenuRef.current.offsetWidth
+    const h = moreMenuRef.current.offsetHeight
+    const M = 8
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const left = Math.max(M, Math.min(r.right - w, vw - w - M))
+    if (r.top >= h + 6 + M) {
+      setMorePos({ bottom: vh - r.top + 6, left })
+    } else {
+      setMorePos({ top: r.bottom + 6, left })
+    }
+  }, [moreOpen])
 
   const quickEmojis = useMemo(() => {
     // Chỉ dùng emoji server (id thật trong bảng emojis) — bỏ qua map fallback phía client.
@@ -106,8 +172,16 @@ export default function MessageToolbar({
           >
             <i className="bx bx-smile" />
           </button>
-          {reactionOpen && (
-            <div className={styles.toolbarReactionPicker}>
+          {/* Portaled to document.body: the toolbar carries a transform
+              (entrance transition), which would otherwise become the
+              containing block for fixed descendants and fling viewport
+              coordinates off-screen. */}
+          {reactionOpen && canPortal && createPortal(
+            <div
+              ref={pickerRef}
+              className={styles.toolbarReactionPicker}
+              style={reactionPos ?? undefined}
+            >
               {quickEmojis.map((item) => (
                 <button
                   key={item.id}
@@ -120,7 +194,8 @@ export default function MessageToolbar({
                   </span>
                 </button>
               ))}
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       )}
@@ -146,8 +221,13 @@ export default function MessageToolbar({
         >
           <i className="bx bx-dots-horizontal-rounded" />
         </button>
-        {moreOpen && (
-          <div className={styles.toolbarMoreMenu} onClick={(e) => e.stopPropagation()}>
+        {moreOpen && canPortal && createPortal(
+          <div
+            ref={moreMenuRef}
+            className={styles.toolbarMoreMenu}
+            style={morePos ?? undefined}
+            onClick={(e) => e.stopPropagation()}
+          >
             {isPinned ? (
               <button onClick={() => { onUnpin(); setMoreOpen(false) }}>
                 <i className="bx bx-pin" /> {t('chat.unpin')}
@@ -168,7 +248,8 @@ export default function MessageToolbar({
             >
               <i className="bx bx-trash" /> {t('chat.deleteForMe')}
             </button>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     </div>

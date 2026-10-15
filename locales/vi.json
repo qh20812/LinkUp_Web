@@ -889,6 +889,7 @@
     "newMessage": "Tin nhắn mới",
     "back": "Quay lại",
     "sent": "Đã gửi",
+    "sending": "Đang gửi…",
     "seen": "Đã xem",
     "seenBy": "Đã xem bởi {names}",
     "addReaction": "Bày tỏ cảm xúc",
