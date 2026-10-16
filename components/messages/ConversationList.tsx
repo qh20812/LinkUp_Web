@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
 import { mediaPreviewKey } from '../../utils/chatMediaPreview'
-import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage } from '../../utils/chatPreview'
+import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../../utils/chatPreview'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
 import type { ChatConversation, EmojiItem, GroupChatConversation } from '../../types'
@@ -197,7 +197,9 @@ export default function ConversationList({
                           ? t('chat.groupInviteTitle')
                           : isSystemPreviewMessage(conv.last_message)
                             ? getSystemPreviewText(conv.last_message.content, t)
-                            : mediaKey
+                            : isVoicePreviewMessage(conv.last_message)
+                              ? t('chat.voicePreview')
+                              : mediaKey
                           ? t(mediaKey)
                           : conv.last_message.media_id
                             ? t('chat.mediaMessage')
@@ -316,7 +318,9 @@ export default function ConversationList({
                           ? t('chat.groupInviteTitle')
                           : lastIsSystem
                             ? getSystemPreviewText(lastMsg.content, t)
-                            : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}
+                            : isVoicePreviewMessage(lastMsg)
+                              ? t('chat.voicePreview')
+                              : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}
                       </>
                     ) : (
                       <>{group.member_count} {t('chat.members')}</>

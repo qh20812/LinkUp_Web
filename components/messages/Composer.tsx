@@ -120,6 +120,9 @@ const MAX_ATTACHMENTS = 10
 const CHAT_MESSAGE_MAX_LENGTH = 2000
 // Show the character counter once the user reaches 90% of the limit.
 const CHAT_COUNTER_START = 1800
+// Matches the server's media validation cap (5 minutes) — auto-stop at the
+// cap so a long recording is never thrown away at send time.
+const VOICE_MAX_SECONDS = 300
 
 export default function Composer({
   room,
@@ -156,6 +159,7 @@ export default function Composer({
     supported: voiceSupported,
     recording: voiceRecording,
     elapsed: voiceElapsed,
+    levels: voiceLevels,
     error: voiceError,
     start: startVoice,
     stop: stopVoice,
@@ -368,6 +372,14 @@ export default function Composer({
       setPendingVoice(null)
     }
   }
+
+  useEffect(() => {
+    if (!voiceRecording || voiceElapsed < VOICE_MAX_SECONDS) return
+    toast({ type: 'info', title: t('chat.voiceMaxLength') })
+    void stopVoice().then((rec) => {
+      if (rec) setPendingVoice(rec)
+    })
+  }, [voiceRecording, voiceElapsed, stopVoice, toast, t])
 
   const sendVoice = async () => {
     if (!pendingVoice || voiceUploading || !chatId) return
@@ -665,11 +677,20 @@ export default function Composer({
         {voiceRecording ? (
           <div className={styles.voiceInput}>
             <span className={styles.recordingPulse} />
+            <span className={styles.recordingWave} aria-hidden="true">
+              {voiceLevels.map((h, i) => (
+                <span
+                  key={i}
+                  className={styles.recordingBar}
+                  style={{ height: `${Math.round(h * 100)}%` }}
+                />
+              ))}
+            </span>
             <span className={styles.recordingTimer}>{formatCallDuration(voiceElapsed)}</span>
           </div>
         ) : pendingVoice ? (
           <div className={styles.voiceInput}>
-            <VoicePlayer src={pendingVoice.url} duration={pendingVoice.duration} mine={false} flat messageKey="composer-preview" />
+            <VoicePlayer src={pendingVoice.url} duration={pendingVoice.duration} mine={false} flat messageKey={`composer-preview:${pendingVoice.id}`} />
           </div>
         ) : (
           <div className={styles.composerWrap}>

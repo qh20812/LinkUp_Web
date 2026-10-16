@@ -259,6 +259,8 @@
   gap: var(--space-sm);
   position: relative;
   z-index: 2;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .timelineContent {
@@ -394,6 +396,12 @@
    2–4px within a group via .timelineContent gap, ~16px between groups). */
 .groupFirst {
   margin-top: 14px;
+}
+
+/* Voice rows never visually merge: every non-first voice note keeps its own
+   block separation, including after text from the same sender. */
+.voiceCont {
+  margin-top: 12px;
 }
 
 .msgRow.highlight {
@@ -660,6 +668,12 @@
   position: relative;
   z-index: 2;
   margin-top: -10px;
+}
+
+/* Belt-and-braces: an empty row must never occupy layout (its negative
+   margin would otherwise eat the bubble's bottom padding). */
+.reactionsRow:empty {
+  display: none;
 }
 
 .mine .reactionsRow {
@@ -1086,6 +1100,26 @@
   font-weight: 600;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+}
+
+/* Live monitor wave while recording — real RMS levels from the mic.
+   Dense thin bars (no max-width cap) so flex always fills the row. */
+.recordingWave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  overflow: hidden;
+}
+
+.recordingBar {
+  flex: 1 1 auto;
+  min-width: 2px;
+  min-height: 3px;
+  border-radius: 9999px;
+  background: var(--color-primary);
 }
 
 .voiceStopBtn,

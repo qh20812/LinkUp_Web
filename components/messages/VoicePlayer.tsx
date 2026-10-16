@@ -5,14 +5,16 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { formatCallDuration } from '../../utils/chat'
 import styles from './VoicePlayer.module.css'
 
-const BAR_COUNT = 32
+const BAR_COUNT = 48
 const SPEEDS = [1, 1.5, 2]
 const SEEK_STEP = 5
+/** Rendered floor for silent buckets — low enough to read as silence. */
+const WAVE_FLOOR = 0.08
 /** A player that starts dispatches this so every other instance pauses. */
 const PLAY_EVENT = 'linkup:voice-play'
 
 /** Decoded peak cache — scrolling back never re-decodes the same audio. */
-const peaksCache = new Map<string, number[]>()
+const peaksCache = new Map<string, { peaks: number[]; duration: number }>()
 
 function hashPeaks(seed: string): number[] {
   let hash = 0
@@ -27,7 +29,34 @@ function hashPeaks(seed: string): number[] {
   return bars
 }
 
-async function decodePeaks(src: string): Promise<number[]> {
+/**
+ * Perceptual normalization for mean-amplitude buckets: sqrt expands quiet
+ * passages so loud/soft differences stay visible, floor keeps silence
+ * rendered instead of vanishing. Pure — unit-tested.
+ */
+export function normalizePeaks(means: number[]): number[] {
+  const max = Math.max(0, ...means)
+  if (max <= 0) return means.map(() => WAVE_FLOOR)
+  return means.map((b) => Math.max(WAVE_FLOOR, Math.sqrt(Math.max(0, b) / max)))
+}
+
+/** Drop a cached peak set (e.g. before re-decoding a swapped media URL). */
+export function invalidateVoicePeaks(key: string): void {
+  peaksCache.delete(key)
+}
+
+/**
+ * Total-duration precedence: explicit prop wins, then the exact duration
+ * from the decoded buffer (immune to the MediaRecorder-webm Infinity
+ * metadata bug), then whatever the element reports. Pure — unit-tested.
+ */
+export function resolveTotal(prop: number, decoded: number, meta: number): number {
+  if (prop > 0) return prop
+  if (decoded > 0) return decoded
+  return meta
+}
+
+async function decodePeaks(src: string): Promise<{ peaks: number[]; duration: number }> {
   const Ctx: typeof AudioContext | undefined =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
@@ -47,38 +76,44 @@ async function decodePeaks(src: string): Promise<number[]> {
       for (let j = start; j < end; j++) sum += Math.abs(raw[j])
       bars.push(sum / Math.max(1, end - start))
     }
-    const max = Math.max(...bars)
-    return bars.map((b) => (max > 0 ? Math.max(0.15, b / max) : 0.5))
+    return { peaks: normalizePeaks(bars), duration: audioBuffer.duration }
   } finally {
     void ctx.close()
   }
 }
 
-function useVoicePeaks(key: string, src: string): { peaks: number[] | null; decoding: boolean } {
-  const [peaks, setPeaks] = useState<number[] | null>(() => peaksCache.get(key) ?? null)
+function useVoicePeaks(key: string, src: string, bust: number): {
+  peaks: number[] | null
+  decodedDuration: number
+  decoding: boolean
+} {
+  const cached = peaksCache.get(key)
+  const [peaks, setPeaks] = useState<number[] | null>(() => cached?.peaks ?? null)
+  const [decodedDuration, setDecodedDuration] = useState(() => cached?.duration ?? 0)
 
   useEffect(() => {
     if (!src || peaksCache.has(key)) return
     let cancelled = false
     decodePeaks(src)
-      .then((p) => {
+      .then(({ peaks: p, duration: d }) => {
         if (cancelled) return
-        peaksCache.set(key, p)
+        peaksCache.set(key, { peaks: p, duration: d })
         setPeaks(p)
+        setDecodedDuration(d)
       })
       .catch(() => {
         if (cancelled) return
         // Offline/corrupt decode — deterministic hash so the UI never breaks.
         const fb = hashPeaks(key)
-        peaksCache.set(key, fb)
+        peaksCache.set(key, { peaks: fb, duration: 0 })
         setPeaks(fb)
       })
     return () => {
       cancelled = true
     }
-  }, [key, src])
+  }, [key, src, bust])
 
-  return { peaks, decoding: peaks === null && src !== '' }
+  return { peaks, decodedDuration, decoding: peaks === null && src !== '' }
 }
 
 interface VoicePlayerProps {
@@ -102,9 +137,31 @@ export default function VoicePlayer({ src, duration, mine, messageKey, flat = fa
 
   const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
-  const [total, setTotal] = useState(duration && duration > 0 ? duration : 0)
+  const [metaTotal, setMetaTotal] = useState(0)
+  const [buffering, setBuffering] = useState(false)
   const [rateIdx, setRateIdx] = useState(0)
-  const { peaks, decoding } = useVoicePeaks(cacheKey, src)
+  const [failed, setFailed] = useState(false)
+  const [decodeBust, setDecodeBust] = useState(0)
+  const { peaks, decodedDuration, decoding } = useVoicePeaks(cacheKey, src, decodeBust)
+
+  const propTotal = duration && duration > 0 ? duration : 0
+  const total = resolveTotal(propTotal, decodedDuration, metaTotal)
+
+  // Fresh src (e.g. staging→CDN swap) resets a previous failure — keyed
+  // adjust-during-render, never setState-in-effect.
+  const [trackedSrc, setTrackedSrc] = useState(src)
+  if (trackedSrc !== src) {
+    setTrackedSrc(src)
+    setFailed(false)
+    invalidateVoicePeaks(cacheKey)
+  }
+
+  const retry = useCallback(() => {
+    invalidateVoicePeaks(cacheKey)
+    setFailed(false)
+    setDecodeBust((v) => v + 1)
+    audioRef.current?.load()
+  }, [cacheKey])
 
   const progress = total > 0 ? Math.min(1, Math.max(0, elapsed / total)) : 0
 
@@ -123,29 +180,49 @@ export default function VoicePlayer({ src, duration, mine, messageKey, flat = fa
     if (!audio) return
     const onTime = () => setElapsed(audio.currentTime)
     const onMeta = () => {
-      if (!(duration && duration > 0) && Number.isFinite(audio.duration) && audio.duration > 0) {
-        setTotal(audio.duration)
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setMetaTotal(audio.duration)
       }
     }
-    const onPlay = () => setPlaying(true)
-    const onPause = () => setPlaying(false)
+    const onPlay = () => {
+      setPlaying(true)
+      setBuffering(false)
+    }
+    const onPause = () => {
+      setPlaying(false)
+      setBuffering(false)
+    }
+    const onWaiting = () => setBuffering(true)
+    const onCanPlay = () => setBuffering(false)
+    const onError = () => {
+      setPlaying(false)
+      setBuffering(false)
+      setFailed(true)
+    }
     const onEnd = () => {
       setPlaying(false)
+      setBuffering(false)
       setElapsed(0)
     }
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('loadedmetadata', onMeta)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
+    audio.addEventListener('waiting', onWaiting)
+    audio.addEventListener('canplay', onCanPlay)
+    audio.addEventListener('error', onError)
     audio.addEventListener('ended', onEnd)
     return () => {
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('loadedmetadata', onMeta)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('waiting', onWaiting)
+      audio.removeEventListener('canplay', onCanPlay)
+      audio.removeEventListener('error', onError)
       audio.removeEventListener('ended', onEnd)
     }
-  }, [duration])
+  }, [])
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = SPEEDS[rateIdx]
@@ -205,6 +282,23 @@ export default function VoicePlayer({ src, duration, mine, messageKey, flat = fa
   const rate = SPEEDS[rateIdx]
   const timeText = total > 0 ? `${formatCallDuration(Math.floor(elapsed))} / ${formatCallDuration(Math.floor(total))}` : '--:--'
 
+  if (failed) {
+    return (
+      <span
+        className={`${styles.player} ${mine ? styles.mine : styles.theirs}${flat ? ` ${styles.flat}` : ''}`}
+        role="alert"
+      >
+        <span className={styles.voiceError}>
+          <i className="bx bx-error-circle" aria-hidden="true" />
+          <span className={styles.voiceErrorText}>{t('chat.voiceLoadFailed')}</span>
+          <button type="button" className={styles.voiceRetryBtn} onClick={retry}>
+            {t('common.retry')}
+          </button>
+        </span>
+      </span>
+    )
+  }
+
   return (
     <span
       className={`${styles.player} ${mine ? styles.mine : styles.theirs}${flat ? ` ${styles.flat}` : ''}`}
@@ -213,7 +307,7 @@ export default function VoicePlayer({ src, duration, mine, messageKey, flat = fa
     >
       <button
         type="button"
-        className={styles.playBtn}
+        className={`${styles.playBtn}${buffering ? ` ${styles.buffering}` : ''}`}
         onClick={toggle}
         data-tooltip={playing ? t('chat.pause') : t('chat.play')}
         aria-label={playing ? t('chat.pause') : t('chat.play')}

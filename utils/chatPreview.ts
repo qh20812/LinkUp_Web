@@ -60,6 +60,15 @@ export function isInvitePreviewContent(content: string): boolean {
   }
 }
 
+/**
+ * True for voice-note messages. List payloads carry `media_type` but no
+ * dedicated voice flag — and voice content is empty, so without this check
+ * E2E voice previews fall through to the encrypted placeholder.
+ */
+export function isVoicePreviewMessage(msg: Pick<ChatMessage, 'media_type'>): boolean {
+  return msg.media_type?.startsWith('audio/') === true
+}
+
 export function isSystemPreviewMessage(
   msg: Pick<ChatMessage, 'message_category' | 'sender_id' | 'type' | 'content'>,
 ): boolean {

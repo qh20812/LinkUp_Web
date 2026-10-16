@@ -246,7 +246,7 @@ export default function MessageToolbar({
               className={styles.moreMenuDanger}
               onClick={() => { onDelete(); setMoreOpen(false) }}
             >
-              <i className="bx bx-trash" /> {t('chat.deleteForMe')}
+              <i className="bx bx-trash" /> {t('chat.delete')}
             </button>
           </div>,
           document.body,

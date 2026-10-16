@@ -475,12 +475,16 @@ export default function ChatWindow({
     )
   }
 
-  const confirmDelete = () => {
-    if (deleteTarget) {
-      room.deleteMessage(deleteTarget.message.id, 'me')
-    }
-    setDeleteTarget(null)
-  }
+  const confirmDelete = (mode: 'all' | 'me') => {
+    if (deleteTarget) {
+      room.deleteMessage(deleteTarget.message.id, mode)
+    }
+    setDeleteTarget(null)
+  }
+
+  // Recall-for-everyone is sender-only (enforced server-side too) —
+  // other people's messages can only be hidden locally.
+  const isOwnDeleteTarget = deleteTarget?.message.sender_id === myUserId
 
   const searchResults = room.searchResults
   const inSearch = searchResults !== null
@@ -1158,7 +1162,7 @@ export default function ChatWindow({
                   </div>
                 )}
                 <div
-                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}`}
+                  className={`${styles.msgRow} ${mine ? styles.mine : styles.theirs} ${highlightedMsgId === msg.id ? styles.highlight : ''}${isFirstInGroup && !showSenderName ? ` ${styles.groupFirst}` : ''}${!isFirstInGroup ? ` ${styles.voiceCont}` : ''}`}
                   data-message-id={msg.id}
                   data-sending={msg.id.startsWith('temp-') || undefined}
                   onMouseEnter={() => handleRowEnter(msg.id)}
@@ -1522,12 +1526,23 @@ export default function ChatWindow({
           </button>
         }
       >
-        <p className={styles.deleteText}>{t('chat.deleteConfirm')}</p>
-        <div className={styles.deleteActions}>
-          <button className={styles.dangerBtn} onClick={confirmDelete}>
-            <i className="bx bx-trash" />
-            {t('chat.deleteForMe')}
-          </button>
+        <p className={styles.deleteText}>
+          {isOwnDeleteTarget ? t('chat.recallConfirm') : t('chat.deleteConfirm')}
+        </p>
+        <div className={styles.deleteActions}>
+          {isOwnDeleteTarget && (
+            <button className={styles.dangerBtn} onClick={() => confirmDelete('all')}>
+              <i className="bx bx-undo" />
+              {t('chat.deleteForAll')}
+            </button>
+          )}
+          <button
+            className={isOwnDeleteTarget ? styles.ghostBtn : styles.dangerBtn}
+            onClick={() => confirmDelete('me')}
+          >
+            <i className="bx bx-trash" />
+            {t('chat.deleteForMe')}
+          </button>
         </div>
       </Modal>
 

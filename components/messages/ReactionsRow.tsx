@@ -36,6 +36,10 @@ export default function ReactionsRow({ msg, myUserId, emojis, onReact, t }: Reac
   // Ưu tiên emoji mình đã chọn lên đầu.
   chips.sort((a, b) => Number(b.mine) - Number(a.mine))
 
+  // Không reaction, không badge → không render wrapper. Div rỗng mang
+  // margin-top âm sẽ gặm đáy bubble (kết hợp gap của cha) khiến chữ tụt xuống.
+  if (chips.length === 0 && !showBadge) return null
+
   const react = (emojiId: string) => {
     if (onReact) onReact(msg.id, emojiId)
   }

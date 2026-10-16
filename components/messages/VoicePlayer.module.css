@@ -87,6 +87,11 @@
   transform: scale(0.95);
 }
 
+/* Waiting for audio data — gentle pulse until playback actually starts. */
+.playBtn.buffering {
+  animation: voice-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
 .playBtn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -111,6 +116,7 @@
   gap: 2px;
   height: 32px;
   min-width: 0;
+  overflow: hidden;
   border-radius: var(--radius-sm);
   cursor: pointer;
   touch-action: pan-y;
@@ -131,7 +137,7 @@
 
 .bar {
   flex: 1;
-  min-width: 3px;
+  min-width: 2px;
   max-width: 5px;
   border-radius: 9999px;
   /* Muted-steel wash instead of hairline border color — stays readable
@@ -214,6 +220,92 @@
   outline-color: #ffffff;
 }
 
+/* ── Load error ───────────────────────────────────────────────────────── */
+.voiceError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.voiceError > i {
+  font-size: 1.125rem;
+  color: var(--color-danger);
+  flex-shrink: 0;
+}
+
+.voiceErrorText {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voiceRetryBtn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voiceRetryBtn:hover {
+  background: var(--color-primary-light);
+}
+
+.voiceRetryBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.mine .voiceRetryBtn {
+  color: #ffffff;
+}
+
+.mine .voiceRetryBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Flat single-row preview (Composer pill): play + wave + time + speed
+   share one 40px row instead of stacking wave over the meta line. ─────── */
+.flat .playBtn {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+.flat .body {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.flat .wave {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Flat preview pill is wide — let bars fill it instead of capping early. */
+.flat .bar,
+.flat .skeletonBar {
+  max-width: none;
+}
+
+.flat .meta {
+  flex-shrink: 0;
+  gap: 6px;
+}
+
 /* Custom tooltips — local class + attr(), never bare attribute selectors. */
 .playBtn::after,
 .speedBtn::after {
@@ -244,6 +336,19 @@
   transform: translate(-50%, 0);
 }
 
+/* Speed pill sits at the row's right edge — keep its tooltip inside the
+   viewport instead of centering it past the edge. */
+.speedBtn::after {
+  left: auto;
+  right: -4px;
+  transform: translate(0, 2px);
+}
+
+.speedBtn:hover::after,
+.speedBtn:focus-visible::after {
+  transform: translate(0, 0);
+}
+
 /* ── Decode skeleton ──────────────────────────────────────────────────── */
 .skeleton {
   display: flex;
@@ -255,7 +360,7 @@
 
 .skeletonBar {
   flex: 1;
-  min-width: 3px;
+  min-width: 2px;
   max-width: 5px;
   height: 45%;
   border-radius: 9999px;
@@ -297,6 +402,10 @@
   .playBtn::after,
   .speedBtn::after {
     transition: none;
+  }
+
+  .playBtn.buffering {
+    animation: none;
   }
 
   .playBtn:hover,

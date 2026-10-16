@@ -847,8 +847,8 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 **Purpose:** Focused private/group communication. Conversation-first experience (premium minimal glass — same language as Profile).
 **Layout:** Conversation List + Chat Window (Track 5)
-**Conversation List (floating glass panel):** panel = `--glass-bg-strong` + blur + `--glass-border` + `radius-lg` inset 16px (floating sheet on mobile); search pill (`radius-pill`, `:focus-within` primary border + ring); rows = inset `radius-md` cards (hover lift + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal (always visible on touch, `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint)
-**Chat Window:** header = true glass (translucent `color-mix` + `blur(20px)` over scrolling messages — never blur over a solid surface); bubbles own = `135deg primary→primary-hover` gradient + glow + 18px/6px tail, theirs = elevated surface + `shadow-sm`; seen ticks turn primary when seen; reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
+**Conversation List (floating glass panel):** panel = `--glass-bg-strong` + blur + `--glass-border` + `radius-lg` inset 16px (floating sheet on mobile); search pill (`radius-pill`, `:focus-within` primary border + ring); rows = inset `radius-md` cards (hover lift + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal (always visible on touch, `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint); previews show the latest message only — group rows drop the member count (kept as fallback when empty) with a `Bạn:`/`Tên:` sender prefix; list payloads are trimmed (no `type`/`message_category`), so preview detection is content-based (invite-JSON sniff, `key|actorId` prefix) — raw ids and raw JSON never surface
+**Chat Window:** header = true glass (translucent `color-mix` + `blur(20px)` over scrolling messages — never blur over a solid surface); bubbles own = `135deg primary→primary-hover` gradient + soft glow + 16px/6px tail, theirs = elevated surface + `shadow-sm`; continuation bubbles tighten the top inner corner (`6px`); read state = `Đã gửi` muted / `Đã xem` primary text below the own bubble (last-in-group only); sending = dimmed bubble (`0.7`) + `Đang gửi…`; group invites render as glass cards aligned with other bubbles (parent provides avatar/row chrome); reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
 **Composer:** floating glass pill (`radius-20`, blur, `shadow`) with borderless input in a `bg-secondary` pill track (`:focus-within` ring); action icons 40px circle hover `primary-light`; send = gradient + glow with press scale; attachment bar = elevated card
 **Backgrounds:** solid/gradient palettes restricted to the brand family (turquoise/teal/navy first); picker tabs = segmented pills
 **Messaging MUST follow the Messaging Design System defined in Section 11.**
@@ -1025,6 +1025,8 @@ A new group starts when:
 - System message interrupts
 - Application-specific grouping rule requires it
 
+Grouping is sender-based across timeline kinds: consecutive text / call / `group_call` rows from the same sender form one visual group (one top-aligned avatar, one sender-name line). Group membership ignores `kind` — only sender identity (own id vs other-user id vs caller id), date breaks, and system rows matter. Read receipts render only on the last item of a group.
+
 ### 11.6 Incoming Message Group
 
 Incoming messages MUST use this pattern:
@@ -1083,7 +1085,7 @@ For group conversations, show sender name only at the beginning of the group:
          [Message]
 ```
 
-Sender name: `12px`, font-weight: `600`, muted or subtle accent color. Do not repeat sender name for every message.
+Sender name: `12px`, font-weight: `600`, muted (`--color-text-secondary`) — never underlined, never repeated. The name line carries text only (no avatar — the avatar lives in the row); it is indented to the bubble column (`avatar 34px + gap 8px`).
 
 ### 11.9 Direct Chat
 
@@ -1112,16 +1114,21 @@ Current user's messages align RIGHT:
 - Minimal shadow
 
 **Outgoing:**
-- LinkUp turquoise (`var(--color-primary)`)
+- LinkUp turquoise (`var(--color-primary)`), `135deg primary→primary-hover` gradient
 - High-contrast text (white)
-- Optional subtle gradient if appropriate
-- No neon treatment
+- Soft turquoise glow (`0 6px 20px` at ~35% opacity, theme-token variant in dark) — glow reads as depth on the brand gradient, never a harsh neon edge
 
 **Bubble Dimensions:**
 - Padding: `10–12px` vertical, `14–16px` horizontal
-- Border-radius: `14–16px`
+- Border-radius: `14–16px` (`16px` with a `6px` directional tail)
 - Max-width: `65–70%` desktop, `80–85%` mobile
-- Message text: `14–15px`, line-height: `1.45–1.55`
+- Message text: `14–15px`, line-height: `1.45–1.55` (`1.55` for Vietnamese diacritics)
+
+**Grouped continuation:** non-first bubbles in a sender group tighten the top inner corner (`6px`) so the stack reads as one block; the last bubble keeps the tail. Never applied to plain/emoji-only surfaces.
+
+**Read receipts & sending state:** no `✓` glyphs — `Đã gửi` muted / `Đã xem` primary text (`11px/500`) below the own bubble, last-in-group only. In-flight optimistic messages dim the bubble (`0.7`) with `Đang gửi…`. Unknown actors render as `chat.unknown`, never raw user ids.
+
+**Group invite bubble** (`components/messages/GroupInviteBubble.tsx`): a pure bubble — the parent row provides avatar/spacer/stack chrome so invites align with every other bubble in the group. Glass card (`--glass-bg-strong` + blur + `--glass-border` + `radius-lg` + `--glass-shadow`), turquoise wash for own pending invites; pending invites open the confirm `Modal`, other states are status-only.
 
 ### 11.12 Timestamp
 
@@ -1146,6 +1153,10 @@ Desktop hover may expose compact floating toolbar:
 - More (pin, forward, delete)
 
 Toolbar: compact, floating, rounded, subtle surface, subtle shadow, non-blocking.
+Fades via `visibility` + opacity/transform (`150ms ease-out`) — never a `display` toggle.
+
+- **Hover persistence:** row leave only schedules a hide (`220ms` grace, shared timer cleared on any enter/unmount/chat-switch); an invisible `12px` hover bridge toward the bubble covers the dead gap.
+- **Popups** (reaction picker, ⋯ menu) mount via portal at measured viewport coords: flip vertically when space runs out, clamp `8px` inside the viewport, dismiss on scroll/resize/Escape/outside-click.
 
 Mobile must NOT depend on hover — use tap/long-press interaction.
 
@@ -1164,13 +1175,14 @@ time in `elapsed / total` form (`0:06 / 0:23`, tabular-nums); at rest only the t
 
 - **Self-contained bubble surface:** voice rows render inside transparent
   `.bubblePlain`, so `.player` carries its own surface mirroring text bubbles —
-  `padding 10px 14px`, `radius 18px` with the directional `6px` corner, mine =
-  turquoise gradient + turquoise shadow, theirs = `chat-surface-elevated` +
+  `padding 10px 14px`, `radius 16px` with the directional `6px` corner, mine =
+  turquoise gradient + soft glow, theirs = `chat-surface-elevated` +
   `message-other-border` + `shadow-sm`. `width 100%`, `min 220px`, `max 300px`.
   Unplayed bars use a muted-steel wash (`color-mix text-secondary 38%`), never
   hairline-border gray — they must read on the white elevated surface.
 - **Flat variant** (`flat` prop, transparent/padding-less) is for the Composer
-  preview pill only — it already has its own surface. Preview uses theirs chrome
+  preview pill only — it already has its own surface: single row
+  `[play 32px][wave][time][speed]` inside the 40px pill. Preview uses theirs chrome
   (`mine={false}`) since the pill is a neutral background.
 
 - **Mine/theirs is explicit:** `mine: boolean` is REQUIRED — threaded from
@@ -1186,7 +1198,19 @@ time in `elapsed / total` form (`0:06 / 0:23`, tabular-nums); at rest only the t
   all other instances pause — audios never overlap.
 - **Waveform data:** real decoded RMS peaks (`AudioContext.decodeAudioData`),
   cached per message in a module `Map` (never re-decode on scroll); skeleton shimmer
-  while decoding, deterministic hash only as the error fallback.
+  while decoding, deterministic hash only as the error fallback. Perceptual
+  sqrt curve with a `0.08` floor keeps quiet passages visible; 48 bars playback /
+  56 monitor; bars shrink (`min 2px`) with `overflow: hidden` on narrow rows —
+  never overflow the bubble. Consecutive voice rows never merge — 12px block
+  separation even from the same sender. Each recording gets a unique cache key (never a
+  shared constant); an invalidation helper exists for URL swaps.
+- **Duration precedence:** explicit prop → decoded `AudioBuffer.duration`
+  (immune to the webm Infinity-metadata bug) → element metadata. Never persist
+  `--:--` for a decodable file. Buffering pulses the play button; load failure
+  renders a compact danger error + retry (`common.retry`) — never silent death.
+- **Recording (Composer):** live RMS bars (`AnalyserNode`, ~8fps, frozen under
+  reduced-motion) in the input pill; Safari chain includes `audio/mp4`; client
+  auto-stops at 300s (server cap) with `chat.voiceMaxLength`.
 - `prefers-reduced-motion` disables press/skeleton motion. Reuse existing audio
   playback logic — no new backend.
 
@@ -1222,6 +1246,12 @@ never giant black rectangles.
   + `aria-label` — never native `title`.
 - **Motion:** row entrance reuses `messageAppear`; `prefers-reduced-motion`
   disables all transitions/press transforms.
+- **Ongoing-call banner:** a floating glass pill under the header (same chrome
+  as the date separator) with an orange live dot + participant count.
+  Bystanders (not in `participants`, in no call of their own) get a compact
+  turquoise "Tham gia" pill opening the standard join flow; participants see
+  the ghost "Mở rộng" variant instead. Detection is history-based (`!ended_at`,
+  not `ended`/`missed`) — independent of local call state.
 - Reuse existing call actions (`startCall`, `handleRequestJoin`) — no new backend.
 
 ### 11.19 Image / Video / File Messages

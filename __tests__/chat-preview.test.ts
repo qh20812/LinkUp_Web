@@ -1,4 +1,4 @@
-import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage } from '../utils/chatPreview'
+import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../utils/chatPreview'
 
 // Minimal t() stub: returns the key with interpolated params rendered inline.
 const t = (key: string, params?: Record<string, string>) =>
@@ -53,5 +53,18 @@ describe('isInvitePreviewContent', () => {
     expect(isInvitePreviewContent('{"request_id":"x"}')).toBe(false)
     expect(isInvitePreviewContent('hello world')).toBe(false)
     expect(isInvitePreviewContent('')).toBe(false)
+  })
+})
+
+describe('isVoicePreviewMessage', () => {
+  it('detects voice notes by audio media_type', () => {
+    expect(isVoicePreviewMessage({ media_type: 'audio/webm' })).toBe(true)
+    expect(isVoicePreviewMessage({ media_type: 'audio/mp4' })).toBe(true)
+  })
+
+  it('rejects non-audio and missing types', () => {
+    expect(isVoicePreviewMessage({ media_type: 'image/png' })).toBe(false)
+    expect(isVoicePreviewMessage({ media_type: 'video/mp4' })).toBe(false)
+    expect(isVoicePreviewMessage({})).toBe(false)
   })
 })
