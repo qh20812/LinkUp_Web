@@ -274,6 +274,18 @@ The shared recipe for anything that floats — landing navbar/footer, auth heade
 - Admin/Partner: the whole `.layout` carries `--color-bg-secondary` as the canvas so the inset 16px chrome has tint under it
 - Gradient-stage glass (hero chips, closing panel) uses literal `rgba(255,255,255,0.12–0.14)` fills + `rgba(255,255,255,0.22–0.26)` borders instead of the card-mix tokens
 
+### Glass iOS Variant (opt-in, messaging-first)
+
+Clearer, deeper iOS-style glass for surfaces that sit over rich themed backdrops (messaging workspace first; future surfaces only by explicit opt-in — never a blanket migration):
+
+- Background: `var(--glass-ios-bg)` (`color-mix` card `60%`, dark `55%`)
+- `backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate))` (`24px` / `170%`, + `-webkit-` prefix)
+- Border: `1px solid var(--glass-border)` + inner top highlight `var(--glass-ios-highlight)` (`inset 0 1px 0`, white `0.25` light / `0.08` dark)
+- Radius: `var(--radius-lg)` (all four corners); shadow: `var(--glass-ios-shadow)`
+- Readability is non-negotiable: small dense text under iOS glass gets its own readability overlay (stronger than under standard glass) — never compensate by raising the fill (that just recreates standard glass)
+- Fallback `@supports not (backdrop-filter)` → solid `--color-card`
+- Performance: `24px` blur costs more GPU than `14px` — if a surface lags on low-end devices, drop to `20px` before touching structure. `prefers-reduced-motion` does not affect blur (not motion)
+
 ### Dropdown / Popover (nav popovers)
 
 Anything anchored to a navbar control — profile menu, notification center — follows the Glass Surface recipe:
@@ -848,9 +860,9 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 **Purpose:** Focused private/group communication. Conversation-first experience (premium minimal glass — same language as Profile).
 **Layout:** Conversation List + Chat Window (Track 5)
 **Conversation List (floating glass panel):** panel = `--glass-bg-strong` + blur + `--glass-border` + `radius-lg` inset 16px (floating sheet on mobile); search pill (`radius-pill`, `:focus-within` primary border + ring); rows = inset `radius-md` cards (hover lift + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal (always visible on touch, `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint); previews show the latest message only — group rows drop the member count (kept as fallback when empty) with a `Bạn:`/`Tên:` sender prefix; list payloads are trimmed (no `type`/`message_category`), so preview detection is content-based (invite-JSON sniff, `key|actorId` prefix) — raw ids and raw JSON never surface
-**Chat Window:** header = true glass (translucent `color-mix` + `blur(20px)` over scrolling messages — never blur over a solid surface); bubbles own = `135deg primary→primary-hover` gradient + soft glow + 16px/6px tail, theirs = elevated surface + `shadow-sm`; continuation bubbles tighten the top inner corner (`6px`); read state = `Đã gửi` muted / `Đã xem` primary text below the own bubble (last-in-group only); sending = dimmed bubble (`0.7`) + `Đang gửi…`; group invites render as glass cards aligned with other bubbles (parent provides avatar/row chrome); reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
+**Chat Window:** header = floating inset glass bar (`margin` + `radius-lg` + `--glass-bg-strong` + blur, circular glass action buttons) over scrolling messages — never blur over a solid surface; bubbles own = `135deg primary→primary-hover` gradient + soft glow + 16px/6px tail, theirs = elevated surface + `shadow-sm`; continuation bubbles tighten the top inner corner (`6px`); read state = `Đã gửi` muted / `Đã xem` primary text below the own bubble (last-in-group only); sending = dimmed bubble (`0.7`) + `Đang gửi…`; group invites render as glass cards aligned with other bubbles (parent provides avatar/row chrome); reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); floating chrome (hover toolbar, reaction/⋯ popovers, detail sidebar, timestamp chip, system pill, emoji picker) is glass (`--glass-bg-strong` + blur + `--glass-border`); in-flow strips (search, pinned bar) and the accent new-message pill stay solid; date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
 **Composer:** floating glass pill (`radius-20`, blur, `shadow`) with borderless input in a `bg-secondary` pill track (`:focus-within` ring); action icons 40px circle hover `primary-light`; send = gradient + glow with press scale; attachment bar = elevated card
-**Backgrounds:** solid/gradient palettes restricted to the brand family (turquoise/teal/navy first); picker tabs = segmented pills
+**Backgrounds:** solid/gradient palettes restricted to the brand family (turquoise/teal/navy first); picker tabs = segmented pills; the workspace backdrop follows the active conversation (visible behind the list pane, cross-fades on switch) while list/header/composer/pills use the iOS glass variant (§4); readability scrim auto-adapts to theme luminance with a per-chat strength slider (30–150, server-synced)
 **Messaging MUST follow the Messaging Design System defined in Section 11.**
 
 ### Notifications (`/notifications`)
@@ -1344,6 +1356,8 @@ Never distort images. Crop naturally with cover.
 Background personalization must NEVER compromise message readability.
 
 Bright backgrounds may use stronger overlay. Dark backgrounds may use lighter overlay. Overlay must remain subtle — background should still be clearly visible.
+
+Implementation: luminance-driven scrim per theme type (`utils/chatReadability`, WCAG weights) with a per-chat strength multiplier (30–150, persisted server-side for cross-device sync); fixed-color bubbles never change hue — image backgrounds additionally trigger contrast armor (stronger theirs-border + `shadow-md`, subtle text-shadow on own text); the picker warns (non-blocking) when a solid/gradient sits in the turquoise clash band and curates presets away from it.
 
 ### 11.30 Background Customization Panel
 

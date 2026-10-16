@@ -1173,6 +1173,7 @@ export interface ChatConversation {
   updated_at: string
   background_type?: string
   background_value?: string
+  background_overlay?: number
 }
 
 export interface ChatListResponse {
@@ -1216,6 +1217,8 @@ export type ChatBackgroundType = 'solid' | 'gradient' | 'preset' | 'custom'
 export interface ChatBackground {
   type: ChatBackgroundType
   value: string
+  /** Overlay strength percent (30–150, 100 = as designed). Absent = 100. */
+  strength?: number
 }
 
 // ===== Group Chat =====
@@ -1228,6 +1231,7 @@ export interface GroupChatConversation {
   updated_at: string
   background_type?: string
   background_value?: string
+  background_overlay?: number
 }
 
 // ===== Pinned Messages =====

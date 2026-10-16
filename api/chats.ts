@@ -214,24 +214,28 @@ export const rejectGroupChatInvite = (chatId: string, requestId: string) =>
 
 // ===== Chat Background =====
 export const getChatBackground = (chatId: string) =>
-  request<{ data: { type: string; value: string } }>(`/chats/${chatId}/background`)
+  request<{ data: { type: string; value: string; overlay_strength?: number } }>(`/chats/${chatId}/background`)
 
-export const updateChatBackground = (chatId: string, type: string, value: string) =>
-  request<{ data: { type: string; value: string } }>(`/chats/${chatId}/background`, {
+export const updateChatBackground = (chatId: string, type: string, value: string, overlayStrength?: number) =>
+  request<{ data: { type: string; value: string; overlay_strength?: number } }>(`/chats/${chatId}/background`, {
     method: 'PUT',
-    body: JSON.stringify({ type, value }),
+    body: JSON.stringify(
+      overlayStrength == null ? { type, value } : { type, value, overlay_strength: overlayStrength },
+    ),
   })
 
 export const deleteChatBackground = (chatId: string) =>
   request<{ message: string }>(`/chats/${chatId}/background`, { method: 'DELETE' })
 
 export const getGroupChatBackground = (chatId: string) =>
-  request<{ data: { type: string; value: string } }>(`/group-chats/${chatId}/background`)
+  request<{ data: { type: string; value: string; overlay_strength?: number } }>(`/group-chats/${chatId}/background`)
 
-export const updateGroupChatBackground = (chatId: string, type: string, value: string) =>
-  request<{ data: { type: string; value: string } }>(`/group-chats/${chatId}/background`, {
+export const updateGroupChatBackground = (chatId: string, type: string, value: string, overlayStrength?: number) =>
+  request<{ data: { type: string; value: string; overlay_strength?: number } }>(`/group-chats/${chatId}/background`, {
     method: 'PUT',
-    body: JSON.stringify({ type, value }),
+    body: JSON.stringify(
+      overlayStrength == null ? { type, value } : { type, value, overlay_strength: overlayStrength },
+    ),
   })
 
 export const deleteGroupChatBackground = (chatId: string) =>

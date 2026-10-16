@@ -8,7 +8,8 @@ import Modal from '../Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useEmojis } from '../../hooks/useEmojis'
-import { formatChatDate, formatCallDuration, formatClockTime } from '../../utils/chat'
+import { formatChatDate, formatCallDuration, formatClockTime } from '../../utils/chat'
+import { overlayStyle } from '../../utils/chatReadability'
 import { isSingleGiphyUrl, giphyStillUrl, separateGiphyUrls } from '../../utils/giphy'
 import { isSingleEmojifyiUrl } from '../../utils/emojifyi'
 import { EmojiImage, renderEmojiContent } from './EmojiImage'
@@ -282,6 +283,14 @@ export default function ChatWindow({
     }
   }, [chatBackground])
 
+  // Adaptive readability scrim (luminance-driven) × user strength.
+  // Busy image backgrounds additionally arm the bubbles with contrast.
+  const chatBgOverlayStyle = useMemo(
+    () => overlayStyle(chatBackground, chatBackground?.strength),
+    [chatBackground],
+  )
+  const isBusyBg = chatBackground?.type === 'preset' || chatBackground?.type === 'custom'
+
   const chatHeaderStyle = useMemo(() => {
     if (!chatBackground) return {}
     switch (chatBackground.type) {
@@ -502,12 +511,12 @@ export default function ChatWindow({
       t,
     )
 
-  return (
-    <div className={styles.window}>
-      {chatBackground && (
-        <div className={styles.chatBgLayer} style={chatBgStyle}>
-          <div className={styles.chatBgLayerOverlay} />
-        </div>
+  return (
+    <div className={`${styles.window}${isBusyBg ? ` ${styles.busyBg}` : ''}`}>
+      {chatBackground && (
+        <div className={styles.chatBgLayer} style={chatBgStyle}>
+          <div className={styles.chatBgLayerOverlay} style={chatBgOverlayStyle} />
+        </div>
       )}
       <div
         className={`${styles.header}${chatBackground ? ` ${styles.headerWithBg}` : ''}`}

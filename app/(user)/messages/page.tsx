@@ -27,6 +27,8 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
 import { decryptChat, ensureChatKey } from '../../../utils/e2ee'
+import { chatBackgroundStyle } from '../../../utils/chatBackground'
+import { overlayStyle } from '../../../utils/chatReadability'
 import type { ChatConversation, ChatInviteItem, ChatMessage, GroupChatConversation, ChatBackground } from '../../../types'
 import styles from './Messages.module.css'
 
@@ -131,7 +133,11 @@ function MessagesContent() {
     const list = activeChatType === 'group' ? groupConversations : conversations
     const conv = list.find((c) => c.chat_id === activeChatId)
     if (!conv?.background_type || !conv?.background_value) return null
-    return { type: conv.background_type as ChatBackground['type'], value: conv.background_value }
+    return {
+      type: conv.background_type as ChatBackground['type'],
+      value: conv.background_value,
+      strength: conv.background_overlay ?? 100,
+    }
   }, [activeChatId, activeChatType, conversations, groupConversations])
 
   const encryption = useChatE2E({
@@ -582,6 +588,19 @@ function MessagesContent() {
         </div>
       )}
       <div className={`${styles.layout}${activeChatId ? ` ${styles.hasChat}` : ''}`}>
+        {chatBackground && (
+          <div
+            key={activeChatId}
+            className={styles.workspaceBg}
+            style={chatBackgroundStyle(chatBackground)}
+            aria-hidden="true"
+          >
+            <div
+              className={styles.workspaceBgOverlay}
+              style={overlayStyle(chatBackground, chatBackground.strength)}
+            />
+          </div>
+        )}
         <div className={styles.listPane}>
           <ConversationList
             conversations={conversations}
@@ -748,6 +767,7 @@ function MessagesContent() {
 
       {activeChatId && (
         <ChatBackgroundPicker
+          key={activeChatId}
           open={backgroundPickerOpen}
           onClose={() => setBackgroundPickerOpen(false)}
           chatId={activeChatId}

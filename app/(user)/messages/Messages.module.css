@@ -147,11 +147,40 @@
 }
 
 .layout {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
+}
+
+/* Workspace backdrop — the active conversation's theme, visible behind the
+   conversation list (the chat pane covers it with its own opaque surface +
+   backdrop layer, so nothing doubles up). Cross-fades on chat switch. */
+.workspaceBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: workspaceBgIn 200ms ease-out;
+}
+
+.workspaceBgOverlay {
+  position: absolute;
+  inset: 0;
+  background: var(--chat-background-overlay);
+}
+
+@keyframes workspaceBgIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspaceBg {
+    animation: none;
+  }
 }
 
 .listPane {
@@ -160,6 +189,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .windowPane {
@@ -169,6 +200,7 @@
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
+  z-index: 1;
 }
 
 .modalFooter {

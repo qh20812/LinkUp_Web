@@ -12,6 +12,7 @@ import {
   uploadMedia,
 } from '../../api/chats'
 import type { ChatBackground } from '../../types'
+import { backgroundClashes, recommendedStrength } from '../../utils/chatReadability'
 import styles from './ChatBackgroundPicker.module.css'
 
 const SOLID_COLORS = [
@@ -21,7 +22,7 @@ const SOLID_COLORS = [
 
 const GRADIENTS = [
   'linear-gradient(135deg, #12A5A1, #0A1F44)',
-  'linear-gradient(135deg, #12A5A1, #0E8B88)',
+  'linear-gradient(135deg, #0A1F44, #764ba2)',
   'linear-gradient(135deg, #0A1F44, #3B4A6B)',
   'linear-gradient(135deg, #4facfe, #00f2fe)',
   'linear-gradient(135deg, #43e97b, #38f9d7)',
@@ -62,6 +63,10 @@ export default function ChatBackgroundPicker({
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<TabKey>('solid')
   const [selected, setSelected] = useState<ChatBackground | null>(currentBackground)
+  const [strength, setStrength] = useState(() => currentBackground?.strength ?? 100)
+  // Whether the slider still shows the auto recommendation (unset on any
+  // manual drag) — surfaced as a small "auto" badge next to the value.
+  const [strengthAuto, setStrengthAuto] = useState(true)
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -74,6 +79,10 @@ export default function ChatBackgroundPicker({
 
   const handleSelect = useCallback((bg: ChatBackground) => {
     setSelected(bg)
+    // Auto-suggest overlay strength for the fresh pick; the user can still
+    // drag the slider afterwards (which clears the auto badge).
+    setStrength(recommendedStrength(bg))
+    setStrengthAuto(true)
   }, [])
 
   const handleRemove = useCallback(async () => {
@@ -99,12 +108,13 @@ export default function ChatBackgroundPicker({
     if (!selected) return
     setSaving(true)
     try {
+      const clamped = Math.min(150, Math.max(30, Math.round(strength)))
       if (mode === 'direct') {
-        await updateChatBackground(chatId, selected.type, selected.value)
+        await updateChatBackground(chatId, selected.type, selected.value, clamped)
       } else {
-        await updateGroupChatBackground(chatId, selected.type, selected.value)
+        await updateGroupChatBackground(chatId, selected.type, selected.value, clamped)
       }
-      onApplied(selected)
+      onApplied({ ...selected, strength: clamped })
       toast({ type: 'success', title: t('chat.backgroundApplied') })
       onClose()
     } catch {
@@ -112,7 +122,7 @@ export default function ChatBackgroundPicker({
     } finally {
       setSaving(false)
     }
-  }, [selected, chatId, mode, onApplied, onClose, toast, t])
+  }, [selected, strength, chatId, mode, onApplied, onClose, toast, t])
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -243,6 +253,33 @@ export default function ChatBackgroundPicker({
         {activeTab === 'preset' && renderPresetGrid()}
         {activeTab === 'custom' && renderCustomUpload()}
       </div>
+
+      <div className={styles.strengthRow}>
+        <label htmlFor="chat-bg-strength">{t('chat.bgOverlayStrength')}</label>
+        <input
+          id="chat-bg-strength"
+          type="range"
+          min={30}
+          max={150}
+          step={5}
+          value={strength}
+          onChange={(e) => {
+            setStrength(Number(e.target.value))
+            setStrengthAuto(false)
+          }}
+          disabled={saving}
+          aria-valuetext={`${strength}%`}
+        />
+        <span className={styles.strengthValue}>
+          {strength}%{strengthAuto ? ` · ${t('chat.bgAuto')}` : ''}
+        </span>
+      </div>
+      {selected && backgroundClashes(selected) && (
+        <p className={styles.clashWarning} role="note">
+          <i className="bx bx-error-circle" aria-hidden="true" />
+          <span>{t('chat.bgClashWarning')}</span>
+        </p>
+      )}
     </Modal>
   )
 }

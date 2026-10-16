@@ -34,17 +34,28 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: none;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-circle);
-  background: transparent;
+  background: var(--seg-track-bg, var(--color-bg-secondary));
   color: var(--color-text-secondary);
   font-size: 1.25rem;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
 }
 
 .backBtn:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.backBtn:active {
+  transform: scale(0.94);
+}
+
+.backBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @media (min-width: 769px) {
@@ -57,16 +68,19 @@
 .header {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   min-height: 68px;
-  border-bottom: 1px solid var(--glass-border);
-  background: color-mix(in srgb, var(--chat-surface) 78%, transparent);
-  box-shadow: var(--glass-shadow);
+  margin: var(--space-sm) var(--space-md) 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-ios-bg);
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
   position: relative;
   z-index: 5;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  flex-shrink: 0;
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
 }
 
 .headerWithBg {
@@ -83,11 +97,14 @@
 }
 
 .headerWithBg .iconBtn {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.9);
 }
 
 .headerWithBg .iconBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .headerWithBg .iconBtnActive {
@@ -96,16 +113,28 @@
 }
 
 .headerWithBg .backBtn {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.9);
 }
 
 .headerWithBg .backBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .headerWithBg .avatar {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
+}
+
+@media (max-width: 576px) {
+  .header,
+  .searchRow,
+  .pinnedBar {
+    margin-left: var(--space-sm);
+    margin-right: var(--space-sm);
+  }
 }
 
 .avatar {
@@ -184,18 +213,23 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: none;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-circle);
-  background: transparent;
-  color: var(--chat-text-muted);
-  font-size: 1.25rem;
+  background: var(--seg-track-bg, var(--color-bg-secondary));
+  color: var(--color-text-secondary);
+  font-size: 1.125rem;
   cursor: pointer;
-  transition: background var(--fast), color var(--fast);
+  transition: background 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
 }
 
 .iconBtn:hover {
-  background: var(--chat-surface-hover);
-  color: var(--chat-text);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.iconBtn:active {
+  transform: scale(0.94);
 }
 
 .iconBtn:focus-visible {
@@ -218,10 +252,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin: var(--space-sm) var(--space-md) 0;
   padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--color-divider);
-  background: var(--color-bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
   color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .searchRow input {
@@ -275,11 +315,11 @@
   padding: 4px 14px;
   margin: 12px 0;
   border-radius: 999px;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-ios-highlight), var(--shadow-sm);
   color: var(--chat-text-muted);
   font-size: 0.75rem;
   font-weight: 500;
@@ -479,6 +519,17 @@
   border-top-right-radius: 6px;
 }
 
+/* Contrast armor on busy image backgrounds: fixed-color bubbles gain
+   separation instead of changing hue (brand identity is preserved). */
+.busyBg .theirs .bubble {
+  border-color: var(--color-text-secondary);
+  box-shadow: var(--shadow-md);
+}
+
+.busyBg .mine .msgText {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
 /* Optimistic temp message still in flight — dim the surface while the
    "Đang gửi…" label underneath stays full opacity. */
 .msgRow[data-sending="true"] .bubble {
@@ -589,10 +640,13 @@
   display: none;
   font-size: 0.6875rem;
   color: var(--chat-text-muted);
-  background: var(--color-card);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -814,9 +868,12 @@
   color: var(--color-text-secondary);
   text-align: center;
   font-style: italic;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
+  box-shadow: var(--shadow-sm);
   padding: var(--space-xs) var(--space-md);
   max-width: 80%;
   line-height: 1.4;
@@ -1192,12 +1249,12 @@
   gap: var(--space-sm);
   margin: var(--space-sm) var(--space-md) 0;
   padding: var(--space-sm) var(--space-md);
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
   font-size: 0.875rem;
   color: var(--color-text);
   position: relative;
@@ -1296,6 +1353,16 @@
     transition: none;
     transform: none;
   }
+
+  .iconBtn,
+  .backBtn {
+    transition: none;
+  }
+
+  .iconBtn:active,
+  .backBtn:active {
+    transform: none;
+  }
 }
 
 /* ── Join-ongoing-call action: compact turquoise pill (§2 accent, §11.18
@@ -1357,11 +1424,20 @@
   padding: var(--space-sm);
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
   z-index: 4;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .header,
+  .composer,
+  .callBanner,
+  .dateSep {
+    background: var(--color-card);
+  }
 }
 
 .composerRow {
@@ -1871,10 +1947,12 @@
   align-items: center;
   gap: 1px;
   padding: 3px 4px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
   z-index: var(--z-toolbar);
   visibility: hidden;
   opacity: 0;
@@ -1932,10 +2010,12 @@
   gap: 2px;
   position: fixed;
   padding: 4px 6px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-shadow);
   z-index: var(--z-dropdown);
   white-space: nowrap;
   animation: toolbarPopIn 150ms ease-out;
@@ -2002,10 +2082,12 @@
 
 .toolbarMoreMenu {
   position: fixed;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-shadow);
   z-index: var(--z-dropdown);
   min-width: 160px;
   padding: var(--space-xs) 0;
@@ -2135,10 +2217,12 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-sm);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
   width: 260px;
   z-index: var(--z-dropdown);
 }
@@ -2451,9 +2535,15 @@
 
 /* ── Pinned Bar ─────────────────────────────────────────────────────────── */
 .pinnedBar {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-card);
+  margin: var(--space-sm) var(--space-md) 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
   padding: var(--space-sm) var(--space-md);
+  flex-shrink: 0;
 }
 
 .pinnedBarHeader {

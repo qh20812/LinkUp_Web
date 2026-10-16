@@ -4,13 +4,19 @@
   height: calc(100% - var(--space-md) * 2);
   min-width: 0;
   margin: var(--space-md) 0 var(--space-md) var(--space-md);
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
   overflow: hidden;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .panel {
+    background: var(--color-card);
+  }
 }
 
 .header {
