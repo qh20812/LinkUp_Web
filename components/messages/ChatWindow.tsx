@@ -435,26 +435,30 @@ export default function ChatWindow({
     clearSearch: room.clearSearch,
   })
 
-  const {
-    scrollRef,
-    timelineRef,
-    newMessagesCount,
-    scrollToBottom,
-    scrollToMessage: scrollToMessageFn,
-    highlightedMsgId,
-    setHighlightedMsgId,
-    handleMessagesScroll,
-  } = useChatScroll({
-    messagesLength: room.messages.length,
-    callHistoryLength: callHistory.length,
-    searchResults: room.searchResults,
-    loading: room.loading,
-    loadingMore: room.loadingMore,
-    hasMore: room.hasMore,
-    loadMoreMessages: room.loadMoreMessages,
-  })
-
-  const chatId = conversation?.chat_id ?? groupChatId ?? null
+  const chatId = conversation?.chat_id ?? groupChatId ?? null
+
+  const {
+    scrollRef,
+    timelineRef,
+    newMessagesCount,
+    atBottom,
+    scrollToBottom,
+    scrollToMessage: scrollToMessageFn,
+    highlightedMsgId,
+    setHighlightedMsgId,
+    handleMessagesScroll,
+  } = useChatScroll({
+    chatId,
+    messages: room.messages,
+    callHistory,
+    searchResults: room.searchResults,
+    loading: room.loading,
+    loadingMore: room.loadingMore,
+    hasMore: room.hasMore,
+    myUserId,
+    loadMoreMessages: room.loadMoreMessages,
+  })
+
   // Reset hover state when switching conversations so a pending hide timer
   // from the previous chat can never kill the new chat's toolbar.
   useEffect(() => {
@@ -495,8 +499,12 @@ export default function ChatWindow({
   // other people's messages can only be hidden locally.
   const isOwnDeleteTarget = deleteTarget?.message.sender_id === myUserId
 
-  const searchResults = room.searchResults
-  const inSearch = searchResults !== null
+  const searchResults = room.searchResults
+  const inSearch = searchResults !== null
+  const newMessagesLabel =
+    newMessagesCount === 1
+      ? t('chat.newMessage')
+      : t('chat.newMessages', { count: String(newMessagesCount) })
   const pinnedMessages = room.pinnedMessages
   const pinMessage = room.pinMessage
   const unpinMessage = room.unpinMessage
@@ -1495,12 +1503,30 @@ export default function ChatWindow({
         </div>
       )}
 
-      {newMessagesCount > 0 && (
-        <button className={styles.newMessagesBar} onClick={scrollToBottom}>
-          <i className="bx bx-chevron-down" />
-          {t('chat.newMessages', { count: String(newMessagesCount) })}
-        </button>
-      )}
+      {/* Zero-height flow anchor: the pill floats over the message list, just
+          above the typing indicator / composer, without shifting the scroll
+          area. Floating Actions layer — DESIGN §11.23. */}
+      <div className={styles.bottomFloat}>
+        {!inSearch && (newMessagesCount > 0 || !atBottom) && (
+          <button
+            type="button"
+            className={`${styles.newMessagesBar}${newMessagesCount === 0 ? ` ${styles.newMessagesCompact}` : ''}`}
+            onClick={scrollToBottom}
+            aria-label={newMessagesCount > 0 ? newMessagesLabel : t('chat.scrollToLatest')}
+          >
+            <i className="bx bx-chevron-down" aria-hidden />
+            {newMessagesCount > 0 && (
+              <>
+                <span className={styles.newMessagesText}>{newMessagesLabel}</span>
+                <span className={styles.newMessagesCount} aria-hidden>{newMessagesCount}</span>
+              </>
+            )}
+          </button>
+        )}
+        <span className={styles.srOnly} role="status" aria-live="polite">
+          {!inSearch && newMessagesCount > 0 ? newMessagesLabel : ''}
+        </span>
+      </div>
 
       <div className={styles.typingFloat}>
         {(mode === 'group' ? (typingUsers && typingUsers.size > 0) : room.partnerTyping) && (

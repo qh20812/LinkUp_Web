@@ -1,15 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage } from '../../../types'
+import type { CallHistoryItem, ChatMessage } from '../../../types'
 
 export interface UseChatScrollOptions {
-  messagesLength: number
-  callHistoryLength: number
+  /** Conversation key — switching chats resets the arrival tracker. */
+  chatId: string | null
+  messages: ChatMessage[]
+  callHistory: CallHistoryItem[]
   searchResults: ChatMessage[] | null
   loading: boolean
   loadingMore: boolean
   hasMore: boolean
+  myUserId: string
   loadMoreMessages: () => void
 }
 
@@ -17,6 +20,9 @@ export interface UseChatScrollReturn {
   scrollRef: React.RefObject<HTMLDivElement | null>
   timelineRef: React.RefObject<HTMLDivElement | null>
   newMessagesCount: number
+  /** True when the viewport sits (near) the newest row — drives the compact
+   *  "scroll to latest" chevron when no new message is waiting. */
+  atBottom: boolean
   scrollToBottom: () => void
   scrollToMessage: (messageId: string) => void
   highlightedMsgId: string | null
@@ -24,22 +30,30 @@ export interface UseChatScrollReturn {
   handleMessagesScroll: () => void
 }
 
+/** Distance from the bottom edge still considered "at the bottom". */
+const BOTTOM_THRESHOLD = 24
+
 export function useChatScroll({
-  messagesLength,
-  callHistoryLength,
+  chatId,
+  messages,
+  callHistory,
   searchResults,
   loading,
   loadingMore,
   hasMore,
+  myUserId,
   loadMoreMessages,
 }: UseChatScrollOptions): UseChatScrollReturn {
   const scrollRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const pinToBottomRef = useRef(true)
-  const prevTimelineLenRef = useRef(0)
   const programmaticScrollRef = useRef(false)
+  const seenIdsRef = useRef<Set<string>>(new Set())
+  const newestAtRef = useRef<number | null>(null)
+  const trackerChatRef = useRef<string | null>(null)
 
   const [newMessagesCount, setNewMessagesCount] = useState(0)
+  const [atBottom, setAtBottom] = useState(true)
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -47,21 +61,72 @@ export function useChatScroll({
     if (!scroller) return
     programmaticScrollRef.current = true
     scroller.scrollTop = scroller.scrollHeight
+    // Setting scrollTop to the current position fires no scroll event — clear
+    // the badge and the pin state here so both stay correct either way.
+    setNewMessagesCount(0)
+    setAtBottom(true)
   }, [])
+
+  // Reset the tracker when the conversation changes: ids and the newest
+  // timestamp of the previous chat must never count as arrivals in the new one.
+  // State resets via adjust-during-render (never setState inside an effect);
+  // the refs are reset by the counting effect below.
+  const [trackedChatId, setTrackedChatId] = useState(chatId)
+  if (trackedChatId !== chatId) {
+    setTrackedChatId(chatId)
+    setNewMessagesCount(0)
+    setAtBottom(true)
+  }
+
+  // Count only genuine arrivals: rows that were absent from the previous
+  // snapshot, newer than the previous newest row, and not sent by me. A
+  // length-based counter used to read loaded history (scroll up) and the
+  // user's own messages as "new".
+  useEffect(() => {
+    const chatChanged = trackerChatRef.current !== chatId
+    if (chatChanged) {
+      trackerChatRef.current = chatId
+      seenIdsRef.current = new Set()
+      newestAtRef.current = null
+      pinToBottomRef.current = true
+    }
+
+    const prevNewest = newestAtRef.current
+    const seen = seenIdsRef.current
+    const nextSeen = new Set<string>()
+    let newest = prevNewest ?? Number.NEGATIVE_INFINITY
+    let arrivals = 0
+
+    const consider = (id: string, at: number, mine: boolean) => {
+      nextSeen.add(id)
+      if (!Number.isFinite(at)) return
+      if (at > newest) newest = at
+      if (prevNewest === null || searchResults !== null) return
+      if (seen.has(id) || at <= prevNewest || mine) return
+      arrivals += 1
+    }
+
+    for (const msg of messages) {
+      consider(msg.id, new Date(msg.created_at).getTime(), msg.sender_id === myUserId)
+    }
+    for (const call of callHistory) {
+      consider(`call:${call.id}`, call.created_at, call.direction === 'outgoing')
+    }
+
+    seenIdsRef.current = nextSeen
+    newestAtRef.current = Number.isFinite(newest) ? newest : null
+
+    if (arrivals === 0) return
+    if (pinToBottomRef.current) {
+      scrollToBottom()
+    } else {
+      setNewMessagesCount((prev) => prev + arrivals)
+    }
+  }, [chatId, messages, callHistory, myUserId, searchResults, scrollToBottom])
 
   useEffect(() => {
     const el = timelineRef.current
     if (!el) return
-
-    const totalLen = messagesLength + callHistoryLength
-    if (totalLen !== prevTimelineLenRef.current && searchResults === null) {
-      if (pinToBottomRef.current) {
-        scrollToBottom()
-      } else {
-        setNewMessagesCount((prev) => prev + (totalLen - prevTimelineLenRef.current))
-      }
-    }
-    prevTimelineLenRef.current = totalLen
 
     const observer = new ResizeObserver(() => {
       if (pinToBottomRef.current && searchResults === null) {
@@ -70,19 +135,21 @@ export function useChatScroll({
     })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [messagesLength, callHistoryLength, searchResults, scrollToBottom])
+  }, [searchResults, scrollToBottom])
 
   const handleMessagesScroll = useCallback(() => {
     if (programmaticScrollRef.current) {
       programmaticScrollRef.current = false
       setNewMessagesCount(0)
+      setAtBottom(true)
       return
     }
     const el = scrollRef.current
     if (!el) return
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24
-    pinToBottomRef.current = atBottom
-    if (atBottom) setNewMessagesCount(0)
+    const atBottomNow = el.scrollTop + el.clientHeight >= el.scrollHeight - BOTTOM_THRESHOLD
+    pinToBottomRef.current = atBottomNow
+    setAtBottom(atBottomNow)
+    if (atBottomNow) setNewMessagesCount(0)
     if (!loading && !loadingMore && hasMore && el.scrollTop <= 48) {
       loadMoreMessages()
     }
@@ -101,6 +168,7 @@ export function useChatScroll({
     scrollRef,
     timelineRef,
     newMessagesCount,
+    atBottom,
     scrollToBottom,
     scrollToMessage,
     highlightedMsgId,

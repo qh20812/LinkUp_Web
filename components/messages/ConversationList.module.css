@@ -3,7 +3,10 @@
   flex-direction: column;
   height: calc(100% - var(--space-md) * 2);
   min-width: 0;
-  margin: var(--space-md) 0 var(--space-md) var(--space-md);
+  /* Inset 16px on all four sides so the sheet is centered in the list column
+     instead of hugging the chat pane (DESIGN §10). The gutter to the chat
+     surface adds to the chat header/composer's own 16px inset. */
+  margin: var(--space-md);
   background: var(--glass-ios-bg);
   backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
   -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
