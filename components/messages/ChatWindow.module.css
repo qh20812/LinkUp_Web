@@ -1572,25 +1572,22 @@
   border: none;
   border-radius: var(--radius-circle);
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: #fff;
+  color: var(--color-text-on-primary);
   font-size: 1.125rem;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(18, 165, 161, 0.35);
+  /* iOS sheen + token glow — no hardcoded halo, no per-theme override. */
+  box-shadow: var(--glass-ios-highlight), var(--glow-primary);
   transition: box-shadow 0.2s ease, transform 0.15s ease;
 }
 
 .sendBtn:hover:not(:disabled) {
-  box-shadow: 0 6px 18px rgba(18, 165, 161, 0.5);
+  box-shadow: var(--glass-ios-highlight), var(--glow-primary-hover);
   transform: translateY(-1px);
 }
 
 .sendBtn:active:not(:disabled) {
   transform: scale(0.94);
-}
-
-[data-theme="dark"] .sendBtn {
-  box-shadow: 0 4px 12px rgba(63, 191, 186, 0.3);
 }
 
 /* ── Composer character counter (near the 2000-rune server limit) ── */

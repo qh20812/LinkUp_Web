@@ -17,7 +17,8 @@
 }
 
 @supports not (backdrop-filter: blur(1px)) {
-  .panel {
+  .panel,
+  .actions {
     background: var(--color-card);
   }
 }
@@ -27,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .title {
@@ -47,17 +48,19 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: none;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-circle);
-  background: var(--color-bg-secondary);
+  background: var(--seg-track-bg);
   color: var(--color-text);
   font-size: 1.1rem;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .secondaryBtn:hover {
-  background: var(--color-border);
+  background: var(--color-primary-light);
+  border-color: transparent;
+  color: var(--color-primary);
 }
 
 .secondaryBtn:focus-visible {
@@ -74,20 +77,17 @@
   border: none;
   border-radius: var(--radius-circle);
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: #fff;
+  color: var(--color-text-on-primary);
   font-size: 1.25rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(18, 165, 161, 0.35);
+  /* iOS sheen + token glow — no hardcoded halo, no per-theme override. */
+  box-shadow: var(--glass-ios-highlight), var(--glow-primary);
   transition: box-shadow 0.2s ease, transform 0.15s ease;
 }
 
 .newBtn:hover {
-  box-shadow: 0 6px 18px rgba(18, 165, 161, 0.5);
+  box-shadow: var(--glass-ios-highlight), var(--glow-primary-hover);
   transform: translateY(-1px);
-}
-
-[data-theme="dark"] .newBtn {
-  box-shadow: 0 4px 12px rgba(63, 191, 186, 0.3);
 }
 
 .newBtn:focus-visible {
@@ -102,9 +102,12 @@
   margin: 0 var(--space-md) var(--space-sm);
   padding: 0 var(--space-md);
   height: 40px;
-  border: 1px solid transparent;
+  /* Translucent track + hairline: the pill reads as a well in the glass sheet
+     instead of an opaque block pasted on it, and the fill stays put on focus
+     (a fill swap on focus was the only opaque step left in the flow). */
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
-  background: var(--color-bg-secondary);
+  background: var(--seg-track-bg);
   color: var(--color-text-secondary);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -112,7 +115,6 @@
 .search:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
-  background: var(--color-card);
 }
 
 .search input {
@@ -143,6 +145,10 @@
 .list {
   flex: 1;
   overflow-y: auto;
+  /* Own the scroll chain + a light rail so the sheet keeps its glass edge
+     instead of handing the scroll to the page behind it. */
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   padding-bottom: var(--space-sm);
 }
 
@@ -164,7 +170,9 @@
 }
 
 .row:hover {
-  background: var(--color-bg-secondary);
+  /* Ink wash, not an opaque block: the themed backdrop stays visible through
+     the glass sheet on hover (DESIGN §4 glass-on-glass). */
+  background: var(--wash-ink);
   box-shadow: var(--shadow-sm);
 }
 
@@ -236,6 +244,31 @@
   outline-offset: 2px;
 }
 
+/* Floating hover chrome = real iOS glass (DESIGN §10/§11): this cluster is the
+   one element that passes OVER row content, so the blur has something to frost
+   — in-flow children stay on track fills + hairlines, never a second blur.
+   Hover-capable pointers only: on touch the cluster would otherwise sit on
+   every row (there it stays the bare, low-opacity overlay below). */
+@media (hover: hover) {
+  .actions {
+    padding: 2px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    background: var(--glass-ios-bg);
+    backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+    box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
+  }
+
+  /* Only one cluster is ever visible (the hovered row), so the extra blur
+     layer is bounded to a single element; 38px keeps the pill compact over
+     the preview text while staying a comfortable pointer target. */
+  .actionBtn {
+    width: 38px;
+    height: 38px;
+  }
+}
+
 .avatar {
   position: relative;
   display: flex;
@@ -243,10 +276,11 @@
   justify-content: center;
   width: 40px;
   height: 40px;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-circle);
   overflow: visible;
   flex-shrink: 0;
-  background: var(--color-bg-secondary);
+  background: var(--seg-track-bg);
   color: var(--color-text-secondary);
   font-size: 1.25rem;
 }
@@ -389,7 +423,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--color-divider);
+  background: var(--glass-border);
 }
 
 /* Skeleton rows (sweep, never spinners/text) */
@@ -406,7 +440,7 @@
   height: 40px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--seg-track-bg) 25%, var(--wash-ink-strong) 50%, var(--seg-track-bg) 75%);
   background-size: 200% 100%;
   animation: sweep 1.5s ease-in-out infinite;
 }
@@ -421,7 +455,7 @@
 .skelLine {
   height: 12px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--seg-track-bg) 25%, var(--wash-ink-strong) 50%, var(--seg-track-bg) 75%);
   background-size: 200% 100%;
   animation: sweep 1.5s ease-in-out infinite;
 }

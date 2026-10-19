@@ -153,6 +153,17 @@ table {
   --glass-ios-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.25);
   --glass-ios-shadow: 0 8px 32px rgba(10, 31, 68, 0.12);
 
+  /* Primary glow (gradient buttons) — replaces the hand-rolled rgba halos.
+     color-mix resolves at use time, so the dark theme needs no override:
+     it inherits the dark --color-primary, exactly like the old dark rule. */
+  --glow-primary: 0 4px 12px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  --glow-primary-hover: 0 6px 18px color-mix(in srgb, var(--color-primary) 50%, transparent);
+
+  /* Ink washes — hovers/skeletons that sit ON a glass surface: they tint the
+     element without hiding the themed backdrop behind the sheet. */
+  --wash-ink: color-mix(in srgb, var(--color-text) 6%, transparent);
+  --wash-ink-strong: color-mix(in srgb, var(--color-text) 10%, transparent);
+
   /* Segmented control (NavControls language toggle) — iOS-style elevated thumb */
   --seg-track-bg: color-mix(in srgb, var(--color-bg-secondary) 85%, transparent);
   --seg-thumb-bg: #ffffff;

@@ -163,9 +163,28 @@ function getTimelineSenderId(item: GroupedTimelineItem, myUserId: string): strin
   const msg = item.msg
   if (!msg) return null
   if (msg.message_category === 'system' || msg.sender_id === 'SYSTEM') return `system:${msg.id}`
-  return msg.sender_id
-}
-
+  return msg.sender_id
+}
+
+// Voice notes are their own surface family (DESIGN §11.5/§11.17): a run of voice
+// notes forms its own sender group, so it never shares a group with the text /
+// media / call rows around it. The block's FIRST note carries the avatar (and the
+// sender-name line in group chats); the rest of the block keeps the 12px
+// `.voiceCont` spacing without repeating the avatar.
+function isVoiceTimelineItem(item: GroupedTimelineItem): boolean {
+  if (item.kind !== 'message' || !item.msg) return false
+  return isVoiceMessage(item.msg)
+}
+
+// Group key for the LEADING edge only. Voice rows are keyed apart from the
+// remaining rows of the same sender, so a voice block always starts (and ends) a
+// visual group, while consecutive voice notes still merge into one block.
+function getTimelineGroupKey(item: GroupedTimelineItem, myUserId: string): string | null {
+  const sender = getTimelineSenderId(item, myUserId)
+  if (sender === null) return null
+  return isVoiceTimelineItem(item) ? `${sender}::voice` : sender
+}
+
 function isSystemTimelineItem(item: GroupedTimelineItem): boolean {
   if (item.kind !== 'message' || !item.msg) return false
   const msg = item.msg
@@ -180,29 +199,32 @@ function isSystemTimelineItem(item: GroupedTimelineItem): boolean {
   )
 }
 
-// True when this item starts a new visual sender group: sender changed,
-// a system row interrupts, or the previous item is a system row.
-function isFirstInSenderGroup(
-  item: GroupedTimelineItem,
-  prev: GroupedTimelineItem | undefined,
-  myUserId: string,
-): boolean {
-  if (!prev) return true
-  if (isSystemTimelineItem(item) || isSystemTimelineItem(prev)) return true
-  return getTimelineSenderId(prev, myUserId) !== getTimelineSenderId(item, myUserId)
-}
-
-// Mirror of isFirstInSenderGroup for the trailing edge: read receipts
-// (seen ticks) render only here, so a run of my messages carries exactly
-// one ticks row instead of one per bubble.
-function isLastInSenderGroup(
-  item: GroupedTimelineItem,
-  next: GroupedTimelineItem | undefined,
-  myUserId: string,
-): boolean {
-  if (!next) return true
-  if (isSystemTimelineItem(item) || isSystemTimelineItem(next)) return true
-  return getTimelineSenderId(item, myUserId) !== getTimelineSenderId(next, myUserId)
+// True when this item starts a new visual sender group: sender (or surface
+// family — voice vs the rest) changed, a system row interrupts, or the previous
+// item is a system row.
+function isFirstInSenderGroup(
+  item: GroupedTimelineItem,
+  prev: GroupedTimelineItem | undefined,
+  myUserId: string,
+): boolean {
+  if (!prev) return true
+  if (isSystemTimelineItem(item) || isSystemTimelineItem(prev)) return true
+  return getTimelineGroupKey(prev, myUserId) !== getTimelineGroupKey(item, myUserId)
+}
+
+// Trailing edge — deliberately sender-only, so it is NOT the exact mirror of
+// isFirstInSenderGroup: read receipts (seen ticks) mark the end of the whole
+// sender run, not the end of each surface block. A run like
+// [text, voice, voice] therefore keeps a single ticks row, and
+// [voice, voice, text] puts it under the text rather than under the last voice.
+function isLastInSenderGroup(
+  item: GroupedTimelineItem,
+  next: GroupedTimelineItem | undefined,
+  myUserId: string,
+): boolean {
+  if (!next) return true
+  if (isSystemTimelineItem(item) || isSystemTimelineItem(next)) return true
+  return getTimelineSenderId(item, myUserId) !== getTimelineSenderId(next, myUserId)
 }
 
 export default function ChatWindow({

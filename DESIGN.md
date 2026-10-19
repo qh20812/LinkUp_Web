@@ -285,6 +285,9 @@ Clearer, deeper iOS-style glass for surfaces that sit over rich themed backdrops
 - Readability is non-negotiable: small dense text under iOS glass gets its own readability overlay (stronger than under standard glass) — never compensate by raising the fill (that just recreates standard glass)
 - Fallback `@supports not (backdrop-filter)` → solid `--color-card`
 - Performance: `24px` blur costs more GPU than `14px` — if a surface lags on low-end devices, drop to `20px` before touching structure. `prefers-reduced-motion` does not affect blur (not motion)
+- **Glass-on-glass:** children *in flow* inside a glass sheet never get their own `backdrop-filter` — use `--seg-track-bg` wells, `--glass-border` hairlines, `--wash-ink`/`--wash-ink-strong` washes and `--color-primary-light` highlights instead. A second blur is only legitimate for chrome that *floats over* content (a hover cluster passing over rows, popovers, the hover toolbar): there the blur has something to frost
+- **Shared support tokens** (declared in `:root` only — they reference theme-aware colours, so `color-mix` resolves per element and no dark override is needed): `--glow-primary` / `--glow-primary-hover` = the gradient-button halo (`color-mix` primary `35%`/`50%`), replacing hand-rolled `rgba(18,165,161,…)` + its `[data-theme="dark"]` twin; `--wash-ink` / `--wash-ink-strong` = `color-mix` text `6%`/`10%` translucent ink for hovers and skeletons that must not hide the backdrop
+- **Messaging canvas:** the workspace `.page` carries a mesh canvas (`--color-bg-secondary` + two faint `--color-primary` radial washes — same recipe as the auth form pane) so the conversation-list glass has a backdrop when no per-chat background is set; the workspace backdrop layer covers it whenever a background exists
 
 ### Dropdown / Popover (nav popovers)
 
@@ -859,8 +862,8 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 **Purpose:** Focused private/group communication. Conversation-first experience (premium minimal glass — same language as Profile).
 **Layout:** Conversation List + Chat Window (Track 5)
-**Conversation List (floating glass panel):** panel = `--glass-bg-strong` + blur + `--glass-border` + `radius-lg` inset `16px` on all four sides — centered in the list column, never flush against the chat pane (its gutter adds to the chat header/composer's own inset) — floating sheet on mobile; never a one-sided inset; search pill (`radius-pill`, `:focus-within` primary border + ring); rows = inset `radius-md` cards (hover lift + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal (always visible on touch, `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint); previews show the latest message only — group rows drop the member count (kept as fallback when empty) with a `Bạn:`/`Tên:` sender prefix; list payloads are trimmed (no `type`/`message_category`), so preview detection is content-based (invite-JSON sniff, `key|actorId` prefix) — raw ids and raw JSON never surface
-**Chat Window:** header = floating inset glass bar (`margin` + `radius-lg` + `--glass-bg-strong` + blur, circular glass action buttons) over scrolling messages — never blur over a solid surface; bubbles own = `135deg primary→primary-hover` gradient + soft glow + 16px/6px tail, theirs = elevated surface + `shadow-sm`; continuation bubbles tighten the top inner corner (`6px`); read state = `Đã gửi` muted / `Đã xem` primary text below the own bubble (last-in-group only); sending = dimmed bubble (`0.7`) + `Đang gửi…`; group invites render as glass cards aligned with other bubbles (parent provides avatar/row chrome); reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); floating chrome (hover toolbar, reaction/⋯ popovers, detail sidebar, timestamp chip, system pill, emoji picker) is glass (`--glass-bg-strong` + blur + `--glass-border`); in-flow strips (search, pinned bar) stay solid; the new-message pill is a floating iOS-glass element — never a solid fill (§11.20); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
+**Conversation List (floating glass panel):** panel = `--glass-ios-bg` + `blur(--glass-ios-blur) saturate(--glass-ios-saturate)` + `--glass-border` + `radius-lg` inset `16px` on all four sides — centered in the list column, never flush against the chat pane (its gutter adds to the chat header/composer's own inset) — floating sheet on mobile; never a one-sided inset; search pill (`radius-pill`, `--seg-track-bg` well + `--glass-border`, fill never swaps on focus — `:focus-within` is primary border + `primary-light` ring); header action buttons = 36px circular glass chips (`--seg-track-bg` + `--glass-border`, hover `primary-light` wash + primary icon); rows = inset `radius-md` cards (hover = `--wash-ink` + `shadow-sm`, active = `primary-light` wash + 3px primary left bar); avatar = `--seg-track-bg` chip + `--glass-border` hairline; unread = name `700` + primary time + 8px primary dot (derived from `seen_by`, never fake counts); pin/mute/archive hover-reveal — real iOS-glass cluster on hover devices, bare `0.4`-opacity overlay on touch (§11.39), `aria-label` required); section labels = Small caption with hairline rule (never all-caps blocks); new-chat button = turquoise gradient + glow; loading = sweep skeleton rows; empty = composed (64px primary-wash circle + title + hint); previews show the latest message only — group rows drop the member count (kept as fallback when empty) with a `Bạn:`/`Tên:` sender prefix; list payloads are trimmed (no `type`/`message_category`), so preview detection is content-based (invite-JSON sniff, `key|actorId` prefix) — raw ids and raw JSON never surface
+**Chat Window:** header = floating inset glass bar (`margin` + `radius-lg` + `--glass-bg-strong` + blur, circular glass action buttons) over scrolling messages — never blur over a solid surface; bubbles own = `135deg primary→primary-hover` gradient + soft glow + 16px/6px tail, theirs = elevated surface + `shadow-sm`; continuation bubbles tighten the top inner corner (`6px`); voice notes form their own group block — avatar (+ sender-name line in groups) on the block's first note, `12px` inside the block, ticks stay at the end of the whole sender run (§11.17); read state = `Đã gửi` muted / `Đã xem` primary text below the own bubble (last-in-group only); sending = dimmed bubble (`0.7`) + `Đang gửi…`; group invites render as glass cards aligned with other bubbles (parent provides avatar/row chrome); reactions overlap the bubble edge (`-10px`, card + `shadow-sm`); floating chrome (hover toolbar, reaction/⋯ popovers, detail sidebar, timestamp chip, system pill, emoji picker) is glass (`--glass-bg-strong` + blur + `--glass-border`); in-flow strips (search, pinned bar) stay solid; the new-message pill is a floating iOS-glass element — never a solid fill (§11.20); date separator = floating glass pill; load-more = skeleton dots (never spinners); empty = composed (primary-wash circle + title + E2E hint)
 **Composer:** floating glass pill (`radius-20`, blur, `shadow`) with borderless input in a `bg-secondary` pill track (`:focus-within` ring); action icons 40px circle hover `primary-light`; send = gradient + glow with press scale; attachment bar = elevated card
 **Backgrounds:** solid/gradient palettes restricted to the brand family (turquoise/teal/navy first); picker tabs = segmented pills; the workspace backdrop follows the active conversation (visible behind the list pane, cross-fades on switch) while list/header/composer/pills use the iOS glass variant (§4); readability scrim auto-adapts to theme luminance with a per-chat strength slider (30–150, server-synced)
 **Messaging MUST follow the Messaging Design System defined in Section 11.**
@@ -1039,6 +1042,10 @@ A new group starts when:
 
 Grouping is sender-based across timeline kinds: consecutive text / call / `group_call` rows from the same sender form one visual group (one top-aligned avatar, one sender-name line). Group membership ignores `kind` — only sender identity (own id vs other-user id vs caller id), date breaks, and system rows matter. Read receipts render only on the last item of a group.
 
+**Voice notes are their own surface family.** A run of voice notes forms its own sender group, so the `12px` block separation inside that run (§11.17, `.voiceCont`) never glues it to the text / media / call rows around it. A voice note that follows a non-voice row from the same sender therefore **starts a new group** — it renders the row avatar (§11.6) and the sender-name line in group chats — while the 2nd..nth voice note of the same run stays a continuation (no avatar, `34px` `avatarSpacer`, `12px` spacing, no repeated name line). Symmetrically, a text/media row right after a voice block starts a new group again. The key is the surface family (voice vs the rest), applied by `getTimelineGroupKey` / `isFirstInSenderGroup` — never by `msg.id`, so consecutive voice notes remain one compact block instead of one avatar each.
+
+**Read receipts are the deliberate exception.** `isLastInSenderGroup` stays sender-only, so ticks mark the end of the whole sender run (one ticks row per run, never per block): `[text, voice, voice]` keeps a single `Đã xem` line, and `[voice, voice, text]` puts it under the text.
+
 ### 11.6 Incoming Message Group
 
 Incoming messages MUST use this pattern:
@@ -1057,6 +1064,7 @@ Incoming messages MUST use this pattern:
 - Never vertically centered against the entire group
 - Never repeated for every message
 - Never placed at the bottom of the group
+- Presence is decided by **group membership** (§11.5), never by the row's surface or spacing: a voice note opens its own group — avatar + (group chats) sender-name line — when it follows a non-voice row from the same sender, and stays a continuation when it follows another voice note of the same block (no avatar, `34px` `avatarSpacer` keeping the bubble column aligned)
 
 **CSS concept:**
 ```css
@@ -1213,8 +1221,10 @@ time in `elapsed / total` form (`0:06 / 0:23`, tabular-nums); at rest only the t
   while decoding, deterministic hash only as the error fallback. Perceptual
   sqrt curve with a `0.08` floor keeps quiet passages visible; 48 bars playback /
   56 monitor; bars shrink (`min 2px`) with `overflow: hidden` on narrow rows —
-  never overflow the bubble. Consecutive voice rows never merge — 12px block
-  separation even from the same sender. Each recording gets a unique cache key (never a
+  never overflow the bubble. Consecutive voice notes inside one run stay one compact block
+  (`12px` `.voiceCont` separation — never glued at the 2–4px within-group gap), but the run
+  itself is its own sender group (§11.5): the block's FIRST note carries the row avatar
+  (§11.6) and the sender-name line in group chats, the rest keep the `34px` `avatarSpacer`. Each recording gets a unique cache key (never a
   shared constant); an invalidation helper exists for URL swaps.
 - **Duration precedence:** explicit prop → decoded `AudioBuffer.duration`
   (immune to the webm Infinity-metadata bug) → element metadata. Never persist
@@ -1433,6 +1443,20 @@ All interactive controls require: accessible labels, keyboard support, visible f
   - On `chat:e2e_key_updated` for the open chat → refresh + retry all pending `decrypt_failed` messages
   - Retry pending messages whenever E2E status → `ready` or local keys update — never once-guard per chat
   - The "cannot decrypt" placeholder is a retry button (`chat.retryDecrypt`), the last-resort net
+
+### 11.39 Conversation List
+
+The panel is iOS glass (§4); everything **inside** it is in-flow material — track wells, hairlines, washes. Only the hover cluster blurs: no nested `backdrop-filter` anywhere else (§4 glass-on-glass).
+
+- **Panel:** `--glass-ios-bg` + `blur(--glass-ios-blur)` `saturate(--glass-ios-saturate)` + `--glass-border` + `radius-lg`, inset `16px` on all four sides (centered in the list column), `--glass-ios-highlight` + `--glass-ios-shadow`. `@supports not (backdrop-filter)` → `--color-card`, shared with the action cluster
+- **Header / section rules:** hairline `--glass-border` — never `--color-border`/`--color-divider`, which read as a seam cutting across the sheet
+- **Header icon buttons:** 36px circles, `--seg-track-bg` + `--glass-border`, hover = `--color-primary-light` wash + `--color-primary` icon (§4 circular-sibling recipe). The new-chat button stays the gradient-accent exception: `--color-text-on-primary` + `--glass-ios-highlight` + `--glow-primary` (hover `--glow-primary-hover`)
+- **Search pill:** `radius-pill`, `--seg-track-bg` well + `--glass-border`; `:focus-within` = primary border + `0 0 0 3px --color-primary-light` ring with the fill unchanged (an opaque `--color-card` swap on focus pastes a solid block onto the sheet)
+- **Rows:** inset `radius-md` cards; hover = `--wash-ink` (translucent ink — an opaque `--color-bg-secondary` hides the backdrop and breaks the glass), active = `--color-primary-light` + 3px primary left bar; unread = `700` name + primary time + 8px primary dot (from `seen_by`, never fake counts)
+- **Avatar:** `--seg-track-bg` chip + 1px `--glass-border` hairline so photo rows and glyph-fallback rows share one material
+- **Action cluster (pin/mute/archive):** the only element that floats *over* row content, so it is real iOS glass — `--glass-ios-bg` + blur + `--glass-border` + `radius-pill` + `--glass-ios-shadow`, 38px buttons, `@media (hover: hover)` only; on touch it stays the bare `0.4`-opacity overlay (a permanent pill on every row would be worse). One cluster is visible at a time ⇒ at most one extra blur layer. No fade mask: `mask-image` over `backdrop-filter` is unreliable in Chromium/Safari
+- **List:** `overscroll-behavior: contain` + `scrollbar-width: thin` — the sheet owns its scroll chain. Loading = translucent sweep skeleton rows (`--seg-track-bg` ↔ `--wash-ink-strong`), never spinners; sweep disabled under `prefers-reduced-motion`
+- **Canvas:** with no per-chat background the workspace `.page` mesh canvas (§4) is the backdrop the panel blurs; the workspace backdrop layer covers it whenever a background exists (§10 Backgrounds)
 
 ---
 
