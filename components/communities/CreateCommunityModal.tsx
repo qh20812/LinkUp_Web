@@ -10,6 +10,10 @@ import styles from './CreateCommunityModal.module.css'
 
 type Privacy = 'public' | 'invitation_only'
 
+// Phải khớp với giới hạn ảnh của server (validations.MediaValidation.MaxImageSize).
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024
+const MAX_IMAGE_LABEL = '20 MB'
+
 interface CreateCommunityModalProps {
   open: boolean
   onClose: () => void
@@ -37,6 +41,14 @@ export default function CreateCommunityModal({ open, onClose }: CreateCommunityM
   const handleBgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      e.target.value = ''
+      toast({
+        type: 'error',
+        title: t('communities.imageTooLarge', { max: MAX_IMAGE_LABEL }),
+      })
+      return
+    }
     setBgFile(file)
     const reader = new FileReader()
     reader.onload = () => setBgPreview(reader.result as string)
@@ -52,6 +64,14 @@ export default function CreateCommunityModal({ open, onClose }: CreateCommunityM
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      e.target.value = ''
+      toast({
+        type: 'error',
+        title: t('communities.imageTooLarge', { max: MAX_IMAGE_LABEL }),
+      })
+      return
+    }
     setAvatarFile(file)
     const reader = new FileReader()
     reader.onload = () => setAvatarPreview(reader.result as string)
@@ -180,6 +200,10 @@ export default function CreateCommunityModal({ open, onClose }: CreateCommunityM
             />
           </div>
         </div>
+
+        <p className={styles.imageHint}>
+          {t('communities.imageSizeHint', { max: MAX_IMAGE_LABEL })}
+        </p>
 
         {/* Name */}
         <div className={styles.field}>

@@ -39,9 +39,10 @@ function SkeletonRow() {
 }
 
 export default function CommunityMemberList({ communityID, isAdmin = false }: CommunityMemberListProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const router = useRouter()
   const { toast } = useToast()
+  const locale = language === 'en' ? 'en-GB' : 'vi-VN'
 
   const { data, isLoading, mutate } = useSWR<{ members: CommunityMember[] }>(
     `/communities/${communityID}/members`,
@@ -118,7 +119,19 @@ export default function CommunityMemberList({ communityID, isAdmin = false }: Co
             className={styles.avatar}
           />
           <div className={styles.info}>
-            <div className={styles.name}>{member.display_name}</div>
+            <div className={styles.nameRow}>
+              <span className={styles.name}>{member.display_name}</span>
+              {member.badge_type && (
+                <span className={styles.topBadge}>
+                  <i className="bx bxs-star" aria-hidden /> {t('contribution.topContributor')}
+                </span>
+              )}
+            </div>
+            <div className={styles.meta}>
+              {t('contribution.memberScore', {
+                score: (member.contribution_score ?? 0).toLocaleString(locale),
+              })}
+            </div>
           </div>
           <span
             className={`${styles.roleBadge} ${ROLE_BADGE_CLASS[member.role] ?? styles.roleMember}`}

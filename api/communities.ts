@@ -122,7 +122,7 @@ export const createInviteCode = (communityID: string, maxUses?: number, expiresA
   })
 
 export const listInviteCodes = (communityID: string) =>
-  request<{ invite_codes: CommunityInviteCode[] }>(`/communities/${communityID}/invite-codes`)
+  request<CommunityInviteCode[]>(`/communities/${communityID}/invite-codes`)
 
 export const deactivateInviteCode = (communityID: string, codeID: string) =>
   request<{ message: string }>(`/communities/${communityID}/invite-codes/${codeID}`, {

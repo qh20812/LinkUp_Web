@@ -92,4 +92,18 @@ describe('CommunityHeader', () => {
     const avatars = screen.getAllByAltText(community.name)
     expect(avatars.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('shows the report button for non-creators', () => {
+    const community = buildCommunityDetail({ membership_status: 'member' })
+    renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
+
+    expect(screen.getByRole('button', { name: /báo cáo|report/i })).toBeInTheDocument()
+  })
+
+  it('hides the report button for the community creator', () => {
+    const community = buildCommunityDetail({ membership_status: 'creator' })
+    renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
+
+    expect(screen.queryByRole('button', { name: /báo cáo|report/i })).not.toBeInTheDocument()
+  })
 })

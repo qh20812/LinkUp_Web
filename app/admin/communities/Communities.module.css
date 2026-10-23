@@ -669,6 +669,19 @@
   position: relative;
 }
 
+.mediaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.mediaActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .detailAvatarLarge {
   width: 80px;
   height: 80px;

@@ -90,6 +90,7 @@ export default function ReportsPage() {
        case 'post': return ['cancel', 'hide']
        case 'user': return ['cancel', 'ban']
        case 'comment': return ['cancel', 'hide']
+       case 'community': return ['cancel', 'remove_avatar', 'remove_background', 'hide']
        default: return ['cancel']
      }
    }
@@ -134,6 +135,7 @@ export default function ReportsPage() {
       user: t('reports.user'),
       post: t('reports.post'),
       comment: t('reports.comment'),
+      community: t('reports.community'),
     }
     return map[type] ?? type
   }
@@ -144,7 +146,43 @@ export default function ReportsPage() {
     if (report.target_post_id) return report.target_post_id
     if (report.target_user_id) return report.target_user_id
     if (report.target_comment_id) return report.target_comment_id
+    if (report.target_community_id) return report.target_community_id
     return '-'
+  }
+
+  const reviewActionLabel = (report: AdminReportListItem, action: string): string => {
+    switch (action) {
+      case 'cancel':
+        return t('reports.actionCancel')
+      case 'hide':
+        return report.target_type === 'community' ? t('communities.hideCommunity') : t('reports.actionHide')
+      case 'ban':
+        return t('reports.actionBan')
+      case 'remove_avatar':
+        return t('reports.actionRemoveAvatar')
+      case 'remove_background':
+        return t('reports.actionRemoveBackground')
+      default:
+        return action
+    }
+  }
+
+  const reviewActionDesc = (report: AdminReportListItem, action: string): string => {
+    switch (action) {
+      case 'cancel':
+        return t('reports.rejected')
+      case 'hide':
+        if (report.target_type === 'community') return t('communities.hideCommunity')
+        return report.target_type === 'comment' ? t('posts.hideComment') : t('posts.hidePost')
+      case 'ban':
+        return t('users.banUser')
+      case 'remove_avatar':
+        return t('communities.removeAvatar')
+      case 'remove_background':
+        return t('communities.removeBackground')
+      default:
+        return ''
+    }
   }
 
   const resetReview = () => {
@@ -224,6 +262,7 @@ export default function ReportsPage() {
             <option value="user">{t('reports.user')}</option>
             <option value="post">{t('reports.post')}</option>
             <option value="comment">{t('reports.comment')}</option>
+            <option value="community">{t('reports.community')}</option>
           </select>
         </div>
       </div>
@@ -354,7 +393,7 @@ export default function ReportsPage() {
         {detailLoading && <p style={{ textAlign: 'center', padding: '24px 0' }}>{t('common.loading')}</p>}
         {detailTarget && !detailLoading && (
           <>
-            {(detailTarget.target_post || detailTarget.target_comment || detailTarget.target_user) && (
+            {(detailTarget.target_post || detailTarget.target_comment || detailTarget.target_user || detailTarget.target_community) && (
               <div className={styles.previewBlock}>
                 <span className={styles.detailLabel}>{t('reports.targetContent')}</span>
                 {detailTarget.target_post && (
@@ -464,6 +503,49 @@ export default function ReportsPage() {
                     </a>
                   </div>
                 )}
+                {detailTarget.target_community && (
+                  <div className={styles.previewCard}>
+                    <div className={styles.previewAuthor}>
+                      <span className={styles.previewAvatar}>
+                        {detailTarget.target_community.avatar_uri ? (
+                          <ExternalImage src={detailTarget.target_community.avatar_uri} alt="" />
+                        ) : (
+                          <i className="bx bx-group" />
+                        )}
+                      </span>
+                      <span className={styles.previewMeta}>
+                        <strong>{detailTarget.target_community.name}</strong>
+                        <span className={styles.previewSub}>
+                          @{detailTarget.target_community.owner_username} · {formatDate(detailTarget.target_community.created_at)}
+                        </span>
+                      </span>
+                      <span className={`${styles.badge} ${styles.badgeTargetType}`}>
+                        {detailTarget.target_community.status}
+                      </span>
+                    </div>
+                    {detailTarget.target_community.description && (
+                      <p className={styles.previewExcerpt}>{detailTarget.target_community.description}</p>
+                    )}
+                    {(detailTarget.target_community.avatar_uri || detailTarget.target_community.background_uri) && (
+                      <div className={styles.previewMedia}>
+                        {detailTarget.target_community.avatar_uri && (
+                          <ExternalImage src={detailTarget.target_community.avatar_uri} alt="" className={styles.previewThumb} />
+                        )}
+                        {detailTarget.target_community.background_uri && (
+                          <ExternalImage src={detailTarget.target_community.background_uri} alt="" className={styles.previewThumb} />
+                        )}
+                      </div>
+                    )}
+                    <a
+                      className={styles.viewFullLink}
+                      href={`/communities/${detailTarget.target_community.community_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <i className="bx bx-link-external" /> {t('reports.viewFull')}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
             <div className={styles.detailRow}>
@@ -554,10 +636,10 @@ export default function ReportsPage() {
                     onChange={() => { setReviewAction(action); setReviewReason('') }}
                   />
                   <span className={styles.radioLabel}>
-                    {t(`reports.action${action.charAt(0).toUpperCase()}${action.slice(1)}`)}
+                    {reviewActionLabel(reviewTarget, action)}
                   </span>
                   <span className={styles.radioDesc}>
-                    {action === 'cancel' ? t('reports.rejected') : action === 'hide' ? (reviewTarget.target_type === 'comment' ? t('posts.hideComment') : t('posts.hidePost')) : t('users.banUser')}
+                    {reviewActionDesc(reviewTarget, action)}
                   </span>
                 </label>
               ))}

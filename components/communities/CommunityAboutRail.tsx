@@ -8,7 +8,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import styles from './CommunityAboutRail.module.css'
 import type { CommunityDetailResponse, CommunityMember, CommunityRule } from '../../types'
 
-export type CommunityDetailTab = 'posts' | 'members' | 'rules' | 'manage'
+export type CommunityDetailTab = 'posts' | 'challenges' | 'leaderboard' | 'members' | 'rules' | 'manage'
 
 interface CommunityAboutRailProps {
   community: CommunityDetailResponse

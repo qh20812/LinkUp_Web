@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity } from '../../../api/admin'
+import { getCommunity, getCommunityLogs, hideCommunity, unhideCommunity, archiveCommunity, unarchiveCommunity, warnCommunity, deleteCommunity, removeCommunityMedia } from '../../../api/admin'
 import type { AdminCommunityListItem, AdminCommunityDetailResponse, AdminModerationLogItem, AdminCommunityListResponse } from '../../../types'
 import ExternalImage from '../../../components/ExternalImage'
 import styles from './Communities.module.css'
@@ -30,6 +30,10 @@ export default function CommunitiesPage() {
   const [actionReason, setActionReason] = useState('')
   const [warnMessage, setWarnMessage] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+
+  const [mediaAction, setMediaAction] = useState<{ target: 'avatar' | 'background' } | null>(null)
+  const [mediaReason, setMediaReason] = useState('')
+  const [mediaSubmitting, setMediaSubmitting] = useState(false)
 
   const [detailTarget, setDetailTarget] = useState<AdminCommunityListItem | null>(null)
   const [detailData, setDetailData] = useState<AdminCommunityDetailResponse | null>(null)
@@ -176,6 +180,7 @@ export default function CommunitiesPage() {
       suspend: t('communities.archiveCommunity'),
       warn: t('communities.warnCommunity'),
       delete: t('communities.deleteCommunity'),
+      remove_media: t('communities.removeMedia'),
     }
     return map[action] ?? action
   }
@@ -190,6 +195,7 @@ export default function CommunitiesPage() {
       suspend: styles.badgeArchived,
       warn: styles.badgeWarning,
       delete: styles.badgeDanger,
+      remove_media: styles.badgeDanger,
     }
     return map[action] ?? ''
   }
@@ -266,6 +272,32 @@ export default function CommunitiesPage() {
     setActionReason('')
     setWarnMessage('')
     closeMenu()
+  }
+
+  const closeMediaAction = () => {
+    setMediaAction(null)
+    setMediaReason('')
+  }
+
+  const handleRemoveMedia = async () => {
+    if (!mediaAction || !detailTarget) return
+    setMediaSubmitting(true)
+    try {
+      await removeCommunityMedia(detailTarget.id, {
+        target: mediaAction.target,
+        reason: mediaReason,
+      })
+      toast({ title: t('communities.removeMediaSuccess'), type: 'success' })
+      closeMediaAction()
+      invalidate('/admin/communities')
+      // Ảnh đã bị gỡ ở server — tải lại chi tiết để modal phản ánh trạng thái mới.
+      const fresh = await getCommunity(detailTarget.id)
+      setDetailData(fresh)
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setMediaSubmitting(false)
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -557,6 +589,28 @@ export default function CommunitiesPage() {
                           {detailData.description && <div className={styles.detailDesc}>{detailData.description}</div>}
                         </div>
                       </div>
+                      {(detailData.avatar_uri || detailData.background_uri) && (
+                        <div className={styles.mediaActions}>
+                          {detailData.avatar_uri && (
+                            <button
+                              type="button"
+                              className={styles.btnDanger}
+                              onClick={() => { setMediaAction({ target: 'avatar' }); setMediaReason('') }}
+                            >
+                              <i className="bx bx-image-alt" /> {t('communities.removeAvatar')}
+                            </button>
+                          )}
+                          {detailData.background_uri && (
+                            <button
+                              type="button"
+                              className={styles.btnDanger}
+                              onClick={() => { setMediaAction({ target: 'background' }); setMediaReason('') }}
+                            >
+                              <i className="bx bx-image" /> {t('communities.removeBackground')}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className={styles.detailRow}>
                         <span className={styles.detailLabel}>{t('communities.creator')}</span>
                         <span className={styles.detailValue}>{detailData.creator_name}</span>
@@ -766,6 +820,47 @@ export default function CommunitiesPage() {
                 onClick={handleModerateAction}
               >
                 {actionLoading ? t('common.loading') : t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove avatar / background modal */}
+      {mediaAction && (
+        <div className={styles.overlay} onClick={closeMediaAction}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                {mediaAction.target === 'avatar' ? t('communities.removeAvatar') : t('communities.removeBackground')}
+              </h2>
+              <button className={styles.modalClose} onClick={closeMediaAction}>
+                <i className="bx bx-x" />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.warningText}>{t('communities.removeMediaHint')}</p>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>{t('communities.removeMediaReason')}</label>
+                <textarea
+                  className={styles.fieldTextarea}
+                  value={mediaReason}
+                  onChange={(e) => setMediaReason(e.target.value)}
+                  placeholder={t('communities.removeMediaReason')}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.btnCancel} onClick={closeMediaAction} disabled={mediaSubmitting}>
+                {t('common.cancel')}
+              </button>
+              <button
+                className={styles.btnDanger}
+                disabled={!mediaReason.trim() || mediaSubmitting}
+                onClick={handleRemoveMedia}
+              >
+                {mediaSubmitting ? t('common.loading') : t('common.confirm')}
               </button>
             </div>
           </div>

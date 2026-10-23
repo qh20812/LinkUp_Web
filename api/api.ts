@@ -65,6 +65,12 @@ export async function parseError(res: Response): Promise<ParsedError> {
   if (body && typeof body.message === 'string' && body.message) {
     return { code: '', message: body.message }
   }
+  // A reverse proxy (Next.js rewrite, nginx, Cloudflare) can reject an
+  // oversized body before it reaches the API, answering with 413 and a
+  // non-JSON body. Surface the same message the API would have returned.
+  if (res.status === 413) {
+    return { code: 'media.FILE_TOO_LARGE', message: resolveError('media.FILE_TOO_LARGE') }
+  }
   return { code: '', message: `HTTP ${res.status}` }
 }
 

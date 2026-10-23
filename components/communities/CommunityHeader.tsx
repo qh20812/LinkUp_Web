@@ -6,6 +6,7 @@ import styles from './CommunityHeader.module.css'
 import ExternalImage from '../ExternalImage'
 import JoinButton from './JoinButton'
 import JoinCommunityCodeModal from './JoinCommunityCodeModal'
+import ReportModal from '../ReportModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import type { CommunityDetailResponse } from '../../types'
 
@@ -29,6 +30,7 @@ export default function CommunityHeader({ community, onStatusChange }: Community
   const [coverError, setCoverError] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const [codeOpen, setCodeOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const showCover = !coverError && community.background_uri
   const isGuest = community.membership_status === 'none'
@@ -97,6 +99,17 @@ export default function CommunityHeader({ community, onStatusChange }: Community
               onStatusChange={onStatusChange}
               onRequestCode={() => setCodeOpen(true)}
             />
+            {community.membership_status !== 'creator' && (
+              <button
+                type="button"
+                className={styles.reportBtn}
+                onClick={() => setReportOpen(true)}
+                aria-label={t('report.menuReport')}
+                title={t('report.menuReport')}
+              >
+                <i className="bx bx-flag" aria-hidden />
+              </button>
+            )}
           </div>
         </div>
 
@@ -125,6 +138,13 @@ export default function CommunityHeader({ community, onStatusChange }: Community
         communityName={community.name}
         onClose={() => setCodeOpen(false)}
         onJoined={(status) => onStatusChange(status)}
+      />
+
+      <ReportModal
+        open={reportOpen}
+        targetType="community"
+        targetId={community.id}
+        onClose={() => setReportOpen(false)}
       />
     </div>
   )

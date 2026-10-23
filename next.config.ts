@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: process.env.FRONTEND_IP_URL ? [process.env.FRONTEND_IP_URL] : [],
   output: "standalone",
+  experimental: {
+    // The /api rewrite buffers request bodies before proxying them to the Go
+    // server. The 10MB default silently rejected larger uploads (community
+    // avatar/cover, post media) with an HTML 500, hiding the real error.
+    proxyClientMaxBodySize: "120mb",
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "inline",

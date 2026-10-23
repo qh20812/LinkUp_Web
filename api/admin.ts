@@ -12,7 +12,6 @@ import type {
   AdminReportDetailResponse,
   AdminReportReviewInput,
   AdminMediaListResponse,
-  AdminReviewMediaInput,
   AdminGroupListResponse,
   AdminGroupDetailResponse,
   AdminCommunityListResponse,
@@ -160,12 +159,6 @@ export const getFlaggedMedia = (page = 1, pageSize = 20, status?: string, keywor
   return request<AdminMediaListResponse>(`/admin/media/flagged?${params}`);
 };
 
-export const reviewMedia = (id: string, input: AdminReviewMediaInput) =>
-  request<{ message: string }>(`/admin/media/${id}/review`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-
 // Groups
 export const getGroups = (
   page = 1,
@@ -250,6 +243,16 @@ export const archiveCommunity = (id: string, input: AdminModerateInput) =>
 
 export const warnCommunity = (id: string, input: AdminWarnInput) =>
   request<{ message: string }>(`/admin/communities/${id}/warn`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+// Gỡ riêng ảnh đại diện / ảnh bìa của cộng đồng (không ẩn cả cộng đồng).
+export const removeCommunityMedia = (
+  id: string,
+  input: { target: "avatar" | "background"; reason?: string },
+) =>
+  request<{ message: string }>(`/admin/communities/${id}/media/remove`, {
     method: "POST",
     body: JSON.stringify(input),
   });

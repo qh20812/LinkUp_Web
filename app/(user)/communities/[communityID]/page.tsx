@@ -11,6 +11,8 @@ import CommunityFeed from '../../../../components/communities/CommunityFeed'
 import CommunityMemberList from '../../../../components/communities/CommunityMemberList'
 import CommunityRules from '../../../../components/communities/CommunityRules'
 import CommunityManageTab from '../../../../components/communities/CommunityManageTab'
+import CommunityChallenges from '../../../../components/communities/CommunityChallenges'
+import CommunityLeaderboard from '../../../../components/communities/CommunityLeaderboard'
 import CommunityAboutRail, { type CommunityDetailTab } from '../../../../components/communities/CommunityAboutRail'
 import JoinButton from '../../../../components/communities/JoinButton'
 import JoinCommunityCodeModal from '../../../../components/communities/JoinCommunityCodeModal'
@@ -19,7 +21,7 @@ import styles from './CommunityDetail.module.css'
 
 type Tab = CommunityDetailTab
 
-const VALID_TABS: Tab[] = ['posts', 'members', 'rules', 'manage']
+const VALID_TABS: Tab[] = ['posts', 'challenges', 'leaderboard', 'members', 'rules', 'manage']
 
 export default function CommunityDetailPage() {
   return (
@@ -114,6 +116,8 @@ function CommunityDetailContent() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'posts', label: t('communities.posts') },
+    { key: 'challenges', label: t('contribution.tabChallenges') },
+    { key: 'leaderboard', label: t('contribution.tabLeaderboard') },
     { key: 'members', label: t('communities.memberList') },
     { key: 'rules', label: t('communities.rules') },
   ]
@@ -184,6 +188,14 @@ function CommunityDetailContent() {
           </div>
           <CommunityAboutRail community={community} onGoTab={setTab} />
         </div>
+      ) : activeTab === 'challenges' ? (
+        <CommunityChallenges
+          communityID={communityID}
+          isMember={isMember}
+          canManage={isPrivileged}
+        />
+      ) : activeTab === 'leaderboard' ? (
+        <CommunityLeaderboard communityID={communityID} isMember={isMember} />
       ) : (
         <div className={styles.content}>
           {activeTab === 'members' && (

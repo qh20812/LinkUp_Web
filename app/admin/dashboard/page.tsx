@@ -51,7 +51,6 @@ interface DashboardData {
   total_shares: number
   total_active_bans: number
   pending_reports: number
-  flagged_media_count: number
   active_users_today: number
   users_change_percent: number
   posts_change_percent: number
@@ -178,7 +177,6 @@ export default function DashboardPage() {
       total_shares: raw.total_shares,
       total_active_bans: raw.total_active_bans,
       pending_reports: raw.pending_reports,
-      flagged_media_count: raw.flagged_media_count,
       active_users_today: raw.active_users_today,
       users_change_percent: raw.users_change_percent,
       posts_change_percent: raw.posts_change_percent,
@@ -286,10 +284,6 @@ export default function DashboardPage() {
         <div className={styles.alertItem}>
           <i className="bx bx-flag" style={{ color: 'var(--color-warning)' }} />
           {t('dashboard.pendingReports')}: {loading ? '—' : (data?.pending_reports ?? 0).toLocaleString()}
-        </div>
-        <div className={styles.alertItem}>
-          <i className="bx bx-image" style={{ color: 'var(--color-danger)' }} />
-          {t('dashboard.flaggedMedia')}: {loading ? '—' : (data?.flagged_media_count ?? 0).toLocaleString()}
         </div>
         <div className={styles.alertItem}>
           <i className="bx bx-block" style={{ color: 'var(--color-danger)' }} />

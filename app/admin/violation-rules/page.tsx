@@ -74,6 +74,7 @@ export default function ViolationRulesPage() {
       post: t('violationRules.scopePost'),
       comment: t('violationRules.scopeComment'),
       user: t('violationRules.scopeUser'),
+      community: t('violationRules.scopeCommunity'),
     }
     return map[scope] ?? scope
   }
@@ -355,6 +356,7 @@ export default function ViolationRulesPage() {
                 <option value="post">{t('violationRules.scopePost')}</option>
                 <option value="comment">{t('violationRules.scopeComment')}</option>
                 <option value="user">{t('violationRules.scopeUser')}</option>
+                <option value="community">{t('violationRules.scopeCommunity')}</option>
               </select>
             </div>
             <div className={styles.fieldGroup}>

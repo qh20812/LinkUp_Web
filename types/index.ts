@@ -378,7 +378,7 @@ export interface AdminHidePostInput {
 }
 
 // ===== Reports =====
-export type ReportTargetType = "post" | "comment" | "user";
+export type ReportTargetType = "post" | "comment" | "user" | "community";
 
 export interface ViolationRule {
   id: string;
@@ -431,6 +431,7 @@ export interface AdminReportListItem {
   target_user_id?: string
   target_post_id?: string
   target_comment_id?: string
+  target_community_id?: string
   report_type: string
   violation_rule_id?: string
   violation_rule_title?: string
@@ -451,6 +452,22 @@ export interface AdminReportDetailResponse extends AdminReportListItem {
   target_post?: AdminReportTargetPost
   target_comment?: AdminReportTargetComment
   target_user?: AdminReportTargetUser
+  target_community?: AdminReportTargetCommunity
+}
+
+export interface AdminReportTargetCommunity {
+  community_id: string
+  name: string
+  description: string
+  avatar_uri: string
+  background_uri: string
+  owner_id: string
+  owner_username: string
+  owner_display_name: string
+  owner_avatar_uri: string
+  status: string
+  privacy: string
+  created_at: string
 }
 
 export interface AdminReportTargetPost {
@@ -512,11 +529,6 @@ export interface AdminMediaListResponse {
   items: AdminMediaItem[]
   total: number
   page: number
-}
-
-export interface AdminReviewMediaInput {
-  action: string
-  reason: string
 }
 
 // ===== Groups =====
@@ -658,6 +670,88 @@ export interface CommunityInviteCode {
   expires_at: string | null
   is_active: boolean
   created_at: string
+}
+
+// ===== Contribution / Challenges =====
+export interface ContributionPolicy {
+  post_weight: number
+  comment_weight: number
+  reaction_weight: number
+  event_weight: number
+  top_contributor_threshold: number
+  moderator_promotion_threshold: number
+  auto_promote_enabled: boolean
+  badge_enabled: boolean
+}
+
+export interface ContributionSummary {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  valid_posts: number
+  quality_comments: number
+  positive_reactions: number
+  event_participations: number
+  contribution_score: number
+  badge_type: string | null
+  promoted_to_mod: boolean
+}
+
+export interface LeaderboardEntry {
+  rank: number
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  contribution_score: number
+  badge_type: string | null
+}
+
+export type ChallengeState = 'upcoming' | 'active' | 'ended' | 'cancelled'
+export type ChallengeStatus = 'active' | 'completed' | 'cancelled'
+
+export interface CommunityChallenge {
+  id: string
+  community_id: string
+  creator_id: string
+  creator_name: string
+  title: string
+  description: string
+  hashtag: string
+  points_per_post: number
+  start_date: string
+  end_date: string
+  max_participants?: number
+  status: string
+  state: ChallengeState
+  participants_count: number
+  joined: boolean
+  can_manage: boolean
+  daily_post_limit: number
+  daily_posts_awarded: number
+  created_at: string
+}
+
+export interface ChallengeParticipant {
+  user_id: string
+  display_name: string
+  avatar_uri: string
+  posts_count: number
+  total_points_earned: number
+  joined_at: string
+}
+
+export interface CreateChallengePayload {
+  title: string
+  description: string
+  hashtag: string
+  points_per_post: number
+  start_date: string
+  end_date: string
+  max_participants?: number
+}
+
+export interface UpdateChallengePayload extends Partial<CreateChallengePayload> {
+  status?: ChallengeStatus
 }
 
 export interface AdminCommunityDetailResponse {

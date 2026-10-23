@@ -92,7 +92,7 @@ The three layout groups are independent — they share no chrome components.
 | `/admin/users` | Done | Table, search, status filter, pagination, ban modal, detail modal |
 | `/admin/posts` | Done | Table, search, status filter, pagination, hide/reveal/status toggle |
 | `/admin/reports` | Done | Table, search, status/target-type filters, detail modal, review modal |
-| `/admin/media` | Done | Tabs (grouped/flagged/rejected), review modal, cleanup-rejected |
+| `/admin/media` | Done | Tabs (grouped/rejected), preview modal, cleanup-rejected |
 | `/admin/groups` | Done | Table, search, status filter, hide/unhide/archive/delete actions |
 | `/admin/communities` | Done | Table, search, status/privacy filters, actions, logs |
 | `/admin/notifications` | Done | List with read/unread filter, pagination, mark-read, preferences |
