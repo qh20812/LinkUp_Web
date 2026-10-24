@@ -377,6 +377,9 @@
   50% { opacity: 1; transform: scale(1.15); }
 }
 
+/* Empty-state container — deliberately transparent so the chat background
+   layer (z-index 0, `.chatBgLayer`) stays visible behind it. Painting an
+   opaque `--chat-bg` here covered the user's chosen background. */
 .empty {
   flex: 1;
   display: flex;
@@ -386,8 +389,36 @@
   gap: var(--space-sm);
   padding: var(--space-xl);
   color: var(--chat-text-muted);
-  background: var(--chat-bg);
   text-align: center;
+}
+
+/* Variant for the "select a conversation" placeholder: there is no chat
+   background behind it (`.windowPane` is opaque), so keep the soft surface. */
+.emptyPane {
+  background: var(--chat-bg);
+}
+
+/* Floating glass card so the empty-state copy stays readable over any chat
+   background (solid/gradient/image) while the backdrop remains visible. */
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: 340px;
+  padding: var(--space-lg) 28px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .emptyCard {
+    background: var(--color-card);
+  }
 }
 
 .emptyIcon {
@@ -417,6 +448,113 @@
   font-size: 0.8125rem;
   margin: 0;
   max-width: 280px;
+}
+
+/* ── Empty-state sample bubbles + starter chips ─────────────────────────── */
+/* Decorative only: faded, non-interactive, aria-hidden — they must never read
+   as real messages (no avatar, no timestamp, no read ticks). */
+.sampleStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: var(--space-sm);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sampleBubble {
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  animation: messageAppear 0.2s ease-out;
+}
+
+.sampleTheirs {
+  align-self: flex-start;
+  background: var(--chat-surface-elevated);
+  border: 1px solid var(--message-other-border);
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+}
+
+.sampleMine {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  border-bottom-right-radius: 6px;
+  box-shadow: var(--glow-primary);
+  color: var(--color-text-on-primary);
+  animation-delay: 60ms;
+}
+
+.starterRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  max-width: 380px;
+  margin-top: var(--space-md);
+}
+
+.starterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg-strong);
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out;
+}
+
+.starterChip i {
+  font-size: 15px;
+}
+
+.starterChip:hover {
+  background: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.starterChip:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.starterChip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  .starterChip {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sampleBubble {
+    animation: none;
+  }
+
+  .starterChip {
+    transition: none;
+  }
+
+  .starterChip:hover,
+  .starterChip:active {
+    transform: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

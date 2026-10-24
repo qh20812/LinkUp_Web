@@ -351,7 +351,10 @@ export default function ChatWindow({
   const [showMemberSelectModal, setShowMemberSelectModal] = useState(false)
   const [joinRequestState, setJoinRequestState] = useState<GroupCallJoinRequestState | null>(null)
   const [lightbox, setLightbox] = useState<{ msgs: ChatMessage[]; index: number } | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Guard against a second click landing before the optimistic message
+  // unmounts the chips (state updates are async).
+  const starterSendLockRef = useRef(false)
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null)
   const [toolbarHoveredId, setToolbarHoveredId] = useState<string | null>(null)
 
@@ -497,15 +500,30 @@ export default function ChatWindow({
     [chatId, startGroupCall],
   )
 
-  const scrollToMessage = useCallback((messageId: string) => {
-    scrollToMessageFn(messageId)
-  }, [scrollToMessageFn])
-
+  const scrollToMessage = useCallback((messageId: string) => {
+    scrollToMessageFn(messageId)
+  }, [scrollToMessageFn])
+
+  // Starter prompt clicked in the empty state — send it right away. The guard
+  // stops a second click landing before the optimistic message unmounts the
+  // chips; the short release keeps blocked sends (offline / E2E init) retryable.
+  const handleSendStarter = useCallback(
+    (text: string) => {
+      if (starterSendLockRef.current) return
+      starterSendLockRef.current = true
+      room.sendMessage(text)
+      window.setTimeout(() => {
+        starterSendLockRef.current = false
+      }, 600)
+    },
+    [room],
+  )
+
   if (!conversation && mode !== 'group') {
     return (
-      <div className={styles.empty}>
-        <span className={styles.emptyIcon}><i className="bx bx-message-rounded-dots" /></span>
-        <p className={styles.emptyTitle}>{t('chat.selectHint')}</p>
+      <div className={`${styles.empty} ${styles.emptyPane}`}>
+        <span className={styles.emptyIcon}><i className="bx bx-message-rounded-dots" /></span>
+        <p className={styles.emptyTitle}>{t('chat.selectHint')}</p>
       </div>
     )
   }
@@ -527,9 +545,16 @@ export default function ChatWindow({
     newMessagesCount === 1
       ? t('chat.newMessage')
       : t('chat.newMessages', { count: String(newMessagesCount) })
-  const pinnedMessages = room.pinnedMessages
-  const pinMessage = room.pinMessage
-  const unpinMessage = room.unpinMessage
+  const pinnedMessages = room.pinnedMessages
+  const pinMessage = room.pinMessage
+  const unpinMessage = room.unpinMessage
+
+  // Starter prompts for the empty state — clicking one sends it right away.
+  // Groups get a single neutral opener.
+  const starterSuggestions =
+    mode === 'group'
+      ? [t('chat.starterGroup')]
+      : [t('chat.starter1'), t('chat.starter2'), t('chat.starter3')]
 
   const itemDate = (item: GroupedTimelineItem) =>
     formatChatDate(
@@ -786,12 +811,36 @@ export default function ChatWindow({
             </div>
           )}
 
-          {!room.loading && timeline.length === 0 && (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}><i className="bx bx-message-rounded" /></span>
-              <p className={styles.emptyTitle}>{t('chat.noMessages')}</p>
-              <p className={styles.emptyHint}>{t('chat.e2eTitle')}</p>
-            </div>
+          {!room.loading && timeline.length === 0 && (
+            <div className={styles.empty}>
+              <div className={styles.emptyCard}>
+                <span className={styles.emptyIcon}><i className="bx bx-message-rounded" /></span>
+                <p className={styles.emptyTitle}>{t('chat.noMessages')}</p>
+                <p className={styles.emptyHint}>{t('chat.e2eTitle')}</p>
+                <div className={styles.sampleStack} aria-hidden="true">
+                  <span className={`${styles.sampleBubble} ${styles.sampleTheirs}`}>
+                    {t('chat.emptySampleTheirs')}
+                  </span>
+                  <span className={`${styles.sampleBubble} ${styles.sampleMine}`}>
+                    {t('chat.emptySampleMine')}
+                  </span>
+                </div>
+              </div>
+              <div className={styles.starterRow}>
+                {starterSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className={styles.starterChip}
+                    onClick={() => handleSendStarter(suggestion)}
+                    aria-label={t('chat.sendStarter', { text: suggestion })}
+                  >
+                    <i className="bx bx-send" aria-hidden="true" />
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {!room.loading && timeline.length > 0 && (room.hasMore || room.loadingMore) && (
@@ -1568,9 +1617,9 @@ export default function ChatWindow({
         onClearReply={() => setReplyingTo(null)}
         onClearForward={onClearForward ?? (() => {})}
         onScrollToMessage={scrollToMessage}
-        initialDraft={initialDraft}
-        autoSendReady={autoSendReady}
-        onDraftConsumed={onDraftConsumed}
+        initialDraft={initialDraft}
+        autoSendReady={autoSendReady}
+        onDraftConsumed={onDraftConsumed}
       />
 
       <Modal

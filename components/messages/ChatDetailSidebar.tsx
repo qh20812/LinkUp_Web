@@ -192,10 +192,20 @@ export default function ChatDetailSidebar({
 
   return (
     <div className={`${styles.overlay} ${open ? styles.overlayOpen : ''}`} onClick={onClose}>
-      <div className={styles.sidebar} ref={sidebarRef} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('chat.chatDetail')}>
+      {/* `inert` keeps the off-screen sheet out of the tab order and the
+          accessibility tree while it is closed. */}
+      <div
+        className={styles.sidebar}
+        ref={sidebarRef}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal={open || undefined}
+        aria-label={t('chat.chatDetail')}
+        inert={!open}
+      >
         <div className={styles.sidebarHeader}>
-          <button className={styles.backBtn} onClick={onClose}>
-            <i className="bx bx-x" />
+          <button className={styles.backBtn} onClick={onClose} aria-label={t('common.close')}>
+            <i className="bx bx-x" aria-hidden="true" />
           </button>
           <span className={styles.headerTitle}>{t('chat.chatDetail')}</span>
         </div>
@@ -272,8 +282,8 @@ export default function ChatDetailSidebar({
                 <PostsTab posts={sharedContent?.posts ?? []} />
               )}
               {loading && (
-                <div className={styles.loadingWrap}>
-                  <div className={styles.spinner} />
+                <div className={styles.loadingDots} role="status" aria-label={t('chat.loadingShared')}>
+                  <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
                 </div>
               )}
               {!loading && sharedContent && !hasMore && (

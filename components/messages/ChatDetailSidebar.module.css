@@ -1,32 +1,53 @@
+/* Chat detail sidebar — floating iOS-glass sheet (DESIGN §4 Glass iOS Variant,
+   §11 Chat Window floating chrome). The sheet sits over the scrolling message
+   list, so the blur has real content to frost. Children in flow never get their
+   own backdrop-filter (glass-on-glass): hairlines are `--glass-border`, hovers
+   are `--wash-ink`, wells are `--seg-track-bg`, active states `--color-primary-light`. */
+
 .overlay {
   position: absolute;
   inset: 0;
   z-index: 100;
   display: flex;
   justify-content: flex-end;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Scrim lives on a pseudo-element: animating the ANCESTOR's opacity would
+   create a backdrop root and make the sheet's blur flicker as it slides in. */
+.overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: rgba(0, 0, 0, 0.3);
   opacity: 0;
-  pointer-events: none;
   transition: opacity 200ms ease;
+  pointer-events: none;
 }
 
 .overlayOpen {
-  opacity: 1;
   pointer-events: auto;
 }
 
+.overlayOpen::before {
+  opacity: 1;
+}
+
 .sidebar {
-  width: 360px;
-  max-width: 100%;
-  height: 100%;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-left: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
+  width: min(360px, calc(100% - var(--space-md) * 2));
+  height: auto;
+  margin: var(--space-sm) var(--space-md) var(--space-md) 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-ios-bg);
+  backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ios-blur)) saturate(var(--glass-ios-saturate));
+  box-shadow: var(--glass-ios-highlight), var(--glass-ios-shadow);
+  transform: translateX(calc(100% + var(--space-md)));
   transition: transform 250ms ease;
 }
 
@@ -34,30 +55,47 @@
   transform: translateX(0);
 }
 
+/* No backdrop-filter support: solid card, never a translucent block that
+   leaves text unreadable over a busy chat background. */
+@supports not (backdrop-filter: blur(1px)) {
+  .sidebar {
+    background: var(--color-card);
+  }
+}
+
 .sidebarHeader {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--glass-border);
 }
 
+/* 36px circular glass chip — same recipe as the chat header action buttons. */
 .backBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text);
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-circle);
+  background: var(--seg-track-bg, var(--color-bg-secondary));
+  color: var(--color-text-secondary);
+  font-size: 1.125rem;
   cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
 }
 
 .backBtn:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.backBtn:active {
+  transform: scale(0.94);
 }
 
 .backBtn:focus-visible {
@@ -74,16 +112,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
   padding: var(--space-lg) var(--space-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .avatarWrap {
   width: 72px;
   height: 72px;
-  border-radius: 50%;
-  overflow: hidden;
   margin-bottom: var(--space-sm);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-circle);
+  background: var(--seg-track-bg);
+  box-shadow: var(--glass-ios-highlight);
 }
 
 .avatar {
@@ -98,7 +140,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-secondary);
+  background: transparent;
   color: var(--color-text-secondary);
   font-size: 2rem;
 }
@@ -119,17 +161,24 @@
 .tabs {
   display: flex;
   gap: var(--space-xs);
+  flex-shrink: 0;
   padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .quickActions {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0;
   padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .quickActionBtn {
@@ -143,13 +192,14 @@
   color: var(--color-text);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms ease-out, color 150ms ease-out;
   width: 100%;
   text-align: left;
 }
 
 .quickActionBtn:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .quickActionBtn:focus-visible {
@@ -164,15 +214,12 @@
 }
 
 .quickActionDanger {
-  color: var(--color-danger, #e74c3c);
+  color: var(--color-danger);
 }
 
 .quickActionDanger:hover {
-  background: var(--color-danger-light, rgba(231, 76, 60, 0.08));
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger);
 }
 
 .tab {
@@ -191,7 +238,8 @@
 }
 
 .tab:hover {
-  background: var(--color-bg-hover);
+  background: var(--wash-ink);
+  color: var(--color-text);
 }
 
 .tab:focus-visible {
@@ -199,15 +247,19 @@
   outline-offset: 2px;
 }
 
-.tabActive {
+.tabActive,
+.tabActive:hover {
   background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
 .sidebarBody {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--wash-ink-strong) transparent;
 }
 
 /* Media grid */
@@ -267,7 +319,7 @@
 }
 
 .fileItem:hover {
-  background: var(--color-bg-hover);
+  background: var(--wash-ink);
 }
 
 .fileIcon {
@@ -313,7 +365,7 @@
 }
 
 .linkItem:hover {
-  background: var(--color-bg-hover);
+  background: var(--wash-ink);
 }
 
 .favicon {
@@ -357,8 +409,9 @@
   align-items: flex-start;
   gap: var(--space-sm);
   padding: var(--space-sm);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
+  background: var(--seg-track-bg);
 }
 
 .postIcon {
@@ -408,14 +461,16 @@
 }
 
 .memberItem:hover {
-  background: var(--color-bg-hover);
+  background: var(--wash-ink);
 }
 
 .memberAvatar {
   width: 36px;
   height: 36px;
+  border: 1px solid var(--glass-border);
   border-radius: 50%;
   object-fit: cover;
+  background: var(--seg-track-bg);
 }
 
 .memberName {
@@ -423,7 +478,7 @@
   font-weight: 500;
 }
 
-/* Empty state */
+/* Empty state — primary-wash circle + label (§11.39 empty recipe). */
 .emptyWrap {
   display: flex;
   flex-direction: column;
@@ -435,7 +490,15 @@
 }
 
 .emptyIcon {
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-circle);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 1.75rem;
 }
 
 .emptyState {
@@ -445,32 +508,76 @@
   font-size: 0.85rem;
 }
 
-/* Loading */
-.loadingWrap {
+/* Loading — skeleton dots, never a spinner (§11 ban). */
+.loadingDots {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 5px;
   padding: var(--space-lg) 0;
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
+.loadingDots span {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  animation: spin 600ms linear infinite;
+  background: var(--color-primary);
+  opacity: 0.4;
+  animation: detailDotPulse 1.2s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.loadingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loadingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes detailDotPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Responsive — full-width sheet, still floating with a gutter. */
+@media (max-width: 768px) {
+  .sidebar {
+    width: calc(100% - var(--space-sm) * 2);
+    margin: var(--space-sm);
+    transform: translateX(calc(100% + var(--space-sm)));
   }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 576px) {
+  .sidebarHeader,
+  .tabs,
+  .quickActions {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+
+  .avatarWrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .quickActionBtn {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay::before,
   .sidebar {
-    width: 100%;
-    max-width: 100%;
+    transition: none;
+  }
+
+  .backBtn:active {
+    transform: none;
+  }
+
+  .loadingDots span {
+    animation: none;
+    opacity: 0.6;
   }
 }
