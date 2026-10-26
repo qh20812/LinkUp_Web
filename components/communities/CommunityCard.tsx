@@ -35,6 +35,12 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
 
   const cover = !coverError && community.background_uri ? community.background_uri : null
 
+  // API chỉ nên trả 'public' | 'invitation_only', nhưng cột DB là varchar(20) nên
+  // một giá trị lạ vẫn có thể lọt vào. Chuẩn hoá một lần để icon, badge và nhãn
+  // luôn khớp nhau — trước đây index map bằng giá trị lạ cho ra undefined, và
+  // t(undefined) làm sập cả trang /communities.
+  const privacy = community.privacy === 'public' ? 'public' : 'invitation_only'
+
   const handleJoinPublic = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -79,7 +85,7 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
         </span>
       )
     }
-    if (community.privacy === 'invitation_only') {
+    if (privacy === 'invitation_only') {
       return (
         <button
           type="button"
@@ -124,13 +130,13 @@ export default function CommunityCard({ community, index = 0 }: CommunityCardPro
               <span className={styles.orb} />
             </div>
           )}
-          <span className={`${styles.privacyBadge} ${PRIVACY_CLASS[community.privacy]}`}>
-            {community.privacy === 'public' ? (
+          <span className={`${styles.privacyBadge} ${PRIVACY_CLASS[privacy]}`}>
+            {privacy === 'public' ? (
               <i className="bx bx-globe" />
             ) : (
               <i className="bx bx-lock-alt" />
             )}{' '}
-            {t(PRIVACY_LABELS[community.privacy])}
+            {t(PRIVACY_LABELS[privacy])}
           </span>
         </div>
 

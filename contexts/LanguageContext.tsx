@@ -32,6 +32,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [language]);
 
   const t = (key: string, params?: Record<string, string | number>): string => {
+    // Key có thể rỗng/undefined khi tra map theo một giá trị enum lạ từ API
+    // (TypeScript không bắt được vì Record<K, string> luôn trả string). Trả
+    // chuỗi rỗng thay vì ném TypeError làm sập cả cây React.
+    if (!key) return "";
     const keys = key.split(".");
     let value: unknown = translations;
     for (const k of keys) {

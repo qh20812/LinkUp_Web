@@ -65,6 +65,16 @@ describe('CommunityCard', () => {
     expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
   })
 
+  // Hồi quy: seed từng ghi privacy='private' (không nằm trong enum của server).
+  // PRIVACY_LABELS['private'] là undefined → t(undefined) ném TypeError và làm
+  // sập cả trang /communities. Thẻ phải render được, quy về nhãn mời tham gia.
+  it('does not crash on an unknown privacy value from the API', () => {
+    const community = buildCommunity({ privacy: 'private' as unknown as 'public' })
+    renderWithProviders(<CommunityCard community={community} />)
+
+    expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
+  })
+
   it('renders avatar image when avatar_uri is provided', () => {
     const community = buildCommunity({ avatar_uri: 'https://example.com/avatar.jpg' })
     renderWithProviders(<CommunityCard community={community} />)

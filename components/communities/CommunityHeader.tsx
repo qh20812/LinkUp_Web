@@ -33,8 +33,11 @@ export default function CommunityHeader({ community, onStatusChange }: Community
   const [reportOpen, setReportOpen] = useState(false)
 
   const showCover = !coverError && community.background_uri
+  // Chuẩn hoá privacy trước khi index map: giá trị lạ từ API (cột DB là varchar)
+  // từng cho ra undefined và t(undefined) làm sập trang chi tiết cộng đồng.
+  const privacy = community.privacy === 'public' ? 'public' : 'invitation_only'
   const isGuest = community.membership_status === 'none'
-  const showCodeCta = isGuest && community.privacy === 'invitation_only'
+  const showCodeCta = isGuest && privacy === 'invitation_only'
 
   return (
     <div className={styles.header}>
@@ -53,13 +56,13 @@ export default function CommunityHeader({ community, onStatusChange }: Community
           </div>
         )}
         <div className={styles.coverOverlay} aria-hidden />
-        <span className={`${styles.privacyBadge} ${PRIVACY_CLASS[community.privacy]}`}>
-          {community.privacy === 'public' ? (
+        <span className={`${styles.privacyBadge} ${PRIVACY_CLASS[privacy]}`}>
+          {privacy === 'public' ? (
             <i className="bx bx-globe" aria-hidden />
           ) : (
             <i className="bx bx-lock-alt" aria-hidden />
           )}{' '}
-          {t(PRIVACY_LABELS[community.privacy])}
+          {t(PRIVACY_LABELS[privacy])}
         </span>
       </div>
 

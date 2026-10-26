@@ -68,6 +68,14 @@ describe('CommunityHeader', () => {
     expect(link).toHaveAttribute('href', '/profile/user-99')
   })
 
+  // Hồi quy: privacy lạ từ API từng làm t(undefined) ném TypeError ở badge.
+  it('does not crash on an unknown privacy value from the API', () => {
+    const community = buildCommunityDetail({ privacy: 'private' as unknown as 'public' })
+    renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
+
+    expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
+  })
+
   it('renders JoinButton with correct props', () => {
     const community = buildCommunityDetail({ id: 'comm-1', membership_status: 'none', privacy: 'public' })
     const onStatusChange = jest.fn()
