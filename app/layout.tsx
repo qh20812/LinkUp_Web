@@ -48,6 +48,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  // Bàn phím ảo co layout viewport thay vì chỉ phủ lên nó (Chrome/Edge Android;
+  // Safari bỏ qua). Không phải cơ chế chính — `useViewportHeight` + `--app-vh`
+  // lo phần iOS — nhưng giúp các trang cuộn tự nhiên và modal không bị che.
+  interactiveWidget: 'resizes-content',
   themeColor: '#12A5A1',
 }
 

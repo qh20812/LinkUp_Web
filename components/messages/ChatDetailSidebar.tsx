@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getSharedContent, getGroupSharedContent } from '../../api/chats'
 import ExternalImage from '../ExternalImage'
@@ -166,6 +167,84 @@ export default function ChatDetailSidebar({
 
   const sidebarRef = useRef<HTMLDivElement>(null)
 
+  // ── Tab row: drag-to-scroll cho chuột ─────────────────────────────────────
+  // Touchpad và cảm ứng đã cuộn ngang tự nhiên; chuột thường thì không, nên
+  // hàng tab kéo được bằng chuột và có scrollbar mảnh làm affordance. Kéo
+  // không được kích hoạt tab (click sau khi kéo bị chặn).
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const tabsDragRef = useRef<{
+    pointerId: number
+    startX: number
+    startLeft: number
+    moved: boolean
+  } | null>(null)
+  const tabsSuppressClickRef = useRef(false)
+  const [tabsDragging, setTabsDragging] = useState(false)
+
+  const handleTabsPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    tabsSuppressClickRef.current = false
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    const el = tabsRef.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    tabsDragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startLeft: el.scrollLeft,
+      moved: false,
+    }
+  }
+
+  const handleTabsPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = tabsDragRef.current
+    const el = tabsRef.current
+    if (!drag || !el || e.pointerId !== drag.pointerId) return
+    const dx = e.clientX - drag.startX
+    if (!drag.moved) {
+      // Ngưỡng 4px để một cú click hơi rung tay vẫn là click.
+      if (Math.abs(dx) < 4) return
+      drag.moved = true
+      setTabsDragging(true)
+      // Capture để rê chuột ra ngoài hàng tab vẫn kéo tiếp.
+      el.setPointerCapture(drag.pointerId)
+    }
+    e.preventDefault()
+    el.scrollLeft = drag.startLeft - dx
+  }
+
+  const handleTabsDragEnd = () => {
+    const drag = tabsDragRef.current
+    if (!drag) return
+    const el = tabsRef.current
+    if (el?.hasPointerCapture(drag.pointerId)) {
+      el.releasePointerCapture(drag.pointerId)
+    }
+    tabsSuppressClickRef.current = drag.moved
+    tabsDragRef.current = null
+    setTabsDragging(false)
+  }
+
+  const handleTabsClickCapture = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!tabsSuppressClickRef.current) return
+    tabsSuppressClickRef.current = false
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  // Con lăn dọc trên hàng tab → cuộn ngang (hàng tab không có nội dung dọc).
+  useEffect(() => {
+    const el = tabsRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return
+      // Trackpad vuốt ngang đã đúng chiều — để native xử lý.
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return
+      el.scrollLeft += e.deltaY
+      e.preventDefault()
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   useEffect(() => {
     if (!open) return
     const sidebar = sidebarRef.current
@@ -251,7 +330,15 @@ export default function ChatDetailSidebar({
           )}
         </div>
 
-        <div className={styles.tabs}>
+        <div
+          className={`${styles.tabs} ${tabsDragging ? styles.tabsDragging : ''}`}
+          ref={tabsRef}
+          onPointerDown={handleTabsPointerDown}
+          onPointerMove={handleTabsPointerMove}
+          onPointerUp={handleTabsDragEnd}
+          onPointerCancel={handleTabsDragEnd}
+          onClickCapture={handleTabsClickCapture}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -399,7 +486,9 @@ function MembersTab({ members }: { members?: Map<string, { display_name: string;
   if (!members || members.size === 0) {
     return (
       <div className={styles.emptyWrap}>
-        <i className={`bx bx-group ${styles.emptyIcon}`} />
+        <span className={styles.emptyIcon} aria-hidden="true">
+          <i className="bx bx-group" />
+        </span>
         <span>{t('chat.members')}</span>
       </div>
     )
@@ -421,7 +510,9 @@ function EmptyState({ type }: { type: string }) {
   const key = `chat.no${type.charAt(0).toUpperCase() + type.slice(1)}`
   return (
     <div className={styles.emptyWrap}>
-      <i className={`bx ${type === 'media' ? 'bx-image' : type === 'files' ? 'bx-file' : type === 'links' ? 'bx-link' : 'bx-message-rounded'} ${styles.emptyIcon}`} />
+      <span className={styles.emptyIcon} aria-hidden="true">
+        <i className={`bx ${type === 'media' ? 'bx-image' : type === 'files' ? 'bx-file' : type === 'links' ? 'bx-link' : 'bx-message-rounded'}`} />
+      </span>
       <span>{t(key) || t('chat.noMedia')}</span>
     </div>
   )

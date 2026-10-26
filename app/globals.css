@@ -39,6 +39,23 @@ select {
   font: inherit;
 }
 
+/* iOS Safari tự phóng to trang khi focus vào ô nhập có font-size < 16px. Trang
+   bị scale lệch nên mọi phép đo viewport sai và composer/ô tìm kiếm lệch khỏi
+   bàn phím. Chỉ iOS cần (Android/desktop giữ nguyên cỡ chữ gọn); `!important`
+   là bắt buộc vì CSS Module của từng component đặt cỡ chữ bằng class — độ ưu
+   tiên cao hơn selector thẻ. Không khoá pinch-zoom của người dùng. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    input,
+    textarea,
+    select,
+    [contenteditable],
+    [role='textbox'] {
+      font-size: 16px !important;
+    }
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

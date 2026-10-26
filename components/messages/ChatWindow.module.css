@@ -1668,7 +1668,9 @@
   border: none;
   border-radius: var(--radius-lg);
   padding: 10px 16px;
-  font-size: 0.9375rem;
+  /* 1rem = 16px: dưới ngưỡng này iOS Safari tự zoom khi focus (xem globals.css),
+     và placeholder là một <span> riêng nên phải cùng cỡ để không lệch dòng. */
+  font-size: 1rem;
   line-height: 1.45;
   background: transparent;
   color: var(--chat-text);
@@ -1686,7 +1688,7 @@
   top: 10px;
   pointer-events: none;
   color: var(--chat-text-muted);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.45;
   white-space: nowrap;
   overflow: hidden;

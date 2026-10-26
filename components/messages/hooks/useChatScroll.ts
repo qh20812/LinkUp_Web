@@ -134,6 +134,11 @@ export function useChatScroll({
       }
     })
     observer.observe(el)
+    // Khung cuộn cũng co lại khi bàn phím ảo mở. Nếu chỉ theo dõi nội dung thì
+    // scrollTop giữ nguyên trong khi vùng nhìn thấy ngắn đi → tin mới nhất bị
+    // đẩy xuống dưới bàn phím. Chỉ bám đáy khi người dùng đang ở đáy.
+    const scroller = scrollRef.current
+    if (scroller) observer.observe(scroller)
     return () => observer.disconnect()
   }, [searchResults, scrollToBottom])
 

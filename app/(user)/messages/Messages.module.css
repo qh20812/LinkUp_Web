@@ -17,9 +17,14 @@
   overflow: hidden;
 }
 
+/* Mobile: chiều cao lấy từ visual viewport (`--app-vh`, xem useViewportHeight)
+   thay vì `100vh`/`100dvh`. Bàn phím ảo trên iOS không làm layout viewport co
+   lại — đơn vị viewport vẫn giữ chiều cao cũ và composer chui xuống dưới bàn
+   phím. Khi bàn phím đóng, `--app-vh` = chiều cao khả dụng nên kết quả bằng
+   đúng `100dvh` như trước. */
 @media (max-width: 768px) {
   .page {
-    height: calc(100vh - 56px - var(--space-md) * 3);
+    height: calc(var(--app-vh, 100vh) - 56px - var(--space-md) * 3);
   }
 }
 
@@ -30,7 +35,7 @@
 
   @media (max-width: 768px) {
     .page {
-      height: calc(100dvh - 56px - var(--space-md) * 3);
+      height: calc(var(--app-vh, 100dvh) - 56px - var(--space-md) * 3);
     }
   }
 }

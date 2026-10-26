@@ -23,6 +23,7 @@ import { useChatE2E, type ChatE2EStatus } from '../../../hooks/useChatE2E'
 import { useE2ERecovery } from '../../../hooks/useE2ERecovery'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTranslation } from '../../../hooks/useTranslation'
+import { useViewportHeight } from '../../../hooks/useViewportHeight'
 import { useToast } from '../../../contexts/ToastContext'
 import { useGroupCall } from '../../../contexts/GroupCallContext'
 import { listChats, createDirectChat, deleteChat, listChatInvites, respondChatInvite, listGroupChats, getGroupSettings } from '../../../api/chats'
@@ -65,6 +66,10 @@ function MessagesContent() {
   const { toast } = useToast()
   const router = useRouter()
   const { isAuthenticated, initializing, user } = useAuth()
+
+  // `.page` là hộp cao cố định (100dvh) nên bàn phím ảo không đẩy được composer
+  // lên; hook xuất chiều cao visual viewport để CSS trừ đi phần bàn phím chiếm.
+  useViewportHeight()
 
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [loadingChats, setLoadingChats] = useState(true)
@@ -224,6 +229,23 @@ function MessagesContent() {
       refreshList()
       refreshGroupList()
     }, 600)
+  }, [refreshList, refreshGroupList])
+
+  // Hội thoại đã "xóa" chỉ ẩn ở phía mình và sẽ hiện lại khi có tin nhắn mới —
+  // nhưng chat WS chỉ subscribe hội thoại đang mở, nên danh sách không tự biết.
+  // Đồng bộ lại khi người dùng quay lại tab/cửa sổ.
+  useEffect(() => {
+    const syncOnReturn = () => {
+      if (document.visibilityState !== 'visible') return
+      refreshList()
+      refreshGroupList()
+    }
+    window.addEventListener('focus', syncOnReturn)
+    document.addEventListener('visibilitychange', syncOnReturn)
+    return () => {
+      window.removeEventListener('focus', syncOnReturn)
+      document.removeEventListener('visibilitychange', syncOnReturn)
+    }
   }, [refreshList, refreshGroupList])
 
   const room = useChatRoom({

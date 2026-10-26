@@ -157,7 +157,9 @@
   margin-top: 2px;
 }
 
-/* Tabs */
+/* Tabs — one scrollable row. A plain mouse has no horizontal axis, so the row
+   also supports drag-to-scroll (pointer handlers in the component) and keeps a
+   thin scrollbar as a visible affordance. */
 .tabs {
   display: flex;
   gap: var(--space-xs);
@@ -165,11 +167,28 @@
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--glass-border);
   overflow-x: auto;
-  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--wash-ink-strong) transparent;
+  cursor: grab;
 }
 
 .tabs::-webkit-scrollbar {
-  display: none;
+  height: 4px;
+}
+
+.tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--wash-ink-strong);
+}
+
+.tabsDragging {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .quickActions {
@@ -225,6 +244,7 @@
 .tab {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 4px;
   padding: 6px 12px;
   border: none;
@@ -490,7 +510,7 @@
 }
 
 .emptyIcon {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 64px;
@@ -498,7 +518,13 @@
   border-radius: var(--radius-circle);
   background: var(--color-primary-light);
   color: var(--color-primary);
+}
+
+/* The glyph lives on a child <i>: Boxicons sets its own `display` on `.bx`,
+   so centering must happen on the wrapper, never on the icon itself. */
+.emptyIcon i {
   font-size: 1.75rem;
+  line-height: 1;
 }
 
 .emptyState {
