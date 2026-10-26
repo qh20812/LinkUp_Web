@@ -156,12 +156,43 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
-  cursor: pointer;
   border: 3px solid var(--color-card);
   box-shadow:
     0 0 0 3px var(--color-primary-light),
     var(--shadow-md);
   margin-top: -44px;
+}
+
+/* Bấm avatar là một hành động thật (mở menu hoặc mở ảnh) nên phải là <button>:
+   <div onClick> không Tab tới được và không kích hoạt bằng Enter/Space. */
+.avatarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+}
+
+.avatarButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* Chưa có gì để bấm (người khác chưa đặt ảnh đại diện) — giữ đúng bố cục. */
+.avatarStatic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: default;
 }
 
 .avatarWrap i {
@@ -208,39 +239,6 @@
   border-radius: var(--radius-circle);
   object-fit: cover;
   transition: filter 0.2s ease;
-}
-
-.avatarOverlay {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-circle);
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  color: #fff;
-  text-align: center;
-  padding: 4px;
-}
-
-.avatarWrap:hover .avatarOverlay {
-  opacity: 1;
-}
-
-.avatarOverlayIcon {
-  font-size: var(--text-body);
-  margin-bottom: var(--space-xs);
-}
-
-.avatarOverlayText {
-  font: var(--text-caption);
-  font-size: 11px;
-  line-height: 1.2;
-  word-break: break-word;
-  max-width: 80px;
 }
 
 /* User Info */

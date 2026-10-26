@@ -12,6 +12,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { useFollowContext } from '../../../contexts/FollowContext'
 import { useFollowStats } from '../../../hooks/profile/useFollowStats'
 import ProfileHeader from '../../../components/profile/ProfileHeader'
+import AvatarLightbox from '../../../components/profile/AvatarLightbox'
 import ProfileTabs from '../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../components/profile/ProfileFollowersModal'
 import ProfileEditModal from '../../../components/profile/ProfileEditModal'
@@ -34,6 +35,7 @@ export default function MyProfilePage() {
   const [errorType, setErrorType] = useState<'network' | null>(null)
   const [hasStory, setHasStory] = useState(false)
   const [myStories, setMyStories] = useState<StoryItem[] | null>(null)
+  const [viewingAvatar, setViewingAvatar] = useState(false)
 
   const { stats } = useFollowStats(userID)
 
@@ -160,7 +162,16 @@ export default function MyProfilePage() {
           onSaved={handleProfileSaved}
           onEdit={() => setShowEditModal(true)}
           onViewStory={handleViewStory}
-          onViewAvatar={() => {/* TODO: open lightbox */}}
+          onViewAvatar={() => setViewingAvatar(true)}
+        />
+      )}
+
+      {viewingAvatar && profile?.avatar_uri && (
+        <AvatarLightbox
+          src={profile.avatar_uri}
+          name={profile.display_name}
+          username={profile.username}
+          onClose={() => setViewingAvatar(false)}
         />
       )}
 

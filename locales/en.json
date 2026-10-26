@@ -1640,6 +1640,7 @@
   },
   "profile": {
     "message": "Message",
+    "avatarOptions": "Avatar options",
     "inviteSent": "Invite sent",
     "follow": "Follow",
     "unfollow": "Unfollow",

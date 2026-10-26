@@ -1630,6 +1630,7 @@
   },
   "profile": {
     "message": "Nhắn tin",
+    "avatarOptions": "Tuỳ chọn ảnh đại diện",
     "inviteSent": "Đã gửi lời mời",
     "follow": "Theo dõi",
     "unfollow": "Hủy theo dõi",

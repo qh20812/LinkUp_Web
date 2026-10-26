@@ -29,6 +29,26 @@ if (!globalThis.crypto?.subtle) {
   })
 }
 
+// jsdom không cung cấp matchMedia — component nào tôn trọng
+// prefers-reduced-motion (ProfileHeader, các hook animation) sẽ ném lỗi khi
+// mount nếu thiếu.
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
+}
+
 // jsdom không cung cấp ResizeObserver — stub tối giản cho các effect đo kích thước.
 if (typeof globalThis.ResizeObserver === 'undefined') {
   class ResizeObserverStub {

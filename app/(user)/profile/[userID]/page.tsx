@@ -12,6 +12,7 @@ import { useToast } from '../../../../contexts/ToastContext'
 import { useFollowContext } from '../../../../contexts/FollowContext'
 import { useFollowStats } from '../../../../hooks/profile/useFollowStats'
 import ProfileHeader from '../../../../components/profile/ProfileHeader'
+import AvatarLightbox from '../../../../components/profile/AvatarLightbox'
 import ProfileTabs from '../../../../components/profile/ProfileTabs'
 import ProfileFollowersModal from '../../../../components/profile/ProfileFollowersModal'
 import ProfileSkeleton from '../../../../components/profile/ProfileSkeleton'
@@ -48,6 +49,7 @@ function ProfileView({ userID }: { userID: string }) {
   const [uploading, setUploading] = useState(false)
   const [hasStory, setHasStory] = useState(false)
   const [viewerStories, setViewerStories] = useState<StoryItem[] | null>(null)
+  const [viewingAvatar, setViewingAvatar] = useState(false)
 
   const { stats, following, followBusy, handleFollow } = useFollowStats(userID)
 
@@ -223,7 +225,7 @@ function ProfileView({ userID }: { userID: string }) {
         onEdit={isSelf ? () => setEditOpen(true) : undefined}
         onShare={handleShare}
         onViewStory={handleViewStory}
-        onViewAvatar={() => {/* TODO: open lightbox */}}
+        onViewAvatar={() => setViewingAvatar(true)}
         menuSlot={
           !isSelf && currentUserID ? (
             <div className={styles.menuPosition}>
@@ -280,6 +282,15 @@ function ProfileView({ userID }: { userID: string }) {
 
       {viewerStories && (
         <StoryViewer stories={viewerStories} onClose={() => setViewerStories(null)} />
+      )}
+
+      {viewingAvatar && profile.avatar_uri && (
+        <AvatarLightbox
+          src={profile.avatar_uri}
+          name={profile.display_name}
+          username={profile.username}
+          onClose={() => setViewingAvatar(false)}
+        />
       )}
     </div>
   )

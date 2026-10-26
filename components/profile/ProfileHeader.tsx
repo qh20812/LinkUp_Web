@@ -167,20 +167,44 @@ export default function ProfileHeader({
         setShowAvatarMenu(false)
       }
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowAvatarMenu(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [showAvatarMenu])
 
   useEffect(() => {
     if (targetUserID) prefetchPresence([targetUserID])
   }, [targetUserID, prefetchPresence])
 
+  // Avatar gom các hành động liên quan tới ảnh đại diện, nhưng chỉ mở menu khi
+  // có từ 2 lựa chọn trở lên — chỉ một thì chạy thẳng, đỡ một cú click vô nghĩa:
+  //   • người khác, không có story  → mở ảnh ngay
+  //   • mình, chưa có ảnh đại diện  → mở hộp chọn tệp ngay
+  //   • còn lại (≥ 2 hành động)     → menu
+  const canViewAvatar = !!profile.avatar_uri && !!onViewAvatar
+  const canChangeAvatar = isSelf && !!onAvatarChange
+  const avatarActionCount =
+    (hasStory && onViewStory ? 1 : 0) + (canViewAvatar ? 1 : 0) + (canChangeAvatar ? 1 : 0)
+  const hasAvatarMenu = avatarActionCount >= 2
+  const avatarActionLabel = hasAvatarMenu
+    ? t('profile.avatarOptions')
+    : canViewAvatar
+      ? t('story.viewAvatar')
+      : t('story.changeAvatar')
+
   const handleAvatarClick = () => {
-    if (isSelf && !hasStory) {
-      fileInputRef.current?.click()
-    } else {
-      setShowAvatarMenu(!showAvatarMenu)
+    if (hasAvatarMenu) {
+      setShowAvatarMenu((open) => !open)
+      return
     }
+    if (canViewAvatar) onViewAvatar?.()
+    else if (canChangeAvatar) fileInputRef.current?.click()
   }
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,22 +213,34 @@ export default function ProfileHeader({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const renderAvatarMenu = () => showAvatarMenu && (
+  const renderAvatarMenu = () => hasAvatarMenu && showAvatarMenu && (
     <div className={styles.avatarMenu} role="menu">
-      {hasStory && (
-        <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewStory?.() }}>
+      {hasStory && onViewStory && (
+        <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewStory() }}>
           <i className="bx bx-show" /> <span>{t('story.viewStory')}</span>
         </button>
       )}
-      <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewAvatar?.() }}>
-        <i className="bx bx-image" /> <span>{t('story.viewAvatar')}</span>
-      </button>
-      {isSelf && (
+      {canViewAvatar && (
+        <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); onViewAvatar?.() }}>
+          <i className="bx bx-image" /> <span>{t('story.viewAvatar')}</span>
+        </button>
+      )}
+      {canChangeAvatar && (
         <button type="button" className={styles.avatarMenuItem} role="menuitem" onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); fileInputRef.current?.click() }}>
           <i className="bx bx-camera" /> <span>{t('story.changeAvatar')}</span>
         </button>
       )}
     </div>
+  )
+
+  const avatarImage = (
+    <StoryAvatar
+      src={profile.avatar_uri || ''}
+      name={profile.display_name}
+      hasStory={hasStory}
+      hasViewed={hasStoryViewed}
+      size={120}
+    />
   )
 
   const handleCoverClick = () => {
@@ -253,22 +289,24 @@ export default function ProfileHeader({
       <div className={styles.headerBody}>
         <div className={styles.glassCard}>
         <div className={styles.headerTop}>
-          <div className={styles.avatarWrap} ref={avatarWrapRef} onClick={handleAvatarClick}>
-            <StoryAvatar
-              src={profile.avatar_uri || ''}
-              name={profile.display_name}
-              hasStory={hasStory}
-              hasViewed={hasStoryViewed}
-              size={120}
-            />
+          <div className={styles.avatarWrap} ref={avatarWrapRef}>
+            {avatarActionCount > 0 ? (
+              <button
+                type="button"
+                className={styles.avatarButton}
+                onClick={handleAvatarClick}
+                aria-haspopup={hasAvatarMenu ? 'menu' : undefined}
+                aria-expanded={hasAvatarMenu ? showAvatarMenu : undefined}
+                aria-label={avatarActionLabel}
+                data-testid="profile-avatar"
+              >
+                {avatarImage}
+              </button>
+            ) : (
+              <div className={styles.avatarStatic}>{avatarImage}</div>
+            )}
             {online && <span className={styles.onlinePulse} aria-hidden />}
             <OnlineIndicator isOnline={online} />
-            {isSelf && (
-              <div className={styles.avatarOverlay}>
-                <span className={styles.avatarOverlayIcon}><i className="bx bx-camera" /></span>
-                <span className={styles.avatarOverlayText}>{t('profile.changeAvatar')}</span>
-              </div>
-            )}
             {renderAvatarMenu()}
             {isSelf && (
               <input
