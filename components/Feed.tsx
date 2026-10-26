@@ -52,7 +52,6 @@ function FeedContent() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
@@ -123,7 +122,6 @@ function FeedContent() {
     setPosts([])
     setInitialLoading(true)
     setError(null)
-    setHasMore(true)
   }, [tab])
 
   useEffect(() => {
@@ -176,7 +174,6 @@ function FeedContent() {
         return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       })
       cursorRef.current = res.next_cursor
-      setHasMore(res.next_cursor !== null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
@@ -413,12 +410,6 @@ function FeedContent() {
           </div>
           <div className={styles.skelLine} style={{ width: '70%' }} />
           <div className={styles.skelLine} style={{ width: '50%' }} />
-        </div>
-      )}
-
-      {!hasMore && posts.length > 0 && (
-        <div className={styles.endMessage}>
-          {t('feed.end') || 'Đã xem hết bài viết.'}
         </div>
       )}
 

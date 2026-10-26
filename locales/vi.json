@@ -159,8 +159,7 @@
   "feed": {
     "empty": "Chưa có bài viết nào.",
     "emptyFollowing": "Chưa có bài đăng nào từ người bạn theo dõi.",
-    "exploreLink": "Khám phá bài viết",
-    "end": "Đã xem hết bài viết."
+    "exploreLink": "Khám phá bài viết"
   },
   "postDetail": {
     "comments": "Bình luận",
@@ -223,8 +222,7 @@
     "title": "Bài viết đã lưu",
     "subtitle": "Danh sách bài viết bạn đã lưu vào mục Bookmark",
     "empty": "Bạn chưa lưu bài viết nào.",
-    "emptyDesc": "Nhấn biểu tượng dấu trang trên bài viết để lưu lại và xem chúng ở đây.",
-    "end": "Đã xem hết bài viết đã lưu."
+    "emptyDesc": "Nhấn biểu tượng dấu trang trên bài viết để lưu lại và xem chúng ở đây."
   },
   "friends": {
     "title": "Bạn bè",
@@ -262,8 +260,7 @@
     "searchPlaceholder": "Tìm bạn bè...",
     "listCount": "{count} bạn bè",
     "noSearchResult": "Không tìm thấy bạn bè nào.",
-    "noSearchResultHint": "Thử tìm bằng tên khác.",
-    "end": "Đã xem hết."
+    "noSearchResultHint": "Thử tìm bằng tên khác."
   },
   "composer": {
     "placeholder": "Bạn đang nghĩ gì thế?",

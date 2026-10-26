@@ -42,7 +42,6 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
   const [posts, setPosts] = useState<FeedPost[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -84,7 +83,6 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
         return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       })
       cursorRef.current = res.next_cursor
-      setHasMore(res.next_cursor !== null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
@@ -119,7 +117,6 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
       mediaPageRef.current = 1
       setPosts([])
       setError(null)
-      setHasMore(true)
 
       if (activeTab === 'media') {
         setTimeout(() => { fetchMedia(1, true) }, 0)
@@ -428,12 +425,6 @@ export default function ProfileTabs({ userID, isSelf, profile, onFollow }: Profi
             {loading && (
               <div className={styles.loadingWrap} role="status">
                 <div className={styles.loadingDots} aria-hidden><span /><span /><span /></div>
-              </div>
-            )}
-
-            {!hasMore && posts.length > 0 && (
-              <div className={styles.loadingWrap}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>—</span>
               </div>
             )}
 

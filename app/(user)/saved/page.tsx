@@ -36,7 +36,6 @@ export default function SavedPage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [sharePostId, setSharePostId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -57,7 +56,6 @@ export default function SavedPage() {
         return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       })
       cursorRef.current = res.next_cursor
-      setHasMore(res.next_cursor !== null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
@@ -231,12 +229,6 @@ export default function SavedPage() {
             </div>
             <div className={styles.skelLine} style={{ width: '70%' }} />
             <div className={styles.skelLine} style={{ width: '50%' }} />
-          </div>
-        )}
-
-        {!hasMore && posts.length > 0 && (
-          <div className={styles.endMessage}>
-            {t('saved.end')}
           </div>
         )}
 

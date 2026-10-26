@@ -150,12 +150,6 @@ export default function CommunityFeed({ communityID, membershipStatus }: Communi
       )}
 
       {feed.hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
-
-      {!feed.hasMore && feed.posts.length > 0 && (
-        <div style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-secondary)', fontSize: 14 }}>
-          {t('feed.end') || 'Đã xem hết bài viết.'}
-        </div>
-      )}
     </div>
   )
 }

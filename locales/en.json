@@ -159,8 +159,7 @@
   "feed": {
     "empty": "No posts yet.",
     "emptyFollowing": "No posts from people you follow.",
-    "exploreLink": "Explore posts",
-    "end": "You've seen all posts."
+    "exploreLink": "Explore posts"
   },
   "postDetail": {
     "comments": "Comments",
@@ -223,8 +222,7 @@
     "title": "Saved Posts",
     "subtitle": "Posts you've saved to your bookmarks",
     "empty": "You haven't saved any posts yet.",
-    "emptyDesc": "Tap the bookmark icon on a post to save it and find it here.",
-    "end": "You've seen all saved posts."
+    "emptyDesc": "Tap the bookmark icon on a post to save it and find it here."
   },
   "friends": {
     "title": "Friends",
@@ -262,8 +260,7 @@
     "searchPlaceholder": "Search friends...",
     "listCount": "{count} friends",
     "noSearchResult": "No matching friends.",
-    "noSearchResultHint": "Try a different name.",
-    "end": "You've seen it all."
+    "noSearchResultHint": "Try a different name."
   },
   "composer": {
     "placeholder": "What's on your mind?",

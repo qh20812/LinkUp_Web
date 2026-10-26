@@ -551,9 +551,6 @@ function FriendsContent() {
             <SkeletonList count={2} />
           </div>
         )}
-        {!suggestionsHasMore && suggestions.length > 0 && (
-          <div className={styles.endMessage}>{t('friends.end')}</div>
-        )}
       </>
     )
   }
@@ -666,9 +663,6 @@ function FriendsContent() {
           <div className={styles.cardList}>
             <SkeletonList count={2} />
           </div>
-        )}
-        {!friendsHasMore && visibleFriends.length > 0 && (
-          <div className={styles.endMessage}>{t('friends.end')}</div>
         )}
       </>
     )

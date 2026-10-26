@@ -669,13 +669,6 @@
   background: var(--color-primary-hover);
 }
 
-.endMessage {
-  text-align: center;
-  padding: 24px;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-}
-
 .sentinel {
   height: 1px;
 }

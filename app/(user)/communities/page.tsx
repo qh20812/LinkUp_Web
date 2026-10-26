@@ -282,9 +282,6 @@ function CommunitiesContent() {
             </div>
           )}
 
-          {!hasMore && communities.length > 0 && (
-            <p className={styles.endLine}>{t('feed.end')}</p>
-          )}
         </>
       )}
 
