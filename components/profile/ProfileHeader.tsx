@@ -233,13 +233,15 @@ export default function ProfileHeader({
     </div>
   )
 
+  // `fluid` để CSS của .avatarWrap quyết định kích thước: 120px ở desktop,
+  // 96px ở mobile. Truyền `size` cứng sẽ làm vành story tràn khung khi thu nhỏ.
   const avatarImage = (
     <StoryAvatar
       src={profile.avatar_uri || ''}
       name={profile.display_name}
       hasStory={hasStory}
       hasViewed={hasStoryViewed}
-      size={120}
+      fluid
     />
   )
 

@@ -16,7 +16,8 @@
   overflow-x: auto;
   scrollbar-width: none;
   position: sticky;
-  top: calc(56px + var(--space-md));
+  /* Navbar 56px + 1px border — 57px, tránh hở 1px khi dính. */
+  top: calc(57px + var(--space-md));
   z-index: 50;
   margin-bottom: var(--space-md);
 }
@@ -65,32 +66,15 @@
   color: var(--color-text);
 }
 
+/* .tabBar có overflow-x: auto (để vuốt ngang trên mobile) nên ring ở offset
+   dương bị chính scroll container cắt mất. Đưa ring vào trong viền nút. */
 .tab:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .tabActive {
   color: var(--color-primary);
-}
-
-.tabCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.tabActive .tabCount {
-  background: var(--color-primary);
-  color: #fff;
 }
 
 .tabContent {
@@ -193,11 +177,6 @@
   margin: 0;
 }
 
-.emptyText {
-  font: var(--text-caption);
-  margin: 0;
-}
-
 .pinnedBadge {
   display: inline-flex;
   align-items: center;
@@ -207,7 +186,8 @@
   font: var(--text-caption);
   font-weight: 500;
   color: var(--color-primary);
-  background: var(--color-primary-bg);
+  /* --color-primary-bg không tồn tại trong globals.css → dùng token tint có thật. */
+  background: var(--color-primary-light);
   border-radius: var(--radius-pill);
 }
 
@@ -268,7 +248,7 @@
   }
 
   .tabBar {
-    top: calc(56px + var(--space-sm));
+    top: calc(57px + var(--space-sm));
   }
 
   .postItem {

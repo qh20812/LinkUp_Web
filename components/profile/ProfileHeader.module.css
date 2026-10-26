@@ -143,7 +143,10 @@
   position: relative;
 }
 
-/* Avatar 120 — double ring (story gradient + card gap) + glow */
+/* Avatar 120 — double ring (story gradient + card gap) + glow.
+   Không đặt border ở đây: ảnh/vành bên trong là 100% của khung, thêm border
+   sẽ ăn vào đường kính ảnh. Khoảng trắng giữa vành gradient và ảnh do
+   .ringInner của StoryAvatar lo (đúng thứ tự: vành ngoài → gap → ảnh). */
 .avatarWrap {
   position: relative;
   width: 120px;
@@ -156,7 +159,6 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
-  border: 3px solid var(--color-card);
   box-shadow:
     0 0 0 3px var(--color-primary-light),
     var(--shadow-md);
@@ -180,9 +182,20 @@
   cursor: pointer;
 }
 
-.avatarButton:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 4px;
+/* Vòng focus đặt trên khung thay vì trên <button> bên trong: .avatarWrap đã có
+   quầng --color-primary-light, nên ring của button (cùng tông teal) chìm vào
+   quầng đó. Thêm một lớp teal đặc ngay ngoài quầng thì tách hẳn khỏi nền. */
+.avatarWrap:has(> .avatarButton:focus-visible) {
+  box-shadow:
+    0 0 0 4px var(--color-primary-light),
+    0 0 0 6px var(--color-primary),
+    var(--shadow-md);
+}
+
+/* Cần specificity cao hơn `.headerCard button:focus-visible` ở đầu file,
+   nếu không rule chung vẫn vẽ outline lên chính <button> bên trong. */
+.headerCard .avatarButton:focus-visible {
+  outline: none;
 }
 
 /* Chưa có gì để bấm (người khác chưa đặt ảnh đại diện) — giữ đúng bố cục. */
@@ -197,13 +210,6 @@
 
 .avatarWrap i {
   font-size: 48px;
-}
-
-.onlineIndicator {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  z-index: 1;
 }
 
 .onlinePulse {
@@ -231,14 +237,6 @@
     transform: scale(1.9);
     opacity: 0;
   }
-}
-
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-circle);
-  object-fit: cover;
-  transition: filter 0.2s ease;
 }
 
 /* User Info */
@@ -331,12 +329,6 @@
 
 .shareBtn {
   margin-left: auto;
-}
-
-.statusText {
-  font: var(--text-caption);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--space-xs);
 }
 
 .meta {
@@ -463,6 +455,12 @@
   box-shadow: 0 6px 22px rgba(63, 191, 186, 0.45), var(--shadow-md);
 }
 
+/* Nền gradient teal + quầng teal sẵn có: giữ quầng khi focus thì ring xanh
+   cùng tông nằm ngay cạnh và gần như biến mất. Bỏ quầng để ring đọc được. */
+.primaryBtn:focus-visible {
+  box-shadow: none;
+}
+
 .primaryBtn:active {
   transform: translateY(0) scale(0.98);
 }
@@ -539,203 +537,12 @@
   border-color: var(--color-text-secondary);
 }
 
-.followBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  font: var(--text-body);
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.followBtn:hover {
-  background: var(--color-bg-hover);
-}
-
-.followBtnActive {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-
-.followBtnActive:hover {
-  background: var(--color-primary-hover);
-}
-
 .actionBtnDisabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 .actionBtnDisabled:hover {
-  background: var(--color-bg-secondary);
-}
-
-/* Edit Form */
-.editForm {
-  text-align: left;
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-divider);
-}
-
-.fieldLabel {
-  font: var(--text-caption);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
-  display: block;
-}
-
-.input {
-  width: 100%;
-  padding: var(--space-sm) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  font: var(--text-body);
-  color: var(--color-text);
-  outline: none;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
-}
-
-.input:focus {
-  border-color: var(--color-primary);
-}
-
-.textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-/* Privacy Section */
-.privacySection {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-divider);
-}
-
-.privacyTitle {
-  font: var(--text-body);
-  font-weight: 600;
-  display: block;
-  margin-bottom: var(--space-sm);
-}
-
-.settingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-sm) 0;
-}
-
-.settingInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.settingLabel {
-  font: var(--text-body);
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.settingHint {
-  font: var(--text-caption);
-  color: var(--color-text-secondary);
-}
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.toggle input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggleTrack {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  background: var(--color-border);
-  border-radius: 12px;
-  transition: background 0.3s;
-}
-
-.toggle input:checked + .toggleTrack {
-  background: var(--color-primary);
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.3s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.toggle input:checked + .toggleTrack .toggleThumb {
-  transform: translateX(20px);
-}
-
-.editActions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-
-.saveBtn {
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
-  border: none;
-  background: var(--color-primary);
-  color: var(--color-bg);
-  font: var(--text-body);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.saveBtn:hover {
-  background: var(--color-primary-hover);
-}
-
-.saveBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.cancelBtn {
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text);
-  font: var(--text-body);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.cancelBtn:hover {
   background: var(--color-bg-secondary);
 }
 
@@ -812,23 +619,24 @@
     align-items: stretch;
   }
 
+  /* Xếp dọc full-width: các nút phải cùng chiều cao và cùng căn giữa chữ.
+     FriendButton nằm ở module riêng nên trước đây chữ của nó dồn sang trái
+     trong khi các nút cạnh nó căn giữa — nhìn như "chữ bị lệch". */
   .editBtn,
   .settingsBtn,
-  .followBtn,
   .primaryBtn,
   .ctaBtn {
     width: 100%;
+    min-height: 44px;
     justify-content: center;
+    text-align: center;
   }
+}
 
-  .editActions {
-    flex-direction: column;
-  }
-
-  .saveBtn,
-  .cancelBtn {
-    width: 100%;
-    justify-content: center;
+/* Tên dài kiểu Việt Nam (3–4 từ đệm) ở 360px vẫn vỡ 2 dòng thay vì tràn. */
+@media (max-width: 400px) {
+  .displayName {
+    font-size: 22px;
   }
 }
 
@@ -880,6 +688,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
+  min-height: 44px; /* tap target tối thiểu trên mobile */
   padding: var(--space-sm) var(--space-sm);
   border: none;
   background: none;

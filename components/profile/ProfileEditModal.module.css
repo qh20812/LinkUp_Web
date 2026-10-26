@@ -274,13 +274,22 @@
   border-top: 1px solid var(--color-divider);
 }
 
+/* Nút thật sự là flex: trước đây chỉ có padding nên khi mobile đặt
+   width:100% + justify-content:center thì chữ vẫn dựa vào text-align của UA,
+   còn chiều cao lệch 2px so với nút có viền bên cạnh. */
 .saveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-pill);
   border: none;
   background: var(--color-primary);
   color: var(--color-bg);
   font: var(--text-body);
+  font-weight: 600;
+  text-align: center;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -295,12 +304,18 @@
 }
 
 .cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text);
   font: var(--text-body);
+  font-weight: 600;
+  text-align: center;
   cursor: pointer;
   transition: background 0.2s ease;
 }

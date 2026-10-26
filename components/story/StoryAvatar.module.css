@@ -39,3 +39,18 @@
   justify-content: center;
   background: var(--color-bg-secondary);
 }
+
+/* Opt-in: kích thước do khung cha quyết định.
+   Không dùng khi render ở story bar — ở đó `size` vẫn là nguồn duy nhất. */
+.fluid {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.fluid .ringInner {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+

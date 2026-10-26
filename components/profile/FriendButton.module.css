@@ -49,7 +49,8 @@
 }
 
 .btnAccepted {
-  background: var(--color-primary-bg);
+  /* --color-primary-bg không tồn tại trong globals.css → dùng token tint có thật. */
+  background: var(--color-primary-light);
   color: var(--color-primary);
   border-color: var(--color-primary);
 }
@@ -67,4 +68,16 @@
 
 .pulse {
   animation: pulse 0.3s ease;
+}
+
+/* Trong .actionRow xếp dọc (ProfileHeader), nút này giãn hết bề ngang nhưng
+   nội dung vẫn dồn trái — lệch hẳn so với các nút căn giữa bên cạnh. */
+@media (max-width: 576px) {
+  .btn {
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
 }
