@@ -4,7 +4,17 @@ import styles from './StoryBar.module.css'
 import type { StoryFeedItem, StoryItem } from '../../types'
 import ExternalImage from '../ExternalImage'
 import { useTranslation } from '../../hooks/useTranslation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+/** Dưới ngưỡng này coi như đang ở sát mép (sai số làm tròn của scrollLeft). */
+const EDGE_EPSILON = 4
+
+type ScrollDirection = -1 | 1
+
+function prefersReducedMotion() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
 interface StoryBarProps {
   stories: StoryFeedItem[]
@@ -60,6 +70,8 @@ export default function StoryBar({
 }: StoryBarProps) {
   const { t } = useTranslation()
   const [menuAnchor, setMenuAnchor] = useState<{ userId: string; top: number; right: number } | null>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
 
   const openMenu = (e: React.MouseEvent<HTMLElement>, userId: string) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -81,6 +93,78 @@ export default function StoryBar({
     }
   }, [menuAnchor])
 
+  /**
+   * Cập nhật trạng thái "còn nội dung để cuộn" ở hai mép. Dùng cho cả việc hiện
+   * nút mũi tên lẫn mask fade — fade chỉ bật khi thực sự còn thẻ bị khuất.
+   */
+  const syncEdges = useCallback(() => {
+    const el = barRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    const left = el.scrollLeft > EDGE_EPSILON
+    const right = maxScroll > EDGE_EPSILON && el.scrollLeft < maxScroll - EDGE_EPSILON
+    setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }, [])
+
+  useEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    // Đo sau khi browser hoàn tất layout (font/ảnh) — jsdom không có rAF thì bỏ qua.
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(syncEdges) : null
+    el.addEventListener('scroll', syncEdges, { passive: true })
+    let observer: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(syncEdges)
+      observer.observe(el)
+    }
+    return () => {
+      if (raf !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf)
+      el.removeEventListener('scroll', syncEdges)
+      observer?.disconnect()
+    }
+  }, [syncEdges, stories, loading])
+
+  const scrollByPage = useCallback((dir: ScrollDirection) => {
+    const el = barRef.current
+    if (!el) return
+    // ~80% viewport: luôn thấy một phần thẻ trước để giữ mạch đọc.
+    const step = Math.max(160, Math.round(el.clientWidth * 0.8))
+    const scrollBehavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth'
+    if (typeof el.scrollBy === 'function') {
+      el.scrollBy({ left: dir * step, behavior: scrollBehavior })
+    } else {
+      el.scrollLeft += dir * step
+    }
+  }, [])
+
+  const scrollToEdge = useCallback((edge: 'start' | 'end') => {
+    const el = barRef.current
+    if (!el) return
+    const left = edge === 'start' ? 0 : el.scrollWidth - el.clientWidth
+    const scrollBehavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth'
+    if (typeof el.scrollTo === 'function') {
+      el.scrollTo({ left, behavior: scrollBehavior })
+    } else {
+      el.scrollLeft = left
+    }
+  }, [])
+
+  const handleBarKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      scrollByPage(1)
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      scrollByPage(-1)
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      scrollToEdge('start')
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      scrollToEdge('end')
+    }
+  }
+
   if (loading && stories.length === 0) {
     return (
       <div className={styles.wrap}>
@@ -99,7 +183,20 @@ export default function StoryBar({
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.bar}>
+      <div
+        ref={barRef}
+        className={[
+          styles.bar,
+          edges.left ? styles.barFadeLeft : '',
+          edges.right ? styles.barFadeRight : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        role="group"
+        aria-label={t('story.barLabel')}
+        tabIndex={0}
+        onKeyDown={handleBarKeyDown}
+      >
         {currentUserId && (
           <div
             className={`${styles.storyItem} ${styles.yourStory}`}
@@ -202,6 +299,29 @@ export default function StoryBar({
           )
         })}
       </div>
+
+      {edges.left && (
+        <button
+          type="button"
+          className={`${styles.navBtn} ${styles.navPrev}`}
+          aria-label={t('story.scrollPrev')}
+          title={t('story.scrollPrev')}
+          onClick={() => scrollByPage(-1)}
+        >
+          <i className="bx bx-chevron-left" aria-hidden="true" />
+        </button>
+      )}
+      {edges.right && (
+        <button
+          type="button"
+          className={`${styles.navBtn} ${styles.navNext}`}
+          aria-label={t('story.scrollNext')}
+          title={t('story.scrollNext')}
+          onClick={() => scrollByPage(1)}
+        >
+          <i className="bx bx-chevron-right" aria-hidden="true" />
+        </button>
+      )}
 
       {menuAnchor && (
         <div

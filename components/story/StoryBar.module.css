@@ -8,12 +8,43 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
 
 .bar::-webkit-scrollbar {
   display: none;
+}
+
+.bar:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Fade hai mép chỉ bật khi còn thẻ bị khuất theo hướng đó. */
+.barFadeRight {
+  mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent 100%);
+}
+
+.barFadeLeft {
+  mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent 100%);
+}
+
+.barFadeLeft.barFadeRight {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 56px,
+    #000 calc(100% - 56px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 56px,
+    #000 calc(100% - 56px),
+    transparent 100%
+  );
 }
 
 .storyItem {
@@ -22,6 +53,7 @@
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  scroll-snap-align: start;
 }
 
 .storyItem:hover {
@@ -282,6 +314,64 @@
   position: relative;
 }
 
+/* Nút cuộn ngang — chỉ dành cho thiết bị có con trỏ chính xác (chuột).
+   Cảm ứng giữ nguyên hành vi vuốt native. */
+.navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-circle);
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.navBtn i {
+  line-height: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navBtn {
+    display: flex;
+  }
+
+  /* Chỉ desktop mới snap — cảm ứng giữ nguyên cảm giác vuốt tự do. */
+  .bar {
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--space-md);
+  }
+}
+
+.navBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-primary);
+}
+
+.navBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.navPrev {
+  left: 6px;
+}
+
+.navNext {
+  right: 6px;
+}
+
 .menuBackdrop {
   position: fixed;
   inset: 0;
@@ -340,5 +430,13 @@
 
   .storyItem:hover {
     transform: none;
+  }
+
+  .bar {
+    scroll-snap-type: none;
+  }
+
+  .navBtn {
+    transition: none;
   }
 }

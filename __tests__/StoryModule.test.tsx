@@ -142,6 +142,100 @@ describe('StoryBar', () => {
   })
 })
 
+describe('StoryBar horizontal scrolling', () => {
+  const barOf = () => screen.findByRole('group', { name: 'Danh sách tin' })
+
+  const renderBar = () =>
+    renderWithProviders(
+      <StoryBar
+        stories={[feedItem]}
+        currentUserId="me"
+        onSelectStory={jest.fn()}
+        onCreateStory={jest.fn()}
+        onMuteUser={jest.fn()}
+      />,
+    )
+
+  // jsdom không có layout: tự đặt số đo để giả lập thanh bị tràn.
+  function setMetrics(el: HTMLElement, scrollWidth: number, clientWidth: number, scrollLeft = 0) {
+    Object.defineProperty(el, 'scrollWidth', { value: scrollWidth, configurable: true })
+    Object.defineProperty(el, 'clientWidth', { value: clientWidth, configurable: true })
+    Object.defineProperty(el, 'scrollLeft', { value: scrollLeft, writable: true, configurable: true })
+  }
+
+  // jsdom 26 không cài scrollBy/scrollTo trên element — gắn bản giả để kiểm tra
+  // đúng nhánh mà trình duyệt thật sự chạy.
+  function stubScrollApi(el: HTMLElement) {
+    const scrollBy = jest.fn()
+    const scrollTo = jest.fn()
+    Object.defineProperty(el, 'scrollBy', { value: scrollBy, writable: true, configurable: true })
+    Object.defineProperty(el, 'scrollTo', { value: scrollTo, writable: true, configurable: true })
+    return { scrollBy, scrollTo }
+  }
+
+  it('offers only the next arrow while the bar sits at the start', async () => {
+    renderBar()
+    const bar = await barOf()
+    setMetrics(bar, 900, 400, 0)
+    fireEvent.scroll(bar)
+
+    expect(await screen.findByRole('button', { name: 'Cuộn sang phải' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cuộn sang trái' })).toBeNull()
+  })
+
+  it('offers only the previous arrow once the bar reaches the end', async () => {
+    renderBar()
+    const bar = await barOf()
+    setMetrics(bar, 900, 400, 500)
+    fireEvent.scroll(bar)
+
+    expect(await screen.findByRole('button', { name: 'Cuộn sang trái' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cuộn sang phải' })).toBeNull()
+  })
+
+  it('scrolls one page forward when the next arrow is clicked', async () => {
+    renderBar()
+    const bar = await barOf()
+    const { scrollBy } = stubScrollApi(bar)
+    setMetrics(bar, 900, 400, 0)
+    fireEvent.scroll(bar)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cuộn sang phải' }))
+
+    expect(scrollBy).toHaveBeenCalledWith({ left: 320, behavior: 'smooth' })
+  })
+
+  it('falls back to scrollLeft when the element has no scrollBy', async () => {
+    renderBar()
+    const bar = await barOf()
+    setMetrics(bar, 900, 400, 0)
+    fireEvent.scroll(bar)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cuộn sang phải' }))
+
+    expect(bar.scrollLeft).toBe(320)
+  })
+
+  it('supports ArrowLeft/ArrowRight/Home/End on the bar', async () => {
+    renderBar()
+    const bar = await barOf()
+    const { scrollBy, scrollTo } = stubScrollApi(bar)
+    setMetrics(bar, 900, 400, 200)
+
+    fireEvent.keyDown(bar, { key: 'ArrowRight' })
+    expect(scrollBy).toHaveBeenLastCalledWith({ left: 320, behavior: 'smooth' })
+
+    fireEvent.keyDown(bar, { key: 'ArrowLeft' })
+    expect(scrollBy).toHaveBeenLastCalledWith({ left: -320, behavior: 'smooth' })
+
+    fireEvent.keyDown(bar, { key: 'End' })
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 500, behavior: 'smooth' })
+
+    fireEvent.keyDown(bar, { key: 'Home' })
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: 'smooth' })
+  })
+})
+
 describe('StoryEditorModal (2-step flow)', () => {
   beforeAll(() => {
     let counter = 0
