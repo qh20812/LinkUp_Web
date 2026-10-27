@@ -38,7 +38,7 @@ export default function PartnerAdsPage() {
   if (statusFilter) params.set('status', statusFilter)
   const swrKey = `/ads-management?${params}`
   const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<PartnerAdListResponse>(url))
-  const items = res?.ads ?? []
+  const items = res?.data ?? []
   const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 

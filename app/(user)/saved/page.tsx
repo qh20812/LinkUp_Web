@@ -37,7 +37,6 @@ export default function SavedPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -133,11 +132,6 @@ export default function SavedPage() {
     setSelectedPostId(postId)
   }
 
-  const handleShare = (postId: string) => {
-    setSelectedPostId(postId)
-    setSharePostId(postId)
-  }
-
   const handleFollow = async (userId: string) => {
     setPosts((prev) =>
       prev.map((p) => (p.user_id === userId ? { ...p, is_following: true } : p)),
@@ -212,7 +206,6 @@ export default function SavedPage() {
             onLike={handleLike}
             onSave={handleSave}
             onComment={handleComment}
-            onShare={handleShare}
             onFollow={handleFollow}
             onOpenDetail={setSelectedPostId}
           />
@@ -239,10 +232,8 @@ export default function SavedPage() {
             key={detailPost.id}
             post={detailPost}
             open
-            initialShareOpen={sharePostId === detailPost.id}
             onClose={() => {
               setSelectedPostId(null)
-              setSharePostId(null)
             }}
             onUpdated={(updated) =>
               setPosts((prev) =>

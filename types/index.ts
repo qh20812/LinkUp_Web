@@ -930,13 +930,24 @@ export interface AdPerformance {
 export interface PartnerAdListItem {
   id: string
   title: string
+  content: string
+  format: string
+  target_url: string
   status: string
   budget: number
+  daily_budget: number
+  cpm_price: number
+  cpc_price: number
+  max_impressions: number
   total_spent: number
   impressions: number
   clicks: number
   ctr: number
   media_uri: string
+  target_gender: string
+  target_age_min: number
+  target_age_max: number
+  target_locations: string[]
   started_at?: string
   expires_at?: string
   created_at: string
@@ -944,7 +955,7 @@ export interface PartnerAdListItem {
 }
 
 export interface PartnerAdListResponse {
-  ads: PartnerAdListItem[]
+  data: PartnerAdListItem[]
   total: number
   page: number
   page_size: number

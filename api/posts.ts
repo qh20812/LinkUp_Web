@@ -61,6 +61,18 @@ export const deletePost = (postId: string) =>
     method: 'DELETE',
   })
 
+// "Không quan tâm": tín hiệu âm chủ động, server loại bài khỏi feed của user.
+export const hidePost = (postId: string) =>
+  request<{ hidden: boolean }>(`/posts/${postId}/hide`, {
+    method: 'POST',
+  })
+
+// Hoàn tác "Không quan tâm".
+export const unhidePost = (postId: string) =>
+  request<{ hidden: boolean }>(`/posts/${postId}/hide`, {
+    method: 'DELETE',
+  })
+
 export const getSavedPosts = (cursor: string | null, pageSize = 10) => {
   const params = new URLSearchParams()
   params.set('page_size', String(pageSize))

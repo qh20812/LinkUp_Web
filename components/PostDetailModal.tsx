@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
 import ExternalImage from './ExternalImage'
@@ -20,13 +21,12 @@ import {
   reactPost,
   toggleCommentReaction,
   savePost,
-  sharePost,
   deletePost,
   getEmojis,
   setCommentsEnabled,
 } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
-import ShareModal from './messages/ShareModal'
+import ShareDialog from './ShareDialog'
 import ReportModal from './ReportModal'
 import type { FeedPost, CommentItem, EmojiItem, ViewProfileResponse, ReportTargetType } from '../types'
 
@@ -148,7 +148,6 @@ interface PostDetailModalProps {
   onClose: () => void
   onUpdated?: (post: FeedPost) => void
   onDeleted?: (postId: string) => void
-  initialShareOpen?: boolean
 }
 
 // Server có thể trả media: null cho bài không có media (thay vì []) —
@@ -164,7 +163,6 @@ export default function PostDetailModal({
   onClose,
   onUpdated,
   onDeleted,
-  initialShareOpen,
 }: PostDetailModalProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -179,10 +177,7 @@ export default function PostDetailModal({
   const [replyingTo, setReplyingTo] = useState<CommentItem | null>(null)
   const [submittingComment, setSubmittingComment] = useState(false)
   const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'relevant'>('newest')
-  const [shareOpen, setShareOpen] = useState(() => !!initialShareOpen)
-  const [shareText, setShareText] = useState('')
-  const [sharing, setSharing] = useState(false)
-  const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -194,7 +189,6 @@ export default function PostDetailModal({
   const [likePop, setLikePop] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const commentInputRef = useRef<HTMLInputElement>(null)
-  const shareInputRef = useRef<HTMLTextAreaElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const commentsRef = useRef<HTMLDivElement>(null)
@@ -204,6 +198,7 @@ export default function PostDetailModal({
   const prevLikedRef = useRef(post.is_liked)
   const touchStartXRef = useRef<number | null>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const nestedModalOpenRef = useRef(false)
 
   useEffect(() => {
     onCloseRef.current = onClose
@@ -292,6 +287,9 @@ export default function PostDetailModal({
     returnFocusRef.current = document.activeElement as HTMLElement | null
 
     const handleKey = (e: KeyboardEvent) => {
+      // Modal con (ShareDialog/ReportModal) đang mở thì nó tự lo Escape + focus
+      // trap; nếu không chặn, một phím Escape sẽ đóng cả modal chi tiết.
+      if (nestedModalOpenRef.current) return
       if (e.key === 'Escape') {
         if (confirmRef.current) {
           setConfirmDelete(false)
@@ -339,6 +337,10 @@ export default function PostDetailModal({
   }, [open])
 
   useEffect(() => {
+    nestedModalOpenRef.current = shareOpen || reportTarget !== null
+  }, [shareOpen, reportTarget])
+
+  useEffect(() => {
     if (!open) return
     const here = window.location.pathname
     const target = `/posts/${post.id}`
@@ -363,12 +365,6 @@ export default function PostDetailModal({
     }
     prevLikedRef.current = current.is_liked
   }, [current.is_liked])
-
-  useEffect(() => {
-    if (!shareOpen) return
-    const timer = setTimeout(() => shareInputRef.current?.focus(), 30)
-    return () => clearTimeout(timer)
-  }, [shareOpen])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -511,29 +507,6 @@ export default function PostDetailModal({
       toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
     } finally {
       setSubmittingComment(false)
-    }
-  }
-
-  const handleShare = async () => {
-    if (!current || sharing) return
-    setSharing(true)
-    try {
-      const res = await sharePost(current.id, shareText.trim())
-      const next = { ...current, shares_count: current.shares_count + 1, is_shared: true }
-      setCurrent(next)
-      onUpdated?.(next)
-      setShareOpen(false)
-      setShareText('')
-      // Prepend bài repost vừa tạo lên đầu feed qua event chung với
-      // PostComposer — Feed dedup theo id nên APPEND sau đó không trùng.
-      if (res.data) {
-        window.dispatchEvent(new CustomEvent<FeedPost>('post:created', { detail: res.data }))
-      }
-      toast({ type: 'success', title: t('postDetail.shared') })
-    } catch (e) {
-      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
-    } finally {
-      setSharing(false)
     }
   }
 
@@ -714,7 +687,7 @@ export default function PostDetailModal({
     </div>
   )
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={requestClose}>
       <div
         className={`${styles.modal}${hasMedia ? '' : ` ${styles.modalNoMedia}`}`}
@@ -996,49 +969,17 @@ export default function PostDetailModal({
                     <span>{formatCount(current.comments_count)}</span>
                   </button>
 
-                  <div className={styles.shareWrap}>
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn}${current.is_shared ? ` ${styles.sharedBtn}` : ''}`}
-                      onClick={() => setShareOpen((v) => !v)}
-                      disabled={isOwner}
-                      aria-haspopup="dialog"
-                      aria-expanded={shareOpen}
-                      title={current.is_shared ? t('post.sharedState') : undefined}
-                    >
-                      <i className={current.is_shared ? 'bx bxs-check-circle' : 'bx bx-share-alt'} />
-                      <span>{formatCount(current.shares_count)}</span>
-                    </button>
-                    {shareOpen && (
-                      <div className={styles.sharePopover} onClick={(e) => e.stopPropagation()}>
-                        <textarea
-                          ref={shareInputRef}
-                          className={styles.shareInput}
-                          value={shareText}
-                          onChange={(e) => setShareText(e.target.value)}
-                          rows={2}
-                          placeholder={t('postDetail.sharePlaceholder')}
-                        />
-                        <div className={styles.shareActions}>
-                          <button
-                            type="button"
-                            className={styles.shareCancel}
-                            onClick={() => setShareOpen(false)}
-                          >
-                            {t('postDetail.cancel')}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.shareSubmit}
-                            onClick={handleShare}
-                            disabled={sharing}
-                          >
-                            <span>{t('postDetail.shareButton')}</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn}${current.is_shared ? ` ${styles.sharedBtn}` : ''}`}
+                    onClick={() => setShareOpen(true)}
+                    disabled={isOwner}
+                    aria-haspopup="dialog"
+                    title={current.is_shared ? t('post.sharedState') : undefined}
+                  >
+                    <i className={current.is_shared ? 'bx bxs-check-circle' : 'bx bx-share-alt'} />
+                    <span>{formatCount(current.shares_count)}</span>
+                  </button>
 
                   <div className={styles.actionSpacer} />
 
@@ -1228,21 +1169,26 @@ export default function PostDetailModal({
         </div>
       )}
 
-      {current && (
-        <ShareModal
-          open={shareToFriendOpen}
-          onClose={() => setShareToFriendOpen(false)}
-          postId={current.id}
-        />
-      )}
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        post={current}
+        layer={1}
+        onShared={(next) => {
+          setCurrent(next)
+          onUpdated?.(next)
+        }}
+      />
       {reportTarget && (
         <ReportModal
           open
           targetType={reportTarget.type}
           targetId={reportTarget.id}
           onClose={() => setReportTarget(null)}
+          layer={1}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -5,12 +5,15 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import useSWR from 'swr'
 import styles from './Feed.module.css'
-import { getFeedPosts, reactPost, savePost, getEmojis } from '../api/posts'
+import { getFeedPosts, reactPost, savePost, getEmojis, hidePost, unhidePost } from '../api/posts'
 import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
 import { getFeedAds, trackAdAction } from '../api/partner'
 import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
 import { request } from '../api/api'
+import { dedupeRepostOriginals } from '../lib/feed-dedupe'
+import { removePostById, insertPostAt } from '../lib/feed-hide'
+import { adIndexForPost, feedAdImageUrl } from '../lib/feed-ads'
 import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse, MediaReadyEvent } from '../types'
 import PostCard from './PostCard'
 import PostComposer from './PostComposer'
@@ -53,13 +56,11 @@ function FeedContent() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryFeedItem[]>([])
   const [storyLoading, setStoryLoading] = useState(true)
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
   const [feedAds, setFeedAds] = useState<FeedAd[]>([])
-  const [adIndex, setAdIndex] = useState(0)
   const [trackedAds, setTrackedAds] = useState<Set<string>>(new Set())
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
@@ -125,14 +126,21 @@ function FeedContent() {
   }, [tab])
 
   useEffect(() => {
+    // Tab Following chỉ chứa bài của người mình follow, nên bài mình vừa đăng
+    // (kể cả share) không thuộc feed đó — prepend sẽ biến mất ngay khi F5.
+    if (tab === 'following') return
     const handler = (e: Event) => {
       const post = (e as CustomEvent<FeedPost>).detail
       if (!post) return
-      setPosts((prev) => (prev.some((p) => p.id === post.id) ? prev : [post, ...prev]))
+      setPosts((prev) => {
+        const next = prev.some((p) => p.id === post.id) ? prev : [post, ...prev]
+        // Share vừa tạo: ẩn card bài gốc đang hiển thị để không trùng nội dung.
+        return dedupeRepostOriginals(next)
+      })
     }
     window.addEventListener('post:created', handler as EventListener)
     return () => window.removeEventListener('post:created', handler as EventListener)
-  }, [setPosts])
+  }, [tab])
 
   // Video xử lý xong ở background (WS media:ready): thay URL staging bằng
   // URL Cloudinary ngay trong post đang hiển thị, không cần reload feed.
@@ -169,7 +177,7 @@ function FeedContent() {
     try {
       const res = await getFeedPosts(cursorRef.current, PAGE_SIZE, filter)
       setPosts((prev) => {
-        const list = isFirst ? res.data : [...prev, ...res.data]
+        const list = dedupeRepostOriginals(isFirst ? res.data : [...prev, ...res.data])
         const seen = new Set<string>()
         return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
       })
@@ -252,11 +260,6 @@ function FeedContent() {
     setSelectedPostId(postId)
   }
 
-  const handleShare = (postId: string) => {
-    setSelectedPostId(postId)
-    setSharePostId(postId)
-  }
-
   const handleFollow = async (userId: string) => {
     setPosts((prev) =>
       prev.map((p) =>
@@ -272,6 +275,37 @@ function FeedContent() {
         ),
       )
     }
+  }
+
+  // "Không quan tâm": bỏ bài khỏi feed ngay (optimistic), gọi server để lưu
+  // tín hiệu âm, kèm toast Hoàn tác để chèn lại đúng vị trí cũ.
+  const handleHide = async (postId: string) => {
+    const { post: removed, index, posts: next } = removePostById(posts, postId)
+    if (!removed) return
+    setPosts(next)
+
+    try {
+      await hidePost(postId)
+    } catch (e) {
+      setPosts((prev) => insertPostAt(prev, index, removed))
+      toast({ type: 'error', title: e instanceof Error ? e.message : t('common.error') })
+      return
+    }
+
+    toast({
+      type: 'info',
+      title: t('post.hidden'),
+      action: {
+        label: t('common.undo'),
+        onClick: () => {
+          setPosts((prev) => insertPostAt(prev, index, removed))
+          unhidePost(postId).catch(() => {
+            setPosts((prev) => prev.filter((p) => p.id !== postId))
+            toast({ type: 'error', title: t('post.hideUndoFailed') })
+          })
+        },
+      },
+    })
   }
 
   if (initialLoading) {
@@ -347,20 +381,20 @@ function FeedContent() {
         }}
       />
       {posts.map((post, idx) => {
-        const showAd = feedAds.length > 0 && (idx + 1) % 6 === 0 && idx > 0
-        const ad = showAd ? feedAds[adIndex % feedAds.length] : null
-        if (showAd && ad) {
-          setAdIndex((prev) => prev + 1)
-        }
+        // Mỗi 6 bài một quảng cáo; slot tính từ idx nên ổn định qua mọi lần
+        // render (trước đây setAdIndex() chạy trong render làm quảng cáo nhảy).
+        const adSlot = adIndexForPost(idx, feedAds.length)
+        const ad = adSlot === null ? null : feedAds[adSlot]
+        const adImage = feedAdImageUrl(ad)
         return (
           <div key={post.id}>
             {ad && (
               <div className={styles.adCard}>
-                <div className={styles.adBadge}>Tài trợ</div>
-                {ad.media_uri && (
+                <div className={styles.adBadge}>{t('ads.sponsored')}</div>
+                {adImage && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={ad.media_uri}
+                    src={adImage}
                     alt={ad.title}
                     className={styles.adImage}
                     onLoad={() => {
@@ -381,7 +415,7 @@ function FeedContent() {
                     className={styles.adCta}
                     onClick={() => trackAdAction(ad.id, 'click').catch(() => {})}
                   >
-                    Xem thêm
+                    {t('ads.learnMore')}
                   </a>
                 </div>
               </div>
@@ -391,9 +425,9 @@ function FeedContent() {
               onLike={handleLike}
               onSave={handleSave}
               onComment={handleComment}
-              onShare={handleShare}
               onFollow={handleFollow}
               onOpenDetail={setSelectedPostId}
+              onHide={handleHide}
             />
           </div>
         )
@@ -438,10 +472,8 @@ function FeedContent() {
           key={detailPost.id}
           post={detailPost}
           open
-          initialShareOpen={sharePostId === detailPost.id}
           onClose={() => {
             setSelectedPostId(null)
-            setSharePostId(null)
           }}
           onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
           onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}

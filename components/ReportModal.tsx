@@ -16,6 +16,7 @@ interface ReportModalProps {
   targetId: string
   onClose: () => void
   onSubmitted?: () => void
+  layer?: number
 }
 
 const OTHER_VALUE = '__other__'
@@ -38,7 +39,7 @@ function severityClass(severity: string): string {
   }
 }
 
-export default function ReportModal({ open, targetType, targetId, onClose, onSubmitted }: ReportModalProps) {
+export default function ReportModal({ open, targetType, targetId, onClose, onSubmitted, layer }: ReportModalProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [selected, setSelected] = useState('')
@@ -104,6 +105,7 @@ export default function ReportModal({ open, targetType, targetId, onClose, onSub
       open={open}
       onClose={handleClose}
       title={t(TITLE_KEYS[targetType])}
+      layer={layer}
       footer={
         <div className={styles.footer}>
           <button type="button" className={styles.cancelBtn} onClick={handleClose} disabled={submitting}>

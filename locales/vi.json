@@ -40,6 +40,7 @@
     "createdAt": "Ngày tạo",
     "back": "Quay lại",
     "close": "Đóng",
+    "undo": "Hoàn tác",
     "add": "Thêm",
     "edit": "Sửa",
     "saving": "Đang lưu...",
@@ -154,7 +155,10 @@
     "privacyPublic": "Công khai",
     "privacyFriend": "Bạn bè",
     "privacyPrivate": "Riêng tư",
-    "pinned": "Đã ghim"
+    "pinned": "Đã ghim",
+    "notInterested": "Không quan tâm",
+    "hidden": "Đã ẩn bài viết khỏi bảng tin",
+    "hideUndoFailed": "Không thể hoàn tác. Bài viết vẫn bị ẩn."
   },
   "feed": {
     "empty": "Chưa có bài viết nào.",
@@ -722,6 +726,10 @@
   },
   "ads": {
     "title": "Quảng cáo",
+    "create": "Tạo quảng cáo",
+    "createSuccess": "Đã tạo quảng cáo",
+    "sponsored": "Tài trợ",
+    "learnMore": "Xem thêm",
     "searchPlaceholder": "Tìm kiếm quảng cáo...",
     "allStatuses": "Tất cả trạng thái",
     "active": "Đang chạy",
@@ -2195,6 +2203,18 @@
     "searchPlaceholder": "Tìm kiếm bạn bè...",
     "share": "Gửi"
   },
+  "shareDialog": {
+    "title": "Chia sẻ bài viết",
+    "tabProfile": "Lên trang cá nhân",
+    "tabFriend": "Gửi cho bạn bè",
+    "profileHint": "Bài viết sẽ xuất hiện trên trang cá nhân của bạn.",
+    "friendHint": "Chọn một hoặc nhiều bạn bè để gửi bài viết qua tin nhắn.",
+    "selectFriendWarning": "Hãy chọn ít nhất 1 người",
+    "sentCount": "Đã gửi đến {count} người",
+    "failedCount": "{count} người không thể gửi",
+    "noFriends": "Chưa có bạn bè nào để gửi.",
+    "noResults": "Không tìm thấy bạn bè phù hợp."
+  },
   "partner": {
     "nav": {
       "dashboard": "Tổng quan",
@@ -2289,6 +2309,12 @@
       "startDate": "Ngày bắt đầu",
       "endDate": "Ngày kết thúc",
       "targetGender": "Giới tính",
+      "genderAll": "Tất cả",
+      "genderMale": "Nam",
+      "genderFemale": "Nữ",
+      "formatImage": "Ảnh",
+      "formatVideo": "Video",
+      "formatCarousel": "Băng chuyền",
       "targetAge": "Độ tuổi",
       "ageMin": "Từ",
       "ageMax": "Đến",

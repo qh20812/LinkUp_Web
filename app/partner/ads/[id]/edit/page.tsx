@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation'
 import { useTranslation } from '../../../../../hooks/useTranslation'
 import { useToast } from '../../../../../contexts/ToastContext'
 import { getMyAds, updateAd } from '../../../../../api/partner'
+import { toDateTimeLocal } from '../../../../../lib/ad-datetime'
 import type { PartnerAdListItem, PartnerAdListResponse } from '../../../../../types'
-import styles from '../../AdForm.module.css'
+import styles from '../../../../../components/AdForm.module.css'
 
 export default function EditAdPage() {
   const { t } = useTranslation()
@@ -38,11 +39,23 @@ export default function EditAdPage() {
     const loadAd = async () => {
       try {
         const res: PartnerAdListResponse = await getMyAds({ page: 1, page_size: 100 })
-        const found = res.ads.find((a) => a.id === adId)
+        const found = res.data.find((a) => a.id === adId)
         if (found) {
           setAd(found)
           setTitle(found.title)
+          setContent(found.content ?? '')
+          setTargetUrl(found.target_url ?? '')
           setBudget(String(found.budget))
+          setDailyBudget(found.daily_budget ? String(found.daily_budget) : '')
+          setCpmPrice(found.cpm_price ? String(found.cpm_price) : '')
+          setCpcPrice(found.cpc_price ? String(found.cpc_price) : '')
+          setMaxImpressions(found.max_impressions ? String(found.max_impressions) : '')
+          setStartedAt(toDateTimeLocal(found.started_at))
+          setExpiresAt(toDateTimeLocal(found.expires_at))
+          setTargetGender(found.target_gender || 'all')
+          setTargetAgeMin(String(found.target_age_min ?? 0))
+          setTargetAgeMax(String(found.target_age_max ?? 100))
+          setTargetLocations((found.target_locations ?? []).join(', '))
         }
       } catch {
         toast({ title: t('common.error'), type: 'error' })
@@ -168,7 +181,13 @@ export default function EditAdPage() {
             {['all', 'male', 'female'].map((g) => (
               <label key={g} className={styles.radioLabel}>
                 <input type="radio" name="gender" value={g} checked={targetGender === g} onChange={() => setTargetGender(g)} />
-                <span>{g === 'all' ? 'Tất cả' : g === 'male' ? 'Nam' : 'Nữ'}</span>
+                <span>
+                  {g === 'all'
+                    ? t('partner.form.genderAll')
+                    : g === 'male'
+                      ? t('partner.form.genderMale')
+                      : t('partner.form.genderFemale')}
+                </span>
               </label>
             ))}
           </div>

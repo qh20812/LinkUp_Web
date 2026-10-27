@@ -27,6 +27,7 @@ import {
 } from "../api/notifications";
 import { invalidate } from "../api/swr";
 import { groupNotifications, mergeNotification } from "../utils/groupNotifications";
+import { pollSkipRounds } from "../lib/poll-backoff";
 
 interface NotificationContextType {
   unreadCount: number;
@@ -63,6 +64,10 @@ export function NotificationProvider({
   const reconnectDelayRef = useRef(1000);
   const closedByUserRef = useRef(false);
   const maxReconnectDelay = 30000;
+  // Poll nền (/notifications/summary): đếm lỗi liên tiếp + số vòng phải bỏ qua.
+  // Xem lib/poll-backoff.ts — backend restart/deploy không nên làm ngập console.
+  const pollFailuresRef = useRef(0);
+  const pollSkipRef = useRef(0);
   // Giữ bản mới nhất cho WS handler mà không làm effect reconnect.
   const toastRef = useRef(toast);
   const tRef = useRef(t);
@@ -84,7 +89,12 @@ export function NotificationProvider({
       const res = await getUnreadCount();
       setUnreadCount(res.count);
     } catch (err) {
-      console.error("Failed to get unread count:", err);
+      // warn (không phải error): lỗi tạm thời khi backend restart không nên
+      // bị dev overlay bắt lại mỗi vòng poll.
+      console.warn(
+        "Failed to get unread count:",
+        err instanceof Error ? err.message : err
+      );
     }
   }, []);
 
@@ -93,7 +103,10 @@ export function NotificationProvider({
       const res = await getNotifications(1, 5, false);
       setNotifications(groupNotifications(res.data));
     } catch (err) {
-      console.error("Failed to fetch notifications dropdown:", err);
+      console.warn(
+        "Failed to fetch notifications dropdown:",
+        err instanceof Error ? err.message : err
+      );
     }
   }, []);
 
@@ -101,10 +114,24 @@ export function NotificationProvider({
   const refreshSummary = useCallback(async () => {
     try {
       const res = await getSummary();
+      if (pollFailuresRef.current > 0) {
+        console.info("Notification poll recovered");
+      }
+      pollFailuresRef.current = 0;
+      pollSkipRef.current = 0;
       setUnreadCount(res.count);
       setNotifications(groupNotifications(res.preview ?? []));
     } catch (err) {
-      console.error("Failed to refresh notification summary:", err);
+      // Giữ nguyên dữ liệu cũ; chỉ báo lần lỗi đầu tiên rồi giãn nhịp poll —
+      // các lần sau là cùng một sự cố (backend restart, mất mạng...).
+      pollFailuresRef.current += 1;
+      pollSkipRef.current = pollSkipRounds(pollFailuresRef.current);
+      if (pollFailuresRef.current === 1) {
+        console.warn(
+          "Notification poll failed, backing off:",
+          err instanceof Error ? err.message : err
+        );
+      }
     }
   }, []);
 
@@ -275,14 +302,21 @@ export function NotificationProvider({
     // Backup poll: WS là kênh realtime chính, poll chỉ để vỡ lỡ frame.
     // - 60s thay vì 30s, 1 request gộp (/summary) thay vì 2.
     // - Bỏ qua khi tab ẩn (background tab chiếm đa số, poll là vô ích).
+    // - Thất bại liên tiếp thì giãn nhịp (pollSkipRef) để không dội lỗi vào
+    //   backend đang restart/deploy.
     const pollInterval = setInterval(() => {
-      if (isComponentMounted && document.visibilityState === "visible") {
-        refreshSummary().catch(() => {});
+      if (!isComponentMounted || document.visibilityState !== "visible") return;
+      if (pollSkipRef.current > 0) {
+        pollSkipRef.current -= 1;
+        return;
       }
+      refreshSummary().catch(() => {});
     }, 60000);
 
     const onVisibilityChange = () => {
       if (!isComponentMounted || document.visibilityState !== "visible") return;
+      // Người dùng vừa quay lại tab: thử ngay (bỏ qua backoff) để số liệu tươi,
+      // nhưng không reset bộ đếm lỗi — lỗi tiếp theo vẫn giãn nhịp.
       refreshSummary().catch(() => {});
     };
     document.addEventListener("visibilitychange", onVisibilityChange);

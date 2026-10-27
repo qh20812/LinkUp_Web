@@ -49,10 +49,11 @@ describe('PostDetailModal text-only layout + null media', () => {
 
   it('renders no media pane for a text-only post', () => {
     const post = buildFeedPost({ title: 'Text only', content: 'hello world', media: [] })
-    const { container } = renderModal(post)
+    // PostDetailModal render qua portal vào document.body → query bằng baseElement.
+    const { baseElement } = renderModal(post)
 
     expect(screen.getByText('Text only')).toBeInTheDocument()
-    expect(container.querySelector('img')).toBeNull()
+    expect(baseElement.querySelector('img')).toBeNull()
     expect(screen.queryByTestId('video-mock')).toBeNull()
   })
 
@@ -62,18 +63,18 @@ describe('PostDetailModal text-only layout + null media', () => {
       content: 'see pic',
       media: [{ id: 'm1', user_id: 'user-1', file_uri: 'https://example.com/a.jpg', file_type: 'image/jpeg' }],
     })
-    const { container } = renderModal(post)
+    const { baseElement } = renderModal(post)
 
     expect(screen.getByText('With media')).toBeInTheDocument()
-    expect(container.querySelector('img[src="https://example.com/a.jpg"]')).not.toBeNull()
+    expect(baseElement.querySelector('img[src="https://example.com/a.jpg"]')).not.toBeNull()
   })
 
   it('does not crash when media is null', () => {
     const post = buildFeedPost({ title: 'Null media', content: 'no media here', media: NULL_MEDIA })
-    const { container } = renderModal(post)
+    const { baseElement } = renderModal(post)
 
     expect(screen.getByText('Null media')).toBeInTheDocument()
-    expect(container.querySelector('img')).toBeNull()
+    expect(baseElement.querySelector('img')).toBeNull()
   })
 
   it('defines the compact no-media modal style (680px, height auto)', () => {

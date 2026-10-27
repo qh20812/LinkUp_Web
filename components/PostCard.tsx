@@ -12,7 +12,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { getTokenPayload } from '../api/auth'
 import { trackPostView } from '../api/posts'
 import VideoPlayer from './VideoPlayer'
-import ShareModal from './messages/ShareModal'
+import ShareDialog from './ShareDialog'
 import ReportModal from './ReportModal'
 import type { FeedPost } from '../types'
 
@@ -77,9 +77,9 @@ interface PostCardProps {
   onLike?: (postId: string) => void
   onSave?: (postId: string) => void
   onComment?: (postId: string) => void
-  onShare?: (postId: string) => void
   onFollow?: (userId: string) => void
   onOpenDetail?: (postId: string) => void
+  onHide?: (postId: string) => void
 }
 
 function isVideo(fileType: string): boolean {
@@ -171,13 +171,19 @@ function LazyMediaGrid({ media, onMediaClick, burst }: { media: FeedPost['media'
   return <MediaGrid media={media} onMediaClick={onMediaClick} burst={burst} />
 }
 
-export default function PostCard({ post, onLike, onSave, onComment, onShare, onFollow, onOpenDetail }: PostCardProps) {
+export default function PostCard({ post, onLike, onSave, onComment, onFollow, onOpenDetail, onHide }: PostCardProps) {
   const { t } = useTranslation()
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [shareToFriendOpen, setShareToFriendOpen] = useState(false)
-  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  // Số chia sẻ cộng thêm sau khi user chia sẻ ngay trên card. Giữ kèm post.id
+  // để tự reset khi card được tái sử dụng cho bài khác (không cần effect).
+  const [shareState, setShareState] = useState<{ postId: string; delta: number }>({
+    postId: post.id,
+    delta: 0,
+  })
+  const shareDelta = shareState.postId === post.id ? shareState.delta : 0
   const [moreOpen, setMoreOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [likePop, setLikePop] = useState(false)
@@ -237,11 +243,8 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
   }, [])
 
   useEffect(() => {
-    if (!shareMenuOpen && !moreOpen) return
-    const close = () => {
-      setShareMenuOpen(false)
-      setMoreOpen(false)
-    }
+    if (!moreOpen) return
+    const close = () => setMoreOpen(false)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
     }
@@ -251,7 +254,7 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
       document.removeEventListener('click', close)
       document.removeEventListener('keydown', onKey)
     }
-  }, [shareMenuOpen, moreOpen])
+  }, [moreOpen])
 
   // Tách URL GIPHY dính nhau TRƯỚC khi cắt — chuỗi liền mạch không có space
   // sẽ bị truncateAvoidingUrl trả về '...' (mất trắng nội dung).
@@ -362,6 +365,20 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             </button>
             {moreOpen && (
               <div className={styles.moreMenu} role="menu" onClick={(e) => e.stopPropagation()}>
+                {onHide && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.moreItem}
+                    onClick={() => {
+                      setMoreOpen(false)
+                      onHide(post.id)
+                    }}
+                  >
+                    <i className="bx bx-hide" />
+                    <span>{t('post.notInterested')}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   role="menuitem"
@@ -484,50 +501,19 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
             <span>{formatCount(post.comments_count)}</span>
           </button>
 
-          <div className={styles.shareWrap}>
-            <button
-              className={styles.actionBtn}
-              onClick={(e) => {
-                e.stopPropagation()
-                setShareMenuOpen((v) => !v)
-              }}
-              aria-label={t('post.share')}
-              aria-haspopup="menu"
-              aria-expanded={shareMenuOpen}
-              disabled={isOwn}
-            >
-              <i className="bx bx-share-alt" />
-              <span>{formatCount(post.shares_count)}</span>
-            </button>
-            {shareMenuOpen && (
-              <div className={styles.shareMenu} role="menu" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.shareMenuItem}
-                  onClick={() => {
-                    setShareMenuOpen(false)
-                    onShare?.(post.id)
-                  }}
-                >
-                  <i className="bx bx-share-alt" />
-                  <span>{t('post.sharePost')}</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.shareMenuItem}
-                  onClick={() => {
-                    setShareMenuOpen(false)
-                    setShareToFriendOpen(true)
-                  }}
-                >
-                  <i className="bx bx-message-rounded-detail" />
-                  <span>{t('post.shareToFriend')}</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            className={styles.actionBtn}
+            onClick={(e) => {
+              e.stopPropagation()
+              setShareOpen(true)
+            }}
+            aria-label={t('post.share')}
+            aria-haspopup="dialog"
+            disabled={isOwn}
+          >
+            <i className="bx bx-share-alt" />
+            <span>{formatCount(post.shares_count + shareDelta)}</span>
+          </button>
         </div>
 
         <div className={`${styles.actionCluster} ${styles.clusterRight}`}>
@@ -556,10 +542,14 @@ export default function PostCard({ post, onLike, onSave, onComment, onShare, onF
         </div>
       </div>
 
-      <ShareModal
-        open={shareToFriendOpen}
-        onClose={() => setShareToFriendOpen(false)}
-        postId={post.id}
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        post={post}
+        onShared={() => setShareState((prev) => ({
+          postId: post.id,
+          delta: (prev.postId === post.id ? prev.delta : 0) + 1,
+        }))}
       />
       <ReportModal
         open={reportOpen}

@@ -195,7 +195,8 @@ table {
   --z-overlay: 1000;
   --z-modal: 1100;
   --z-popover: 1200;
-  --z-toast: 1300;
+  --z-banner: 2900;
+  --z-toast: 3000;
 
   /* Story */
   --story-ring-gradient: linear-gradient(135deg, #12A5A1, #0A1F44);

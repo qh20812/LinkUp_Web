@@ -810,3 +810,23 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.btnCreate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.btnCreate:hover {
+  background: var(--color-primary-hover);
+}

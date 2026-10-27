@@ -44,7 +44,6 @@ export default function HashtagPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [sharePostId, setSharePostId] = useState<string | null>(null)
   const loadingRef = useRef(false)
 
   const fetchPage = useCallback(async (pageNum: number, tag: string) => {
@@ -193,10 +192,6 @@ export default function HashtagPage() {
               onLike={handleLike}
               onSave={handleSave}
               onComment={setSelectedPostId}
-              onShare={(postId) => {
-                setSelectedPostId(postId)
-                setSharePostId(postId)
-              }}
               onFollow={handleFollow}
               onOpenDetail={setSelectedPostId}
             />
@@ -219,10 +214,8 @@ export default function HashtagPage() {
           key={detailPost.id}
           post={detailPost}
           open
-          initialShareOpen={sharePostId === detailPost.id}
           onClose={() => {
             setSelectedPostId(null)
-            setSharePostId(null)
           }}
           onUpdated={(updated) => setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
           onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}

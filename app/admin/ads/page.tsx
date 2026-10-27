@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import useSWR from 'swr'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import { useTranslation } from '../../../hooks/useTranslation'
@@ -206,6 +207,10 @@ export default function AdsPage() {
             <option value="rejected">{t('ads.rejected')}</option>
             <option value="completed">{t('ads.completed')}</option>
           </select>
+          <Link href="/admin/ads/new" className={styles.btnCreate}>
+            <i className="bx bx-plus" />
+            {t('ads.create')}
+          </Link>
         </div>
       </div>
 

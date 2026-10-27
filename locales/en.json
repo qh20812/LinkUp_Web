@@ -40,6 +40,7 @@
     "createdAt": "Created At",
     "back": "Back",
     "close": "Close",
+    "undo": "Undo",
     "add": "Add",
     "edit": "Edit",
     "saving": "Saving...",
@@ -154,7 +155,10 @@
     "privacyPublic": "Public",
     "privacyFriend": "Friends",
     "privacyPrivate": "Private",
-    "pinned": "Pinned"
+    "pinned": "Pinned",
+    "notInterested": "Not interested",
+    "hidden": "Post hidden from your feed",
+    "hideUndoFailed": "Couldn't undo. The post stays hidden."
   },
   "feed": {
     "empty": "No posts yet.",
@@ -722,6 +726,10 @@
   },
   "ads": {
     "title": "Ad Management",
+    "create": "Create ad",
+    "createSuccess": "Ad created",
+    "sponsored": "Sponsored",
+    "learnMore": "Learn more",
     "searchPlaceholder": "Search ads...",
     "allStatuses": "All statuses",
     "active": "Active",
@@ -2205,6 +2213,18 @@
     "searchPlaceholder": "Search friends...",
     "share": "Send"
   },
+  "shareDialog": {
+    "title": "Share post",
+    "tabProfile": "On your profile",
+    "tabFriend": "Send to friends",
+    "profileHint": "The post will appear on your profile.",
+    "friendHint": "Pick one or more friends to send this post in a message.",
+    "selectFriendWarning": "Select at least one person",
+    "sentCount": "Sent to {count} people",
+    "failedCount": "{count} people couldn't receive it",
+    "noFriends": "You have no friends to send this to yet.",
+    "noResults": "No matching friends found."
+  },
   "partner": {
     "nav": {
       "dashboard": "Overview",
@@ -2299,6 +2319,12 @@
       "startDate": "Start Date",
       "endDate": "End Date",
       "targetGender": "Gender",
+      "genderAll": "All",
+      "genderMale": "Male",
+      "genderFemale": "Female",
+      "formatImage": "Image",
+      "formatVideo": "Video",
+      "formatCarousel": "Carousel",
       "targetAge": "Age",
       "ageMin": "From",
       "ageMax": "To",

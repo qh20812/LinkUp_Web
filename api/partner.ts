@@ -1,6 +1,7 @@
 import { request } from './api'
 import type {
   PartnerAdListResponse,
+  PartnerAdListItem,
   AdPerformance,
   AdOverview,
   CreateAdInput,
@@ -21,15 +22,24 @@ export const getMyAds = (params: {
   return request<PartnerAdListResponse>(`/ads-management?${searchParams}`)
 }
 
+import { toAdISOString } from '../lib/ad-datetime'
+
+export { toAdISOString }
+
 export const createAd = (input: CreateAdInput, mediaFile?: File) => {
   const formData = new FormData()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { media: _media, ...rest } = input as CreateAdInput & { media?: File }
-  formData.append('data', JSON.stringify(rest))
+  const payload = {
+    ...rest,
+    started_at: toAdISOString(rest.started_at),
+    expires_at: toAdISOString(rest.expires_at),
+  }
+  formData.append('data', JSON.stringify(payload))
   if (mediaFile) {
     formData.append('media', mediaFile)
   }
-  return request<{ id: string }>('/ads-management', {
+  return request<{ message: string; data: PartnerAdListItem }>('/ads-management', {
     method: 'POST',
     body: formData,
   })
@@ -38,7 +48,11 @@ export const createAd = (input: CreateAdInput, mediaFile?: File) => {
 export const updateAd = (id: string, input: UpdateAdInput) =>
   request(`/ads-management/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      ...input,
+      started_at: toAdISOString(input.started_at),
+      expires_at: toAdISOString(input.expires_at),
+    }),
   })
 
 export const deleteAd = (id: string) =>
@@ -56,17 +70,24 @@ export const getAdAnalytics = (id: string) =>
 export const getOverview = () =>
   request<AdOverview>('/ads-management/overview')
 
+export interface FeedAdMedia {
+  url: string
+  media_type?: string
+}
+
 export interface FeedAd {
   id: string
   title: string
   content: string
   target_url: string
-  media_uri: string
   format: string
+  /** API trả `media_list`; `media_uri` chỉ là fallback cho dữ liệu cũ. */
+  media_list?: FeedAdMedia[]
+  media_uri?: string
 }
 
 export const getFeedAds = () =>
-  request<{ data: FeedAd[] }>('/customer/feed/ads')
+  request<{ data: FeedAd[] }>('/customer/feed')
 
 export const trackAdAction = (adId: string, action: string) =>
   request(`/customer/ads/${adId}/track`, {
