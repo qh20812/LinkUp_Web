@@ -105,6 +105,10 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   overflow: hidden;
+  /* Bảng phải tự co theo BỀ NGANG THẬT của khung chứ không theo viewport: ở
+     Track 3, viewport 1440px chỉ cho cột giữa ~756px, nên `@media` theo
+     viewport sẽ không bao giờ kích hoạt đúng lúc bảng bị chật. */
+  container-type: inline-size;
 }
 
 .tableHeader,
@@ -402,6 +406,51 @@
   cursor: not-allowed;
 }
 
+/* Cột giữa của Track 3 hẹp hơn nhiều so với `.main` của layout admin cũ
+   (756px ở viewport 1440px). Bảng phải tự co theo BỀ NGANG THẬT của khung —
+   `@media` theo viewport không bao giờ kích hoạt đúng lúc bảng bị chật — nhưng
+   KHÔNG bỏ cột nào: số liệu quảng cáo là lý do partner mở trang này.
+   Nhãn tiếng Việt dài ("Lượt hiển thị") nên header được phép xuống 2 dòng. */
+@container (max-width: 900px) {
+  .tableHeader,
+  .tableRow,
+  .skeletonRow {
+    grid-template-columns: 1.5fr 0.9fr 1fr 1.1fr 1fr 0.7fr 0.4fr;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .tableHeader {
+    align-items: start;
+    line-height: 1.25;
+  }
+}
+
+/* Hẹp hơn nữa (tablet dọc): bỏ 2 cột phụ — vẫn xem được trong
+   AdAnalyticsModal — để 5 cột còn lại không phải cắt chữ. */
+@container (max-width: 620px) {
+  .tableHeader,
+  .tableRow,
+  .skeletonRow {
+    grid-template-columns: 1.6fr 1fr 1fr 0.7fr 0.4fr;
+  }
+
+  .colImpressions,
+  .colClicks {
+    display: none;
+  }
+
+  /* Skeleton render 7 ô không kèm class cột; bỏ ô 4 + 5 để hàng không bị tràn
+     xuống dòng (tương ứng 2 cột vừa ẩn). */
+  .skeletonText:nth-child(4),
+  .skeletonText:nth-child(5) {
+    display: none;
+  }
+}
+
+/* Mobile thật (Track 3 gập 1 cột): chỉ còn tiêu đề + trạng thái + thao tác.
+   Đặt SAU các @container để template 3 cột thắng cascade ở đúng dải này. */
 @media screen and (max-width: 768px) {
   .tableHeader,
   .tableRow,

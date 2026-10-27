@@ -1,31 +1,28 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
-import { SWRConfig } from 'swr'
-import PartnerSidebar from '../../components/PartnerSidebar'
-import PartnerNavbar from '../../components/PartnerNavbar'
-import { NotificationProvider } from '../../contexts/NotificationContext'
-import { defaultSWRConfig, clearSWRCache } from '../../api/swr'
-import { clearSession } from '../../api/api'
-import { getUserRoleFromToken } from '../../utils/auth'
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import UserLayout from '../../components/UserLayout'
+import PartnerTabs from '../../components/PartnerTabs'
+import { getUserRoleFromToken, canAccessPartnerArea } from '../../utils/auth'
 import styles from './layout.module.css'
 
-export default function PartnerLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [collapsed, setCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+/**
+ * Khu partner dùng chung shell với người dùng thường (Track 3: navbar + left
+ * sidebar + right sidebar) thay vì một layout quản trị riêng — partner là một
+ * vai trò của người dùng, không phải một hệ thống con tách biệt.
+ *
+ * KHÔNG bọc thêm SWRConfig/NotificationProvider/PresenceProvider ở đây:
+ * `UserLayout` đã bọc hết, bọc lại sẽ mở WebSocket thứ hai. Việc đăng xuất khi
+ * token hết hạn cũng không cần handler riêng — `request()` trong api/api.ts đã
+ * clear session + redirect khi 401 sau khi refresh thất bại.
+ */
+export default function PartnerLayout({ children }: { children: React.ReactNode }) {
   const [authorized, setAuthorized] = useState(false)
   const router = useRouter()
-  const pathname = usePathname()
-  const prevPathname = useRef(pathname)
 
   useEffect(() => {
-    const role = getUserRoleFromToken()
-    if (role !== 'PARTNER' && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+    if (!canAccessPartnerArea(getUserRoleFromToken())) {
       router.replace('/')
       return
     }
@@ -33,72 +30,14 @@ export default function PartnerLayout({
     setAuthorized(true)
   }, [router])
 
-  useEffect(() => {
-    if (localStorage.getItem('sidebar_collapsed') === 'true') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsed(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem('sidebar_collapsed', String(collapsed))
-  }, [collapsed])
-
-  const handleMenuToggle = useCallback(() => {
-    if (window.innerWidth <= 576) {
-      setMobileOpen((prev) => !prev)
-    } else {
-      setCollapsed((prev) => !prev)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (prevPathname.current !== pathname) {
-      prevPathname.current = pathname
-      setMobileOpen(false)
-    }
-  }, [pathname])
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 576) {
-        setMobileOpen(false)
-      }
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
   if (!authorized) return null
 
   return (
-    <SWRConfig value={{
-      ...defaultSWRConfig,
-      onError: (err: Error) => {
-        if (err.message?.toLowerCase().includes('401') || err.message?.toLowerCase().includes('token')) {
-          clearSession()
-          clearSWRCache()
-          window.location.href = '/login'
-        }
-      },
-    }}>
-    <NotificationProvider>
-      <div className={styles.layout}>
-        <PartnerSidebar collapsed={collapsed} mobileOpen={mobileOpen} />
-
-        {mobileOpen && (
-          <div
-            className={styles.overlay}
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
-
-        <div className={`${styles.content}${collapsed ? ` ${styles.contentCollapsed}` : ''}`}>
-          <PartnerNavbar onMenuToggle={handleMenuToggle} />
-          <main className={styles.main}>{children}</main>
-        </div>
+    <UserLayout>
+      <div className={styles.page}>
+        <PartnerTabs />
+        {children}
       </div>
-    </NotificationProvider>
-    </SWRConfig>
+    </UserLayout>
   )
 }

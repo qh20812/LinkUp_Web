@@ -15,17 +15,8 @@ import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
 import { useNotification } from '../contexts/NotificationContext'
 import { usePresence } from '../contexts/PresenceContext'
+import { navItemsFor, isNavItemActive, showsPartnerNavItem, type SidebarNavItem } from './leftSidebarNav'
 import type { ViewProfileResponse } from '../types'
-
-const NAV_ITEMS = [
-  { key: 'home', href: '/', icon: 'bxs-home' },
-  { key: 'notifications', href: '/notifications', icon: 'bxs-bell' },
-  { key: 'messages', href: '/messages', icon: 'bxs-message-dots' },
-  { key: 'friends', href: '/friends', icon: 'bxs-group' },
-  { key: 'communities', href: '/communities', icon: 'bxs-chat' },
-  { key: 'saved', href: '/saved', icon: 'bxs-bookmark' },
-  { key: 'profile', href: '/profile', icon: 'bxs-user' },
-]
 
 function useProfile() {
   const { data, error } = useSWR<ViewProfileResponse>(
@@ -40,7 +31,7 @@ export default function LeftSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useTranslation()
-  const { user, isAuthenticated, isUser, isPartner, initializing } = useAuth()
+  const { user, role, isAuthenticated, isUser, initializing } = useAuth()
   const { profile } = useProfile()
   const { unreadCount, closeWs } = useNotification()
   const { resetPresence } = usePresence()
@@ -68,11 +59,11 @@ export default function LeftSidebar() {
     router.push('/login')
   }
 
-  const isActive = (href: string) => {
-    if (href === '/') return pathname === '/'
-    if (href === '/profile') return pathname === '/profile'
-    return pathname.startsWith(href)
-  }
+  const isActive = (item: SidebarNavItem) => isNavItemActive(item, pathname)
+
+  // `initializing` chặn nhấp nháy: lúc mount chưa đọc được token nên role còn
+  // null, nếu render ngay thì mục "Kênh đối tác" sẽ chớp tắt.
+  const navItems = navItemsFor(!initializing && showsPartnerNavItem(role))
 
   return (
     <aside className={styles.sidebar}>
@@ -82,11 +73,11 @@ export default function LeftSidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.key}
             href={item.href}
-            className={`${styles.navItem} ${isActive(item.href) ? styles.active : ''}`}
+            className={`${styles.navItem} ${isActive(item) ? styles.active : ''}`}
           >
             <i className={`bx ${item.icon}`} />
             <span>{t(`sidebar.${item.key}`)}</span>
@@ -137,18 +128,14 @@ export default function LeftSidebar() {
               <i className="bx bx-cog" />
               <span>{t('nav.settings')}</span>
             </Link>
-            <div className={styles.dropdownDivider} />
             {!initializing && isAuthenticated && isUser && (
-              <Link href="/packages" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-                <i className="bx bxs-store" />
-                <span>{t('sidebar.becomePartner')}</span>
-              </Link>
-            )}
-            {!initializing && isAuthenticated && isPartner && (
-              <Link href="/partner/dashboard" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-                <i className="bx bx-bar-chart-alt-2" />
-                <span>{t('sidebar.partnerHub')}</span>
-              </Link>
+              <>
+                <div className={styles.dropdownDivider} />
+                <Link href="/packages" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+                  <i className="bx bxs-store" />
+                  <span>{t('sidebar.becomePartner')}</span>
+                </Link>
+              </>
             )}
             <div className={styles.dropdownDivider} />
             <button className={`${styles.dropdownItem} ${styles.danger}`} onClick={handleLogout}>

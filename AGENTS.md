@@ -52,10 +52,11 @@ Root layout (`app/layout.tsx`) provides fonts, Boxicons CDN, `<GoogleOAuthProvid
 | Route group | Layout | Chrome |
 |-------------|--------|--------|
 | `(auth)/*` | `app/(auth)/layout.tsx` → `AuthLayout` | Auth-specific layout (no Navbar/Footer) |
-| `(user)/*` | `app/(user)/layout.tsx` → `UserLayout` | Navbar + Footer |
+| `(user)/*` | `app/(user)/layout.tsx` → `UserLayout` | Navbar + left sidebar + right sidebar |
+| `/partner/*` | `app/partner/layout.tsx` → role guard + `UserLayout` + `PartnerTabs` | **Same Track 3 chrome as `(user)`** — no separate partner navbar/sidebar. Guard allows PARTNER/ADMIN/SUPER_ADMIN; the sidebar item is PARTNER-only |
 | `/admin/*` | `app/admin/layout.tsx` | AdminNavbar + AdminSidebar, no Footer |
 
-The three layout groups are independent — they share no chrome components.
+The layout groups are independent — they share no chrome components, except `/partner/*` which deliberately reuses `UserLayout` (partner is a user role, not a separate admin-like system). Do not re-create a `PartnerNavbar`/`PartnerSidebar`, and do not wrap `UserLayout` in another `SWRConfig`/`NotificationProvider` — it already provides them.
 
 # Key conventions
 

@@ -248,21 +248,21 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - The real Google control is the GSI iframe from `@react-oauth/google` rendered **transparently on top** (`position:absolute; inset:0; opacity:0`), sized to the button via `ResizeObserver` + CSS fill — it owns clicks, focus, and the a11y tree; the visual `<span>` is non-interactive and `aria-hidden`
 - Never wrap the official iframe in visible Google styling — the custom button is the design system's surface
 
-**Nav Controls** (`components/NavControls.tsx` — shared by landing Navbar, AuthLayout header, AdminNavbar + PartnerNavbar):
+**Nav Controls** (`components/NavControls.tsx` — shared by landing Navbar, AuthLayout header, AdminNavbar):
 - **Language toggle:** segmented pill in a glass track — `.track` = `radius-pill`, `padding: 3px`, `--seg-track-bg` + `1px --glass-border` + `blur(8px)`; segments VI/EN are `radius-pill`, 28px tall (32px ≤576px), `--text-caption` / `600`, text-secondary at rest
 - **Active segment:** iOS-style elevated thumb — background `--seg-thumb-bg`, text `--seg-thumb-text`, `box-shadow: var(--shadow-sm)`. Light: white thumb on soft-surface track. Dark: bright thumb (`--color-cta` fill + `--color-cta-text`) on `rgba(0,0,0,0.35)` track. Use `aria-pressed` on segments
 - **Theme toggle:** circular 36px button (40px ≤576px), `--seg-track-bg` + `--glass-border`, `border-radius: 50%`; hover = `--color-primary-light` wash + primary icon + icon rotates `15deg`; active = `scale(0.94)`. Must keep `aria-label`
 - **Login button (landing navbar):** compact turquoise accent pill — `background: var(--color-primary)`, `color: var(--color-bg)` (auto-inverts light/dark), `height: 36px`, `padding: 0 18px`, `radius-pill`, `shadow-sm`; hover `translateY(-1px)` + `--color-primary-hover` + `shadow-md`. Compact size keeps it inside the §2 turquoise rule (never full-width)
 - Focus-visible on every control: `2px solid var(--color-primary)` outline. `prefers-reduced-motion`: rotation/press transforms disabled
-- Never render these controls inline per-page — always via `NavControls` to keep every navbar identical. Admin/Partner wrap it in a local `.controls` div that hides ≤576px (matches the previous behavior of those navbars)
+- Never render these controls inline per-page — always via `NavControls` to keep every navbar identical. Admin wraps it in a local `.controls` div that hides ≤576px (matches the previous behavior of that navbar)
 - Circular icon siblings in a navbar (hamburger menu button, notification bell) reuse the theme-toggle recipe: 36px circle, `--seg-track-bg` + `--glass-border`, hover = `--color-primary-light` wash + primary icon, `aria-label` required
 - **Tooltips:** icon buttons (theme, menu, bell) use a custom tooltip — `data-tooltip={t(...)}` rendered by `::after { content: attr(data-tooltip) }` (local class + `attr()`, never attribute-only selectors in CSS Modules), pill 12px, `background: var(--color-text)` / `color: var(--color-card)` (auto-inverts light/dark), shown on `:hover`/`:focus-visible` with 150ms fade + 2px rise, `z-index: 1200`. Never native `title` — it double-renders and cannot be styled. The language group and profile trigger carry a localized `aria-label` only (no tooltip)
 - **Localization:** every `aria-label`/tooltip in nav chrome goes through `t()` — `nav.toggleTheme`, `nav.language`, `nav.toggleMenu`, reusing `sidebar.notifications` and `nav.profile`. Hardcoded English strings are banned
-- **Brand (admin/partner navbar):** the LinkUp lockup lives in the navbar, centered — same brand formula as the landing Navbar `.brand`: 32×32 `object-fit: contain` icon + `gap: 8px` + wordmark `--text-h2` 20px `--color-primary`, hover icon `scale(1.06)` + focus-visible 2px outline. Centering is **flow-based**: the brand is a flex child with `margin: 0 auto`, placed between the left cluster (menu; search too on admin) and the right cluster — its auto margins absorb the free space, so it can never overlap siblings (never `position: absolute`). Moving the brand here means removing the rival auto-margins: `.searchForm { margin-right: auto }` (admin) and `.profileWrap { margin-left: auto }` (partner) — two owners of the same free space fight. ≤576px: hide the wordmark (icon only) and hide `.userInfo` in the profile trigger (avatar + chevron only) — also relieves mobile crowding. The sidebar starts directly with its menu (`sideMenu { margin-top: 16px }`)
+- **Brand (admin navbar):** the LinkUp lockup lives in the navbar, centered — same brand formula as the landing Navbar `.brand`: 32×32 `object-fit: contain` icon + `gap: 8px` + wordmark `--text-h2` 20px `--color-primary`, hover icon `scale(1.06)` + focus-visible 2px outline. Centering is **flow-based**: the brand is a flex child with `margin: 0 auto`, placed between the left cluster (menu; search too on admin) and the right cluster — its auto margins absorb the free space, so it can never overlap siblings (never `position: absolute`). Moving the brand here means removing the rival auto-margins: `.searchForm { margin-right: auto }` (admin) and `.profileWrap { margin-left: auto }` (partner) — two owners of the same free space fight. ≤576px: hide the wordmark (icon only) and hide `.userInfo` in the profile trigger (avatar + chevron only) — also relieves mobile crowding. The sidebar starts directly with its menu (`sideMenu { margin-top: 16px }`)
 
 ### Glass Surface (floating chrome variant)
 
-The shared recipe for anything that floats — landing navbar/footer, auth header/footer/card, user navbar, admin/partner navbar + sidebar:
+The shared recipe for anything that floats — landing navbar/footer, auth header/footer/card, user navbar + sidebars, admin navbar + sidebar:
 
 - Background: `var(--glass-bg)` (`color-mix` card + transparent; `--glass-bg-strong` when content behind must stay legible)
 - `backdrop-filter: blur(var(--glass-blur))` (+ `-webkit-` prefix)
@@ -271,7 +271,7 @@ The shared recipe for anything that floats — landing navbar/footer, auth heade
 - Shadow: `var(--glass-shadow)`
 - Tokens live in `globals.css` (light + `[data-theme="dark"]` overrides) — never inline a `color-mix`/`blur` value per component
 - Glass needs a backdrop: place it over a tinted canvas, mesh gradient, or scrolling content — never over a flat same-color surface (the blur does nothing)
-- Admin/Partner: the whole `.layout` carries `--color-bg-secondary` as the canvas so the inset 16px chrome has tint under it
+- Admin: the whole `.layout` carries `--color-bg-secondary` as the canvas so the inset 16px chrome has tint under it (Track 3 does the same with its Grid canvas)
 - Gradient-stage glass (hero chips, closing panel) uses literal `rgba(255,255,255,0.12–0.14)` fills + `rgba(255,255,255,0.22–0.26)` borders instead of the card-mix tokens
 
 ### Glass iOS Variant (opt-in, messaging-first)
@@ -296,7 +296,7 @@ Anything anchored to a navbar control — profile menu, notification center — 
 - Container: `--glass-bg-strong` + `backdrop-filter: blur(--glass-blur)` + `--glass-border` + `radius-lg` + `--glass-shadow`, `padding: 6px`, `transform-origin: top right`
 - Entrance: `popIn` — `opacity 0→1` + `translateY(-6px)→0` + `scale(0.98→1)`, `180ms ease-out`; animation disabled under `prefers-reduced-motion`
 - Anchor: `position: absolute; right: 0; top: calc(100% + 8px); z-index: 1100`
-- **Profile dropdown** (Admin + Partner): identity header on top — avatar 40px + name + email in a `--color-bg-secondary` `radius-md` block — then items. Items: transparent rest, hover = `--color-primary-light` fill + `--color-primary` text/icon; danger item hover = `color-mix(--color-danger 8%)` keeping danger text/icon. Dividers: `--glass-border`. The navbar profile trigger itself is a pill with `--color-bg-secondary` hover wash
+- **Profile dropdown** (Admin navbar only — the partner area uses Track 3's left sidebar footer): identity header on top — avatar 40px + name + email in a `--color-bg-secondary` `radius-md` block — then items. Items: transparent rest, hover = `--color-primary-light` fill + `--color-primary` text/icon; danger item hover = `color-mix(--color-danger 8%)` keeping danger text/icon. Dividers: `--glass-border`. The navbar profile trigger itself is a pill with `--color-bg-secondary` hover wash
 - **Notification center** (`NotificationDropdown.tsx`): header row = title + "mark all read" as a `--color-primary-light` pill button; scrollable list (`scrollbar-width: thin`, `6px` padding) of inset `radius-md` items; footer = full-width "view all" pill (`--color-primary-light`). Unread item = `--color-primary-light` fill + primary dot; read hover = `--color-bg-secondary`; empty state = bell glyph + label
 - **Notification type icons:** 32px circular chips — `background: color-mix(in srgb, currentColor 14%, transparent)` with the type color class on the chip (never a bare colored glyph); sender avatar (32px circle) replaces the chip when present
 - Never render nav popovers as solid `--color-card` boxes — they must match the floating chrome they hang off
@@ -521,7 +521,14 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 - **Tablet (< 1024px):** Right sidebar hidden
 - **Mobile (< 768px):** Left sidebar hidden (hamburger menu). Right sidebar hidden. Content full-width
 
-### Track 4: Admin Dashboard (Sidebar + Content) — also Partner
+**Partner area (`/partner/*`) rides on this track** — same navbar, left sidebar and right sidebar; no separate partner chrome. Rules:
+
+- Sidebar gets **one** extra item, "Kênh đối tác" (`sidebar.partnerHub`), placed just before Profile, and only for `PARTNER` (`components/leftSidebarNav.ts`). ADMIN/SUPER_ADMIN may open `/partner/*` for support work but never see the item. Do not add one sidebar item per partner page — the nav would grow from 7 to 10 items
+- Sub-page switching is a pill tab row (`components/PartnerTabs.tsx`) at the top of the centre column: Tổng quan · Quảng cáo · Gói dịch vụ, active = `--color-primary-light` pill + primary text. Icons hidden ≤576px so the three Vietnamese labels stay on one line
+- The centre column has **no padding of its own** (unlike Track 4's `.main`), so `app/partner/layout.module.css` pads the partner body: `0 var(--space-md) var(--space-xl)`
+- **Wide tables must size against their own column, not the viewport.** At 1440px the centre column is only ~756px, so a viewport `@media` never fires when the table is actually cramped. Use `container-type: inline-size` on the table wrapper + `@container` (see `app/partner/ads/Ads.module.css`: ≤900px tightens gaps and lets the long Vietnamese headers wrap to two lines — **no column is dropped**; ≤620px drops impressions/clicks, still available in the analytics modal; the viewport `@media` for ≤768px sits last so it wins the cascade on true mobile)
+
+### Track 4: Admin Dashboard (Sidebar + Content)
 
 ```
  tint canvas (--color-bg-secondary), inset 16px
@@ -539,9 +546,9 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 ```
 
 - **Canvas:** `.layout` is tinted `--color-bg-secondary` (full viewport, incl. the gutters) so the floating chrome always has a tinted backdrop; `.content` repeats the tint
-- **Sidebar (Admin + Partner):** `position: fixed`, inset `var(--space-md)` on top/left, `height: calc(100dvh - space-md*2)`, glass recipe + `radius-lg`. Logo, nav items with icons, separator, footer items, Logout. Collapsible to `60px` (`.close`); content `margin-left` follows: `262px ↔ 92px` (230/60 + 2×16 inset), `0.3s ease`. Mobile: floating drawer at `<= 576px` (off-canvas via `translateX(calc(-100% - space-md))`, overlay z-index 1999 < sidebar 2000)
+- **Sidebar (Admin):** `position: fixed`, inset `var(--space-md)` on top/left, `height: calc(100dvh - space-md*2)`, glass recipe + `radius-lg`. Logo, nav items with icons, separator, footer items, Logout. Collapsible to `60px` (`.close`); content `margin-left` follows: `262px ↔ 92px` (230/60 + 2×16 inset), `0.3s ease`. Mobile: floating drawer at `<= 576px` (off-canvas via `translateX(calc(-100% - space-md))`, overlay z-index 1999 < sidebar 2000)
 - **Nav item states:** rest = transparent; hover = `--color-bg-secondary` wash; **active = `--color-primary-light` pill + `--color-primary` text** (full 48px radius — same language as Track 3). Never resurrect the old opaque "notch" `::before/::after` trick — it requires solid backgrounds and breaks on glass
-- **Navbar (Admin + Partner):** glass recipe, `margin: space-md space-md 0`, sticky `top: space-md`, 56px. Order: circular hamburger `<button>` (36px, glass, `aria-label="Toggle menu"`) → search pill → `<NavControls>` in a `.controls` wrapper → bell (admin) → profile dropdown. Search is a unified pill: `--color-bg-secondary`, `radius-pill`, magnifier icon + borderless readOnly input, `max-width: 400px`, `:focus-within` primary border; ≤576px it collapses to a 36px circle and `.controls` hides. Bell opens the glass notification-center popover and the profile trigger opens the glass identity-header dropdown — both per §4 Dropdown / Popover
+- **Navbar (Admin):** glass recipe, `margin: space-md space-md 0`, sticky `top: space-md`, 56px. Order: circular hamburger `<button>` (36px, glass, `aria-label="Toggle menu"`) → search pill → `<NavControls>` in a `.controls` wrapper → bell (admin) → profile dropdown. Search is a unified pill: `--color-bg-secondary`, `radius-pill`, magnifier icon + borderless readOnly input, `max-width: 400px`, `:focus-within` primary border; ≤576px it collapses to a 36px circle and `.controls` hides. Bell opens the glass notification-center popover and the profile trigger opens the glass identity-header dropdown — both per §4 Dropdown / Popover
 - **Notification bell:** circular glass (theme-toggle recipe) with red unread badge at top-right
 - **Content area:** `max-height: calc(100dvh - 72px)` (16 top inset + 56 navbar), scrollable, padding `32px 24px`
 
@@ -671,7 +678,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 
 - **Button press:** `translateY(-1px)` on active, `150ms ease-out`
 - **Card hover:** shadow elevation `sm → md`, `150ms ease`
-- **Nav item hover:** background wash `transparent → var(--color-bg-secondary)`, `150ms ease`; active admin/partner sidebar item = `--color-primary-light` pill (no transition on activate)
+- **Nav item hover:** background wash `transparent → var(--color-bg-secondary)`, `150ms ease`; active admin sidebar item = `--color-primary-light` pill (no transition on activate)
 - **Circular nav icon (menu/bell/theme):** hover = `--color-primary-light` wash + primary icon, press = `scale(0.94)`, `150ms ease-out`
 - **Like heart:** scale `1 → 1.3 → 1` with color change, `300ms spring` (Framer Motion)
 - **Follow button:** text morphs "Follow" → "Following" with width transition, `200ms ease`
