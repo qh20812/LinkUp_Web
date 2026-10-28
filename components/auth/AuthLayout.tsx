@@ -34,7 +34,7 @@ export default function AuthLayout({
 
       <main className={styles.main}>{children}</main>
 
-      {showFooter && <footer className={styles.footer}>© 2026 LinkUp</footer>}
+      {/* {showFooter && <footer className={styles.footer}>© 2026 LinkUp</footer>} */}
     </div>
   )
 }
