@@ -16,7 +16,7 @@ function BrandPane() {
           <span className={styles.brandName}>LinkUp</span>
         </div>
         <h2 className={styles.brandText}>{t('brand.headline')}</h2>
-        <p className={styles.brandTagline}>{t('brand.tagline')}</p>
+        {/* <p className={styles.brandTagline}>{t('brand.tagline')}</p> */}
         <ul className={styles.brandPoints}>
           <li>
             <i className="bx bx-check" aria-hidden="true" />
