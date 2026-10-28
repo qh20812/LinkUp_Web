@@ -136,8 +136,8 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 
 | Role | Font | Weights | Character |
 |------|------|---------|-----------|
-| **Display / Headings** | `Outfit` | 500, 600, 700 | Geometric sans-serif with subtle personality. Tight tracking, confident weight hierarchy. Modern without being trendy. |
-| **Body / UI** | `DM Sans` | 400, 500, 600 | Humanist sans-serif with warm curves. Excellent readability at small sizes. Pairs naturally with Outfit. |
+| **Display / Headings** | `Be Vietnam Pro` | 600, 700 | Vietnamese-first geometric sans-serif with balanced diacritics and confident hierarchy. |
+| **Body / UI** | `Be Vietnam Pro` | 400, 500, 600 | Vietnamese-optimized sans-serif with consistent Unicode glyph metrics and strong small-size readability. |
 
 ### Type Scale
 
@@ -155,22 +155,21 @@ Light mode is the default — crisp white surfaces with soft shadows. Dark mode 
 ### Font Loading
 
 ```tsx
-import { Outfit, DM_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-family-heading',
-  weight: ['500', '600', '700'],
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-family-body',
-  weight: ['400', '500', '600'],
+const beVietnamPro = localFont({
+  src: [
+    { path: './fonts/BeVietnamPro-Regular.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/BeVietnamPro-Medium.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/BeVietnamPro-SemiBold.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/BeVietnamPro-Bold.ttf', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-family-linkup',
+  display: 'swap',
 })
 ```
 
-Apply via `<html className={`${outfit.variable} ${dmSans.variable}`}>` on `<html>`, not `<body>`.
+Apply via `<html className={beVietnamPro.variable}>` on `<html>`, not `<body>`. Font files are committed locally so production builds do not depend on Google Fonts network access. The bundled files must retain Vietnamese and Unicode glyph coverage.
 
 ### Typography Rules
 
@@ -243,7 +242,7 @@ Do not make chat messages visually oversized. Do not make message text smaller t
 - Must have: `aria-label`, keyboard accessible, visible focus state
 
 **OAuth (Google) button** (`components/auth/GoogleAuthButton.tsx`):
-- Custom visual matching auth inputs: `100%` × `44px`, `1px solid var(--color-border)`, `radius-md`, `--color-bg-secondary` fill, DM Sans `600`, inline 4-color Google "G" SVG (18px) + per-page label (`login.google.button` / `register.google.button`)
+- Custom visual matching auth inputs: `100%` × `44px`, `1px solid var(--color-border)`, `radius-md`, `--color-bg-secondary` fill, Be Vietnam Pro `600`, inline 4-color Google "G" SVG (18px) + per-page label (`login.google.button` / `register.google.button`)
 - Hover: fill → `var(--color-card)`; active: `translateY(-1px)`; keyboard focus (`:focus-within`): primary border + ring — identical to input treatment
 - The real Google control is the GSI iframe from `@react-oauth/google` rendered **transparently on top** (`position:absolute; inset:0; opacity:0`), sized to the button via `ResizeObserver` + CSS fill — it owns clicks, focus, and the a11y tree; the visual `<span>` is non-interactive and `aria-hidden`
 - Never wrap the official iframe in visible Google styling — the custom button is the design system's surface
@@ -712,7 +711,7 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 ### Visual
 
 - No emojis in UI chrome (user-generated message content MAY contain emojis)
-- No `Inter` font — use `Outfit` + `DM Sans`
+- No `Inter` font — use Be Vietnam Pro for both headings and body text
 - No generic serif fonts (`Times New Roman`, `Georgia`, `Garamond`)
 - No pure black (`#000000`) — always `#1A1A1A` or `var(--color-text)`
 - No neon outer glows or default box-shadow glows

@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Metadata, Viewport } from 'next'
-import { Outfit, DM_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
@@ -14,16 +14,15 @@ import GroupCallIncomingModal from '../components/calls/GroupCallIncomingModal'
 import ServiceWorkerRegister from '../components/ServiceWorkerRegister'
 import './globals.css'
 
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-family-heading',
-  weight: ['500', '600', '700'],
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-family-body',
-  weight: ['400', '500', '600'],
+const beVietnamPro = localFont({
+  src: [
+    { path: './fonts/BeVietnamPro-Regular.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/BeVietnamPro-Medium.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/BeVietnamPro-SemiBold.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/BeVietnamPro-Bold.ttf', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-family-linkup',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -61,7 +60,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi" className={`${outfit.variable} ${dmSans.variable}`}>
+    <html lang="vi" className={beVietnamPro.variable}>
       <head>
         <link
           rel="stylesheet"
