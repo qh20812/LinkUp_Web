@@ -311,6 +311,7 @@ export interface ViewProfileResponse {
   work_other: string
   website: string
   is_private_profile: boolean
+  can_view_private_profile?: boolean
   is_private_posts: boolean
   allow_stranger_friend_request: boolean
   updated_at?: string

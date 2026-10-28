@@ -1691,6 +1691,8 @@
     "pinnedLabel": "Đã ghim",
     "noMedia": "Chưa có ảnh hoặc video nào",
     "errorPrivate": "Hồ sơ này là riêng tư",
+    "privateTitle": "Hồ sơ riêng tư",
+    "privateDescription": "Một số thông tin trên hồ sơ này chỉ hiển thị cho bạn bè hoặc người được cho phép.",
     "errorNotFound": "Không tìm thấy người dùng",
     "errorNetwork": "Lỗi mạng. Vui lòng thử lại.",
     "aboutWork": "Công việc",

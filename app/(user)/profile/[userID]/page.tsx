@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getProfileByUserID, updateProfile, uploadAvatar, uploadCover } from '../../../../api/profile'
+import { ApiError } from '../../../../api/api'
 import { checkUserStory, getUserStories } from '../../../../api/stories'
 import { startDirectChat, createChatInvite } from '../../../../api/chats'
 import { getTokenPayload } from '../../../../api/auth'
@@ -70,11 +71,10 @@ function ProfileView({ userID }: { userID: string }) {
       })
       .catch((err) => {
         if (cancelled) return
-        const msg = err?.message ?? ''
-        if (msg.includes('PRIVATE_PROFILE') || msg.includes('403')) {
+        if (err instanceof ApiError && err.code === 'profile.PRIVATE_PROFILE') {
           setError(t('profile.errorPrivate'))
           setErrorType('private')
-        } else if (msg.includes('NOT_FOUND') || msg.includes('404')) {
+        } else if (err instanceof ApiError && err.status === 404) {
           setError(t('profile.errorNotFound'))
           setErrorType('not-found')
         } else {
@@ -93,7 +93,7 @@ function ProfileView({ userID }: { userID: string }) {
   }, [userID])
 
   const isSelf = currentUserID != null && currentUserID === userID
-  const isPrivate = !!profile?.is_private_profile && !isSelf
+  const isPrivate = !!profile?.is_private_profile && !isSelf && !profile.can_view_private_profile
 
   const handleMessage = async () => {
     if (!userID || messageBusy || inviteSent) return
@@ -218,8 +218,8 @@ function ProfileView({ userID }: { userID: string }) {
         targetUserID={userID}
         onFollow={handleFollow}
         onMessage={handleMessage}
-        onOpenFollowers={() => setModalType('followers')}
-        onOpenFollowing={() => setModalType('following')}
+        onOpenFollowers={isPrivate ? undefined : () => setModalType('followers')}
+        onOpenFollowing={isPrivate ? undefined : () => setModalType('following')}
         onAvatarChange={isSelf ? handleAvatarChange : undefined}
         onCoverChange={isSelf ? handleCoverChange : undefined}
         onEdit={isSelf ? () => setEditOpen(true) : undefined}
@@ -257,6 +257,15 @@ function ProfileView({ userID }: { userID: string }) {
             onEdit={() => setEditOpen(true)}
           />
         </div>
+      )}
+      {isPrivate && (
+        <section className={styles.privateState} aria-label={t('profile.private')}>
+          <div className={styles.privateIcon} aria-hidden>
+            <i className="bx bx-lock-alt" />
+          </div>
+          <h2>{t('profile.privateTitle')}</h2>
+          <p>{t('profile.privateDescription')}</p>
+        </section>
       )}
 
       {modalType && (

@@ -370,33 +370,42 @@ export default function ProfileHeader({
         </div>
 
         <div className={styles.stats}>
-          <div
-            className={styles.statItem}
-            onClick={onOpenFollowers}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowers?.() } }}
-            role={onOpenFollowers ? 'button' : undefined}
-            tabIndex={onOpenFollowers ? 0 : undefined}
-            aria-label={t('profile.followers')}
-          >
-            <span className={styles.statValue}>{formatCompact(followerCount)}</span>
-            <span className={styles.statLabel}>{t('profile.followers')}</span>
-          </div>
-          <div
-            className={styles.statItem}
-            onClick={onOpenFollowing}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowing?.() } }}
-            role={onOpenFollowing ? 'button' : undefined}
-            tabIndex={onOpenFollowing ? 0 : undefined}
-            aria-label={t('profile.following')}
-          >
-            <span className={styles.statValue}>{formatCompact(followingCount)}</span>
-            <span className={styles.statLabel}>{t('profile.following')}</span>
-          </div>
-          {profile.friend_count > 0 && (
-            <div className={styles.statItem}>
-              <span className={styles.statValue}>{formatCompact(friendCount)}</span>
-              <span className={styles.statLabel}>{t('profile.friends')}</span>
+          {isPrivate ? (
+            <div className={styles.privateStats}>
+              <i className="bx bx-lock-alt" aria-hidden />
+              <span>{t('profile.private')}</span>
             </div>
+          ) : (
+            <>
+              <div
+                className={styles.statItem}
+                onClick={onOpenFollowers}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowers?.() } }}
+                role={onOpenFollowers ? 'button' : undefined}
+                tabIndex={onOpenFollowers ? 0 : undefined}
+                aria-label={t('profile.followers')}
+              >
+                <span className={styles.statValue}>{formatCompact(followerCount)}</span>
+                <span className={styles.statLabel}>{t('profile.followers')}</span>
+              </div>
+              <div
+                className={styles.statItem}
+                onClick={onOpenFollowing}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenFollowing?.() } }}
+                role={onOpenFollowing ? 'button' : undefined}
+                tabIndex={onOpenFollowing ? 0 : undefined}
+                aria-label={t('profile.following')}
+              >
+                <span className={styles.statValue}>{formatCompact(followingCount)}</span>
+                <span className={styles.statLabel}>{t('profile.following')}</span>
+              </div>
+              {profile.friend_count > 0 && (
+                <div className={styles.statItem}>
+                  <span className={styles.statValue}>{formatCompact(friendCount)}</span>
+                  <span className={styles.statLabel}>{t('profile.friends')}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 

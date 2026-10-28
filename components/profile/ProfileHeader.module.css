@@ -383,6 +383,23 @@
   margin: var(--space-md) 0;
 }
 
+.privateStats {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font: var(--text-caption);
+  font-weight: 500;
+}
+
+.privateStats i {
+  color: var(--color-primary);
+  font-size: 15px;
+}
+
 .statItem {
   display: inline-flex;
   align-items: baseline;

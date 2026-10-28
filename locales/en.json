@@ -1701,6 +1701,8 @@
     "pinnedLabel": "Pinned",
     "noMedia": "No photos or videos yet",
     "errorPrivate": "This profile is private",
+    "privateTitle": "Private profile",
+    "privateDescription": "Some information on this profile is only visible to friends or people who are allowed to see it.",
     "errorNotFound": "User not found",
     "errorNetwork": "Network error. Please try again.",
     "aboutWork": "Work",
