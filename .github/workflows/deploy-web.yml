@@ -57,7 +57,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 24700
           timeout: 60s
-          script_timeout: 5m
+          command_timeout: 5m
           script: |
             set -e
             echo "Freeing disk space before deploy..."
@@ -85,7 +85,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 24700
           timeout: 60s
-          script_timeout: 10m
+          command_timeout: 10m
           script: |
             set -e
             cd /opt/linkup/web
