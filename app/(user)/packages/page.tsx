@@ -1,14 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAuth } from '../../../hooks/useAuth'
-import { getPackages, getMySubscription, subscribePackage } from '../../../api/package'
+import { getPackages, getMySubscription, createMoMoPayment } from '../../../api/package'
 import { clearSWRCache } from '../../../api/swr'
-import { storeTokens, refreshSession } from '../../../api/api'
-import { getUserRoleFromToken } from '../../../utils/auth'
+import { refreshSession } from '../../../api/api'
 import type { AdPackage, SubscriptionResponse } from '../../../types'
 import styles from './Packages.module.css'
 
@@ -30,6 +29,37 @@ export default function PackagesPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [subscribing, setSubscribing] = useState(false)
+  const handledPaymentRef = useRef(false)
+
+  // VNPay redirects the browser back here with ?payment=success|failed|invalid.
+  // On success refresh the JWT so the PARTNER claim is visible to /partner/*.
+  useEffect(() => {
+    if (handledPaymentRef.current) return
+    const payment = new URLSearchParams(window.location.search).get('payment')
+    if (!payment) return
+
+    handledPaymentRef.current = true
+    window.history.replaceState({}, '', window.location.pathname)
+
+    if (payment === 'success') {
+      void (async () => {
+        const refreshed = await refreshSession()
+        clearSWRCache()
+        if (refreshed) {
+          toast({ title: t('packages.paymentSuccess'), type: 'success' })
+          window.location.replace('/partner/dashboard')
+        } else {
+          toast({ title: t('packages.paymentSuccessReload'), type: 'warning' })
+        }
+      })()
+      return
+    }
+
+    toast({
+      title: payment === 'invalid' ? t('packages.paymentInvalid') : t('packages.paymentFailed'),
+      type: 'error',
+    })
+  }, [t, toast])
 
   const daysLeft = sub?.expires_at ? daysLeftFrom(sub.expires_at) : 0
 
@@ -55,30 +85,10 @@ export default function PackagesPage() {
 
     setSubscribing(true)
     try {
-      const res = await subscribePackage(selectedId)
-
-      // JWT claim must say PARTNER (etc.) before entering /partner/* —
-      // otherwise partner/layout bounces us back to the feed.
-      if (res.tokens?.access_token) {
-        storeTokens(res.tokens)
-      }
-
-      const hasPartnerAccess = () => {
-        const role = getUserRoleFromToken()
-        return role === 'PARTNER' || role === 'ADMIN' || role === 'SUPER_ADMIN'
-      }
-
-      if (!hasPartnerAccess()) {
-        // Fallback A: force refresh so the server re-reads role from DB.
-        const refreshed = await refreshSession()
-        if (!refreshed || !hasPartnerAccess()) {
-          throw new Error(t('packages.sessionError'))
-        }
-      }
-
-      toast({ title: t('packages.success'), type: 'success' })
-      clearSWRCache()
-      window.location.assign('/partner/dashboard')
+      // Gói chỉ được kích hoạt sau khi MoMo xác nhận thanh toán (return/IPN),
+      // nên ở đây chỉ tạo giao dịch rồi chuyển trình duyệt sang cổng MoMo.
+      const res = await createMoMoPayment(selectedId)
+      window.location.assign(res.payment_url)
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
       setSubscribing(false)
@@ -179,21 +189,10 @@ export default function PackagesPage() {
         </h2>
 
         <label className={styles.payOption}>
-          <input type="radio" name="paymentMethod" value="free" defaultChecked readOnly />
+          <input type="radio" name="paymentMethod" value="momo" defaultChecked readOnly />
           <div className={styles.payText}>
-            <span className={styles.payLabel}>{t('payment.free')}</span>
-            <span className={styles.payDesc}>{t('payment.freeDescription')}</span>
-          </div>
-        </label>
-
-        <label className={`${styles.payOption} ${styles.payDisabled}`}>
-          <input type="radio" name="paymentMethod" value="vnpay" disabled />
-          <div className={styles.payText}>
-            <span className={styles.payLabel}>
-              {t('payment.vnpay')}
-              <span className={styles.badge}>{t('payment.vnpayComingSoon')}</span>
-            </span>
-            <span className={styles.payDesc}>{t('common.comingSoonDesc')}</span>
+            <span className={styles.payLabel}>{t('payment.momo')}</span>
+            <span className={styles.payDesc}>{t('payment.momoDescription')}</span>
           </div>
         </label>
       </section>
@@ -204,7 +203,7 @@ export default function PackagesPage() {
           disabled={!selectedId || subscribing}
           onClick={handleSubscribe}
         >
-          {subscribing ? t('packages.subscribing') : t('payment.free')}
+          {subscribing ? t('packages.redirecting') : t('payment.payNow')}
         </button>
         {!selectedId && <p className={styles.ctaHint}>{t('packages.selectHint')}</p>}
       </div>

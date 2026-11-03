@@ -2351,6 +2351,11 @@
     "selected": "Selected",
     "subscribing": "Subscribing...",
     "success": "Subscription successful! Redirecting to Dashboard...",
+    "redirecting": "Redirecting to MoMo...",
+    "paymentSuccess": "Payment successful! Opening your dashboard...",
+    "paymentSuccessReload": "Payment successful. Please reload the page to refresh your partner access.",
+    "paymentFailed": "Payment failed or was cancelled.",
+    "paymentInvalid": "Could not verify the payment result.",
     "sessionError": "Subscription succeeded but the session could not be updated. Please try again.",
     "loginRequired": "Please log in to subscribe to a package",
     "becomePartner": "Become a Partner",
@@ -2362,7 +2367,11 @@
     "free": "Register for free",
     "freeDescription": "Skip payment, activate the package instantly",
     "vnpay": "Pay with VNPay",
-    "vnpayComingSoon": "Coming Soon"
+    "vnpayComingSoon": "Coming Soon",
+    "vnpayDescription": "Secure payment via VNPay (VND).",
+    "momo": "Pay with MoMo",
+    "momoDescription": "Secure payment via the MoMo e-wallet (VND).",
+    "payNow": "Pay now"
   },
   "hashtag": {
     "posts": "posts",

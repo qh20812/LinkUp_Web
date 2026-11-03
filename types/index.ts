@@ -1002,6 +1002,14 @@ export interface SubscriptionResponse {
   status: string
 }
 
+/** Kết quả POST /ads-management/payments/vnpay — link chuyển sang cổng VNPay. */
+export interface CreatePaymentResponse {
+  payment_url: string
+  txn_ref: string
+  amount: number
+  expires_at: string
+}
+
 export interface CreateAdInput {
   title: string
   content: string

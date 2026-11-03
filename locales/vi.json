@@ -2341,6 +2341,11 @@
     "selected": "Đã chọn",
     "subscribing": "Đang đăng ký...",
     "success": "Đăng ký thành công! Đang chuyển đến Dashboard...",
+    "redirecting": "Đang chuyển đến MoMo...",
+    "paymentSuccess": "Thanh toán thành công! Đang mở dashboard...",
+    "paymentSuccessReload": "Thanh toán thành công. Vui lòng tải lại trang để cập nhật quyền đối tác.",
+    "paymentFailed": "Thanh toán không thành công hoặc đã bị huỷ.",
+    "paymentInvalid": "Không xác thực được kết quả thanh toán.",
     "sessionError": "Đăng ký thành công nhưng không thể cập nhật phiên. Vui lòng thử lại.",
     "loginRequired": "Vui lòng đăng nhập để đăng ký gói",
     "becomePartner": "Trở thành Partner",
@@ -2352,7 +2357,11 @@
     "free": "Đăng ký miễn phí",
     "freeDescription": "Bỏ qua thanh toán, kích hoạt gói ngay",
     "vnpay": "Thanh toán qua VNPay",
-    "vnpayComingSoon": "Sắp ra mắt"
+    "vnpayComingSoon": "Sắp ra mắt",
+    "vnpayDescription": "Thanh toán an toàn qua cổng VNPay (VND).",
+    "momo": "Thanh toán qua MoMo",
+    "momoDescription": "Thanh toán an toàn qua ví điện tử MoMo (VND).",
+    "payNow": "Thanh toán ngay"
   },
   "hashtag": {
     "posts": "bài viết",

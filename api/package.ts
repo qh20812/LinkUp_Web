@@ -1,11 +1,5 @@
 import { request } from './api'
-import type { AdPackage, SubscriptionResponse, TokenResponse } from '../types'
-
-export interface SubscribeResult {
-  data: SubscriptionResponse
-  /** Present when the server reissued tokens after the role upgrade (B). */
-  tokens?: TokenResponse
-}
+import type { AdPackage, CreatePaymentResponse, SubscriptionResponse } from '../types'
 
 export const getPackages = async () => {
   const res = await request<{ data: AdPackage[] }>('/ads/packages')
@@ -17,10 +11,11 @@ export const getMySubscription = async () => {
   return res.data
 }
 
-export const subscribePackage = async (packageId: string): Promise<SubscribeResult> => {
-  const res = await request<SubscribeResult>('/ads-management/subscribe', {
+/** Tạo giao dịch MoMo; trả về link để trình duyệt chuyển sang cổng thanh toán. */
+export const createMoMoPayment = async (packageId: string): Promise<CreatePaymentResponse> => {
+  const res = await request<{ data: CreatePaymentResponse }>('/ads-management/payments/momo', {
     method: 'POST',
     body: JSON.stringify({ package_id: packageId }),
   })
-  return res
+  return res.data
 }

@@ -4,9 +4,7 @@ import React, { useState } from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getPackages, getMySubscription, subscribePackage } from '../../../api/package'
-import { invalidate } from '../../../api/swr'
-import { storeTokens } from '../../../api/api'
+import { getPackages, getMySubscription, createMoMoPayment } from '../../../api/package'
 import type { AdPackage, SubscriptionResponse } from '../../../types'
 import styles from './Packages.module.css'
 
@@ -24,16 +22,12 @@ export default function PackagesPage() {
   const handleSubscribe = async (pkgId: string) => {
     setSubscribing(pkgId)
     try {
-      const res = await subscribePackage(pkgId)
-      if (res.tokens?.access_token) {
-        storeTokens(res.tokens)
-      }
-      toast({ title: t('partner.packages.subscribed'), type: 'success' })
-      invalidate('/ads-management/subscription')
-      invalidate('/ads-management/overview')
+      // Gói chỉ được kích hoạt sau khi MoMo xác nhận thanh toán (return/IPN),
+      // nên ở đây chỉ tạo giao dịch rồi chuyển trình duyệt sang cổng MoMo.
+      const res = await createMoMoPayment(pkgId)
+      window.location.assign(res.payment_url)
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
-    } finally {
       setSubscribing(null)
     }
   }
@@ -93,7 +87,7 @@ export default function PackagesPage() {
                 disabled={isActive(pkg.id) || subscribing === pkg.id}
                 onClick={() => handleSubscribe(pkg.id)}
               >
-                {subscribing === pkg.id ? t('common.loading') : isActive(pkg.id) ? t('partner.packages.subscribed') : t('partner.packages.subscribe')}
+                {subscribing === pkg.id ? t('common.loading') : isActive(pkg.id) ? t('partner.packages.subscribed') : t('payment.payNow')}
               </button>
             </div>
           ))}
