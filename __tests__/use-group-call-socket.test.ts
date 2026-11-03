@@ -65,6 +65,22 @@ describe('useGroupCallSocket', () => {
     return instance
   }
 
+  it('kết nối sau khi đăng nhập SPA (token xuất hiện sau khi mount)', () => {
+    window.localStorage.clear()
+    const { result } = renderHook(() => useGroupCallSocket())
+
+    expect(FakeWebSocket.instances).toHaveLength(0)
+
+    act(() => {
+      window.localStorage.setItem('token', 'jwt-token')
+      jest.advanceTimersByTime(1000)
+    })
+
+    expect(FakeWebSocket.instances).toHaveLength(1)
+    act(() => current().open())
+    expect(result.current.status).toBe('open')
+  })
+
   it('mở kết nối tới endpoint group-calls kèm token', () => {
     const { result } = renderHook(() => useGroupCallSocket())
 

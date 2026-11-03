@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { waitForToken } from '../utils/wsAuth'
+
 export type GroupCallSocketStatus = 'connecting' | 'open' | 'closed'
 
 type EventHandler = (payload: unknown) => void
@@ -143,10 +145,20 @@ export function useGroupCallSocket(): GroupCallSocket {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
+    // Xem utils/wsAuth.ts: login SPA không remount root layout, nên phải chờ
+    // token xuất hiện mới mở socket (nếu không group call cũng chết im lặng).
+    const cancelWait = waitForToken(connect)
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      if (closedByUserRef.current) return
       connect()
     }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
+      cancelWait()
+      document.removeEventListener('visibilitychange', handleVisibility)
       closedByUserRef.current = true
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current)

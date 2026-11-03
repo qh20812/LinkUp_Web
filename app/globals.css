@@ -197,6 +197,8 @@ table {
   --z-popover: 1200;
   --z-banner: 2900;
   --z-toast: 3000;
+  /* Thanh cuộc gọi thu nhỏ phải nổi trên toast (cùng góc dưới-phải). */
+  --z-call-ui: 3100;
 
   /* Story */
   --story-ring-gradient: linear-gradient(135deg, #12A5A1, #0A1F44);

@@ -25,8 +25,10 @@ export default function GroupCallBubble() {
   } = useGroupCall()
 
   const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
   const dragRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
+  // Ref (không phải state) để quyết định trong pointermove ngay lập tức, không
+  // phụ thuộc vào việc React đã commit state hay chưa.
+  const draggingRef = useRef(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
 
   // Initialize position to bottom-right
@@ -40,30 +42,47 @@ export default function GroupCallBubble() {
     }
   }, [phase])
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Không bắt đầu kéo khi bấm vào nút điều khiển. Nếu gọi setPointerCapture
+    // ở đây, pointerup sẽ bị retarget về bubble và trình duyệt phát `click`
+    // cho bubble thay vì button — nút "Mở rộng" không bao giờ chạy.
+    if ((e.target as HTMLElement).closest('button')) return
+
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       posX: position.x,
       posY: position.y,
     }
-    e.currentTarget.setPointerCapture(e.pointerId)
   }
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragRef.current) return
-    const dx = e.clientX - dragRef.current.startX
-    const dy = e.clientY - dragRef.current.startY
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag) return
+
+    const dx = e.clientX - drag.startX
+    const dy = e.clientY - drag.startY
+
+    // Chỉ biến thành thao tác kéo sau khi vượt ngưỡng, để một cú click thường
+    // không bị nuốt thành drag.
+    if (!draggingRef.current) {
+      if (Math.hypot(dx, dy) < 4) return
+      draggingRef.current = true
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+    }
+
     setPosition({
-      x: Math.max(0, Math.min(window.innerWidth - 200, dragRef.current.posX + dx)),
-      y: Math.max(0, Math.min(window.innerHeight - 80, dragRef.current.posY + dy)),
+      x: Math.max(0, Math.min(window.innerWidth - 200, drag.posX + dx)),
+      y: Math.max(0, Math.min(window.innerHeight - 80, drag.posY + dy)),
     })
   }
 
-  const handlePointerUp = () => {
-    setIsDragging(false)
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingRef.current = false
     dragRef.current = null
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
   }
 
   if (phase !== 'minimized' || !call) return null
@@ -81,6 +100,7 @@ export default function GroupCallBubble() {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div className={styles.thumbnail}>
         {thumbnailStream && localVideoOn ? (

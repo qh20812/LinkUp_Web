@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { waitForToken } from '../utils/wsAuth'
+
 export type CallSocketStatus = 'connecting' | 'open' | 'closed'
 
 type EventHandler = (payload: unknown) => void
@@ -20,8 +22,16 @@ export function useCallSocket(): CallSocket {
   const wsRef = useRef<WebSocket | null>(null)
   const handlersRef = useRef<Map<string, Set<EventHandler>>>(new Map())
   const reconnectDelayRef = useRef(1000)
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const maxReconnectDelay = 30000
   const closedByUserRef = useRef(false)
+
+  const clearReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+  }, [])
 
   const subscribe = useCallback((type: string, handler: EventHandler) => {
     let set = handlersRef.current.get(type)
@@ -42,6 +52,10 @@ export function useCallSocket(): CallSocket {
     if (typeof window === 'undefined') return
     const token = localStorage.getItem('token')
     if (!token) return
+
+    // Timer reconnect còn treo có thể hồi sinh socket đã đóng và tạo socket
+    // thứ hai cho cùng user.
+    clearReconnect()
 
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return
 
@@ -98,22 +112,27 @@ export function useCallSocket(): CallSocket {
       setStatus('closed')
       const delay = reconnectDelayRef.current
       reconnectDelayRef.current = Math.min(delay * 2, maxReconnectDelay)
-      setTimeout(() => connectRef.current(), delay)
+      clearReconnect()
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null
+        connectRef.current()
+      }, delay)
     }
 
     ws.onerror = () => {
       ws.close()
     }
-  }, [])
+  }, [clearReconnect])
 
   const close = useCallback(() => {
     closedByUserRef.current = true
+    clearReconnect()
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
     setStatus('closed')
-  }, [])
+  }, [clearReconnect])
 
   useEffect(() => {
     connectRef.current = connect
@@ -127,17 +146,29 @@ export function useCallSocket(): CallSocket {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
+    // Chờ token thay vì chỉ thử một lần: login là điều hướng SPA nên provider
+    // (root layout) không remount, thiếu bước này thì sau khi đăng nhập sẽ
+    // không có socket cuộc gọi nào — người nhận không bao giờ thấy reo.
+    const cancelWait = waitForToken(connect)
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      if (closedByUserRef.current) return
       connect()
     }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
+      cancelWait()
+      document.removeEventListener('visibilitychange', handleVisibility)
       closedByUserRef.current = true
+      clearReconnect()
       if (wsRef.current) {
         wsRef.current.close()
         wsRef.current = null
       }
     }
-  }, [connect])
+  }, [connect, clearReconnect])
 
   return { status, send, subscribe, connect, close }
 }

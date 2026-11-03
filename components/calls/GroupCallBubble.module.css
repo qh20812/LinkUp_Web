@@ -1,6 +1,6 @@
 .bubble {
   position: fixed;
-  z-index: 3000;
+  z-index: var(--z-call-ui);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
