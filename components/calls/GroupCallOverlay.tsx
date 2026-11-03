@@ -31,6 +31,8 @@ export default function GroupCallOverlay() {
     localMuted,
     localVideoOn,
     isCreator,
+    myUserId,
+    profiles,
     remoteStreams,
     toggleMute,
     toggleVideo,
@@ -43,12 +45,12 @@ export default function GroupCallOverlay() {
   if (phase !== 'active' || !call) return null
 
   const participants = Array.from(call.participants.values())
-  const remoteParticipants = participants.filter(
-    (p) => p.user_id !== call.callerId || remoteStreams.has(p.user_id),
-  )
+  // Loại chính mình khỏi danh sách remote: trước đây tile của bản thân bị lặp
+  // và hiện UUID của chính mình.
+  const remoteParticipants = participants.filter((p) => p.user_id !== myUserId)
   const localParticipant: GroupCallParticipant = {
     user_id: '',
-    display_name: 'Bạn',
+    display_name: t('groupCall.you'),
     avatar_uri: '',
     muted: localMuted,
     video_enabled: localVideoOn,
@@ -135,8 +137,16 @@ export default function GroupCallOverlay() {
             {call.pendingRequests.map((uid) => (
               <PendingRequest
                 key={uid}
-                displayName={call.participants.get(uid)?.display_name || uid}
-                avatarUri={call.participants.get(uid)?.avatar_uri || ''}
+                displayName={
+                  profiles[uid]?.display_name ||
+                  call.participants.get(uid)?.display_name ||
+                  t('groupCall.member')
+                }
+                avatarUri={
+                  profiles[uid]?.avatar_uri ||
+                  call.participants.get(uid)?.avatar_uri ||
+                  ''
+                }
                 onAccept={() => acceptJoinRequest(uid)}
                 onReject={() => rejectJoinRequest(uid)}
               />

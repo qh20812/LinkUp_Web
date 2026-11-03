@@ -8,15 +8,28 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { useGroupCallSocket } from '../hooks/useGroupCallSocket'
+import {
+  useGroupCallSocket,
+  type GroupCallSocketStatus,
+} from '../hooks/useGroupCallSocket'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from './ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { getIceServers } from '../api/calls'
 import { playRingtone, stopRingtone } from '../utils/ringtone'
+import {
+  bufferIce,
+  createNegState,
+  drainIce,
+  isPolitePeer,
+  shouldIOffer,
+  type PeerNegState,
+} from '../utils/groupCallNegotiation'
+import { participantIdentity } from '../utils/groupCallParticipants'
 import type {
   ActiveGroupCall,
   GroupCallCreatedPayload,
+  GroupCallCreatorChangedPayload,
   GroupCallEndedPayload,
   GroupCallIncomingPayload,
   GroupCallJoinRequestPayload,
@@ -27,10 +40,23 @@ import type {
   GroupCallMicPayload,
   GroupCallParticipantsResponse,
   GroupCallPhase,
+  GroupCallProfiles,
   GroupCallSignalPayload,
   GroupCallVideoPayload,
   GroupCallParticipant,
 } from '../types/groupCall'
+
+const CONNECT_TIMEOUT_MS = 45_000
+const REJOIN_TIMEOUT_MS = 12_000
+const END_FALLBACK_MS = 2_500
+
+/** Dọn một timer ref an toàn (dùng ở cả hook và callback). */
+function clearTimerRef(ref: { current: ReturnType<typeof setTimeout> | null }) {
+  if (ref.current) {
+    clearTimeout(ref.current)
+    ref.current = null
+  }
+}
 
 export interface GroupCallContextValue {
   phase: GroupCallPhase
@@ -41,7 +67,10 @@ export interface GroupCallContextValue {
   localVideoOn: boolean
   isCreator: boolean
   isInGroupCall: boolean
+  myUserId: string
   pendingRequests: string[]
+  /** Profile của người đang xin vào (chưa chắc đã là participant). */
+  profiles: GroupCallProfiles
   remoteStreams: Map<string, MediaStream>
   startGroupCall: (chatId: string, participantIds?: string[]) => Promise<void>
   joinGroupCall: (callId: string) => Promise<void>
@@ -78,6 +107,7 @@ export function GroupCallProvider({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [localMuted, setLocalMuted] = useState(false)
   const [localVideoOn, setLocalVideoOn] = useState(true)
+  const [profiles, setProfiles] = useState<GroupCallProfiles>({})
   const [remoteStreams, setRemoteStreams] = useState<
     Map<string, MediaStream>
   >(new Map())
@@ -88,18 +118,26 @@ export function GroupCallProvider({
   const myUserIdRef = useRef('')
   const localStreamRef = useRef<MediaStream | null>(null)
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
+  const negRef = useRef<Map<string, PeerNegState>>(new Map())
   const iceServersRef = useRef<RTCIceServer[]>([])
-  const pendingSignalsRef = useRef<
-    Map<string, { offer?: RTCSessionDescriptionInit; ice: RTCIceCandidateInit[] }>
-  >(new Map())
+  const iceServersPromiseRef = useRef<Promise<unknown> | null>(null)
+  const profilesRef = useRef<GroupCallProfiles>({})
+  const participantsRef = useRef<Map<string, GroupCallParticipant>>(new Map())
+  /** Những người đã thực sự join (khác với Participants = được mời). */
+  const joinedRef = useRef<Set<string>>(new Set())
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const endedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const participantsRef = useRef<Map<string, GroupCallParticipant>>(new Map())
+  const connectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rejoinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const endFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasOpenedSocketRef = useRef(false)
+  const lastSocketStatusRef = useRef<GroupCallSocketStatus>('connecting')
+  const handlersRef = useRef<Record<string, (payload: unknown) => void>>({})
 
-  const setPhaseBoth = (p: GroupCallPhase) => {
+  const setPhaseBoth = useCallback((p: GroupCallPhase) => {
     phaseRef.current = p
     setPhase(p)
-  }
+  }, [])
 
   const setCallState = useCallback((c: ActiveGroupCall | null) => {
     callRef.current = c
@@ -112,19 +150,95 @@ export function GroupCallProvider({
   }, [myUserId])
 
   useEffect(() => {
-    getIceServers().then((servers) => {
+    iceServersPromiseRef.current = getIceServers().then((servers) => {
       iceServersRef.current = servers
+      return servers
     })
   }, [])
 
-  const clearDuration = () => {
+  const clearDuration = useCallback(() => {
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current)
       durationTimerRef.current = null
     }
+  }, [])
+
+  const startDurationTimer = () => {
+    clearDuration()
+    const started = Date.now()
+    setDuration(0)
+    durationTimerRef.current = setInterval(() => {
+      setDuration(Math.floor((Date.now() - started) / 1000))
+    }, 1000)
   }
 
-  const closeAllPeerConnections = () => {
+  const syncParticipants = () => {
+    setCallState(
+      callRef.current
+        ? { ...callRef.current, participants: new Map(participantsRef.current) }
+        : null,
+    )
+  }
+
+  const rememberProfiles = useCallback((incoming?: GroupCallProfiles) => {
+    if (!incoming) return
+    let changed = false
+    const next: GroupCallProfiles = { ...profilesRef.current }
+    for (const [uid, profile] of Object.entries(incoming)) {
+      if (!uid || !profile) continue
+      const current = next[uid]
+      if (
+        current?.display_name === profile.display_name &&
+        current?.avatar_uri === profile.avatar_uri
+      ) {
+        continue
+      }
+      next[uid] = profile
+      changed = true
+    }
+    if (changed) {
+      profilesRef.current = next
+      setProfiles(next)
+    }
+  }, [])
+
+  const identityOf = useCallback(
+    (userId: string) =>
+      participantIdentity(userId, myUserIdRef.current, profilesRef.current[userId], {
+        you: t('groupCall.you'),
+        member: t('groupCall.member'),
+      }),
+    [t],
+  )
+
+  /** Làm mới tên/avatar của mọi participant đã biết từ profile mới nhất. */
+  const refreshIdentities = () => {
+    for (const [uid, participant] of participantsRef.current) {
+      const identity = identityOf(uid)
+      if (
+        participant.display_name !== identity.display_name ||
+        participant.avatar_uri !== identity.avatar_uri
+      ) {
+        participantsRef.current.set(uid, { ...participant, ...identity })
+      }
+    }
+  }
+
+  const ensureParticipant = (userId: string): GroupCallParticipant => {
+    const existing = participantsRef.current.get(userId)
+    if (existing) return existing
+    const participant: GroupCallParticipant = {
+      user_id: userId,
+      ...identityOf(userId),
+      muted: false,
+      video_enabled: true,
+      is_active: false,
+    }
+    participantsRef.current.set(userId, participant)
+    return participant
+  }
+
+  const closeAllPeerConnections = useCallback(() => {
     pcsRef.current.forEach((pc) => {
       pc.onicecandidate = null
       pc.ontrack = null
@@ -132,45 +246,56 @@ export function GroupCallProvider({
       pc.close()
     })
     pcsRef.current.clear()
-  }
+    negRef.current.clear()
+  }, [])
 
-  const stopStreams = () => {
+  const stopStreams = useCallback(() => {
     const stream = localStreamRef.current
     if (stream) {
       stream.getTracks().forEach((track) => track.stop())
     }
     localStreamRef.current = null
     setLocalStream(null)
-  }
+  }, [])
 
   const resetToIdle = useCallback(() => {
     stopRingtone()
     closeAllPeerConnections()
     stopStreams()
-    pendingSignalsRef.current.clear()
     participantsRef.current.clear()
+    joinedRef.current.clear()
     callIdRef.current = null
     clearDuration()
-    if (endedTimerRef.current) {
-      clearTimeout(endedTimerRef.current)
-      endedTimerRef.current = null
-    }
+    clearTimerRef(endedTimerRef)
+    clearTimerRef(connectTimerRef)
+    clearTimerRef(rejoinTimerRef)
+    clearTimerRef(endFallbackTimerRef)
     setCallState(null)
     setPhaseBoth('idle')
     setDuration(0)
     setLocalMuted(false)
     setLocalVideoOn(true)
     setRemoteStreams(new Map())
-  }, [setCallState])
+    profilesRef.current = {}
+    setProfiles({})
+  }, [
+    setCallState,
+    setPhaseBoth,
+    closeAllPeerConnections,
+    stopStreams,
+    clearDuration,
+  ])
 
   const showEnded = useCallback(
     (extraMs = 3000) => {
       stopRingtone()
       closeAllPeerConnections()
       stopStreams()
-      pendingSignalsRef.current.clear()
       callIdRef.current = null
       clearDuration()
+      clearTimerRef(connectTimerRef)
+      clearTimerRef(rejoinTimerRef)
+      clearTimerRef(endFallbackTimerRef)
       setPhaseBoth('ended')
       setRemoteStreams(new Map())
       if (endedTimerRef.current) clearTimeout(endedTimerRef.current)
@@ -178,398 +303,434 @@ export function GroupCallProvider({
         if (phaseRef.current === 'ended') resetToIdle()
       }, extraMs)
     },
-    [resetToIdle],
+    [resetToIdle, setPhaseBoth, closeAllPeerConnections, stopStreams, clearDuration],
   )
 
-  const getOrCreatePc = useCallback(
-    (remoteUserId: string, callId: string) => {
-      const existing = pcsRef.current.get(remoteUserId)
-      if (existing) return existing
+  // ── Peer connection & negotiation ────────────────────────────────────────
 
-      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
-      pcsRef.current.set(remoteUserId, pc)
+  const negStateOf = (remoteUserId: string): PeerNegState => {
+    let state = negRef.current.get(remoteUserId)
+    if (!state) {
+      state = createNegState()
+      negRef.current.set(remoteUserId, state)
+    }
+    return state
+  }
 
-      pc.onicecandidate = (event) => {
-        if (!event.candidate) return
-        socket.send('group:call:signal', {
-          call_id: callId,
-          signal: { type: 'ice', candidate: event.candidate.toJSON() },
+  const sendSignal = (
+    remoteUserId: string,
+    signal:
+      | { type: 'offer'; sdp: string }
+      | { type: 'answer'; sdp: string }
+      | { type: 'ice'; candidate: RTCIceCandidateInit },
+  ) => {
+    const callId = callIdRef.current
+    if (!callId) return
+    // target_user_id bắt buộc: server chỉ relay cho đúng peer này. Nếu broadcast,
+    // offer dành cho C sẽ bị B áp vào PC A–B và phá luôn kết nối đang tốt.
+    socket.send('group:call:signal', {
+      call_id: callId,
+      target_user_id: remoteUserId,
+      signal,
+    })
+  }
+
+  const ensurePeer = (remoteUserId: string): RTCPeerConnection => {
+    const existing = pcsRef.current.get(remoteUserId)
+    if (existing) return existing
+
+    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
+    pcsRef.current.set(remoteUserId, pc)
+    negStateOf(remoteUserId)
+
+    pc.onicecandidate = (event) => {
+      if (!event.candidate) return
+      sendSignal(remoteUserId, {
+        type: 'ice',
+        candidate: event.candidate.toJSON(),
+      })
+    }
+
+    pc.ontrack = (event) => {
+      const stream = event.streams[0] ?? new MediaStream([event.track])
+      setRemoteStreams((prev) => {
+        const next = new Map(prev)
+        next.set(remoteUserId, stream)
+        return next
+      })
+      const participant = participantsRef.current.get(remoteUserId)
+      if (participant && !participant.is_active) {
+        participantsRef.current.set(remoteUserId, {
+          ...participant,
+          is_active: true,
+        })
+        // Phải setState, nếu chỉ sửa ref thì overlay "đang kết nối" không tắt.
+        syncParticipants()
+      }
+    }
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState
+      if (state === 'failed') {
+        pc.close()
+        pcsRef.current.delete(remoteUserId)
+        negRef.current.delete(remoteUserId)
+        setRemoteStreams((prev) => {
+          const next = new Map(prev)
+          next.delete(remoteUserId)
+          return next
+        })
+      } else if (state === 'disconnected') {
+        // ICE có thể tự phục hồi; chỉ bỏ hình, giữ tile.
+        setRemoteStreams((prev) => {
+          const next = new Map(prev)
+          next.delete(remoteUserId)
+          return next
         })
       }
+    }
 
-      pc.ontrack = (event) => {
-        const stream = event.streams[0]
-        if (stream) {
-          setRemoteStreams((prev) => {
-            const next = new Map(prev)
-            next.set(remoteUserId, stream)
-            return next
-          })
-          // Mark participant as active
-          const p = participantsRef.current.get(remoteUserId)
-          if (p) {
-            p.is_active = true
-            participantsRef.current.set(remoteUserId, { ...p })
-          }
-        }
-      }
+    const stream = localStreamRef.current
+    if (stream) {
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream))
+    } else {
+      pc.addTransceiver('audio', { direction: 'sendrecv' })
+      pc.addTransceiver('video', { direction: 'sendrecv' })
+    }
 
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-          setRemoteStreams((prev) => {
-            const next = new Map(prev)
-            next.delete(remoteUserId)
-            return next
-          })
-        }
-      }
+    return pc
+  }
 
-      // Add local tracks
-      const stream = localStreamRef.current
-      if (stream) {
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream))
-      }
-
-      return pc
-    },
-    [socket],
-  )
-
-  const createOfferForPeer = useCallback(
-    async (remoteUserId: string, callId: string) => {
-      const pc = getOrCreatePc(remoteUserId, callId)
+  const flushIce = async (remoteUserId: string, pc: RTCPeerConnection) => {
+    const state = negStateOf(remoteUserId)
+    const pending = drainIce(state)
+    for (const candidate of pending) {
       try {
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        socket.send('group:call:signal', {
-          call_id: callId,
-          signal: { type: 'offer', sdp: offer.sdp },
-        })
+        await pc.addIceCandidate(candidate)
       } catch (err) {
-        console.error('Failed to create offer for', remoteUserId, err)
+        console.warn('group call: bỏ qua ICE không hợp lệ', err)
       }
-    },
-    [getOrCreatePc, socket],
-  )
+    }
+  }
 
-  // Handle incoming signal from another participant
-  const handleSignal = useCallback(
-    async (payload: GroupCallSignalPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      if (payload.sender_id === myUserIdRef.current) return
+  const maybeOffer = async (remoteUserId: string) => {
+    const callId = callIdRef.current
+    if (!callId) return
+    if (!shouldIOffer(myUserIdRef.current, remoteUserId)) return
 
-      const sig = payload.signal
-      const senderId = payload.sender_id
+    const state = negStateOf(remoteUserId)
+    if (state.makingOffer) return
 
+    const pc = ensurePeer(remoteUserId)
+    if (pc.signalingState !== 'stable') return
+    // Đã kết nối rồi thì không renegotiate: rớt socket signaling không làm
+    // media P2P dừng, offer lại chỉ gây giật hình.
+    if (pc.connectionState === 'connected') {
+      return
+    }
+
+    state.makingOffer = true
+    try {
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      sendSignal(remoteUserId, { type: 'offer', sdp: offer.sdp ?? '' })
+    } catch (err) {
+      console.error('group call: tạo offer thất bại', remoteUserId, err)
+    } finally {
+      state.makingOffer = false
+    }
+  }
+
+  const handleSignal = async (payload: GroupCallSignalPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    if (payload.sender_id === myUserIdRef.current) return
+    // Signal có đích rõ ràng thì chỉ người đó xử lý.
+    if (
+      payload.target_user_id &&
+      payload.target_user_id !== myUserIdRef.current
+    ) {
+      return
+    }
+
+    const senderId = payload.sender_id
+    const sig = payload.signal
+    if (!sig || !sig.type) return
+
+    if (sig.type === 'ice') {
       const pc = pcsRef.current.get(senderId)
-
-      if (!pc) {
-        // No PeerConnection yet — buffer the signal
-        if (!pendingSignalsRef.current.has(senderId)) {
-          pendingSignalsRef.current.set(senderId, { ice: [] })
-        }
-        const buf = pendingSignalsRef.current.get(senderId)!
-        if (sig.type === 'offer') {
-          buf.offer = { type: sig.type, sdp: sig.sdp }
-        } else if (sig.type === 'ice') {
-          buf.ice.push(sig.candidate)
-        }
+      const state = negStateOf(senderId)
+      if (!pc || !state.haveRemoteDesc) {
+        bufferIce(state, sig.candidate)
         return
       }
-
       try {
-        if (sig.type === 'offer') {
-          await pc.setRemoteDescription({ type: sig.type, sdp: sig.sdp })
-          const answer = await pc.createAnswer()
-          await pc.setLocalDescription(answer)
-          socket.send('group:call:signal', {
-            call_id: payload.call_id,
-            signal: { type: 'answer', sdp: answer.sdp },
-          })
-        } else if (sig.type === 'answer') {
-          await pc.setRemoteDescription({ type: sig.type, sdp: sig.sdp })
-        } else if (sig.type === 'ice') {
-          await pc.addIceCandidate(sig.candidate)
-        }
+        await pc.addIceCandidate(sig.candidate)
       } catch (err) {
-        console.error('Failed to handle group call signal:', err)
+        console.warn('group call: bỏ qua ICE không hợp lệ', err)
       }
-    },
-    [socket],
-  )
+      return
+    }
 
-  // WS event handlers
-  const handleIncoming = useCallback(
-    async (payload: GroupCallIncomingPayload) => {
-      if (phaseRef.current === 'ended') resetToIdle()
-      if (phaseRef.current !== 'idle') return
+    const pc = ensurePeer(senderId)
+    const state = negStateOf(senderId)
 
-      callIdRef.current = payload.call_id
-
-      const participants = new Map<string, GroupCallParticipant>()
-      for (const uid of payload.participants) {
-        participants.set(uid, {
-          user_id: uid,
-          display_name: uid === myUserIdRef.current ? 'Bạn' : uid,
-          avatar_uri: '',
-          muted: false,
-          video_enabled: true,
-          is_active: false,
-        })
-      }
-      // Add caller
-      if (!participants.has(payload.caller_id)) {
-        participants.set(payload.caller_id, {
-          user_id: payload.caller_id,
-          display_name: payload.caller_id,
-          avatar_uri: '',
-          muted: false,
-          video_enabled: true,
-          is_active: false,
-        })
-      }
-
-      const activeCall: ActiveGroupCall = {
-        callId: payload.call_id,
-        chatId: payload.chat_id,
-        callerId: payload.caller_id,
-        isVideo: payload.is_video,
-        participants,
-        pendingRequests: [],
-      }
-
-      setCallState(activeCall)
-      setPhaseBoth('ringing')
-      setDuration(0)
-      participantsRef.current = participants
-      playRingtone()
-    },
-    [resetToIdle, setCallState],
-  )
-
-  const handleCreated = useCallback(
-    async (payload: GroupCallCreatedPayload) => {
-      if (phaseRef.current !== 'connecting') return
-
-      callIdRef.current = payload.call_id
-
-      const participants = new Map<string, GroupCallParticipant>()
-      for (const uid of payload.participants) {
-        participants.set(uid, {
-          user_id: uid,
-          display_name: uid === myUserIdRef.current ? 'Bạn' : uid,
-          avatar_uri: '',
-          muted: false,
-          video_enabled: true,
-          is_active: false,
-        })
-      }
-
-      const activeCall: ActiveGroupCall = {
-        callId: payload.call_id,
-        chatId: payload.chat_id,
-        callerId: payload.caller_id,
-        isVideo: payload.is_video,
-        participants,
-        pendingRequests: [],
-      }
-      setCallState(activeCall)
-      participantsRef.current = participants
-
-      // Creator transitions to active immediately
-      setPhaseBoth('active')
-      const started = Date.now()
-      setDuration(0)
-      durationTimerRef.current = setInterval(() => {
-        setDuration(Math.floor((Date.now() - started) / 1000))
-      }, 1000)
-
-      // Create offers for all other participants
-      for (const uid of payload.participants) {
-        if (uid !== myUserIdRef.current) {
-          await createOfferForPeer(uid, payload.call_id)
+    try {
+      if (sig.type === 'offer') {
+        const offerCollision =
+          state.makingOffer || pc.signalingState !== 'stable'
+        const polite = isPolitePeer(myUserIdRef.current, senderId)
+        state.ignoreOffer = !polite && offerCollision
+        if (state.ignoreOffer) return
+        if (offerCollision) {
+          await pc.setLocalDescription({ type: 'rollback' })
         }
+        await pc.setRemoteDescription({ type: 'offer', sdp: sig.sdp })
+        state.haveRemoteDesc = true
+        await flushIce(senderId, pc)
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+        sendSignal(senderId, { type: 'answer', sdp: answer.sdp ?? '' })
+        ensureParticipant(senderId)
+      } else if (sig.type === 'answer') {
+        if (pc.signalingState !== 'have-local-offer') return
+        await pc.setRemoteDescription({ type: 'answer', sdp: sig.sdp })
+        state.haveRemoteDesc = true
+        await flushIce(senderId, pc)
+        ensureParticipant(senderId)
       }
-    },
-    [createOfferForPeer, setCallState],
-  )
+    } catch (err) {
+      console.error('group call: xử lý signal thất bại', senderId, err)
+    }
+  }
 
-  const handleJoined = useCallback(
-    async (payload: GroupCallJoinedPayload) => {
-      if (callIdRef.current !== payload.call_id) return
+  const offerToJoinedPeers = () => {
+    // Chỉ offer tới người đã thực sự join. Người mới được mời nhưng chưa vào
+    // không nhận được signal, và offer gửi nhầm peer sẽ phá PC của cặp khác.
+    for (const uid of Array.from(joinedRef.current)) {
+      if (uid === myUserIdRef.current) continue
+      void maybeOffer(uid)
+    }
+  }
 
-      // If this is us joining, transition to active
-      if (payload.user_id === myUserIdRef.current) {
-        if (phaseRef.current === 'connecting') {
-          setPhaseBoth('active')
-          const started = Date.now()
-          setDuration(0)
-          durationTimerRef.current = setInterval(() => {
-            setDuration(Math.floor((Date.now() - started) / 1000))
-          }, 1000)
-        }
-        return
-      }
+  // ── WS event handlers ────────────────────────────────────────────────────
 
-      // A new participant joined — create PC and send offer
-      // Add to participants
-      const p: GroupCallParticipant = {
-        user_id: payload.user_id,
-        display_name: payload.user_id,
-        avatar_uri: '',
+  const handleIncoming = (payload: GroupCallIncomingPayload) => {
+    if (phaseRef.current === 'ended') resetToIdle()
+    if (phaseRef.current !== 'idle') return
+
+    callIdRef.current = payload.call_id
+    rememberProfiles(payload.profiles)
+
+    const participants = new Map<string, GroupCallParticipant>()
+    for (const uid of payload.participants) {
+      participants.set(uid, {
+        user_id: uid,
+        ...identityOf(uid),
         muted: false,
         video_enabled: true,
         is_active: false,
-      }
-      participantsRef.current.set(payload.user_id, p)
-      setCallState(
-        callRef.current
-          ? { ...callRef.current, participants: new Map(participantsRef.current) }
-          : null,
-      )
-
-      // Create offer for the new participant
-      if (callIdRef.current) {
-        await createOfferForPeer(payload.user_id, callIdRef.current)
-      }
-    },
-    [createOfferForPeer, setCallState],
-  )
-
-  const handleJoinRequest = useCallback(
-    (payload: GroupCallJoinRequestPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      setCallState(
-        callRef.current
-          ? {
-              ...callRef.current,
-              pendingRequests: [
-                ...callRef.current.pendingRequests,
-                payload.user_id,
-              ],
-            }
-          : null,
-      )
-    },
-    [setCallState],
-  )
-
-  const handleJoinRequestSent = useCallback(
-    (payload: GroupCallJoinRequestSentPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      // Request sent, waiting for approval — stay in connecting phase
-    },
-    [],
-  )
-
-  const handleJoinRejected = useCallback(
-    (payload: GroupCallJoinRejectedPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      if (payload.user_id !== myUserIdRef.current) return
-      toast({ type: 'warning', title: t('groupCall.joinRejected') })
-      showEnded()
-    },
-    [toast, t, showEnded],
-  )
-
-  const handleEnded = useCallback(
-    (payload: GroupCallEndedPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      showEnded()
-    },
-    [showEnded],
-  )
-
-  const handleLeft = useCallback(
-    (payload: GroupCallLeftPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-
-      // Clean up peer connection and stream for this user
-      const pc = pcsRef.current.get(payload.user_id)
-      if (pc) {
-        pc.onicecandidate = null
-        pc.ontrack = null
-        pc.onconnectionstatechange = null
-        pc.close()
-        pcsRef.current.delete(payload.user_id)
-      }
-      setRemoteStreams((prev) => {
-        const next = new Map(prev)
-        next.delete(payload.user_id)
-        return next
       })
-      participantsRef.current.delete(payload.user_id)
+    }
+    if (!participants.has(payload.caller_id)) {
+      participants.set(payload.caller_id, {
+        user_id: payload.caller_id,
+        ...identityOf(payload.caller_id),
+        muted: false,
+        video_enabled: true,
+        is_active: false,
+      })
+    }
 
-      setCallState(
-        callRef.current
-          ? { ...callRef.current, participants: new Map(participantsRef.current) }
-          : null,
-      )
-    },
-    [setCallState],
-  )
+    participantsRef.current = participants
+    joinedRef.current = new Set()
+    setCallState({
+      callId: payload.call_id,
+      chatId: payload.chat_id,
+      callerId: payload.caller_id,
+      isVideo: payload.is_video,
+      participants,
+      pendingRequests: [],
+    })
+    setPhaseBoth('ringing')
+    setDuration(0)
+    playRingtone()
+  }
 
-  const handleMic = useCallback(
-    (payload: GroupCallMicPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      const p = participantsRef.current.get(payload.user_id)
-      if (p) {
-        p.muted = payload.muted
-        participantsRef.current.set(payload.user_id, { ...p })
-        setCallState(
-          callRef.current
-            ? { ...callRef.current, participants: new Map(participantsRef.current) }
-            : null,
-        )
+  const handleCreated = (payload: GroupCallCreatedPayload) => {
+    if (phaseRef.current !== 'connecting') return
+
+    callIdRef.current = payload.call_id
+    rememberProfiles(payload.profiles)
+
+    const participants = new Map<string, GroupCallParticipant>()
+    for (const uid of payload.participants) {
+      participants.set(uid, {
+        user_id: uid,
+        ...identityOf(uid),
+        muted: false,
+        video_enabled: true,
+        is_active: uid === myUserIdRef.current,
+      })
+    }
+
+    participantsRef.current = participants
+    joinedRef.current = new Set([myUserIdRef.current])
+    setCallState({
+      callId: payload.call_id,
+      chatId: payload.chat_id,
+      callerId: payload.caller_id,
+      isVideo: payload.is_video,
+      participants,
+      pendingRequests: [],
+    })
+    clearTimerRef(connectTimerRef)
+    setPhaseBoth('active')
+    startDurationTimer()
+    // Không offer ở đây: người được mời chưa join nên server sẽ bỏ signal.
+    // Offer được tạo khi nhận `group:call:joined` của từng người.
+  }
+
+  const handleJoined = (payload: GroupCallJoinedPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+
+    rememberProfiles(payload.profiles)
+
+    // Creator có thể đã đổi trong lúc ta mất kết nối (server chuyển quyền).
+    if (payload.caller_id && callRef.current?.callerId !== payload.caller_id) {
+      setCallState({ ...callRef.current!, callerId: payload.caller_id })
+    }
+
+    if (payload.user_id === myUserIdRef.current) {
+      clearTimerRef(connectTimerRef)
+      clearTimerRef(rejoinTimerRef)
+      joinedRef.current.add(myUserIdRef.current)
+      if (phaseRef.current === 'connecting') {
+        setPhaseBoth('active')
+        startDurationTimer()
       }
-    },
-    [setCallState],
-  )
+      refreshIdentities()
+      syncParticipants()
+      // Người vào sau phải chủ động offer tới những ai có id lớn hơn mình.
+      offerToJoinedPeers()
+      return
+    }
 
-  const handleVideo = useCallback(
-    (payload: GroupCallVideoPayload) => {
-      if (callIdRef.current !== payload.call_id) return
-      const p = participantsRef.current.get(payload.user_id)
-      if (p) {
-        p.video_enabled = payload.video_enabled
-        participantsRef.current.set(payload.user_id, { ...p })
-        setCallState(
-          callRef.current
-            ? { ...callRef.current, participants: new Map(participantsRef.current) }
-            : null,
-        )
+    joinedRef.current.add(payload.user_id)
+    ensureParticipant(payload.user_id)
+    refreshIdentities()
+    syncParticipants()
+    void maybeOffer(payload.user_id)
+  }
+
+  const handleJoinRequest = (payload: GroupCallJoinRequestPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    rememberProfiles(payload.profiles)
+    const current = callRef.current
+    if (!current) return
+    if (current.pendingRequests.includes(payload.user_id)) return
+    setCallState({
+      ...current,
+      pendingRequests: [...current.pendingRequests, payload.user_id],
+    })
+  }
+
+  const handleJoinRequestSent = (payload: GroupCallJoinRequestSentPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    // Đang chờ duyệt — giữ phase connecting.
+  }
+
+  const handleJoinRejected = (payload: GroupCallJoinRejectedPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    if (payload.user_id !== myUserIdRef.current) return
+    toast({ type: 'warning', title: t('groupCall.joinRejected') })
+    showEnded()
+  }
+
+  const handleEnded = (payload: GroupCallEndedPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    showEnded()
+  }
+
+  const handleLeft = (payload: GroupCallLeftPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+
+    const pc = pcsRef.current.get(payload.user_id)
+    if (pc) {
+      pc.onicecandidate = null
+      pc.ontrack = null
+      pc.onconnectionstatechange = null
+      pc.close()
+      pcsRef.current.delete(payload.user_id)
+    }
+    negRef.current.delete(payload.user_id)
+
+    setRemoteStreams((prev) => {
+      const next = new Map(prev)
+      next.delete(payload.user_id)
+      return next
+    })
+    participantsRef.current.delete(payload.user_id)
+    joinedRef.current.delete(payload.user_id)
+    syncParticipants()
+  }
+
+  const handleMic = (payload: GroupCallMicPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    const participant = participantsRef.current.get(payload.user_id)
+    if (!participant) return
+    participantsRef.current.set(payload.user_id, {
+      ...participant,
+      muted: payload.muted,
+    })
+    syncParticipants()
+  }
+
+  const handleVideo = (payload: GroupCallVideoPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    const participant = participantsRef.current.get(payload.user_id)
+    if (!participant) return
+    participantsRef.current.set(payload.user_id, {
+      ...participant,
+      video_enabled: payload.video_enabled,
+    })
+    syncParticipants()
+  }
+
+  const handleParticipants = (payload: GroupCallParticipantsResponse) => {
+    if (callIdRef.current !== payload.call_id) return
+    rememberProfiles(payload.profiles)
+    joinedRef.current = new Set(payload.joined)
+    for (const uid of payload.participants) {
+      const participant = ensureParticipant(uid)
+      const isActive = payload.active_participants.includes(uid)
+      if (isActive && !participant.is_active) {
+        participantsRef.current.set(uid, { ...participant, is_active: true })
       }
-    },
-    [setCallState],
-  )
+    }
+    refreshIdentities()
+    syncParticipants()
+  }
 
-  const handleParticipants = useCallback(
-    (payload: GroupCallParticipantsResponse) => {
-      if (callIdRef.current !== payload.call_id) return
-      // Sync participant list
-      for (const uid of payload.participants) {
-        if (!participantsRef.current.has(uid)) {
-          participantsRef.current.set(uid, {
-            user_id: uid,
-            display_name: uid,
-            avatar_uri: '',
-            muted: false,
-            video_enabled: true,
-            is_active: payload.active_participants.includes(uid),
-          })
-        }
+  const handleCreatorChanged = (payload: GroupCallCreatorChangedPayload) => {
+    if (callIdRef.current !== payload.call_id) return
+    const current = callRef.current
+    if (!current || current.callerId === payload.caller_id) return
+    setCallState({ ...current, callerId: payload.caller_id })
+  }
+
+  // Session bị kết thúc trong lúc socket đang rớt: server không còn call để
+  // rejoin, nên báo kết thúc thay vì treo ở phase active.
+  const armRejoinTimeout = useCallback(() => {
+    clearTimerRef(rejoinTimerRef)
+    rejoinTimerRef.current = setTimeout(() => {
+      const p = phaseRef.current
+      if (p === 'active' || p === 'minimized' || p === 'connecting') {
+        toast({ type: 'warning', title: t('groupCall.reconnectFailed') })
+        showEnded()
       }
-      setCallState(
-        callRef.current
-          ? { ...callRef.current, participants: new Map(participantsRef.current) }
-          : null,
-      )
-    },
-    [setCallState],
-  )
+    }, REJOIN_TIMEOUT_MS)
+  }, [showEnded, t, toast])
 
-  // Register WS handlers
-  const handlersRef = useRef<Record<string, (payload: unknown) => void>>({})
   useEffect(() => {
     handlersRef.current = {
       'group:call:incoming': handleIncoming as (p: unknown) => void,
@@ -584,16 +745,43 @@ export function GroupCallProvider({
       'group:call:mic': handleMic as (p: unknown) => void,
       'group:call:video': handleVideo as (p: unknown) => void,
       'group:call:participants': handleParticipants as (p: unknown) => void,
+      'group:call:creator-changed': handleCreatorChanged as (p: unknown) => void,
     }
   })
 
   useEffect(() => {
-    const unsubscribers = Object.entries(handlersRef.current).map(
-      ([type, handler]) =>
-        socket.subscribe(type, (payload) => handler(payload)),
+    // Đọc handler qua ref lúc dispatch: effect này chỉ chạy lại khi socket đổi
+    // status, nếu capture handler trực tiếp thì nó bị "đóng băng" ở render đầu
+    // (đổi ngôn ngữ, toast mới... sẽ không được áp dụng).
+    const unsubscribers = Object.keys(handlersRef.current).map((type) =>
+      socket.subscribe(type, (payload) => {
+        handlersRef.current[type]?.(payload)
+      }),
     )
     return () => unsubscribers.forEach((unsub) => unsub())
   }, [socket])
+
+  // Reconnect: server đã đánh dấu participant là "disconnected" nhưng vẫn giữ
+  // trong cuộc gọi trong 15s. Gửi lại request-join để quay lại đúng session.
+  useEffect(() => {
+    const previous = lastSocketStatusRef.current
+    lastSocketStatusRef.current = socket.status
+    if (socket.status !== 'open' || previous === 'open') return
+
+    if (!hasOpenedSocketRef.current) {
+      hasOpenedSocketRef.current = true
+      return
+    }
+
+    const callId = callIdRef.current
+    const p = phaseRef.current
+    if (!callId) return
+    if (p !== 'active' && p !== 'minimized' && p !== 'connecting') return
+
+    toast({ type: 'info', title: t('groupCall.reconnecting') })
+    socket.send('group:call:request-join', { call_id: callId })
+    armRejoinTimeout()
+  }, [socket, socket.status, t, toast, armRejoinTimeout])
 
   useEffect(() => {
     return () => {
@@ -603,7 +791,35 @@ export function GroupCallProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Actions
+  // ── Actions ──────────────────────────────────────────────────────────────
+
+  const armConnectTimeout = useCallback(() => {
+    clearTimerRef(connectTimerRef)
+    connectTimerRef.current = setTimeout(() => {
+      if (phaseRef.current === 'connecting') {
+        toast({ type: 'warning', title: t('groupCall.connectTimeout') })
+        showEnded()
+      }
+    }, CONNECT_TIMEOUT_MS)
+  }, [toast, t, showEnded])
+
+  const requestLocalMedia = useCallback(async (): Promise<MediaStream | null> => {
+    try {
+      await iceServersPromiseRef.current
+    } catch {
+      // Không lấy được ICE server vẫn thử gọi với cấu hình rỗng/STUN mặc định.
+    }
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      })
+    } catch {
+      toast({ type: 'error', title: t('groupCall.permissionDenied') })
+      return null
+    }
+  }, [toast, t])
+
   const startGroupCall = useCallback(
     async (chatId: string, participantIds?: string[]) => {
       if (phaseRef.current !== 'idle') return
@@ -612,16 +828,8 @@ export function GroupCallProvider({
         return
       }
 
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        })
-      } catch {
-        toast({ type: 'error', title: t('groupCall.permissionDenied') })
-        return
-      }
+      const stream = await requestLocalMedia()
+      if (!stream) return
 
       localStreamRef.current = stream
       setLocalStream(stream)
@@ -631,25 +839,25 @@ export function GroupCallProvider({
       const participants = new Map<string, GroupCallParticipant>()
       participants.set(myUserIdRef.current, {
         user_id: myUserIdRef.current,
-        display_name: 'Bạn',
+        display_name: t('groupCall.you'),
         avatar_uri: '',
         muted: false,
         video_enabled: true,
         is_active: true,
       })
 
-      const activeCall: ActiveGroupCall = {
+      participantsRef.current = participants
+      setCallState({
         callId: '',
         chatId,
         callerId: myUserIdRef.current,
         isVideo: true,
         participants,
         pendingRequests: [],
-      }
-      setCallState(activeCall)
-      participantsRef.current = participants
+      })
       setPhaseBoth('connecting')
       setDuration(0)
+      armConnectTimeout()
 
       const ok = socket.send('group:call:create', {
         chat_id: chatId,
@@ -661,7 +869,16 @@ export function GroupCallProvider({
         resetToIdle()
       }
     },
-    [socket, toast, t, setCallState, resetToIdle],
+    [
+      socket,
+      toast,
+      t,
+      setCallState,
+      setPhaseBoth,
+      resetToIdle,
+      requestLocalMedia,
+      armConnectTimeout,
+    ],
   )
 
   const joinGroupCall = useCallback(
@@ -672,16 +889,8 @@ export function GroupCallProvider({
         return
       }
 
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        })
-      } catch {
-        toast({ type: 'error', title: t('groupCall.permissionDenied') })
-        return
-      }
+      const stream = await requestLocalMedia()
+      if (!stream) return
 
       stopRingtone()
       localStreamRef.current = stream
@@ -689,10 +898,18 @@ export function GroupCallProvider({
       setLocalMuted(false)
       setLocalVideoOn(true)
       setPhaseBoth('connecting')
+      armConnectTimeout()
 
       socket.send('group:call:request-join', { call_id: callId })
     },
-    [socket, toast, t],
+    [
+      socket,
+      toast,
+      t,
+      setPhaseBoth,
+      requestLocalMedia,
+      armConnectTimeout,
+    ],
   )
 
   const declineGroupCall = useCallback(() => {
@@ -740,7 +957,13 @@ export function GroupCallProvider({
       return
     }
     socket.send('group:call:end', { call_id: active.callId })
-    showEnded()
+    // Chờ server xác nhận (`ended` hoặc `left`); nếu socket chết vẫn phải đóng UI.
+    clearTimerRef(endFallbackTimerRef)
+    endFallbackTimerRef.current = setTimeout(() => {
+      if (phaseRef.current === 'active' || phaseRef.current === 'minimized') {
+        showEnded()
+      }
+    }, END_FALLBACK_MS)
   }, [socket, showEnded, resetToIdle])
 
   const toggleMute = useCallback(() => {
@@ -782,12 +1005,12 @@ export function GroupCallProvider({
       const active = callRef.current
       if (!active || !active.callId || phaseRef.current !== 'active') return
       if (active.callerId !== myUserIdRef.current) return
-      const p = participantsRef.current.get(userId)
-      if (!p) return
+      const participant = participantsRef.current.get(userId)
+      if (!participant) return
       socket.send('group:call:toggle-mute', {
         call_id: active.callId,
         target_user_id: userId,
-        muted: !p.muted,
+        muted: !participant.muted,
       })
     },
     [socket],
@@ -797,13 +1020,13 @@ export function GroupCallProvider({
     if (phaseRef.current === 'active') {
       setPhaseBoth('minimized')
     }
-  }, [])
+  }, [setPhaseBoth])
 
   const expand = useCallback(() => {
     if (phaseRef.current === 'minimized') {
       setPhaseBoth('active')
     }
-  }, [])
+  }, [setPhaseBoth])
 
   const dismiss = useCallback(() => {
     if (phaseRef.current === 'ended') resetToIdle()
@@ -824,7 +1047,9 @@ export function GroupCallProvider({
           phase === 'minimized' ||
           phase === 'connecting' ||
           phase === 'ringing',
+        myUserId,
         pendingRequests: call?.pendingRequests ?? [],
+        profiles,
         remoteStreams,
         startGroupCall,
         joinGroupCall,

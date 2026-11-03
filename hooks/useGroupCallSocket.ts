@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type GroupCallSocketStatus = 'connecting' | 'open' | 'closed'
 
@@ -20,8 +20,16 @@ export function useGroupCallSocket(): GroupCallSocket {
   const wsRef = useRef<WebSocket | null>(null)
   const handlersRef = useRef<Map<string, Set<EventHandler>>>(new Map())
   const reconnectDelayRef = useRef(1000)
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const maxReconnectDelay = 30000
   const closedByUserRef = useRef(false)
+
+  const clearReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+  }, [])
 
   const subscribe = useCallback((type: string, handler: EventHandler) => {
     let set = handlersRef.current.get(type)
@@ -42,6 +50,11 @@ export function useGroupCallSocket(): GroupCallSocket {
     if (typeof window === 'undefined') return
     const token = localStorage.getItem('token')
     if (!token) return
+
+    // Một timer reconnect còn treo có thể hồi sinh socket đã đóng (và tạo
+    // socket thứ hai cho cùng user, khiến server coi một lần rớt là mất kết
+    // nối và kết thúc cuộc gọi). Huỷ trước khi mở kết nối mới.
+    clearReconnect()
 
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return
 
@@ -96,22 +109,27 @@ export function useGroupCallSocket(): GroupCallSocket {
       setStatus('closed')
       const delay = reconnectDelayRef.current
       reconnectDelayRef.current = Math.min(delay * 2, maxReconnectDelay)
-      setTimeout(() => connectRef.current(), delay)
+      clearReconnect()
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null
+        connectRef.current()
+      }, delay)
     }
 
     ws.onerror = () => {
       ws.close()
     }
-  }, [])
+  }, [clearReconnect])
 
   const close = useCallback(() => {
     closedByUserRef.current = true
+    clearReconnect()
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
     setStatus('closed')
-  }, [])
+  }, [clearReconnect])
 
   useEffect(() => {
     connectRef.current = connect
@@ -130,6 +148,10 @@ export function useGroupCallSocket(): GroupCallSocket {
     }
     return () => {
       closedByUserRef.current = true
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current)
+        reconnectTimerRef.current = null
+      }
       if (wsRef.current) {
         wsRef.current.close()
         wsRef.current = null
@@ -137,5 +159,10 @@ export function useGroupCallSocket(): GroupCallSocket {
     }
   }, [connect])
 
-  return { status, send, subscribe, connect, close }
+  // Object ổn định theo status: trước đây mỗi render trả về object mới khiến
+  // mọi useEffect phụ thuộc [socket] chạy lại, đăng ký/huỷ handler liên tục.
+  return useMemo(
+    () => ({ status, send, subscribe, connect, close }),
+    [status, send, subscribe, connect, close],
+  )
 }

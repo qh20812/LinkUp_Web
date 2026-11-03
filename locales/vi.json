@@ -1207,6 +1207,11 @@
     "joinRequestConfirm": "Bạn muốn tham gia cuộc gọi video nhóm?",
     "joinRequestSender": "{name} đang thực hiện cuộc gọi",
     "participantsCount": "{count} người tham gia",
+    "you": "Bạn",
+    "member": "Thành viên",
+    "reconnecting": "Đang kết nối lại cuộc gọi…",
+    "reconnectFailed": "Không kết nối lại được. Cuộc gọi đã kết thúc.",
+    "connectTimeout": "Không thể tham gia cuộc gọi. Vui lòng thử lại.",
     "sendRequest": "Gửi yêu cầu"
   },
   "errors": {

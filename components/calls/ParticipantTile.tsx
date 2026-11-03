@@ -88,7 +88,7 @@ export default function ParticipantTile({
       <div className={styles.overlay}>
         <div className={styles.nameRow}>
           <span className={styles.name}>
-            {isLocal ? 'Bạn' : participant.display_name}
+            {participant.display_name}
           </span>
           {(isLocal ? participant.muted : participant.muted) && (
             <i className={`bx bx-microphone-off ${styles.mutedIcon}`} />

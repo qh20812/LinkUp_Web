@@ -6,12 +6,14 @@ import styles from './GroupCallIncomingModal.module.css'
 
 export default function GroupCallIncomingModal() {
   const { t } = useTranslation()
-  const { phase, call, joinGroupCall, declineGroupCall } = useGroupCall()
+  const { phase, call, profiles, joinGroupCall, declineGroupCall } = useGroupCall()
 
   if (phase !== 'ringing' || !call) return null
 
   const callerName =
-    call.participants.get(call.callerId)?.display_name ?? call.callerId
+    call.participants.get(call.callerId)?.display_name ??
+    profiles[call.callerId]?.display_name ??
+    t('groupCall.member')
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">

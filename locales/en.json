@@ -1207,6 +1207,11 @@
     "joinRequestConfirm": "Do you want to join the group video call?",
     "joinRequestSender": "{name} is calling",
     "participantsCount": "{count} participants",
+    "you": "You",
+    "member": "Member",
+    "reconnecting": "Reconnecting to the call…",
+    "reconnectFailed": "Could not reconnect. The call has ended.",
+    "connectTimeout": "Could not join the call. Please try again.",
     "sendRequest": "Send request"
   },
   "errors": {

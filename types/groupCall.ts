@@ -12,6 +12,14 @@ export interface GroupCallParticipant {
   stream?: MediaStream
 }
 
+/** Tên/ảnh thật của thành viên do server gửi kèm event call. */
+export interface GroupCallProfile {
+  display_name: string
+  avatar_uri: string
+}
+
+export type GroupCallProfiles = Record<string, GroupCallProfile>
+
 export interface ActiveGroupCall {
   callId: string
   chatId: string
@@ -28,6 +36,7 @@ export interface GroupCallIncomingPayload {
   caller_id: string
   participants: string[]
   is_video: boolean
+  profiles?: GroupCallProfiles
 }
 
 export interface GroupCallCreatedPayload {
@@ -36,18 +45,27 @@ export interface GroupCallCreatedPayload {
   caller_id: string
   participants: string[]
   is_video: boolean
+  profiles?: GroupCallProfiles
 }
 
 export interface GroupCallJoinedPayload {
   call_id: string
   chat_id: string
   user_id: string
+  caller_id?: string
+  profiles?: GroupCallProfiles
 }
 
 export interface GroupCallJoinRequestPayload {
   call_id: string
   chat_id: string
   user_id: string
+  profiles?: GroupCallProfiles
+}
+
+export interface GroupCallCreatorChangedPayload {
+  call_id: string
+  caller_id: string
 }
 
 export interface GroupCallJoinRequestSentPayload {
@@ -74,6 +92,7 @@ export interface GroupCallLeftPayload {
 export interface GroupCallSignalPayload {
   call_id: string
   sender_id: string
+  target_user_id?: string
   signal: CallSignalBody
 }
 
@@ -95,6 +114,7 @@ export interface GroupCallParticipantsResponse {
   participants: string[]
   joined: string[]
   active_participants: string[]
+  profiles?: GroupCallProfiles
 }
 
 // WS payloads — client → server
@@ -119,6 +139,7 @@ export interface GroupCallEndPayload {
 
 export interface GroupCallSignalSendPayload {
   call_id: string
+  target_user_id: string
   signal: CallSignalBody
 }
 
