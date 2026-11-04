@@ -261,25 +261,40 @@ export function GroupCallProvider({
       const sig = payload.signal
       const senderId = payload.sender_id
 
-      const pc = pcsRef.current.get(senderId)
+      let pc = pcsRef.current.get(senderId)
+
+      // Answerer: offer tới trước khi mình có PC (mình join sau) — tạo PC
+      // ngay rồi answer, thay vì buffer offer vào pendingSignalsRef không bao
+      // giờ flush (không có remote media từ participant khác).
+      if (!pc && sig.type === 'offer' && sig.sdp) {
+        pc = getOrCreatePc(senderId, payload.call_id)
+      }
 
       if (!pc) {
-        // No PeerConnection yet — buffer the signal
+        // ICE tới trước offer — buffer, áp sau setRemoteDescription.
         if (!pendingSignalsRef.current.has(senderId)) {
           pendingSignalsRef.current.set(senderId, { ice: [] })
         }
         const buf = pendingSignalsRef.current.get(senderId)!
-        if (sig.type === 'offer') {
-          buf.offer = { type: sig.type, sdp: sig.sdp }
-        } else if (sig.type === 'ice') {
+        if (sig.type === 'ice') {
           buf.ice.push(sig.candidate)
         }
         return
       }
 
+      const flushBufferedIce = async () => {
+        const buf = pendingSignalsRef.current.get(senderId)
+        if (!buf) return
+        pendingSignalsRef.current.delete(senderId)
+        for (const candidate of buf.ice) {
+          await pc!.addIceCandidate(candidate)
+        }
+      }
+
       try {
         if (sig.type === 'offer') {
           await pc.setRemoteDescription({ type: sig.type, sdp: sig.sdp })
+          await flushBufferedIce()
           const answer = await pc.createAnswer()
           await pc.setLocalDescription(answer)
           socket.send('group:call:signal', {
@@ -288,14 +303,23 @@ export function GroupCallProvider({
           })
         } else if (sig.type === 'answer') {
           await pc.setRemoteDescription({ type: sig.type, sdp: sig.sdp })
+          await flushBufferedIce()
         } else if (sig.type === 'ice') {
+          if (!pc.remoteDescription) {
+            // Chưa có remote description — buffer ICE, áp sau.
+            if (!pendingSignalsRef.current.has(senderId)) {
+              pendingSignalsRef.current.set(senderId, { ice: [] })
+            }
+            pendingSignalsRef.current.get(senderId)!.ice.push(sig.candidate)
+            return
+          }
           await pc.addIceCandidate(sig.candidate)
         }
       } catch (err) {
         console.error('Failed to handle group call signal:', err)
       }
     },
-    [socket],
+    [getOrCreatePc, socket],
   )
 
   // WS event handlers
@@ -408,6 +432,11 @@ export function GroupCallProvider({
             setDuration(Math.floor((Date.now() - started) / 1000))
           }, 1000)
         }
+        // Sync participant list — payload joined không chứa danh sách đầy đủ
+        // (nhất là người join trước mình), mirror mobile.
+        socket.send('group:call:list-participants', {
+          call_id: payload.call_id,
+        })
         return
       }
 
@@ -433,7 +462,7 @@ export function GroupCallProvider({
         await createOfferForPeer(payload.user_id, callIdRef.current)
       }
     },
-    [createOfferForPeer, setCallState],
+    [createOfferForPeer, setCallState, socket],
   )
 
   const handleJoinRequest = useCallback(
