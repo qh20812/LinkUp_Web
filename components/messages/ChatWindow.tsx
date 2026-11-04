@@ -108,7 +108,9 @@ function highlightKeyword(text: string, keyword: string): React.ReactNode {
 function getSystemMessageText(
   msg: ChatMessage,
   memberNames?: Map<string, { display_name: string; avatar_uri: string }>,
-  t?: (key: string, params?: Record<string, string>) => string,
+  t?: (key: string, params?: Record<string, string>) => string,
+
+  myUserId?: string,
 ): string {
   if (!t) return msg.content
   if (msg.message_category !== 'system') return msg.content
@@ -130,6 +132,19 @@ function getSystemMessageText(
     case 'member_joined':
       return t('chat.systemMemberJoined', { name: actorName })
     case 'member_invited':
+      // Format mới (3 phần): parts[2] = inviter → "[invitee] đã được [by] thêm
+      // vào nhóm". Row cũ (2 phần, parts[1] = inviter) giữ template cũ.
+      if (extraParam) {
+        return extraParam === myUserId
+          ? t('chat.systemMemberAddedByYou', { name: actorName })
+          : t('chat.systemMemberAdded', {
+              name: actorName,
+              by:
+                memberNames?.get(extraParam)?.display_name ||
+                t('chat.unknown'),
+            })
+      }
+
       return t('chat.systemMemberInvited', { name: actorName })
     case 'admin_transferred':
       return t('chat.systemAdminTransferred', { name: actorName })
@@ -1108,7 +1123,7 @@ export default function ChatWindow({
                 {(msg.message_category === 'system' || msg.sender_id === 'SYSTEM' || msg.type === 'member_invited' || msg.type === 'member_joined' || msg.type === 'member_left' || msg.type === 'admin_transferred' || msg.type === 'group_settings_updated') ? (
                   <div className={styles.systemMessage} data-message-id={msg.id}>
                     <span className={styles.systemMessageText}>
-                      {getSystemMessageText(msg, memberNames, t)}
+                      {getSystemMessageText(msg, memberNames, t, myUserId)}
                     </span>
                   </div>
                 ) : msg.type === 'group_invite' ? (

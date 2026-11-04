@@ -261,6 +261,20 @@ function MessagesContent() {
     myUserId,
     socket: groupSocket,
     onNewMessage,
+    // Invitee vừa accept chưa có trong memberNames (settings chỉ load khi mở
+    // chat) — thêm vào map ngay để tin hệ thống resolve tên được.
+    onMemberAdded: (entry) =>
+      setActiveGroupMembers((prev) => {
+        if (prev.chatId !== activeChatId || prev.members.has(entry.user_id)) {
+          return prev
+        }
+        const members = new Map(prev.members)
+        members.set(entry.user_id, {
+          display_name: entry.display_name,
+          avatar_uri: '',
+        })
+        return { ...prev, members }
+      }),
   })
 
   // Sau khi khóa E2E của hội thoại đang mở trở nên sẵn sàng, refresh danh sách
