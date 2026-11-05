@@ -5,6 +5,7 @@ import Modal from './Modal'
 import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
 import { getAdAnalytics } from '../api/partner'
+import { getAdAnalytics as getAdminAdAnalytics } from '../api/admin'
 import type { AdPerformance } from '../types'
 import styles from './AdAnalyticsModal.module.css'
 
@@ -12,9 +13,11 @@ interface AdAnalyticsModalProps {
   open: boolean
   adId: string
   onClose: () => void
+  /** Admin xem ad của partner qua endpoint admin; mặc định là partner. */
+  scope?: 'partner' | 'admin'
 }
 
-export default function AdAnalyticsModal({ open, adId, onClose }: AdAnalyticsModalProps) {
+export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner' }: AdAnalyticsModalProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [data, setData] = useState<AdPerformance | null>(null)
@@ -26,13 +29,14 @@ export default function AdAnalyticsModal({ open, adId, onClose }: AdAnalyticsMod
     setLoading(true)
     setData(null)
     /* eslint-enable react-hooks/set-state-in-effect */
-    getAdAnalytics(adId)
+    const fetchAnalytics = scope === 'admin' ? getAdminAdAnalytics : getAdAnalytics
+    fetchAnalytics(adId)
       .then(setData)
       .catch((err) => {
         toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
       })
       .finally(() => setLoading(false))
-  }, [open, adId, t, toast])
+  }, [open, adId, t, toast, scope])
 
   const formatNumber = (v: number) => {
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M'

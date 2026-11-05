@@ -445,6 +445,7 @@ export default function AdsPage() {
         <AdAnalyticsModal
           open
           adId={analyticsTarget.id}
+          scope="admin"
           onClose={() => setAnalyticsTarget(null)}
         />
       )}

@@ -1,4 +1,4 @@
-import { request, extractErrorMessage } from "./api";
+import { request } from "./api";
 import type {
   AdminAdListResponse,
   AdPerformance,
@@ -323,15 +323,11 @@ export const deleteAd = (id: string) =>
 export const getAdminProfile = () =>
   request<ViewProfileResponse>("/profile");
 
-export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance }> => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`/api/ads-management/${id}/analytics`, { headers })
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res))
-  }
-  return res.json()
+// Admin xem thống kê của bất kỳ quảng cáo nào (endpoint admin đã bỏ kiểm tra
+// ownership theo partner).
+export const getAdAnalytics = async (id: string): Promise<AdPerformance> => {
+  const res = await request<{ data: AdPerformance }>(`/admin/ads/${id}/analytics`)
+  return res.data
 }
 
 export const getAdminSettings = () =>
