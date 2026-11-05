@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useTranslation } from '../../../../../hooks/useTranslation'
 import { useToast } from '../../../../../contexts/ToastContext'
-import { getMyAds, updateAd } from '../../../../../api/partner'
+import { getMyAds, submitAdForReview, updateAd } from '../../../../../api/partner'
 import { toDateTimeLocal } from '../../../../../lib/ad-datetime'
 import type { PartnerAdListItem, PartnerAdListResponse } from '../../../../../types'
 import styles from '../../../../../components/AdForm.module.css'
@@ -74,16 +74,17 @@ export default function EditAdPage() {
     return <div className={styles.page}><p>{t('common.error')}</p></div>
   }
 
-  if (ad.status !== 'active' && ad.status !== 'paused') {
+  if (ad.status !== 'active' && ad.status !== 'paused' && ad.status !== 'pending' && ad.status !== 'rejected') {
     return (
       <div className={styles.page}>
-        <p style={{ color: 'var(--color-danger)' }}>{t('partner.ads.rejectionReason')}: {ad.rejection_reason || ad.status}</p>
+        <p style={{ color: 'var(--color-danger)' }}>
+          {t('partner.ads.suspendedReason')}: {ad.suspended_reason || ad.rejection_reason || ad.status}
+        </p>
       </div>
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const saveAd = async (resubmit: boolean) => {
     if (!title || !budget) {
       toast({ title: t('common.error'), type: 'error' })
       return
@@ -107,7 +108,12 @@ export default function EditAdPage() {
         target_age_max: Number(targetAgeMax) || 100,
         target_locations: locations.length > 0 ? locations : undefined,
       })
-      toast({ title: t('partner.form.updateSuccess'), type: 'success' })
+      if (resubmit) {
+        await submitAdForReview(adId)
+        toast({ title: t('partner.ads.submitSuccess'), type: 'success' })
+      } else {
+        toast({ title: t('partner.form.updateSuccess'), type: 'success' })
+      }
       router.push('/partner/ads')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
@@ -116,11 +122,28 @@ export default function EditAdPage() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await saveAd(false)
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{t('partner.ads.edit')}: {ad.title}</h1>
       </div>
+
+      {ad.status === 'pending' && (
+        <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-warning)' }}>
+          {t('partner.ads.pendingHint')}
+        </p>
+      )}
+      {ad.status === 'rejected' && (
+        <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-danger)' }}>
+          {t('partner.ads.rejectionReason')}: {ad.rejection_reason || '—'}.{' '}
+          {t('partner.ads.rejectedHint')}
+        </p>
+      )}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.section}>
@@ -216,6 +239,16 @@ export default function EditAdPage() {
           <button type="submit" className={styles.btnSubmit} disabled={submitting}>
             {submitting ? t('common.loading') : t('partner.form.save')}
           </button>
+          {ad.status === 'rejected' && (
+            <button
+              type="button"
+              className={styles.btnSubmit}
+              disabled={submitting}
+              onClick={() => { void saveAd(true) }}
+            >
+              {t('partner.ads.saveAndSubmit')}
+            </button>
+          )}
         </div>
       </form>
     </div>

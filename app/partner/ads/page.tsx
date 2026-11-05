@@ -6,7 +6,7 @@ import Link from 'next/link'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { deleteAd, updateAdStatus } from '../../../api/partner'
+import { deleteAd, submitAdForReview, updateAdStatus } from '../../../api/partner'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import Pagination from '../../../components/Pagination'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
@@ -112,6 +112,7 @@ export default function PartnerAdsPage() {
       completed: styles.badgeCompleted,
       pending: styles.badgePending,
       rejected: styles.badgeRejected,
+      suspended: styles.badgeSuspended,
     }
     return map[s] ?? ''
   }
@@ -123,12 +124,30 @@ export default function PartnerAdsPage() {
       completed: t('partner.ads.completed'),
       pending: t('partner.ads.pending'),
       rejected: t('partner.ads.rejected'),
+      suspended: t('partner.ads.suspended'),
     }
     return map[s] ?? s
   }
 
-  const canEdit = (s: string) => s === 'active' || s === 'paused'
+  // Sửa được cả khi chờ duyệt / bị từ chối (để gửi duyệt lại), nhưng không sửa
+  // quảng cáo đã kết thúc hoặc bị admin hạ.
+  const canEdit = (s: string) =>
+    s === 'active' || s === 'paused' || s === 'pending' || s === 'rejected'
   const canTogglePause = (s: string) => s === 'active' || s === 'paused'
+
+  const handleSubmitForReview = async (ad: PartnerAdListItem) => {
+    closeMenu()
+    setActionLoading(true)
+    try {
+      await submitAdForReview(ad.id)
+      toast({ title: t('partner.ads.submitSuccess'), type: 'success' })
+      invalidate('/ads-management')
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const skeletonRows = () => (
     <>
@@ -167,6 +186,7 @@ export default function PartnerAdsPage() {
             <option value="paused">{t('partner.ads.paused')}</option>
             <option value="pending">{t('partner.ads.pending')}</option>
             <option value="rejected">{t('partner.ads.rejected')}</option>
+            <option value="suspended">{t('partner.ads.suspended')}</option>
             <option value="completed">{t('partner.ads.completed')}</option>
           </select>
           <Link href="/partner/ads/new" className={styles.btnPrimary}>
@@ -199,8 +219,11 @@ export default function PartnerAdsPage() {
           <div key={ad.id} className={styles.tableRow}>
             <span className={styles.colTitle}>
               <span className={styles.adTitle}>{ad.title}</span>
-              {ad.rejection_reason && (
-                <span className={styles.rejectionHint} title={ad.rejection_reason}>
+              {(ad.rejection_reason || ad.suspended_reason) && (
+                <span
+                  className={styles.rejectionHint}
+                  title={ad.rejection_reason || ad.suspended_reason || ''}
+                >
                   <i className="bx bx-error-circle" />
                 </span>
               )}
@@ -254,6 +277,11 @@ export default function PartnerAdsPage() {
                     <button className={styles.menuItem} onClick={() => handleTogglePause(ad)}>
                       <i className={`bx bx-${ad.status === 'active' ? 'pause' : 'play'}`} />
                       {ad.status === 'active' ? t('partner.ads.paused') : t('partner.ads.active')}
+                    </button>
+                  )}
+                  {ad.status === 'rejected' && (
+                    <button className={styles.menuItem} onClick={() => handleSubmitForReview(ad)}>
+                      <i className="bx bx-upload" /> {t('partner.ads.submitForReview')}
                     </button>
                   )}
                   <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { closeMenu(); setDeleteTarget(ad) }}>

@@ -58,6 +58,12 @@ export const updateAd = (id: string, input: UpdateAdInput) =>
 export const deleteAd = (id: string) =>
   request(`/ads-management/${id}`, { method: 'DELETE' })
 
+/** Gửi lại quảng cáo bị từ chối vào hàng đợi duyệt. */
+export const submitAdForReview = (id: string) =>
+  request<{ message: string; data: PartnerAdListItem }>(`/ads-management/${id}/submit`, {
+    method: 'POST',
+  })
+
 export const updateAdStatus = (id: string, status: string) =>
   request(`/ads-management/${id}/status`, {
     method: 'PATCH',

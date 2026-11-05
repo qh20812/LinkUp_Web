@@ -758,7 +758,16 @@
     "interactions": "Tương tác",
     "noData": "Chưa có quảng cáo nào",
     "deleteSuccess": "Xoá quảng cáo thành công",
-    "statusUpdated": "Cập nhật trạng thái thành công"
+    "statusUpdated": "Cập nhật trạng thái thành công",
+    "suspended": "Tạm ngưng",
+    "approve": "Duyệt",
+    "selectAll": "Chọn tất cả",
+    "bulkApprove": "Duyệt {count} quảng cáo",
+    "bulkApproveSuccess": "Đã duyệt {count} quảng cáo",
+    "rejectionReason": "Lý do từ chối",
+    "rejectionReasonPlaceholder": "Nhập lý do từ chối...",
+    "suspendedReason": "Lý do tạm ngưng",
+    "suspendedReasonPlaceholder": "Nhập lý do tạm ngưng..."
   },
   "notifications": {
     "title": "Trung tâm thông báo",
@@ -2269,7 +2278,14 @@
       "noAds": "Chưa có quảng cáo nào",
       "searchPlaceholder": "Tìm kiếm quảng cáo...",
       "filterStatus": "Lọc theo trạng thái",
-      "allStatus": "Tất cả"
+      "allStatus": "Tất cả",
+      "suspended": "Tạm ngưng",
+      "suspendedReason": "Lý do tạm ngưng",
+      "submitForReview": "Gửi duyệt lại",
+      "submitSuccess": "Đã gửi quảng cáo để duyệt lại",
+      "pendingHint": "Quảng cáo đang chờ admin duyệt. Bạn có thể sửa nội dung trước khi được duyệt.",
+      "rejectedHint": "Sửa nội dung rồi bấm \"Lưu & gửi duyệt lại\".",
+      "saveAndSubmit": "Lưu & gửi duyệt lại"
     },
     "analytics": {
       "title": "Phân tích chi tiết",

@@ -300,10 +300,19 @@ export const getAds = (page = 1, pageSize = 20, keyword?: string, status?: strin
   return request<AdminAdListResponse>(`/admin/ads?${params}`);
 };
 
-export const updateAdStatus = (id: string, status: string, rejectionReason?: string) =>
+export const updateAdStatus = (
+  id: string,
+  status: string,
+  rejectionReason?: string,
+  suspendedReason?: string,
+) =>
   request<{ message: string }>(`/admin/ads/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, rejection_reason: rejectionReason || undefined }),
+    body: JSON.stringify({
+      status,
+      rejection_reason: status === "rejected" ? rejectionReason || undefined : undefined,
+      suspended_reason: status === "suspended" ? suspendedReason || undefined : undefined,
+    }),
   });
 
 export const deleteAd = (id: string) =>

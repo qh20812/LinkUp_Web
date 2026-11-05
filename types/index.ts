@@ -888,7 +888,7 @@ export interface AdminAdListItem {
   media_id?: string
   media_uri: string
   target_url: string
-  status: 'active' | 'paused' | 'completed' | 'pending' | 'rejected'
+  status: 'active' | 'paused' | 'completed' | 'pending' | 'rejected' | 'suspended'
   budget: number
   impressions: number
   clicks: number
@@ -897,6 +897,7 @@ export interface AdminAdListItem {
   expires_at: string
   created_at: string
   rejection_reason?: string
+  suspended_reason?: string
 }
 
 export interface AdminAdListResponse {
@@ -953,6 +954,7 @@ export interface PartnerAdListItem {
   expires_at?: string
   created_at: string
   rejection_reason?: string
+  suspended_reason?: string | null
 }
 
 export interface PartnerAdListResponse {

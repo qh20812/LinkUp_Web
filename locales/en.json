@@ -758,7 +758,16 @@
     "interactions": "Interactions",
     "noData": "No ads yet",
     "deleteSuccess": "Ad deleted successfully",
-    "statusUpdated": "Status updated successfully"
+    "statusUpdated": "Status updated successfully",
+    "suspended": "Suspended",
+    "approve": "Approve",
+    "selectAll": "Select all",
+    "bulkApprove": "Approve {count} ads",
+    "bulkApproveSuccess": "Approved {count} ads",
+    "rejectionReason": "Rejection reason",
+    "rejectionReasonPlaceholder": "Enter rejection reason...",
+    "suspendedReason": "Suspension reason",
+    "suspendedReasonPlaceholder": "Enter suspension reason..."
   },
   "notifications": {
     "title": "Notification Center",
@@ -2279,7 +2288,14 @@
       "noAds": "No ads yet",
       "searchPlaceholder": "Search ads...",
       "filterStatus": "Filter by status",
-      "allStatus": "All"
+      "allStatus": "All",
+      "suspended": "Suspended",
+      "suspendedReason": "Suspension reason",
+      "submitForReview": "Submit for review",
+      "submitSuccess": "Ad submitted for review again",
+      "pendingHint": "This ad is waiting for admin approval. You can still edit its content.",
+      "rejectedHint": "Edit the content and press \"Save & submit for review\".",
+      "saveAndSubmit": "Save & submit for review"
     },
     "analytics": {
       "title": "Detailed Analytics",
