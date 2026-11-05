@@ -610,6 +610,10 @@ export function GroupCallProvider({
       }
       refreshIdentities()
       syncParticipants()
+      // `joined` trong payload không chứa người đã vào trước mình — xin full
+      // danh sách để modal call hiện đủ participant (server trả
+      // group:call:participants → handleParticipants).
+      socket.send('group:call:list-participants', { call_id: payload.call_id })
       // Người vào sau phải chủ động offer tới những ai có id lớn hơn mình.
       offerToJoinedPeers()
       return

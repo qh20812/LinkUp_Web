@@ -10,6 +10,8 @@ interface UseGroupChatRoomOptions {
   myUserId: string
   socket: GroupChatSocket
   onNewMessage?: (message: ChatMessage) => void
+  /** Nhận member vừa accept邀请 (user_id + display_name) để page cập nhật map tên. */
+  onMemberAdded?: (entry: { user_id: string; display_name: string }) => void
 }
 
 export interface SendMessageOptions {
@@ -79,6 +81,7 @@ export function useGroupChatRoom({
   myUserId,
   socket,
   onNewMessage,
+  onMemberAdded,
 }: UseGroupChatRoomOptions): GroupChatRoom {
   const { toast } = useToast()
 
@@ -104,6 +107,7 @@ export function useGroupChatRoom({
   const activeChatIdRef = useRef<string | null>(null)
   const myUserIdRef = useRef(myUserId)
   const onNewMessageRef = useRef(onNewMessage)
+  const onMemberAddedRef = useRef(onMemberAdded)
   const pendingIdsRef = useRef<string[]>([])
   const pendingSeqRef = useRef(0)
   const messagesRef = useRef<ChatMessage[]>([])
@@ -123,6 +127,10 @@ export function useGroupChatRoom({
   useEffect(() => {
     onNewMessageRef.current = onNewMessage
   }, [onNewMessage])
+
+  useEffect(() => {
+    onMemberAddedRef.current = onMemberAdded
+  }, [onMemberAdded])
 
   const handleHistory = useCallback((payload: unknown) => {
     const data = payload as {
@@ -316,17 +324,32 @@ export function useGroupChatRoom({
       member_name?: string
     }
     if (!data || data.chat_id !== activeChatIdRef.current) return
+    const name = data.user_name || data.member_name
+    // Invitee vừa accept chưa có trong memberNames map (settings chỉ load khi
+    // mở chat) — báo page cập nhật ngay để render tên trong tin hệ thống.
+    if (name && data.user_id) {
+      onMemberAddedRef.current?.({ user_id: data.user_id, display_name: name })
+    }
+    // Optimistic "đã được thêm" — server chỉ broadcast group:member:added lúc
+    // accept (lúc mời là group:member:invited, không subscribe). Content 3 phần
+    // key|invitee|inviter khớp server row. Chống trùng với row đã vào history.
+    const by = data.by || ''
+    const content = `member_invited|${data.user_id || ''}|${by}`
     const sysMsg: ChatMessage = {
-      id: `sys-joined-${data.user_id}-${Date.now()}`,
+      id: `sys-invited-${data.user_id}-${Date.now()}`,
       chat_id: data.chat_id!,
       sender_id: data.user_id || '',
-      content: `member_joined|${data.user_id || ''}`,
-      type: 'member_joined',
+      content,
+      type: 'member_invited',
       message_category: 'system',
       is_anonymized: false,
       created_at: new Date().toISOString(),
     }
-    setMessages((prev) => sortByCreatedAt(dedupeByID([...prev, sysMsg])))
+    setMessages((prev) =>
+      prev.some((m) => m.content === content)
+        ? prev
+        : sortByCreatedAt(dedupeByID([...prev, sysMsg])),
+    )
   }, [])
 
   const handleAdminTransferred = useCallback((payload: unknown) => {
