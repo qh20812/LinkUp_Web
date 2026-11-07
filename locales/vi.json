@@ -730,6 +730,9 @@
     "createSuccess": "Đã tạo quảng cáo",
     "sponsored": "Tài trợ",
     "learnMore": "Xem thêm",
+    "prevSlide": "Ảnh trước",
+    "nextSlide": "Ảnh sau",
+    "slideN": "Ảnh {n}",
     "searchPlaceholder": "Tìm kiếm quảng cáo...",
     "allStatuses": "Tất cả trạng thái",
     "active": "Đang chạy",
@@ -2304,6 +2307,11 @@
       "cpm": "Chi phí/1000 hiển thị (CPM)",
       "videoStarts": "Bắt đầu xem video",
       "videoCompletions": "Hoàn thành video",
+      "range": "Khoảng thời gian",
+      "lastNDays": "{n} ngày",
+      "rangeCost": "Chi phí trong kỳ",
+      "limited30": "Gói hiện tại chỉ xem được 30 ngày gần nhất.",
+      "upgrade": "Nâng gói",
       "close": "Đóng"
     },
     "packages": {

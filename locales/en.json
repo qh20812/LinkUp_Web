@@ -730,6 +730,9 @@
     "createSuccess": "Ad created",
     "sponsored": "Sponsored",
     "learnMore": "Learn more",
+    "prevSlide": "Previous image",
+    "nextSlide": "Next image",
+    "slideN": "Image {n}",
     "searchPlaceholder": "Search ads...",
     "allStatuses": "All statuses",
     "active": "Active",
@@ -2314,6 +2317,11 @@
       "cpm": "Cost per 1000 Impressions (CPM)",
       "videoStarts": "Video Starts",
       "videoCompletions": "Video Completions",
+      "range": "Date range",
+      "lastNDays": "Last {n} days",
+      "rangeCost": "Cost in range",
+      "limited30": "Your plan can only view the last 30 days.",
+      "upgrade": "Upgrade plan",
       "close": "Close"
     },
     "packages": {
