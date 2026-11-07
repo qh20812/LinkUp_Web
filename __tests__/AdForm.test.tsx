@@ -39,7 +39,7 @@ function renderForm() {
  */
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(await screen.findByLabelText(/Tiêu đề/i), 'Khuyến mãi tháng 11')
-  await user.type(await screen.findByLabelText(/Nội dung/i), 'Giảm 50% cho thành viên mới')
+  await user.type(await screen.findByRole('textbox', { name: /Nội dung/i }), 'Giảm 50% cho thành viên mới')
   await user.type(await screen.findByLabelText(/URL đích/i), 'https://linkup.vn/sale')
   await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
 }
@@ -56,7 +56,7 @@ describe('AdForm', () => {
 
     expect(screen.getByRole('heading', { name: 'Tạo quảng cáo' })).toBeInTheDocument()
     expect(await screen.findByLabelText(/Tiêu đề/i)).toBeInTheDocument()
-    expect(await screen.findByLabelText(/Nội dung/i)).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: /Nội dung/i })).toBeInTheDocument()
     expect(await screen.findByLabelText(/URL đích/i)).toBeInTheDocument()
     expect(await screen.findByLabelText(/Tổng ngân sách/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tạo quảng cáo' })).toBeInTheDocument()
@@ -88,8 +88,8 @@ describe('AdForm', () => {
       budget: 100000,
       format: 'image',
       target_gender: 'all',
-      target_age_min: 18,
-      target_age_max: 65,
+      target_age_min: 0,
+      target_age_max: 100,
     })
     expect(typeof payload.budget).toBe('number')
     expect(payload).not.toHaveProperty('media')
@@ -107,6 +107,35 @@ describe('AdForm', () => {
     await waitFor(() => expect(createAdMock).toHaveBeenCalledTimes(1))
     const [payload] = createAdMock.mock.calls[0]
     expect(payload.target_locations).toEqual(['01'])
+  })
+
+  it('hiển thị khối chuẩn bị, section và hint cho người mới', async () => {
+    renderForm()
+
+    expect(await screen.findByText('Cần chuẩn bị gì?')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nhắm mục tiêu' })).toBeInTheDocument()
+    expect(await screen.findByText(/Tổng tiền tối đa cho cả chiến dịch/i)).toBeInTheDocument()
+  })
+
+  it('điền sẵn defaults an toàn và giữ trường kỹ thuật trong Tùy chọn nâng cao', async () => {
+    renderForm()
+
+    const summary = await screen.findByText('Tùy chọn nâng cao (có thể bỏ qua)')
+    const advanced = summary.closest('details') as HTMLDetailsElement | null
+    expect(advanced).not.toBeNull()
+    expect(advanced?.open).toBe(false)
+
+    const cpm = screen.getByLabelText('Giá mỗi 1.000 lượt hiển thị (CPM)') as HTMLInputElement
+    const cpc = screen.getByLabelText('Giá mỗi click (CPC)') as HTMLInputElement
+    expect(cpm.value).toBe('25000')
+    expect(cpc.value).toBe('1000')
+    expect(cpm.closest('details')).toBe(advanced)
+
+    const budget = screen.getByLabelText(/Tổng ngân sách/i) as HTMLInputElement
+    expect(budget.value).toBe('')
+    expect((screen.getByLabelText('Từ') as HTMLInputElement).value).toBe('0')
+    expect((screen.getByLabelText('Đến') as HTMLInputElement).value).toBe('100')
   })
 
   it('hiện toast thành công sau khi tạo', async () => {

@@ -205,3 +205,98 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ─── Onboarding mức A: chuẩn bị, section, hint, đơn vị ─── */
+.prepCard {
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.prepTitle {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.prepList {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.prepList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.formSection {
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.formSection:last-of-type {
+  border-bottom: none;
+  margin-bottom: var(--space-md);
+  padding-bottom: 0;
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-md);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.inputWithUnit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputWithUnit .input {
+  padding-right: 52px;
+}
+
+.unit {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.advanced {
+  margin-top: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+}
+
+.advancedSummary {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.advancedBody {
+  padding: 0 var(--space-md) var(--space-md);
+}
