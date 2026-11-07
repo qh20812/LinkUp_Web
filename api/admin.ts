@@ -1,4 +1,5 @@
 import { request } from "./api";
+import { normalizeAdPerformance, type AdPerformanceWire } from "../lib/ad-performance";
 import type {
   AdminAdListResponse,
   AdPerformance,
@@ -334,8 +335,8 @@ export const getAdAnalytics = async (
   const query = range
     ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
     : ''
-  const res = await request<{ data: AdPerformance }>(`/admin/ads/${id}/analytics${query}`)
-  return res.data
+  const res = await request<{ data: AdPerformanceWire }>(`/admin/ads/${id}/analytics${query}`)
+  return normalizeAdPerformance(res.data)
 }
 
 // ── Packages (admin) ──

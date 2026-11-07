@@ -1,8 +1,8 @@
 import { request } from './api'
+import { normalizeAdPerformance, type AdPerformanceWire } from '../lib/ad-performance'
 import type {
   PartnerAdListResponse,
   PartnerAdListItem,
-  AdPerformance,
   AdOverview,
   CreateAdInput,
   UpdateAdInput,
@@ -70,18 +70,23 @@ export const updateAdStatus = (id: string, status: string) =>
     body: JSON.stringify({ status }),
   })
 
-export const getAdAnalytics = (
+export const getAdAnalytics = async (
   id: string,
   range?: { from: string; to: string },
 ) => {
   const query = range
     ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
     : ''
-  return request<AdPerformance>(`/ads-management/${id}/analytics${query}`)
+  // Controller bọc response trong { data: report } — trước đây web trả nguyên
+  // wrapper nên mọi field (impressions, ctr…) đều undefined.
+  const res = await request<{ data: AdPerformanceWire }>(`/ads-management/${id}/analytics${query}`)
+  return normalizeAdPerformance(res.data)
 }
 
-export const getOverview = () =>
-  request<AdOverview>('/ads-management/overview')
+export const getOverview = async () => {
+  const res = await request<{ data: AdOverview }>('/ads-management/overview')
+  return res.data
+}
 
 export interface FeedAdMedia {
   url: string

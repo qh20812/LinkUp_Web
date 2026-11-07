@@ -8,7 +8,7 @@ import {
 
 mockLocalStorage()
 
-import { createAd, getFeedAds, updateAd } from '@/api/partner'
+import { createAd, getAdAnalytics, getFeedAds, getOverview, updateAd } from '@/api/partner'
 
 afterEach(() => {
   restoreFetch()
@@ -103,5 +103,71 @@ describe('getFeedAds', () => {
 
     expect(getLastFetchPath()).toBe('/api/customer/feed')
     expect(result).toEqual(body)
+  })
+})
+
+describe('getAdAnalytics', () => {
+  const performance = {
+    ad_id: 'ad-1',
+    title: 'Khuyến mãi',
+    status: 'active',
+    format: 'image',
+    budget: 1000,
+    daily_budget: 0,
+    total_spent: 10,
+    remaining_budget: 990,
+    impressions: 1200,
+    unique_reach: 900,
+    clicks: 12,
+    interactions: 3,
+    click_through_rate: 2.5,
+    cost_per_click: 100,
+    cost_per_thousand_impressions: 200,
+    cost: 5,
+  }
+
+  it('bóc wrapper { data } và map click_through_rate → ctr', async () => {
+    mockFetch({ body: { data: performance } })
+
+    const result = await getAdAnalytics('ad-1', { from: '2026-11-01', to: '2026-11-30' })
+
+    expect(getLastFetchPath()).toContain('/api/ads-management/ad-1/analytics')
+    expect(result.impressions).toBe(1200)
+    expect(result.ctr).toBe(2.5)
+    expect(result).not.toHaveProperty('data')
+    expect(result).not.toHaveProperty('click_through_rate')
+  })
+
+  it('giữ ctr nếu server đã trả đúng tên', async () => {
+    mockFetch({ body: { data: { ...performance, ctr: 3.2 } } })
+
+    const result = await getAdAnalytics('ad-1')
+
+    expect(result.ctr).toBe(3.2)
+  })
+})
+
+describe('getOverview', () => {
+  it('bóc wrapper { data } của endpoint overview', async () => {
+    const overview = {
+      total_budget: 100000,
+      total_spent: 25000,
+      remaining_budget: 75000,
+      impressions: 4000,
+      clicks: 120,
+      ctr: 3,
+      active_ads: 2,
+      slots_used: 2,
+      max_slots: 5,
+      subscription_name: 'Gói Cơ bản',
+    }
+    mockFetch({ body: { data: overview } })
+
+    const result = await getOverview()
+
+    expect(getLastFetchPath()).toBe('/api/ads-management/overview')
+    expect(result.total_budget).toBe(100000)
+    expect(result.active_ads).toBe(2)
+    expect(result).not.toHaveProperty('data')
   })
 })

@@ -53,14 +53,18 @@ export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner
       .finally(() => setLoading(false))
   }, [open, adId, t, toast, scope, days])
 
-  const formatNumber = (v: number) => {
-    if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M'
-    if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K'
-    return v.toLocaleString()
+  // Defensive: nếu server trả thiếu field (ad cũ, response lỗi) thì hiện "—"
+  // thay vì ném TypeError làm trắng cả modal.
+  const formatNumber = (v?: number | null) => {
+    const n = Number(v)
+    if (!Number.isFinite(n)) return '—'
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+    return n.toLocaleString()
   }
 
   // Số liệu tiền của ads là VND; trước đây hiển thị USD nên lệch với form/bảng.
-  const formatCurrency = (v: number) => formatVnd(v)
+  const formatCurrency = (v?: number | null) => formatVnd(Number(v ?? 0))
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = { active: styles.badgeActive, paused: styles.badgePaused, completed: styles.badgeCompleted, pending: styles.badgePending, rejected: styles.badgeRejected, suspended: styles.badgeSuspended }
@@ -119,7 +123,7 @@ export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner
               <div className={styles.statLabel}>{t('partner.analytics.clicks')}</div>
             </div>
             <div className={styles.statCard}>
-              <div className={styles.statValue}>{data.ctr.toFixed(1)}%</div>
+              <div className={styles.statValue}>{Number(data.ctr ?? 0).toFixed(1)}%</div>
               <div className={styles.statLabel}>{t('partner.analytics.ctr')}</div>
             </div>
             <div className={styles.statCard}>
