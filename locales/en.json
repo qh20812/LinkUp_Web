@@ -2362,6 +2362,8 @@
       "ageMin": "From",
       "ageMax": "To",
       "targetLocations": "Locations",
+      "targetLocationsAll": "No province selected = run nationwide.",
+      "targetLocationsCount": "{n} province(s) selected.",
       "uploadMedia": "Upload Media",
       "required": "required",
       "save": "Save",

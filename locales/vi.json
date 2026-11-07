@@ -2352,6 +2352,8 @@
       "ageMin": "Từ",
       "ageMax": "Đến",
       "targetLocations": "Địa điểm",
+      "targetLocationsAll": "Không chọn tỉnh/thành nào = chạy toàn quốc.",
+      "targetLocationsCount": "Đã chọn {n} tỉnh/thành.",
       "uploadMedia": "Tải lên media",
       "required": "bắt buộc",
       "save": "Lưu",

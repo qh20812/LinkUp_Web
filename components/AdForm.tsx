@@ -6,6 +6,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { useToast } from '../contexts/ToastContext'
 import { createAd } from '../api/partner'
 import { invalidate } from '../api/swr'
+import ProvinceMultiSelect from './ads/ProvinceMultiSelect'
 import styles from './AdForm.module.css'
 
 export interface AdFormProps {
@@ -43,7 +44,7 @@ export default function AdForm({ heading, submitLabel, redirectTo, successMessag
   const [targetGender, setTargetGender] = useState('all')
   const [targetAgeMin, setTargetAgeMin] = useState('18')
   const [targetAgeMax, setTargetAgeMax] = useState('65')
-  const [targetLocations, setTargetLocations] = useState('')
+  const [targetProvinces, setTargetProvinces] = useState<string[]>([])
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -70,7 +71,6 @@ export default function AdForm({ heading, submitLabel, redirectTo, successMessag
     }
     setSubmitting(true)
     try {
-      const locations = targetLocations.split(',').map((s) => s.trim()).filter(Boolean)
       await createAd({
         title,
         content,
@@ -86,7 +86,7 @@ export default function AdForm({ heading, submitLabel, redirectTo, successMessag
         target_gender: targetGender,
         target_age_min: Number(targetAgeMin) || 0,
         target_age_max: Number(targetAgeMax) || 100,
-        target_locations: locations.length > 0 ? locations : undefined,
+        target_locations: targetProvinces.length > 0 ? targetProvinces : undefined,
       }, mediaFile ?? undefined)
       toast({ title: successMessage ?? t('partner.form.createSuccess'), type: 'success' })
       invalidate('/ads-management')
@@ -222,8 +222,8 @@ export default function AdForm({ heading, submitLabel, redirectTo, successMessag
         </div>
 
         <div className={styles.section}>
-          <label className={styles.label} htmlFor="ad-target-locations">{t('partner.form.targetLocations')}</label>
-          <input id="ad-target-locations" className={styles.input} value={targetLocations} onChange={(e) => setTargetLocations(e.target.value)} placeholder="Hà Nội, TP.HCM, Đà Nẵng" />
+          <label className={styles.label}>{t('partner.form.targetLocations')}</label>
+          <ProvinceMultiSelect value={targetProvinces} onChange={setTargetProvinces} />
         </div>
 
         <div className={styles.actions}>

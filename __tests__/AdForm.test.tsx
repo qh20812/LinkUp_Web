@@ -9,6 +9,15 @@ jest.mock('@/api/swr', () => ({
   invalidate: jest.fn(),
 }))
 
+jest.mock('@/api/locations', () => ({
+  getProvinces: jest.fn().mockResolvedValue({
+    data: [
+      { id: '01', name: { vi: 'Hà Nội', en: 'Hanoi' } },
+      { id: '79', name: { vi: 'Hồ Chí Minh', en: 'Ho Chi Minh' } },
+    ],
+  }),
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() }),
 }))
@@ -85,6 +94,19 @@ describe('AdForm', () => {
     expect(typeof payload.budget).toBe('number')
     expect(payload).not.toHaveProperty('media')
     expect(file).toBeUndefined()
+  })
+
+  it('gửi province ID khi chọn địa điểm', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await fillRequiredFields(user)
+    await user.click(await screen.findByRole('checkbox', { name: 'Hà Nội' }))
+    await user.click(screen.getByRole('button', { name: 'Tạo quảng cáo' }))
+
+    await waitFor(() => expect(createAdMock).toHaveBeenCalledTimes(1))
+    const [payload] = createAdMock.mock.calls[0]
+    expect(payload.target_locations).toEqual(['01'])
   })
 
   it('hiện toast thành công sau khi tạo', async () => {

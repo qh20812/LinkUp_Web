@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useTranslation } from '../../../../../hooks/useTranslation'
 import { useToast } from '../../../../../contexts/ToastContext'
 import { getMyAds, submitAdForReview, updateAd } from '../../../../../api/partner'
+import ProvinceMultiSelect from '../../../../../components/ads/ProvinceMultiSelect'
 import { toDateTimeLocal } from '../../../../../lib/ad-datetime'
 import type { PartnerAdListItem, PartnerAdListResponse } from '../../../../../types'
 import styles from '../../../../../components/AdForm.module.css'
@@ -32,7 +33,7 @@ export default function EditAdPage() {
   const [targetGender, setTargetGender] = useState('all')
   const [targetAgeMin, setTargetAgeMin] = useState('18')
   const [targetAgeMax, setTargetAgeMax] = useState('65')
-  const [targetLocations, setTargetLocations] = useState('')
+  const [targetProvinces, setTargetProvinces] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -55,7 +56,9 @@ export default function EditAdPage() {
           setTargetGender(found.target_gender || 'all')
           setTargetAgeMin(String(found.target_age_min ?? 0))
           setTargetAgeMax(String(found.target_age_max ?? 100))
-          setTargetLocations((found.target_locations ?? []).join(', '))
+          // Dữ liệu cũ có thể lưu tên tỉnh thay vì ID — chỉ giữ ID hợp lệ,
+          // phần tên được xử lý bằng script backfill (server chỉ nhận ID).
+          setTargetProvinces((found.target_locations ?? []).filter((loc) => /^\d+$/.test(loc)))
         }
       } catch {
         toast({ title: t('common.error'), type: 'error' })
@@ -91,7 +94,6 @@ export default function EditAdPage() {
     }
     setSubmitting(true)
     try {
-      const locations = targetLocations.split(',').map((s) => s.trim()).filter(Boolean)
       await updateAd(adId, {
         title,
         content,
@@ -106,7 +108,7 @@ export default function EditAdPage() {
         target_gender: targetGender,
         target_age_min: Number(targetAgeMin) || 0,
         target_age_max: Number(targetAgeMax) || 100,
-        target_locations: locations.length > 0 ? locations : undefined,
+        target_locations: targetProvinces,
       })
       if (resubmit) {
         await submitAdForReview(adId)
@@ -229,7 +231,7 @@ export default function EditAdPage() {
 
         <div className={styles.section}>
           <label className={styles.label}>{t('partner.form.targetLocations')}</label>
-          <input className={styles.input} value={targetLocations} onChange={(e) => setTargetLocations(e.target.value)} placeholder="Hà Nội, TP.HCM, Đà Nẵng" />
+          <ProvinceMultiSelect value={targetProvinces} onChange={setTargetProvinces} />
         </div>
 
         <div className={styles.actions}>
