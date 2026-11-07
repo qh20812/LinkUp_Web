@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import useSWR, { mutate } from 'swr'
@@ -15,6 +15,7 @@ import { toDateTimeLocal } from '../lib/ad-datetime'
 import { estimateAdReach, formatVnd } from '../lib/ads-estimate'
 import type { SubscriptionResponse } from '../types'
 import AdCard from './ads/AdCard'
+import FieldHelp from './ads/FieldHelp'
 import ProvinceMultiSelect from './ads/ProvinceMultiSelect'
 import styles from './AdForm.module.css'
 
@@ -51,6 +52,9 @@ function defaultExpiresAt(): string {
   return toDateTimeLocal(date.toISOString())
 }
 
+/** Field đầu tiên của mỗi bước wizard — dùng để đưa focus khi chuyển bước. */
+const FOCUS_FIELD_BY_STEP = ['ad-title', 'ad-budget', 'ad-age-min', 'ad-review-title']
+
 /** Lỗi gói/định dạng cần hiện tại chỗ trong form thay vì toast rồi biến mất. */
 function isPackageError(code: string): boolean {
   return (
@@ -81,6 +85,9 @@ export default function AdForm({
 
   /** Bước wizard: 0 Nội dung · 1 Ngân sách & lịch chạy · 2 Nhắm mục tiêu · 3 Xem lại. */
   const [step, setStep] = useState(0)
+  /** Id ad vừa tạo — wizard hiện màn hình "đã gửi duyệt" thay vì redirect ngay. */
+  const [submittedAdId, setSubmittedAdId] = useState<string | null>(null)
+  const stepTouched = useRef(false)
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -171,6 +178,30 @@ export default function AdForm({
 
   const dateLabel = (value: string) => value.replace('T', ' ')
 
+  // Chuyển bước bằng bàn phím/chuột đều đưa focus về field đầu của bước mới;
+  // lần render đầu tiên thì không cướp focus của trang.
+  useEffect(() => {
+    if (!wizard || !stepTouched.current) return
+    const id = FOCUS_FIELD_BY_STEP[step]
+    if (id) document.getElementById(id)?.focus()
+  }, [wizard, step])
+
+  const goToStep = (next: number) => {
+    stepTouched.current = true
+    setStep(next)
+  }
+
+  /**
+   * Wizard: chặn Enter submit sớm ở các bước 1–3. Textarea vẫn nhận Enter để
+   * xuống dòng, còn nút bấm thì để mặc định.
+   */
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (!wizard || step === stepNames.length - 1 || e.key !== 'Enter') return
+    const target = e.target as HTMLElement
+    if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return
+    e.preventDefault()
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -194,7 +225,7 @@ export default function AdForm({
     }
     setSubmitting(true)
     try {
-      await createAd({
+      const created = await createAd({
         title,
         content,
         format,
@@ -214,7 +245,12 @@ export default function AdForm({
       toast({ title: successMessage ?? t('partner.form.createSuccess'), type: 'success' })
       invalidate('/ads-management')
       invalidate('/admin/ads')
-      router.push(redirectTo)
+      if (wizard) {
+        // Partner: giữ người dùng ở lại để đọc "chưa chạy, chưa trừ tiền".
+        setSubmittedAdId(created?.data?.id ?? '')
+      } else {
+        router.push(redirectTo)
+      }
     } catch (err) {
       const code = err instanceof ApiError ? err.code : ''
       if (isPackageError(code)) {
@@ -261,6 +297,34 @@ export default function AdForm({
         <h1 className={styles.title}>{heading}</h1>
       </div>
 
+      {submittedAdId !== null ? (
+        <section className={styles.successCard} aria-labelledby="ad-success-title">
+          <i className="bx bx-check-circle" aria-hidden="true" />
+          <div>
+            <h2 id="ad-success-title" className={styles.successTitle}>
+              {t('partner.form.submittedTitle')}
+            </h2>
+            <p className={styles.successText}>{t('partner.form.submittedNote')}</p>
+            <p className={styles.successHint}>
+              <i className="bx bx-time-five" aria-hidden="true" /> {t('partner.form.submittedApproval')}
+            </p>
+            <div className={styles.successActions}>
+              {submittedAdId && (
+                <Link href={`/partner/ads/${submittedAdId}/edit`} className={styles.btnSubmit}>
+                  {t('partner.form.submittedEdit')}
+                </Link>
+              )}
+              <Link href="/partner/ads" className={styles.btnCancel}>
+                {t('partner.form.submittedList')}
+              </Link>
+              <Link href="/partner/help/ads" className={styles.helpLink}>
+                {t('partner.form.helpLink')}
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
       {gate}
 
       {subscriptionLoadFailed && !gate && (
@@ -282,7 +346,7 @@ export default function AdForm({
 
       {!formDisabled && (
         <div className={styles.body}>
-          <form className={styles.form} onSubmit={handleSubmit}>
+          <form className={styles.form} onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
             {wizard && (
               <div className={styles.steps}>
                 <p className={styles.stepProgress} role="status">
@@ -327,10 +391,10 @@ export default function AdForm({
               </Link>
             </section>
 
-            <section className={styles.formSection} aria-labelledby="ad-section-content">
-              <h2 id="ad-section-content" className={styles.sectionTitle}>
+            <fieldset className={styles.formSection}>
+              <legend id="ad-section-content" className={styles.sectionTitle}>
                 {t('partner.form.sectionContent')}
-              </h2>
+              </legend>
 
               <div className={styles.section}>
                 <label className={styles.label}>{t('partner.form.uploadMedia')}</label>
@@ -402,16 +466,16 @@ export default function AdForm({
                 />
                 <p id="ad-hint-target-url" className={styles.hint}>{t('partner.form.targetUrlHint')}</p>
               </div>
-            </section>
+            </fieldset>
               </>
             )}
 
             {showBudget && (
               <>
-            <section className={styles.formSection} aria-labelledby="ad-section-budget">
-              <h2 id="ad-section-budget" className={styles.sectionTitle}>
+            <fieldset className={styles.formSection}>
+              <legend id="ad-section-budget" className={styles.sectionTitle}>
                 {t('partner.form.sectionBudget')}
-              </h2>
+              </legend>
 
               <div className={styles.section}>
                 <label className={styles.label} htmlFor="ad-budget">{t('partner.form.budget')} <span className={styles.required}>*</span></label>
@@ -446,7 +510,13 @@ export default function AdForm({
                 <div className={styles.advancedBody}>
                   <div className={styles.row}>
                     <div className={styles.section}>
-                      <label className={styles.label} htmlFor="ad-daily-budget">{t('partner.form.dailyBudget')}</label>
+                      <div className={styles.labelRow}>
+                        <label className={styles.label} htmlFor="ad-daily-budget">{t('partner.form.dailyBudget')}</label>
+                        <FieldHelp
+                          label={t('partner.form.helpAbout', { name: t('partner.form.dailyBudget') })}
+                          text={t('partner.form.dailyBudgetHelp')}
+                        />
+                      </div>
                       <div className={styles.inputWithUnit}>
                         <input
                           id="ad-daily-budget"
@@ -462,7 +532,13 @@ export default function AdForm({
                       <p id="ad-hint-daily-budget" className={styles.hint}>{t('partner.form.dailyBudgetHint')}</p>
                     </div>
                     <div className={styles.section}>
-                      <label className={styles.label} htmlFor="ad-max-impressions">{t('partner.form.maxImpressions')}</label>
+                      <div className={styles.labelRow}>
+                        <label className={styles.label} htmlFor="ad-max-impressions">{t('partner.form.maxImpressions')}</label>
+                        <FieldHelp
+                          label={t('partner.form.helpAbout', { name: t('partner.form.maxImpressions') })}
+                          text={t('partner.form.maxImpressionsHelp')}
+                        />
+                      </div>
                       <input
                         id="ad-max-impressions"
                         className={styles.input}
@@ -478,7 +554,13 @@ export default function AdForm({
 
                   <div className={styles.row}>
                     <div className={styles.section}>
-                      <label className={styles.label} htmlFor="ad-cpm-price">{t('partner.form.cpmPrice')}</label>
+                      <div className={styles.labelRow}>
+                        <label className={styles.label} htmlFor="ad-cpm-price">{t('partner.form.cpmPrice')}</label>
+                        <FieldHelp
+                          label={t('partner.form.helpAbout', { name: t('partner.form.cpmPrice') })}
+                          text={t('partner.form.cpmHelp')}
+                        />
+                      </div>
                       <div className={styles.inputWithUnit}>
                         <input
                           id="ad-cpm-price"
@@ -494,7 +576,13 @@ export default function AdForm({
                       <p id="ad-hint-cpm-price" className={styles.hint}>{t('partner.form.cpmHint')}</p>
                     </div>
                     <div className={styles.section}>
-                      <label className={styles.label} htmlFor="ad-cpc-price">{t('partner.form.cpcPrice')}</label>
+                      <div className={styles.labelRow}>
+                        <label className={styles.label} htmlFor="ad-cpc-price">{t('partner.form.cpcPrice')}</label>
+                        <FieldHelp
+                          label={t('partner.form.helpAbout', { name: t('partner.form.cpcPrice') })}
+                          text={t('partner.form.cpcHelp')}
+                        />
+                      </div>
                       <div className={styles.inputWithUnit}>
                         <input
                           id="ad-cpc-price"
@@ -514,12 +602,12 @@ export default function AdForm({
                   <p className={styles.hint}>{t('partner.form.freeHint')}</p>
                 </div>
               </details>
-            </section>
+            </fieldset>
 
-            <section className={styles.formSection} aria-labelledby="ad-section-schedule">
-              <h2 id="ad-section-schedule" className={styles.sectionTitle}>
+            <fieldset className={styles.formSection}>
+              <legend id="ad-section-schedule" className={styles.sectionTitle}>
                 {t('partner.form.sectionSchedule')}
-              </h2>
+              </legend>
               <div className={styles.row}>
                 <div className={styles.section}>
                   <label className={styles.label} htmlFor="ad-started-at">{t('partner.form.startDate')}</label>
@@ -546,15 +634,15 @@ export default function AdForm({
                   <p id="ad-hint-expires-at" className={styles.hint}>{t('partner.form.expiresAtHint')}</p>
                 </div>
               </div>
-            </section>
+            </fieldset>
               </>
             )}
 
             {showTargeting && (
-            <section className={styles.formSection} aria-labelledby="ad-section-targeting">
-              <h2 id="ad-section-targeting" className={styles.sectionTitle}>
+            <fieldset className={styles.formSection}>
+              <legend id="ad-section-targeting" className={styles.sectionTitle}>
                 {t('partner.form.sectionTargeting')}
-              </h2>
+              </legend>
 
               <div className={styles.section}>
                 <label className={styles.label}>{t('partner.form.targetGender')}</label>
@@ -608,12 +696,12 @@ export default function AdForm({
                 <label className={styles.label}>{t('partner.form.targetLocations')}</label>
                 <ProvinceMultiSelect value={targetProvinces} onChange={setTargetProvinces} />
               </div>
-            </section>
+            </fieldset>
             )}
 
             {showReview && (
-              <section className={styles.formSection} aria-labelledby="ad-section-review">
-                <h2 id="ad-section-review" className={styles.sectionTitle}>
+              <section className={styles.formSection} aria-labelledby="ad-review-title">
+                <h2 id="ad-review-title" className={styles.sectionTitle} tabIndex={-1}>
                   {t('partner.form.reviewTitle')}
                 </h2>
                 <p className={styles.hint}>{t('partner.form.reviewNote')}</p>
@@ -721,12 +809,12 @@ export default function AdForm({
                       {t('partner.form.cancel')}
                     </button>
                   ) : (
-                    <button type="button" className={styles.btnCancel} onClick={() => setStep(step - 1)}>
+                    <button type="button" className={styles.btnCancel} onClick={() => goToStep(step - 1)}>
                       <i className="bx bx-left-arrow-alt" aria-hidden="true" /> {t('partner.form.back')}
                     </button>
                   )}
                   {step < stepNames.length - 1 ? (
-                    <button type="button" className={styles.btnSubmit} onClick={() => setStep(step + 1)}>
+                    <button type="button" className={styles.btnSubmit} onClick={() => goToStep(step + 1)}>
                       {t('partner.form.next')} <i className="bx bx-right-arrow-alt" aria-hidden="true" />
                     </button>
                   ) : (
@@ -756,6 +844,8 @@ export default function AdForm({
             <p className={styles.previewNote}>{t('partner.form.previewNote')}</p>
           </aside>
         </div>
+      )}
+        </>
       )}
     </div>
   )

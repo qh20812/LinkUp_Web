@@ -145,8 +145,8 @@ describe('AdForm', () => {
     renderForm()
 
     expect(await screen.findByText('Cần chuẩn bị gì?')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Nhắm mục tiêu' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Nhắm mục tiêu' })).toBeInTheDocument()
     expect(await screen.findByText(/Tổng tiền tối đa cho cả chiến dịch/i)).toBeInTheDocument()
   })
 
@@ -168,6 +168,14 @@ describe('AdForm', () => {
     expect(budget.value).toBe('')
     expect((screen.getByLabelText('Từ') as HTMLInputElement).value).toBe('0')
     expect((screen.getByLabelText('Đến') as HTMLInputElement).value).toBe('100')
+  })
+
+  it('có nút trợ giúp cho 4 khái niệm nâng cao', async () => {
+    renderForm()
+    await screen.findByText('Tùy chọn nâng cao (có thể bỏ qua)')
+
+    const helpButtons = document.querySelectorAll('button[aria-label^="Giải thích"]')
+    expect(helpButtons).toHaveLength(4)
   })
 
   it('hiện preview cập nhật theo nội dung và không gửi tracking', async () => {

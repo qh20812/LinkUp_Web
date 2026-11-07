@@ -129,5 +129,45 @@ describe('AdForm wizard', () => {
       target_age_min: 0,
       target_age_max: 100,
     })
+
+    // B4: ở lại màn hình xác nhận thay vì redirect ngay.
+    expect(await screen.findByRole('heading', { name: 'Đã gửi duyệt!' })).toBeInTheDocument()
+    expect(screen.getByText(/chưa chạy và chưa trừ tiền cho tới khi được duyệt/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sửa quảng cáo' })).toHaveAttribute(
+      'href',
+      '/partner/ads/ad-1/edit',
+    )
+    expect(screen.getByRole('link', { name: 'Xem danh sách quảng cáo' })).toHaveAttribute(
+      'href',
+      '/partner/ads',
+    )
+  })
+
+  it('đưa focus về field đầu của bước mới và chặn Enter submit sớm', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    const title = await screen.findByLabelText(/^Tiêu đề/)
+    await user.type(title, 'A{Enter}')
+    // Enter ở bước 1 không được submit form.
+    expect(createAdMock).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 2/4')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByLabelText(/Tổng ngân sách/i))
+
+    await user.keyboard('{Enter}')
+    expect(createAdMock).not.toHaveBeenCalled()
+  })
+
+  it('gom mỗi section vào fieldset có legend', async () => {
+    renderWizard()
+
+    expect(await screen.findByRole('group', { name: 'Nội dung quảng cáo' })).toBeInTheDocument()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    expect(await screen.findByRole('group', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Lịch chạy' })).toBeInTheDocument()
   })
 })
