@@ -25,6 +25,8 @@ const menuItems = [
   { key: 'groups', icon: 'bx bx-chat', href: '/admin/groups' },
   { key: 'communities', icon: 'bx bx-world', href: '/admin/communities' },
   { key: 'ads', icon: 'bx bx-dollar', href: '/admin/ads' },
+  { key: 'packages', icon: 'bx bx-package', href: '/admin/packages' },
+  { key: 'payments', icon: 'bx bx-credit-card', href: '/admin/payments' },
 ]
 
 export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProps) {

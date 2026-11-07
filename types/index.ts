@@ -947,6 +947,27 @@ export interface AdDailyMetric {
   cost: number
 }
 
+export interface PaymentTransaction {
+  id: string
+  txn_ref: string
+  user_id: string
+  package_id: string
+  amount: number
+  status: 'pending' | 'success' | 'failed' | 'cancelled'
+  gateway: string
+  response_code?: string
+  created_at: string
+  paid_at?: string
+  package?: { id: string; name: string; max_slots?: number; max_duration_days?: number }
+}
+
+export interface PaymentListResponse {
+  data: PaymentTransaction[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface PartnerAdListItem {
   id: string
   title: string
@@ -1007,7 +1028,21 @@ export interface AdPackage {
   supports_carousel: boolean
   has_advanced_analytics: boolean
   sort_order: number
+  is_active: boolean
   created_at: string
+}
+
+export interface PackageInput {
+  name: string
+  description: string
+  price_monthly: number
+  max_slots: number
+  max_duration_days: number
+  supports_video: boolean
+  supports_carousel: boolean
+  has_advanced_analytics: boolean
+  sort_order: number
+  is_active: boolean
 }
 
 export interface SubscriptionResponse {

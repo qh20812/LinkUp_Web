@@ -26,6 +26,8 @@ import type {
   ViolationRule,
   ViolationRuleListResponse,
   AdminViolationRuleInput,
+  AdPackage,
+  PackageInput,
 } from "../types";
 
 // Dashboard
@@ -335,6 +337,22 @@ export const getAdAnalytics = async (
   const res = await request<{ data: AdPerformance }>(`/admin/ads/${id}/analytics${query}`)
   return res.data
 }
+
+// ── Packages (admin) ──
+export const getAdminPackages = () =>
+  request<{ data: AdPackage[] }>('/admin/packages')
+
+export const createAdminPackage = (input: PackageInput) =>
+  request<{ message: string; data: AdPackage }>('/admin/packages', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const updateAdminPackage = (id: string, input: PackageInput) =>
+  request<{ message: string; data: AdPackage }>(`/admin/packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
 
 export const getAdminSettings = () =>
   request<AdminSettingsResponse>('/admin/settings')
