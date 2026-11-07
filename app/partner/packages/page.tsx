@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { getPackages, getMySubscription, createMoMoPayment } from '../../../api/package'
+import { redirectToExternal } from '../../../lib/navigate'
 import type { AdPackage, SubscriptionResponse } from '../../../types'
 import styles from './Packages.module.css'
 
@@ -20,12 +21,13 @@ export default function PackagesPage() {
   const [subscribing, setSubscribing] = useState<string | null>(null)
 
   const handleSubscribe = async (pkgId: string) => {
+    if (isActive(pkgId)) return
     setSubscribing(pkgId)
     try {
       // Gói chỉ được kích hoạt sau khi MoMo xác nhận thanh toán (return/IPN),
       // nên ở đây chỉ tạo giao dịch rồi chuyển trình duyệt sang cổng MoMo.
       const res = await createMoMoPayment(pkgId)
-      window.location.assign(res.payment_url)
+      redirectToExternal(res.payment_url)
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
       setSubscribing(null)
@@ -35,7 +37,12 @@ export default function PackagesPage() {
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
 
-  const isActive = (pkgId: string) => sub?.package_name && packages?.find((p) => p.id === pkgId)?.name === sub.package_name
+  const isActive = (pkgId: string) => {
+    if (!sub) return false
+    // Ưu tiên ID; server cũ chưa trả package_id thì so theo tên.
+    if (sub.package_id) return sub.package_id === pkgId
+    return packages?.find((p) => p.id === pkgId)?.name === sub.package_name
+  }
 
   return (
     <div className={styles.page}>

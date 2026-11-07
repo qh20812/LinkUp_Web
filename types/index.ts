@@ -1057,6 +1057,8 @@ export interface PackageInput {
 
 export interface SubscriptionResponse {
   id: string
+  /** ID gói đang dùng; server cũ có thể chưa trả nên web fallback theo tên. */
+  package_id?: string
   package_name: string
   max_slots: number
   slots_used: number

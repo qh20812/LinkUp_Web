@@ -8,6 +8,7 @@ import { useAuth } from '../../../hooks/useAuth'
 import { getPackages, getMySubscription, createMoMoPayment, createVNPayPayment } from '../../../api/package'
 import { clearSWRCache } from '../../../api/swr'
 import { refreshSession } from '../../../api/api'
+import { redirectToExternal } from '../../../lib/navigate'
 import type { AdPackage, SubscriptionResponse } from '../../../types'
 import styles from './Packages.module.css'
 
@@ -64,6 +65,13 @@ export default function PackagesPage() {
 
   const daysLeft = sub?.expires_at ? daysLeftFrom(sub.expires_at) : 0
 
+  // Gói hiện tại: ưu tiên package_id (server mới), fallback theo tên để không
+  // vỡ khi server cũ chưa trả field này.
+  const isCurrentPackage = (pkg: AdPackage) =>
+    !!sub && (sub.package_id ? sub.package_id === pkg.id : sub.package_name === pkg.name)
+  const selectedPackage = packages?.find((p) => p.id === selectedId) ?? null
+  const selectedIsCurrent = !!selectedPackage && isCurrentPackage(selectedPackage)
+
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
 
@@ -71,6 +79,12 @@ export default function PackagesPage() {
     if (!isAuthenticated && !initializing) {
       toast({ title: t('packages.loginRequired'), type: 'warning' })
       window.location.assign('/login?redirect=/packages')
+      return
+    }
+    // Gói đang dùng không chọn được (server cũng trả payment.ALREADY_ACTIVE).
+    const pkg = packages?.find((p) => p.id === pkgId)
+    if (pkg && isCurrentPackage(pkg)) {
+      setSelectedId(null)
       return
     }
     setSelectedId((prev) => (prev === pkgId ? null : pkgId))
@@ -83,6 +97,7 @@ export default function PackagesPage() {
       return
     }
     if (!selectedId) return
+    if (selectedIsCurrent) return
 
     setSubscribing(true)
     try {
@@ -92,7 +107,7 @@ export default function PackagesPage() {
         method === 'vnpay'
           ? await createVNPayPayment(selectedId)
           : await createMoMoPayment(selectedId)
-      window.location.assign(res.payment_url)
+      redirectToExternal(res.payment_url)
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
       setSubscribing(false)
@@ -144,8 +159,11 @@ export default function PackagesPage() {
         <p className={styles.empty}>{t('partner.packages.noPackages')}</p>
       ) : (
         <div className={styles.grid}>
-          {packages.map((pkg) => (
-            <div key={pkg.id} className={`${styles.card} ${selectedId === pkg.id ? styles.cardSelected : ''}`}>
+          {packages.map((pkg) => {
+            const current = isCurrentPackage(pkg)
+            return (
+            <div key={pkg.id} className={`${styles.card} ${current ? styles.cardCurrent : selectedId === pkg.id ? styles.cardSelected : ''}`}>
+              {current && <span className={styles.currentBadge}>{t('packages.currentPackage')}</span>}
               <h3 className={styles.cardName}>{pkg.name}</h3>
               <p className={styles.cardPrice}>
                 {formatPrice(pkg.price_monthly)}
@@ -176,13 +194,15 @@ export default function PackagesPage() {
                 )}
               </ul>
               <button
-                className={`${styles.btnSelect} ${selectedId === pkg.id ? styles.btnSelected : ''}`}
+                className={`${styles.btnSelect} ${current ? styles.btnCurrent : selectedId === pkg.id ? styles.btnSelected : ''}`}
+                disabled={current || loadingSub}
                 onClick={() => handleSelect(pkg.id)}
               >
-                {selectedId === pkg.id ? t('packages.selected') : t('packages.select')}
+                {current ? t('packages.currentPackage') : selectedId === pkg.id ? t('packages.selected') : t('packages.select')}
               </button>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -224,12 +244,13 @@ export default function PackagesPage() {
       <div className={styles.actions}>
         <button
           className={styles.cta}
-          disabled={!selectedId || subscribing}
+          disabled={!selectedId || subscribing || selectedIsCurrent}
           onClick={handleSubscribe}
         >
           {subscribing ? t('packages.redirecting') : t('payment.payNow')}
         </button>
         {!selectedId && <p className={styles.ctaHint}>{t('packages.selectHint')}</p>}
+        {selectedIsCurrent && <p className={styles.ctaHint}>{t('packages.currentHint')}</p>}
       </div>
     </div>
   )
