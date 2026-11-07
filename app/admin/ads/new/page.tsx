@@ -13,6 +13,7 @@ export default function AdminNewAdPage() {
       submitLabel={t('ads.create')}
       successMessage={t('ads.createSuccess')}
       redirectTo="/admin/ads"
+      requireSubscription={false}
     />
   )
 }

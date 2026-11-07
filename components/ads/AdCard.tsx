@@ -12,6 +12,12 @@ const IMPRESSION_DELAY_MS = 1000
 
 interface AdCardProps {
   ad: FeedAd
+  /**
+   * Chế độ xem trước trong form tạo quảng cáo: không gửi bất kỳ tracking nào
+   * (impression/click/swipe/video) và không hiện nút báo cáo. CTA chỉ là nhãn
+   * tĩnh để tránh người dùng rời form giữa lúc điền.
+   */
+  preview?: boolean
 }
 
 /**
@@ -19,7 +25,7 @@ interface AdCardProps {
  * (impression khi visible 1s, video_start/video_end, swipe, click).
  * Impression không phụ thuộc ảnh load xong nên ad không media vẫn được tính.
  */
-export default function AdCard({ ad }: AdCardProps) {
+export default function AdCard({ ad, preview = false }: AdCardProps) {
   const { t } = useTranslation()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const impressionSent = useRef(false)
@@ -40,11 +46,14 @@ export default function AdCard({ ad }: AdCardProps) {
   const isVideo = current?.media_type === 'video' || ad.format === 'video'
 
   const track = (action: string) => {
+    if (preview) return
     void trackAdAction(ad.id, action).catch(() => {})
   }
 
   // Impression: chỉ tính khi card hiển thị ≥50% liên tục 1 giây.
+  // Preview trong form không bao giờ được gửi tracking.
   useEffect(() => {
+    if (preview) return
     const el = rootRef.current
     if (!el || impressionSent.current) return
 
@@ -80,7 +89,7 @@ export default function AdCard({ ad }: AdCardProps) {
       if (timer) clearTimeout(timer)
       observer.disconnect()
     }
-  }, [ad.id])
+  }, [ad.id, preview])
 
   const goTo = (next: number) => {
     if (items.length === 0) return
@@ -91,18 +100,20 @@ export default function AdCard({ ad }: AdCardProps) {
   }
 
   return (
-    <div className={styles.card} ref={rootRef} data-testid="ad-card">
+    <div className={styles.card} ref={rootRef} data-testid="ad-card" data-preview={preview || undefined}>
       <div className={styles.cardHeader}>
         <span className={styles.badge}>{t('ads.sponsored')}</span>
-        <button
-          type="button"
-          className={styles.reportBtn}
-          aria-label={t('ads.reportAd')}
-          title={t('ads.reportAd')}
-          onClick={() => setReportOpen(true)}
-        >
-          <i className="bx bx-flag" />
-        </button>
+        {!preview && (
+          <button
+            type="button"
+            className={styles.reportBtn}
+            aria-label={t('ads.reportAd')}
+            title={t('ads.reportAd')}
+            onClick={() => setReportOpen(true)}
+          >
+            <i className="bx bx-flag" />
+          </button>
+        )}
       </div>
 
       {current && (
@@ -169,23 +180,29 @@ export default function AdCard({ ad }: AdCardProps) {
       <div className={styles.content}>
         <h4 className={styles.title}>{ad.title}</h4>
         <p className={styles.text}>{ad.content}</p>
-        <a
-          className={styles.cta}
-          href={ad.target_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => track('click')}
-        >
-          {t('ads.learnMore')}
-        </a>
+        {preview ? (
+          <span className={styles.cta}>{t('ads.learnMore')}</span>
+        ) : (
+          <a
+            className={styles.cta}
+            href={ad.target_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => track('click')}
+          >
+            {t('ads.learnMore')}
+          </a>
+        )}
       </div>
 
-      <ReportModal
-        open={reportOpen}
-        targetType="ad"
-        targetId={ad.id}
-        onClose={() => setReportOpen(false)}
-      />
+      {!preview && (
+        <ReportModal
+          open={reportOpen}
+          targetType="ad"
+          targetId={ad.id}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -1,12 +1,18 @@
 import React from 'react'
-import { renderWithProviders, screen, userEvent, waitFor, mockLocalStorage } from './test-utils'
+import { SWRConfig } from 'swr'
+import { renderWithProviders, screen, userEvent, waitFor, mockLocalStorage, within } from './test-utils'
 
 jest.mock('@/api/partner', () => ({
   createAd: jest.fn(),
+  trackAdAction: jest.fn().mockResolvedValue({}),
 }))
 
 jest.mock('@/api/swr', () => ({
   invalidate: jest.fn(),
+}))
+
+jest.mock('@/api/package', () => ({
+  getMySubscription: jest.fn(),
 }))
 
 jest.mock('@/api/locations', () => ({
@@ -22,15 +28,26 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() }),
 }))
 
-import { createAd } from '@/api/partner'
-import AdForm from '@/components/AdForm'
+import { createAd, trackAdAction } from '@/api/partner'
+import { getMySubscription } from '@/api/package'
+import { ApiError } from '@/api/api'
+import AdForm, { type AdFormProps } from '@/components/AdForm'
+import type { SubscriptionResponse } from '@/types'
 
 const createAdMock = createAd as jest.Mock
+const trackAdMock = trackAdAction as jest.Mock
+const subscriptionMock = getMySubscription as jest.Mock
 
-function renderForm() {
-  return renderWithProviders(
-    <AdForm heading="Tạo quảng cáo" submitLabel="Tạo quảng cáo" redirectTo="/partner/ads" />,
-  )
+const activeSubscription: SubscriptionResponse = {
+  id: 'sub-1',
+  package_name: 'Gói Cơ bản',
+  max_slots: 3,
+  slots_used: 1,
+  slots_left: 2,
+  price_monthly: 100000,
+  started_at: '2026-01-01T00:00:00Z',
+  expires_at: '2026-12-31T00:00:00Z',
+  status: 'active',
 }
 
 /**
@@ -44,10 +61,25 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
 }
 
+/** Mỗi test dùng SWR cache riêng để trạng thái gói không rò giữa các case. */
+function renderForm(props: Partial<AdFormProps> = {}) {
+  return renderWithProviders(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <AdForm heading="Tạo quảng cáo" submitLabel="Tạo quảng cáo" redirectTo="/partner/ads" {...props} />
+    </SWRConfig>,
+  )
+}
+
 beforeEach(() => {
   mockLocalStorage()
   createAdMock.mockReset()
   createAdMock.mockResolvedValue({ message: 'ok', data: { id: 'ad-1' } })
+  trackAdMock.mockClear()
+  subscriptionMock.mockReset()
+  subscriptionMock.mockResolvedValue({ ...activeSubscription })
+  // jsdom không có object URL cho preview media.
+  Object.defineProperty(URL, 'createObjectURL', { value: jest.fn(() => 'blob:preview'), configurable: true })
+  Object.defineProperty(URL, 'revokeObjectURL', { value: jest.fn(), configurable: true })
 })
 
 describe('AdForm', () => {
@@ -66,7 +98,7 @@ describe('AdForm', () => {
     const user = userEvent.setup()
     renderForm()
 
-    await user.click(screen.getByRole('button', { name: 'Tạo quảng cáo' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo quảng cáo' }))
 
     expect(createAdMock).not.toHaveBeenCalled()
   })
@@ -136,6 +168,89 @@ describe('AdForm', () => {
     expect(budget.value).toBe('')
     expect((screen.getByLabelText('Từ') as HTMLInputElement).value).toBe('0')
     expect((screen.getByLabelText('Đến') as HTMLInputElement).value).toBe('100')
+  })
+
+  it('hiện preview cập nhật theo nội dung và không gửi tracking', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    const card = await screen.findByTestId('ad-card')
+    expect(card).toHaveAttribute('data-preview', 'true')
+    expect(screen.getByText('Tiêu đề quảng cáo của bạn')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/^Tiêu đề/), 'Cà phê giảm giá')
+    await user.type(screen.getByRole('textbox', { name: /Nội dung/i }), 'Mua 1 tặng 1')
+
+    await waitFor(() => expect(within(card).getByText('Cà phê giảm giá')).toBeInTheDocument())
+    expect(within(card).getByText('Mua 1 tặng 1')).toBeInTheDocument()
+    // Preview không được bắn impression/click dù card render.
+    expect(trackAdMock).not.toHaveBeenCalled()
+    expect(screen.queryByLabelText('Báo cáo quảng cáo')).not.toBeInTheDocument()
+  })
+
+  it('ước tính lượt hiển thị từ ngân sách và CPM', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+
+    expect(await screen.findByText(/4\.000 lượt hiển thị/)).toBeInTheDocument()
+  })
+
+  it('chặn form và mời mua gói khi partner chưa có gói', async () => {
+    subscriptionMock.mockRejectedValueOnce(
+      new ApiError('Bạn chưa đăng ký gói quảng cáo nào', 'package.NOT_SUBSCRIBED', 404),
+    )
+    renderForm()
+
+    expect(await screen.findByText('Bạn cần gói đang hoạt động để tạo quảng cáo')).toBeInTheDocument()
+    const cta = screen.getByRole('link', { name: 'Mua gói ngay' })
+    expect(cta).toHaveAttribute('href', '/packages')
+    expect(screen.queryByRole('button', { name: 'Tạo quảng cáo' })).not.toBeInTheDocument()
+  })
+
+  it('chặn form khi gói đã dùng hết slot', async () => {
+    subscriptionMock.mockResolvedValueOnce({ ...activeSubscription, slots_left: 0, slots_used: 3 })
+    renderForm()
+
+    expect(await screen.findByText('Gói của bạn đã dùng hết slot')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo quảng cáo' })).not.toBeInTheDocument()
+  })
+
+  it('admin tạo hộ không kiểm tra gói và thấy form ngay', async () => {
+    renderForm({ requireSubscription: false })
+
+    expect(await screen.findByLabelText(/Tổng ngân sách/i)).toBeInTheDocument()
+    expect(subscriptionMock).not.toHaveBeenCalled()
+  })
+
+  it('cảnh báo mềm khi chưa chọn media', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    expect(await screen.findByText('Nên thêm ảnh/video để quảng cáo nổi bật hơn.')).toBeInTheDocument()
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(['x'], 'a.png', { type: 'image/png' }))
+
+    await waitFor(() =>
+      expect(screen.queryByText('Nên thêm ảnh/video để quảng cáo nổi bật hơn.')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('hiện lỗi gói/slot ngay trong form kèm link nâng cấp', async () => {
+    createAdMock.mockRejectedValue(
+      new ApiError('Bạn đã dùng hết 3/3 slot. Vui lòng nâng cấp gói', 'ad.SLOTS_EXHAUSTED', 400),
+    )
+    const user = userEvent.setup()
+    renderForm()
+
+    await fillRequiredFields(user)
+    await user.click(screen.getByRole('button', { name: 'Tạo quảng cáo' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Bạn đã dùng hết 3/3 slot')
+    expect(screen.getByRole('link', { name: 'Xem các gói quảng cáo' })).toHaveAttribute('href', '/packages')
   })
 
   it('hiện toast thành công sau khi tạo', async () => {

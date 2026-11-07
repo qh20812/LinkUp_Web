@@ -108,6 +108,24 @@ describe('AdCard impression', () => {
   })
 })
 
+describe('AdCard preview', () => {
+  it('không gửi tracking, ẩn báo cáo và CTA không phải link', () => {
+    render(<AdCard ad={imageAd()} preview />)
+
+    triggerVisible()
+    act(() => {
+      jest.advanceTimersByTime(2000)
+    })
+
+    expect(trackMock).not.toHaveBeenCalled()
+    expect(screen.queryByLabelText('ads.reportAd')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('ads.learnMore'))
+    expect(trackMock).not.toHaveBeenCalled()
+    expect(screen.getByText('ads.learnMore').tagName).not.toBe('A')
+  })
+})
+
 describe('AdCard formats', () => {
   it('render video và track video_start/video_end đúng một lần', () => {
     const ad = imageAd({

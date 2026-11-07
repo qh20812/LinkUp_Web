@@ -17,6 +17,7 @@ import { useToast } from '../contexts/ToastContext'
 import { getAdAnalytics } from '../api/partner'
 import { getAdAnalytics as getAdminAdAnalytics } from '../api/admin'
 import { adRangeQuery } from '../lib/ad-datetime'
+import { formatVnd } from '../lib/ads-estimate'
 import type { AdPerformance } from '../types'
 import styles from './AdAnalyticsModal.module.css'
 
@@ -58,8 +59,8 @@ export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner
     return v.toLocaleString()
   }
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(v)
+  // Số liệu tiền của ads là VND; trước đây hiển thị USD nên lệch với form/bảng.
+  const formatCurrency = (v: number) => formatVnd(v)
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = { active: styles.badgeActive, paused: styles.badgePaused, completed: styles.badgeCompleted, pending: styles.badgePending, rejected: styles.badgeRejected, suspended: styles.badgeSuspended }
