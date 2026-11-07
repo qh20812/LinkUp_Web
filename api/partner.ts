@@ -70,8 +70,15 @@ export const updateAdStatus = (id: string, status: string) =>
     body: JSON.stringify({ status }),
   })
 
-export const getAdAnalytics = (id: string) =>
-  request<AdPerformance>(`/ads-management/${id}/analytics`)
+export const getAdAnalytics = (
+  id: string,
+  range?: { from: string; to: string },
+) => {
+  const query = range
+    ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : ''
+  return request<AdPerformance>(`/ads-management/${id}/analytics${query}`)
+}
 
 export const getOverview = () =>
   request<AdOverview>('/ads-management/overview')

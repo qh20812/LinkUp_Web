@@ -927,6 +927,24 @@ export interface AdPerformance {
   video_completions?: number
   started_at?: string
   expires_at?: string
+  /** Chi phí trong khoảng đang xem (legacy: toàn đời). */
+  cost?: number
+  from?: string
+  to?: string
+  /** Gói hiện tại không có advanced analytics → bị giới hạn 30 ngày. */
+  limited?: boolean
+  series?: AdDailyMetric[]
+}
+
+export interface AdDailyMetric {
+  date: string
+  impressions: number
+  clicks: number
+  views: number
+  swipes: number
+  video_starts: number
+  video_completions: number
+  cost: number
 }
 
 export interface PartnerAdListItem {

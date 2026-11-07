@@ -128,3 +128,49 @@
   font-size: 14px;
   color: var(--color-text-secondary);
 }
+
+.badgeSuspended {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.rangeRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0 var(--space-md);
+  flex-wrap: wrap;
+}
+
+.rangeBtn {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rangeBtnActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.limited {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-light, #fef3c7);
+  color: var(--color-warning, #92400e);
+  font-size: 13px;
+}
+
+.limited a {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.chartWrap {
+  margin-top: var(--space-md);
+}

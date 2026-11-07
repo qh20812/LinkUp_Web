@@ -325,8 +325,14 @@ export const getAdminProfile = () =>
 
 // Admin xem thống kê của bất kỳ quảng cáo nào (endpoint admin đã bỏ kiểm tra
 // ownership theo partner).
-export const getAdAnalytics = async (id: string): Promise<AdPerformance> => {
-  const res = await request<{ data: AdPerformance }>(`/admin/ads/${id}/analytics`)
+export const getAdAnalytics = async (
+  id: string,
+  range?: { from: string; to: string },
+): Promise<AdPerformance> => {
+  const query = range
+    ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : ''
+  const res = await request<{ data: AdPerformance }>(`/admin/ads/${id}/analytics${query}`)
   return res.data
 }
 

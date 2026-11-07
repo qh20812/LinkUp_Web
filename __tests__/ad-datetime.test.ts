@@ -1,4 +1,4 @@
-import { toAdISOString, toDateTimeLocal } from '@/lib/ad-datetime'
+import { toAdISOString, toDateTimeLocal, adRangeQuery } from '@/lib/ad-datetime'
 
 describe('toAdISOString', () => {
   it('trả undefined khi không có giá trị', () => {
@@ -35,5 +35,23 @@ describe('toDateTimeLocal', () => {
 
   it('trả chuỗi rỗng với giá trị không hợp lệ', () => {
     expect(toDateTimeLocal('không-phải-ngày')).toBe('')
+  })
+})
+
+describe('adRangeQuery', () => {
+  const now = new Date('2026-11-07T10:00:00.000Z')
+
+  it('trả khoảng đúng số ngày, kết thúc tại now', () => {
+    const { from, to } = adRangeQuery(7, now)
+    expect(to).toBe(now.toISOString())
+    expect(new Date(to).getTime() - new Date(from).getTime()).toBe(7 * 86_400_000)
+  })
+
+  it('kẹp số ngày trong [1, 365]', () => {
+    const tooSmall = adRangeQuery(0, now)
+    expect(new Date(tooSmall.to).getTime() - new Date(tooSmall.from).getTime()).toBe(86_400_000)
+
+    const tooBig = adRangeQuery(999, now)
+    expect(new Date(tooBig.to).getTime() - new Date(tooBig.from).getTime()).toBe(365 * 86_400_000)
   })
 })
