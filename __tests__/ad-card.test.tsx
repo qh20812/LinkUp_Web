@@ -12,6 +12,11 @@ jest.mock('@/hooks/useTranslation', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 
+jest.mock('@/components/ReportModal', () => ({
+  __esModule: true,
+  default: () => null,
+}))
+
 const trackMock = trackAdAction as jest.Mock
 
 let ioCallback: IntersectionObserverCallback | null = null

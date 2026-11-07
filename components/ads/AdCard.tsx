@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { trackAdAction } from '../../api/partner'
 import type { FeedAd } from '../../api/partner'
 import { useTranslation } from '../../hooks/useTranslation'
+import ReportModal from '../ReportModal'
 import styles from './AdCard.module.css'
 
 /** Thời lượng tối thiểu card phải hiển thị ≥50% trước khi tính impression. */
@@ -25,6 +26,7 @@ export default function AdCard({ ad }: AdCardProps) {
   const videoStarted = useRef(false)
   const videoEnded = useRef(false)
   const [slide, setSlide] = useState(0)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const listMedia = (ad.media_list ?? []).filter((m) => !!m.url)
   const items =
@@ -90,7 +92,18 @@ export default function AdCard({ ad }: AdCardProps) {
 
   return (
     <div className={styles.card} ref={rootRef} data-testid="ad-card">
-      <span className={styles.badge}>{t('ads.sponsored')}</span>
+      <div className={styles.cardHeader}>
+        <span className={styles.badge}>{t('ads.sponsored')}</span>
+        <button
+          type="button"
+          className={styles.reportBtn}
+          aria-label={t('ads.reportAd')}
+          title={t('ads.reportAd')}
+          onClick={() => setReportOpen(true)}
+        >
+          <i className="bx bx-flag" />
+        </button>
+      </div>
 
       {current && (
         <div className={styles.mediaWrap}>
@@ -166,6 +179,13 @@ export default function AdCard({ ad }: AdCardProps) {
           {t('ads.learnMore')}
         </a>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        targetType="ad"
+        targetId={ad.id}
+        onClose={() => setReportOpen(false)}
+      />
     </div>
   )
 }

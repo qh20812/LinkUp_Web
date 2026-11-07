@@ -379,7 +379,7 @@ export interface AdminHidePostInput {
 }
 
 // ===== Reports =====
-export type ReportTargetType = "post" | "comment" | "user" | "community";
+export type ReportTargetType = "post" | "comment" | "user" | "community" | "ad";
 
 export interface ViolationRule {
   id: string;
@@ -433,6 +433,7 @@ export interface AdminReportListItem {
   target_post_id?: string
   target_comment_id?: string
   target_community_id?: string
+  target_ad_id?: string
   report_type: string
   violation_rule_id?: string
   violation_rule_title?: string
@@ -454,6 +455,15 @@ export interface AdminReportDetailResponse extends AdminReportListItem {
   target_comment?: AdminReportTargetComment
   target_user?: AdminReportTargetUser
   target_community?: AdminReportTargetCommunity
+  target_ad?: AdminReportTargetAd
+}
+
+export interface AdminReportTargetAd {
+  ad_id: string
+  title: string
+  status: string
+  partner_id: string
+  media_uri?: string
 }
 
 export interface AdminReportTargetCommunity {
