@@ -55,14 +55,14 @@ describe('CommunityCard', () => {
     const community = buildCommunity({ privacy: 'public' })
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByText(/communities\.privacyPublic/)).toBeInTheDocument()
+    expect(screen.getByText('Công Khai')).toBeInTheDocument()
   })
 
   it('renders privacy badge for invitation_only', () => {
     const community = buildCommunity({ privacy: 'invitation_only' })
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
+    expect(screen.getByText('Chỉ Mời')).toBeInTheDocument()
   })
 
   // Hồi quy: seed từng ghi privacy='private' (không nằm trong enum của server).
@@ -72,7 +72,7 @@ describe('CommunityCard', () => {
     const community = buildCommunity({ privacy: 'private' as unknown as 'public' })
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
+    expect(screen.getByText('Chỉ Mời')).toBeInTheDocument()
   })
 
   it('renders avatar image when avatar_uri is provided', () => {
@@ -102,14 +102,14 @@ describe('CommunityCard', () => {
     const community = buildCommunity({ privacy: 'invitation_only' })
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByText(/communities\.enterCode/)).toBeInTheDocument()
+    expect(screen.getByText('Nhập mã code')).toBeInTheDocument()
   })
 
   it('shows manage action for owned communities', () => {
     const community = buildCommunity({ is_creator: true })
     renderWithProviders(<CommunityCard community={community} />)
 
-    expect(screen.getByText(/communities\.manage/)).toBeInTheDocument()
+    expect(screen.getByText('Quản Lý')).toBeInTheDocument()
   })
 
   it('renders cover image when background_uri is provided', () => {

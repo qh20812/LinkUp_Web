@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import viLocale from "../locales/vi.json";
+import enLocale from "../locales/en.json";
 
 type Language = "vi" | "en";
 
@@ -14,6 +16,21 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
   undefined,
 );
 
+/**
+ * Bản dịch nạp tĩnh cho cả hai ngôn ngữ.
+ *
+ * Trước đây locale được nạp bằng dynamic import nên trong vài chục ms đầu
+ * `t()` trả lại key thô. Điều đó làm toast thanh toán hiện
+ * "packages.paymentFailed" khi cổng thanh toán redirect về (effect chạy ngay
+ * khi mount, trước khi import xong). Hai file locale vốn đã nằm trong bundle
+ * của app (api/api.ts import tĩnh để dịch error code), nên nạp tĩnh ở đây
+ * không phát sinh thêm request; đổi lại không còn khoảng thời gian trả key.
+ */
+const LOCALES: Record<Language, unknown> = {
+  vi: viLocale,
+  en: enLocale,
+};
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
     if (typeof window !== "undefined") {
@@ -22,14 +39,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
     return "vi";
   });
-  const [translations, setTranslations] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
-    import(`../locales/${language}.json`).then((mod) =>
-      setTranslations(mod.default),
-    );
     localStorage.setItem("language", language);
   }, [language]);
+
+  const translations = LOCALES[language];
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     // Key có thể rỗng/undefined khi tra map theo một giá trị enum lạ từ API

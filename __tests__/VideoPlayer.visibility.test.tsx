@@ -85,14 +85,14 @@ describe('VideoPlayer auto-pause on scroll', () => {
     renderWithProviders(<VideoPlayer src="https://example.com/v.mp4" />)
 
     // Simulate user pressing play first (clears manual-pause flag), then pause.
-    const playBtn = await screen.findByRole('button', { name: /phát|play/i })
+    const playBtn = await screen.findByRole('button', { name: /^(phát|play)$/i })
     pausedState = true
     act(() => {
       playBtn.click()
     })
     expect(playMock).toHaveBeenCalled()
 
-    const pauseBtn = await screen.findByRole('button', { name: /tạm dừng|pause/i })
+    const pauseBtn = await screen.findByRole('button', { name: /^(tạm dừng|pause)$/i })
     pausedState = false
     act(() => {
       pauseBtn.click()

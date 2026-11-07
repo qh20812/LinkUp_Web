@@ -73,7 +73,7 @@ describe('CommunityHeader', () => {
     const community = buildCommunityDetail({ privacy: 'private' as unknown as 'public' })
     renderWithProviders(<CommunityHeader community={community} onStatusChange={jest.fn()} />)
 
-    expect(screen.getByText(/communities\.privacyInvitation/)).toBeInTheDocument()
+    expect(screen.getByText('Chỉ Mời')).toBeInTheDocument()
   })
 
   it('renders JoinButton with correct props', () => {
