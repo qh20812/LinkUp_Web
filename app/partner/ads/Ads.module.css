@@ -233,6 +233,118 @@
   margin-bottom: var(--space-lg);
 }
 
+/* Empty state 3 bước (Mức B3) */
+.emptyState {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.emptyState > i {
+  display: block;
+  margin-bottom: var(--space-md);
+  font-size: 48px;
+  color: var(--color-primary);
+}
+
+.emptyTitle {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.emptyDesc {
+  max-width: 520px;
+  margin: 0 auto var(--space-lg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.emptySteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 640px;
+  margin: 0 auto var(--space-lg);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.emptySteps li {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.emptyStepNum {
+  flex: 0 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emptySteps strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.emptySteps p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btnSecondary:hover {
+  background: var(--color-bg-secondary);
+}
+
+.emptyHelp {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.emptyHelp:hover {
+  text-decoration: underline;
+}
+
 .paginationWrap {
   display: flex;
   justify-content: center;

@@ -301,6 +301,118 @@
   padding: 0 var(--space-md) var(--space-md);
 }
 
+/* ─── Mức B1: wizard 4 bước ─── */
+.steps {
+  margin-bottom: var(--space-lg);
+}
+
+.stepProgress {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.stepList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepItem {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.stepActive {
+  border-color: var(--color-primary);
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.stepDone {
+  color: var(--color-text);
+}
+
+.helpLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.helpLink:hover {
+  text-decoration: underline;
+}
+
+.summary {
+  margin: var(--space-md) 0 0;
+  padding: 0;
+}
+
+.summaryRow {
+  display: flex;
+  gap: var(--space-md);
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.summaryRow:last-child {
+  border-bottom: none;
+}
+
+.summaryRow dt {
+  flex: 0 0 200px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.summaryRow dd {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.pendingNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: var(--space-md) 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+@media (max-width: 640px) {
+  .summaryRow {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .summaryRow dt {
+    flex: none;
+  }
+}
+
 /* ─── Mức A5–A8: preview, ước tính, precheck gói ─── */
 .body {
   display: flex;

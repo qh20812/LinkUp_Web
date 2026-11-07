@@ -7,10 +7,12 @@ import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { deleteAd, submitAdForReview, updateAdStatus } from '../../../api/partner'
+import { getMySubscription } from '../../../api/package'
+import { ApiError } from '../../../api/api'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import Pagination from '../../../components/Pagination'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
-import type { PartnerAdListItem, PartnerAdListResponse } from '../../../types'
+import type { PartnerAdListItem, PartnerAdListResponse, SubscriptionResponse } from '../../../types'
 import styles from './Ads.module.css'
 
 export default function PartnerAdsPage() {
@@ -41,6 +43,17 @@ export default function PartnerAdsPage() {
   const items = res?.data ?? []
   const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Empty state cần biết partner đã có gói chưa để gợi ý mua gói thay vì tạo ad
+  // (tạo ad khi chưa có gói sẽ bị server chặn).
+  const { error: subscriptionError } = useSWR<SubscriptionResponse>(
+    '/ads-management/subscription',
+    () => getMySubscription(),
+    { shouldRetryOnError: false },
+  )
+  const needsPlan =
+    subscriptionError instanceof ApiError &&
+    (subscriptionError.code === 'package.NOT_SUBSCRIBED' || subscriptionError.status === 404)
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -208,13 +221,45 @@ export default function PartnerAdsPage() {
         </div>
 
         {loading ? skeletonRows() : items.length === 0 ? (
-          <div className={styles.empty}>
-            <i className="bx bx-dollar" />
-            <p>{t('partner.ads.noAds')}</p>
-            <Link href="/partner/ads/new" className={styles.btnPrimary}>
-              {t('partner.ads.create')}
-            </Link>
-          </div>
+          keyword || statusFilter ? (
+            <div className={styles.empty}>
+              <i className="bx bx-dollar" />
+              <p>{t('partner.ads.noAds')}</p>
+              <Link href="/partner/ads/new" className={styles.btnPrimary}>
+                {t('partner.ads.create')}
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <i className="bx bx-rocket" />
+              <h2 className={styles.emptyTitle}>{t('partner.ads.emptyTitle')}</h2>
+              <p className={styles.emptyDesc}>{t('partner.ads.emptyDesc')}</p>
+              <ol className={styles.emptySteps}>
+                {[1, 2, 3].map((n) => (
+                  <li key={n}>
+                    <span className={styles.emptyStepNum}>{n}</span>
+                    <div>
+                      <strong>{t(`partner.ads.emptyStep${n}Title`)}</strong>
+                      <p>{t(`partner.ads.emptyStep${n}Desc`)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className={styles.emptyActions}>
+                <Link href="/partner/ads/new" className={styles.btnPrimary}>
+                  <i className="bx bx-plus" /> {t('partner.ads.create')}
+                </Link>
+                {needsPlan && (
+                  <Link href="/packages" className={styles.btnSecondary}>
+                    {t('partner.ads.emptyBuyPlan')}
+                  </Link>
+                )}
+                <Link href="/partner/help/ads" className={styles.emptyHelp}>
+                  {t('partner.ads.emptyHelp')}
+                </Link>
+              </div>
+            </div>
+          )
         ) : items.map((ad) => (
           <div key={ad.id} className={styles.tableRow}>
             <span className={styles.colTitle}>

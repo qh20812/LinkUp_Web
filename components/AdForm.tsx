@@ -33,6 +33,11 @@ export interface AdFormProps {
    * để không hiện chặn mua gói.
    */
   requireSubscription?: boolean
+  /**
+   * Chia form thành 4 bước cho người mới (`/partner/ads/new`). Trang edit và
+   * trang admin giữ một trang để không phân kỳ logic.
+   */
+  wizard?: boolean
 }
 
 /** Ngày mặc định: bắt đầu hôm nay, kết thúc sau 30 ngày (người mới không cần tự tính). */
@@ -68,10 +73,14 @@ export default function AdForm({
   redirectTo,
   successMessage,
   requireSubscription = true,
+  wizard = false,
 }: AdFormProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const router = useRouter()
+
+  /** Bước wizard: 0 Nội dung · 1 Ngân sách & lịch chạy · 2 Nhắm mục tiêu · 3 Xem lại. */
+  const [step, setStep] = useState(0)
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -133,6 +142,34 @@ export default function AdForm({
     }),
     [title, content, targetUrl, format, mediaPreview, mediaFile, t],
   )
+
+  // Wizard chỉ bật ở /partner/ads/new; mặc định render một trang như trước.
+  const showContent = !wizard || step === 0
+  const showBudget = !wizard || step === 1
+  const showTargeting = !wizard || step === 2
+  const showReview = wizard && step === 3
+  const stepNames = [
+    'partner.form.sectionContent',
+    'partner.form.stepBudget',
+    'partner.form.sectionTargeting',
+    'partner.form.reviewTitle',
+  ]
+
+  const formatLabel = (value: string) =>
+    value === 'video'
+      ? t('partner.form.formatVideo')
+      : value === 'carousel'
+        ? t('partner.form.formatCarousel')
+        : t('partner.form.formatImage')
+
+  const genderLabel = (value: string) =>
+    value === 'male'
+      ? t('partner.form.genderMale')
+      : value === 'female'
+        ? t('partner.form.genderFemale')
+        : t('partner.form.genderAll')
+
+  const dateLabel = (value: string) => value.replace('T', ' ')
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -246,6 +283,29 @@ export default function AdForm({
       {!formDisabled && (
         <div className={styles.body}>
           <form className={styles.form} onSubmit={handleSubmit}>
+            {wizard && (
+              <div className={styles.steps}>
+                <p className={styles.stepProgress} role="status">
+                  {t('partner.form.stepLabel', { n: step + 1, total: stepNames.length })}
+                </p>
+                <ol className={styles.stepList}>
+                  {stepNames.map((name, index) => (
+                    <li
+                      key={name}
+                      className={`${styles.stepItem} ${
+                        index === step ? styles.stepActive : index < step ? styles.stepDone : ''
+                      }`}
+                      aria-current={index === step ? 'step' : undefined}
+                    >
+                      {t(name)}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {showContent && (
+              <>
             {/* Người mới: nói ngay cần chuẩn bị gì và lấy ở đâu. */}
             <section className={styles.prepCard} aria-labelledby="ad-prep-title">
               <h2 id="ad-prep-title" className={styles.prepTitle}>
@@ -262,6 +322,9 @@ export default function AdForm({
                   <i className="bx bx-wallet" aria-hidden="true" /> {t('partner.form.prepBudget')}
                 </li>
               </ul>
+              <Link className={styles.helpLink} href="/partner/help/ads">
+                <i className="bx bx-book-open" aria-hidden="true" /> {t('partner.form.helpLink')}
+              </Link>
             </section>
 
             <section className={styles.formSection} aria-labelledby="ad-section-content">
@@ -340,7 +403,11 @@ export default function AdForm({
                 <p id="ad-hint-target-url" className={styles.hint}>{t('partner.form.targetUrlHint')}</p>
               </div>
             </section>
+              </>
+            )}
 
+            {showBudget && (
+              <>
             <section className={styles.formSection} aria-labelledby="ad-section-budget">
               <h2 id="ad-section-budget" className={styles.sectionTitle}>
                 {t('partner.form.sectionBudget')}
@@ -480,7 +547,10 @@ export default function AdForm({
                 </div>
               </div>
             </section>
+              </>
+            )}
 
+            {showTargeting && (
             <section className={styles.formSection} aria-labelledby="ad-section-targeting">
               <h2 id="ad-section-targeting" className={styles.sectionTitle}>
                 {t('partner.form.sectionTargeting')}
@@ -539,6 +609,102 @@ export default function AdForm({
                 <ProvinceMultiSelect value={targetProvinces} onChange={setTargetProvinces} />
               </div>
             </section>
+            )}
+
+            {showReview && (
+              <section className={styles.formSection} aria-labelledby="ad-section-review">
+                <h2 id="ad-section-review" className={styles.sectionTitle}>
+                  {t('partner.form.reviewTitle')}
+                </h2>
+                <p className={styles.hint}>{t('partner.form.reviewNote')}</p>
+
+                <dl className={styles.summary}>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.title')}</dt>
+                    <dd>{title || '—'}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.content')}</dt>
+                    <dd>{content || '—'}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.targetUrl')}</dt>
+                    <dd>{targetUrl || '—'}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.format')}</dt>
+                    <dd>{formatLabel(format)}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.budget')}</dt>
+                    <dd>{formatVnd(Number(budget) || 0)}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.dailyBudget')}</dt>
+                    <dd>
+                      {Number(dailyBudget) > 0
+                        ? formatVnd(Number(dailyBudget))
+                        : t('partner.form.unlimited')}
+                    </dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.cpmPrice')}</dt>
+                    <dd>{formatVnd(Number(cpmPrice) || 0)}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.cpcPrice')}</dt>
+                    <dd>{formatVnd(Number(cpcPrice) || 0)}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.maxImpressions')}</dt>
+                    <dd>
+                      {Number(maxImpressions) > 0
+                        ? Number(maxImpressions).toLocaleString('vi-VN')
+                        : t('partner.form.unlimited')}
+                    </dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.startDate')}</dt>
+                    <dd>{startedAt ? dateLabel(startedAt) : t('partner.form.startOnApproval')}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.endDate')}</dt>
+                    <dd>{expiresAt ? dateLabel(expiresAt) : t('partner.form.unlimited')}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.targetGender')}</dt>
+                    <dd>{genderLabel(targetGender)}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.ageMin')} – {t('partner.form.ageMax')}</dt>
+                    <dd>{targetAgeMin} – {targetAgeMax}</dd>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <dt>{t('partner.form.targetLocations')}</dt>
+                    <dd>
+                      {targetProvinces.length > 0
+                        ? t('partner.form.summaryLocationsCount', { n: targetProvinces.length })
+                        : t('partner.form.summaryLocationsAll')}
+                    </dd>
+                  </div>
+                </dl>
+
+                {estimate !== null && (
+                  <p className={styles.estimate} aria-live="polite">
+                    <i className="bx bx-bar-chart" aria-hidden="true" />{' '}
+                    {t('partner.form.estimate', {
+                      budget: formatVnd(Number(budget)),
+                      cpm: formatVnd(Number(cpmPrice)),
+                      impressions: estimate.toLocaleString('vi-VN'),
+                    })}
+                  </p>
+                )}
+
+                <p className={styles.pendingNote}>
+                  <i className="bx bx-time-five" aria-hidden="true" /> {t('partner.form.pendingNote')}
+                </p>
+              </section>
+            )}
 
             {submitError && (
               <p className={styles.submitError} role="alert">
@@ -548,12 +714,37 @@ export default function AdForm({
             )}
 
             <div className={styles.actions}>
-              <button type="button" className={styles.btnCancel} onClick={() => router.back()}>
-                {t('partner.form.cancel')}
-              </button>
-              <button type="submit" className={styles.btnSubmit} disabled={submitting}>
-                {submitting ? t('common.loading') : submitLabel}
-              </button>
+              {wizard ? (
+                <>
+                  {step === 0 ? (
+                    <button type="button" className={styles.btnCancel} onClick={() => router.back()}>
+                      {t('partner.form.cancel')}
+                    </button>
+                  ) : (
+                    <button type="button" className={styles.btnCancel} onClick={() => setStep(step - 1)}>
+                      <i className="bx bx-left-arrow-alt" aria-hidden="true" /> {t('partner.form.back')}
+                    </button>
+                  )}
+                  {step < stepNames.length - 1 ? (
+                    <button type="button" className={styles.btnSubmit} onClick={() => setStep(step + 1)}>
+                      {t('partner.form.next')} <i className="bx bx-right-arrow-alt" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <button type="submit" className={styles.btnSubmit} disabled={submitting}>
+                      {submitting ? t('common.loading') : submitLabel}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button type="button" className={styles.btnCancel} onClick={() => router.back()}>
+                    {t('partner.form.cancel')}
+                  </button>
+                  <button type="submit" className={styles.btnSubmit} disabled={submitting}>
+                    {submitting ? t('common.loading') : submitLabel}
+                  </button>
+                </>
+              )}
             </div>
           </form>
 

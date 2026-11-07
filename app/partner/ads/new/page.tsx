@@ -12,6 +12,7 @@ export default function NewAdPage() {
       heading={t('partner.ads.create')}
       submitLabel={t('partner.ads.create')}
       redirectTo="/partner/ads"
+      wizard
     />
   )
 }
