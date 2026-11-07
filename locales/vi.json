@@ -80,6 +80,8 @@
     "language": "Ngôn ngữ",
     "toggleMenu": "Chuyển đổi menu",
     "ads": "Quảng cáo",
+    "packages": "Gói quảng cáo",
+    "payments": "Thanh toán",
     "violationRules": "Quy tắc vi phạm"
   },
   "userNavbar": {
@@ -2241,6 +2243,7 @@
       "dashboard": "Tổng quan",
       "ads": "Quảng cáo của tôi",
       "packages": "Gói dịch vụ",
+      "payments": "Thanh toán",
       "analytics": "Phân tích"
     },
     "overview": {
@@ -2395,6 +2398,44 @@
     "momo": "Thanh toán qua MoMo",
     "momoDescription": "Thanh toán an toàn qua ví điện tử MoMo (VND).",
     "payNow": "Thanh toán ngay"
+  },
+  "payments": {
+    "title": "Lịch sử thanh toán",
+    "adminTitle": "Quản lý giao dịch",
+    "txnRef": "Mã giao dịch",
+    "user": "Người dùng",
+    "package": "Gói",
+    "amount": "Số tiền",
+    "gateway": "Cổng",
+    "status": "Trạng thái",
+    "createdAt": "Thời gian",
+    "noData": "Chưa có giao dịch nào",
+    "allStatuses": "Tất cả trạng thái",
+    "allGateways": "Tất cả cổng",
+    "status_pending": "Đang chờ",
+    "status_success": "Thành công",
+    "status_failed": "Thất bại",
+    "status_cancelled": "Đã huỷ",
+    "retryHint": "Giao dịch thất bại hoặc đang chờ có thể thanh toán lại tại trang Gói dịch vụ.",
+    "filterUser": "Lọc theo user ID"
+  },
+  "packagesAdmin": {
+    "title": "Gói quảng cáo",
+    "create": "Tạo gói",
+    "edit": "Sửa gói",
+    "name": "Tên gói",
+    "description": "Mô tả",
+    "price": "Giá/tháng",
+    "slots": "Số slot",
+    "duration": "Thời hạn",
+    "days": "{n} ngày",
+    "features": "Tính năng",
+    "status": "Trạng thái",
+    "active": "Đang bán",
+    "inactive": "Ngừng bán",
+    "sortOrder": "Thứ tự hiển thị",
+    "created": "Đã tạo gói quảng cáo",
+    "updated": "Đã cập nhật gói quảng cáo"
   },
   "hashtag": {
     "posts": "bài viết",

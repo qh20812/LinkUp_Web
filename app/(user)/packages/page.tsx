@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { useAuth } from '../../../hooks/useAuth'
-import { getPackages, getMySubscription, createMoMoPayment } from '../../../api/package'
+import { getPackages, getMySubscription, createMoMoPayment, createVNPayPayment } from '../../../api/package'
 import { clearSWRCache } from '../../../api/swr'
 import { refreshSession } from '../../../api/api'
 import type { AdPackage, SubscriptionResponse } from '../../../types'
@@ -28,6 +28,7 @@ export default function PackagesPage() {
   )
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [method, setMethod] = useState<'momo' | 'vnpay'>('momo')
   const [subscribing, setSubscribing] = useState(false)
   const handledPaymentRef = useRef(false)
 
@@ -85,9 +86,12 @@ export default function PackagesPage() {
 
     setSubscribing(true)
     try {
-      // Gói chỉ được kích hoạt sau khi MoMo xác nhận thanh toán (return/IPN),
-      // nên ở đây chỉ tạo giao dịch rồi chuyển trình duyệt sang cổng MoMo.
-      const res = await createMoMoPayment(selectedId)
+      // Gói chỉ được kích hoạt sau khi cổng thanh toán xác nhận (return/IPN),
+      // nên ở đây chỉ tạo giao dịch rồi chuyển trình duyệt sang cổng.
+      const res =
+        method === 'vnpay'
+          ? await createVNPayPayment(selectedId)
+          : await createMoMoPayment(selectedId)
       window.location.assign(res.payment_url)
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
@@ -189,10 +193,30 @@ export default function PackagesPage() {
         </h2>
 
         <label className={styles.payOption}>
-          <input type="radio" name="paymentMethod" value="momo" defaultChecked readOnly />
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="momo"
+            checked={method === 'momo'}
+            onChange={() => setMethod('momo')}
+          />
           <div className={styles.payText}>
             <span className={styles.payLabel}>{t('payment.momo')}</span>
             <span className={styles.payDesc}>{t('payment.momoDescription')}</span>
+          </div>
+        </label>
+
+        <label className={styles.payOption}>
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="vnpay"
+            checked={method === 'vnpay'}
+            onChange={() => setMethod('vnpay')}
+          />
+          <div className={styles.payText}>
+            <span className={styles.payLabel}>{t('payment.vnpay')}</span>
+            <span className={styles.payDesc}>{t('payment.vnpayDescription')}</span>
           </div>
         </label>
       </section>

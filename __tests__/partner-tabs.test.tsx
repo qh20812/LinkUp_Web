@@ -40,17 +40,18 @@ describe('PartnerTabs', () => {
     mockUsePathname.mockReturnValue('/partner/dashboard')
   })
 
-  it('render đủ 3 tab với href đúng', () => {
+  it('render đủ 4 tab với href đúng', () => {
     renderWithProviders(<PartnerTabs />)
 
     const nav = screen.getByRole('navigation')
     const links = within(nav).getAllByRole('link')
 
-    expect(links).toHaveLength(3)
+    expect(links).toHaveLength(4)
     expect(links.map((l) => l.getAttribute('href'))).toEqual([
       '/partner/dashboard',
       '/partner/ads',
       '/partner/packages',
+      '/partner/payments',
     ])
   })
 
@@ -60,6 +61,7 @@ describe('PartnerTabs', () => {
     expect(screen.getByText('partner.nav.dashboard')).toBeInTheDocument()
     expect(screen.getByText('partner.nav.ads')).toBeInTheDocument()
     expect(screen.getByText('partner.nav.packages')).toBeInTheDocument()
+    expect(screen.getByText('partner.nav.payments')).toBeInTheDocument()
   })
 
   it('đánh dấu aria-current="page" đúng tab đang mở', () => {

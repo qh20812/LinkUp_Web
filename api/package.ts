@@ -19,3 +19,12 @@ export const createMoMoPayment = async (packageId: string): Promise<CreatePaymen
   })
   return res.data
 }
+
+/** Tạo link thanh toán VNPay (sandbox/production theo env server). */
+export const createVNPayPayment = async (packageId: string): Promise<CreatePaymentResponse> => {
+  const res = await request<{ data: CreatePaymentResponse }>('/ads-management/payments/vnpay', {
+    method: 'POST',
+    body: JSON.stringify({ package_id: packageId }),
+  })
+  return res.data
+}

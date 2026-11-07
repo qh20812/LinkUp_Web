@@ -80,6 +80,8 @@
     "language": "Language",
     "toggleMenu": "Toggle menu",
     "ads": "Ads",
+    "packages": "Ad packages",
+    "payments": "Payments",
     "violationRules": "Violation rules"
   },
   "userNavbar": {
@@ -2251,6 +2253,7 @@
       "dashboard": "Overview",
       "ads": "My Ads",
       "packages": "Packages",
+      "payments": "Payments",
       "analytics": "Analytics"
     },
     "overview": {
@@ -2405,6 +2408,44 @@
     "momo": "Pay with MoMo",
     "momoDescription": "Secure payment via the MoMo e-wallet (VND).",
     "payNow": "Pay now"
+  },
+  "payments": {
+    "title": "Payment history",
+    "adminTitle": "Transactions",
+    "txnRef": "Txn ref",
+    "user": "User",
+    "package": "Package",
+    "amount": "Amount",
+    "gateway": "Gateway",
+    "status": "Status",
+    "createdAt": "Created at",
+    "noData": "No transactions yet",
+    "allStatuses": "All statuses",
+    "allGateways": "All gateways",
+    "status_pending": "Pending",
+    "status_success": "Success",
+    "status_failed": "Failed",
+    "status_cancelled": "Cancelled",
+    "retryHint": "Failed or pending transactions can be paid again on the Packages page.",
+    "filterUser": "Filter by user ID"
+  },
+  "packagesAdmin": {
+    "title": "Ad packages",
+    "create": "Create package",
+    "edit": "Edit package",
+    "name": "Name",
+    "description": "Description",
+    "price": "Price/month",
+    "slots": "Slots",
+    "duration": "Duration",
+    "days": "{n} days",
+    "features": "Features",
+    "status": "Status",
+    "active": "On sale",
+    "inactive": "Off sale",
+    "sortOrder": "Sort order",
+    "created": "Package created",
+    "updated": "Package updated"
   },
   "hashtag": {
     "posts": "posts",
