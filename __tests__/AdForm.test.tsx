@@ -31,6 +31,7 @@ jest.mock('next/navigation', () => ({
 import { createAd, trackAdAction } from '@/api/partner'
 import { getMySubscription } from '@/api/package'
 import { ApiError } from '@/api/api'
+import { saveAdDraft } from '@/lib/ad-draft'
 import AdForm, { type AdFormProps } from '@/components/AdForm'
 import type { SubscriptionResponse } from '@/types'
 
@@ -281,6 +282,63 @@ describe('AdForm', () => {
     expect(
       await screen.findByText('Vui lòng sửa các lỗi được đánh dấu trước khi gửi.'),
     ).toBeInTheDocument()
+  })
+
+  it('khôi phục bản nháp khi mở form', async () => {
+    const user = userEvent.setup()
+    saveAdDraft({
+      title: 'Nháp tiêu đề',
+      content: 'Nháp nội dung',
+      targetUrl: 'https://linkup.vn/sale',
+      format: 'image',
+      budget: '100000',
+      dailyBudget: '0',
+      cpmPrice: '25000',
+      cpcPrice: '1000',
+      maxImpressions: '0',
+      startedAt: '2026-11-08T08:00',
+      expiresAt: '2026-12-08T08:00',
+      targetGender: 'all',
+      targetAgeMin: '0',
+      targetAgeMax: '100',
+      targetProvinces: [],
+    }, 'anon')
+    renderForm()
+
+    expect(await screen.findByText('Có bản nháp chưa gửi')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect((await screen.findByLabelText(/^Tiêu đề/) as HTMLInputElement).value).toBe('Nháp tiêu đề')
+  })
+
+  it('dùng mẫu điền tiêu đề và nội dung', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await screen.findByLabelText(/^Tiêu đề/)
+    await user.click(screen.getByRole('button', { name: 'Dùng mẫu có sẵn' }))
+    await user.click(await screen.findByRole('button', { name: /Cà phê mới rang/ }))
+
+    expect((screen.getByLabelText(/^Tiêu đề/) as HTMLInputElement).value).toContain('Cà phê mới rang')
+    expect((screen.getByRole('textbox', { name: /Nội dung/i }) as HTMLTextAreaElement).value).toContain(
+      'rang mới',
+    )
+  })
+
+  it('tự lưu nháp sau khi người dùng nhập', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(await screen.findByLabelText(/^Tiêu đề/), 'Nháp tự động')
+
+    await waitFor(
+      () => {
+        const raw = localStorage.getItem('ad-draft:v1:anon')
+        expect(raw).toBeTruthy()
+        expect(JSON.parse(raw as string).data.title).toBe('Nháp tự động')
+      },
+      { timeout: 3000 },
+    )
   })
 
   it('hiện toast thành công sau khi tạo', async () => {

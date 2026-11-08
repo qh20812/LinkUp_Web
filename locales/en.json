@@ -2325,7 +2325,14 @@
       "emptyStep3Title": "Wait for review",
       "emptyStep3Desc": "The ad does not run and is not charged until it is approved.",
       "emptyBuyPlan": "Get an ad plan",
-      "emptyHelp": "Read the ad creation guide"
+      "emptyHelp": "Read the ad creation guide",
+      "tipPending": "Waiting for review — usually within a working day.",
+      "tipRejected": "Rejected — edit it and submit again.",
+      "tipPaused": "Paused — resume when you are ready.",
+      "tipBudgetLow": "Budget almost spent (≥ 80% used).",
+      "tipCompleted": "Finished.",
+      "tipFix": "Fix & resubmit",
+      "tipCreate": "Create a new ad"
     },
     "analytics": {
       "title": "Detailed Analytics",
@@ -2450,6 +2457,16 @@
       "preflightDailyOverBudget": "Daily budget is larger than the total budget.",
       "preflightFree": "CPM and CPC are both 0 — the ad will run for free.",
       "preflightShortTitle": "The title is a bit short (recommended at least {n} characters).",
+      "templateButton": "Use a template",
+      "templateTitle": "Pick a content template",
+      "templateHint": "Templates only fill in the title and ad copy; you can still edit them and pick an image afterwards.",
+      "templateOverwrite": "The form already has content. Replace it with this template?",
+      "templateOverwriteConfirm": "Replace",
+      "templateBack": "Back",
+      "draftTitle": "You have an unsent draft",
+      "draftDesc": "You filled in the form at {time}. Continue or start over? (media must be re-selected)",
+      "draftResume": "Continue",
+      "draftDiscard": "Start over",
       "checkingPackage": "Checking your ad plan…",
       "packageLine": "Plan {name} · {left}/{max} slots left",
       "noPackageTitle": "You need an active plan to create ads",
@@ -2511,6 +2528,18 @@
       "manageBody": "You can edit while the ad is Pending, Rejected, Active or Paused. Rejected ads also get a \"Save & resubmit\" button. Delete from the ⋮ menu; this cannot be undone.",
       "targetingTitle": "Targeting",
       "targetingBody": "Pick gender, age range and provinces. No province selected means nationwide. Provinces are matched against the viewer's current province in their profile."
+    },
+    "onboarding": {
+      "title": "Get started with ads",
+      "subtitle": "{done}/{total} steps done before your first campaign can run.",
+      "stepPlan": "Have an active ad plan",
+      "stepCreate": "Create your first ad",
+      "stepApprove": "Get approved",
+      "stepReach": "Get your first impression",
+      "ctaPlan": "Get an ad plan",
+      "ctaCreate": "Create an ad",
+      "help": "Read the guide",
+      "dismiss": "Hide checklist"
     }
   },
   "packages": {

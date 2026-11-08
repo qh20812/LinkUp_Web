@@ -24,8 +24,10 @@ import {
   type AdMediaCheck,
 } from '../lib/ad-media'
 import { buildAdPreflight } from '../lib/ad-preflight'
+import { clearAdDraft, loadAdDraft, saveAdDraft, type AdDraft, type AdDraftData } from '../lib/ad-draft'
 import type { SubscriptionResponse } from '../types'
 import AdCard from './ads/AdCard'
+import AdTemplatePicker from './ads/AdTemplatePicker'
 import FieldHelp from './ads/FieldHelp'
 import ProvinceMultiSelect from './ads/ProvinceMultiSelect'
 import styles from './AdForm.module.css'
@@ -128,6 +130,23 @@ export default function AdForm({
   const mediaIdRef = useRef(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [templateOpen, setTemplateOpen] = useState(false)
+  /** Bản nháp tìm thấy khi mở form; chưa chọn Tiếp tục/Bắt đầu mới thì chưa render form. */
+  const [draftPrompt, setDraftPrompt] = useState<AdDraft | null>(null)
+  const [draftReady, setDraftReady] = useState(false)
+  /** Đã tạo ad xong → không autosave lại thành nháp mới. */
+  const [finished, setFinished] = useState(false)
+
+  useEffect(() => {
+    const draft = loadAdDraft()
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (draft) {
+      setDraftPrompt(draft)
+    } else {
+      setDraftReady(true)
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [])
 
   // Cùng key với trang /partner/packages để dùng chung cache SWR.
   const {
@@ -165,6 +184,89 @@ export default function AdForm({
     }),
     [title, content, targetUrl, format, mediaItems, t],
   )
+
+  const draftData: AdDraftData = useMemo(
+    () => ({
+      title,
+      content,
+      targetUrl,
+      format,
+      budget,
+      dailyBudget,
+      cpmPrice,
+      cpcPrice,
+      maxImpressions,
+      startedAt,
+      expiresAt,
+      targetGender,
+      targetAgeMin,
+      targetAgeMax,
+      targetProvinces,
+    }),
+    [
+      title,
+      content,
+      targetUrl,
+      format,
+      budget,
+      dailyBudget,
+      cpmPrice,
+      cpcPrice,
+      maxImpressions,
+      startedAt,
+      expiresAt,
+      targetGender,
+      targetAgeMin,
+      targetAgeMax,
+      targetProvinces,
+    ],
+  )
+
+  // Autosave nháp sau 500ms; chỉ lưu khi có nội dung để không tạo nháp rỗng.
+  useEffect(() => {
+    if (!draftReady || finished) return
+    const hasContent =
+      !!draftData.title.trim() ||
+      !!draftData.content.trim() ||
+      !!draftData.targetUrl.trim() ||
+      !!draftData.budget.trim()
+    const timer = setTimeout(() => {
+      if (hasContent) {
+        saveAdDraft(draftData)
+      } else {
+        clearAdDraft()
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [draftReady, finished, draftData])
+
+  const resumeDraft = () => {
+    if (!draftPrompt) return
+    const data = draftPrompt.data
+    setTitle(data.title)
+    setContent(data.content)
+    setTargetUrl(data.targetUrl)
+    setFormat(data.format)
+    setBudget(data.budget)
+    setDailyBudget(data.dailyBudget)
+    setCpmPrice(data.cpmPrice)
+    setCpcPrice(data.cpcPrice)
+    setMaxImpressions(data.maxImpressions)
+    setStartedAt(data.startedAt)
+    setExpiresAt(data.expiresAt)
+    setTargetGender(data.targetGender)
+    setTargetAgeMin(data.targetAgeMin)
+    setTargetAgeMax(data.targetAgeMax)
+    setTargetProvinces(data.targetProvinces)
+    setDraftPrompt(null)
+    setDraftReady(true)
+  }
+
+  const discardDraft = () => {
+    clearAdDraft()
+    setDraftPrompt(null)
+    setDraftReady(true)
+  }
 
   // Wizard chỉ bật ở /partner/ads/new; mặc định render một trang như trước.
   const showContent = !wizard || step === 0
@@ -423,6 +525,8 @@ export default function AdForm({
         target_locations: targetProvinces.length > 0 ? targetProvinces : undefined,
       }, mediaItems.length > 0 ? mediaItems.map((item) => item.file) : undefined)
       toast({ title: successMessage ?? t('partner.form.createSuccess'), type: 'success' })
+      clearAdDraft()
+      setFinished(true)
       invalidate('/ads-management')
       invalidate('/admin/ads')
       if (wizard) {
@@ -477,7 +581,29 @@ export default function AdForm({
         <h1 className={styles.title}>{heading}</h1>
       </div>
 
-      {submittedAdId !== null ? (
+      {draftPrompt ? (
+        <section className={styles.draftCard} aria-labelledby="ad-draft-title">
+          <i className="bx bx-save" aria-hidden="true" />
+          <div>
+            <h2 id="ad-draft-title" className={styles.draftTitle}>
+              {t('partner.form.draftTitle')}
+            </h2>
+            <p className={styles.draftText}>
+              {t('partner.form.draftDesc', {
+                time: new Date(draftPrompt.savedAt).toLocaleString('vi-VN'),
+              })}
+            </p>
+            <div className={styles.draftActions}>
+              <button type="button" className={styles.btnSubmit} onClick={resumeDraft}>
+                {t('partner.form.draftResume')}
+              </button>
+              <button type="button" className={styles.btnCancel} onClick={discardDraft}>
+                {t('partner.form.draftDiscard')}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : submittedAdId !== null ? (
         <section className={styles.successCard} aria-labelledby="ad-success-title">
           <i className="bx bx-check-circle" aria-hidden="true" />
           <div>
@@ -575,6 +701,17 @@ export default function AdForm({
               <legend id="ad-section-content" className={styles.sectionTitle}>
                 {t('partner.form.sectionContent')}
               </legend>
+
+              <div className={styles.templateRow}>
+                <button
+                  type="button"
+                  className={styles.templateBtn}
+                  onClick={() => setTemplateOpen(true)}
+                >
+                  <i className="bx bx-magic-wand" aria-hidden="true" />
+                  {t('partner.form.templateButton')}
+                </button>
+              </div>
 
               <div className={styles.section}>
                 <div className={styles.labelRow}>
@@ -1142,6 +1279,16 @@ export default function AdForm({
       )}
         </>
       )}
+
+      <AdTemplatePicker
+        open={templateOpen}
+        onClose={() => setTemplateOpen(false)}
+        hasExistingContent={!!(title.trim() || content.trim())}
+        onApply={(template) => {
+          setTitle(template.title)
+          setContent(template.content)
+        }}
+      />
     </div>
   )
 }

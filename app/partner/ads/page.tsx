@@ -9,6 +9,7 @@ import { useToast } from '../../../contexts/ToastContext'
 import { deleteAd, submitAdForReview, updateAdStatus } from '../../../api/partner'
 import { getMySubscription } from '../../../api/package'
 import { ApiError } from '../../../api/api'
+import { getAdTip } from '../../../lib/ad-tips'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import Pagination from '../../../components/Pagination'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
@@ -272,6 +273,50 @@ export default function PartnerAdsPage() {
                   <i className="bx bx-error-circle" />
                 </span>
               )}
+              {(() => {
+                const tip = getAdTip(ad)
+                if (!tip) return null
+                const tipKey =
+                  tip === 'pending'
+                    ? 'tipPending'
+                    : tip === 'rejected'
+                      ? 'tipRejected'
+                      : tip === 'paused'
+                        ? 'tipPaused'
+                        : tip === 'budgetLow'
+                          ? 'tipBudgetLow'
+                          : 'tipCompleted'
+                const icon =
+                  tip === 'pending'
+                    ? 'bx-time-five'
+                    : tip === 'rejected'
+                      ? 'bx-error-circle'
+                      : tip === 'paused'
+                        ? 'bx-pause-circle'
+                        : tip === 'budgetLow'
+                          ? 'bx-error'
+                          : 'bx-check-circle'
+                return (
+                  <span className={`${styles.rowTip} ${tip === 'budgetLow' ? styles.rowTipWarn : ''}`}>
+                    <i className={`bx ${icon}`} aria-hidden="true" />
+                    <span>{t(`partner.ads.${tipKey}`)}</span>
+                    {tip === 'rejected' && (
+                      <button
+                        type="button"
+                        className={styles.tipAction}
+                        onClick={() => router.push(`/partner/ads/${ad.id}/edit`)}
+                      >
+                        {t('partner.ads.tipFix')}
+                      </button>
+                    )}
+                    {tip === 'completed' && (
+                      <Link href="/partner/ads/new" className={styles.tipAction}>
+                        {t('partner.ads.tipCreate')}
+                      </Link>
+                    )}
+                  </span>
+                )
+              })()}
             </span>
             <span className={styles.colStatus}>
               <span className={`${styles.badge} ${statusBadgeClass(ad.status)}`}>

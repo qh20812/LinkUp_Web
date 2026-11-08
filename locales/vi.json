@@ -2315,7 +2315,14 @@
       "emptyStep3Title": "Chờ duyệt",
       "emptyStep3Desc": "Ad chưa chạy và chưa trừ tiền cho tới khi được duyệt.",
       "emptyBuyPlan": "Mua gói quảng cáo",
-      "emptyHelp": "Xem hướng dẫn tạo quảng cáo"
+      "emptyHelp": "Xem hướng dẫn tạo quảng cáo",
+      "tipPending": "Đang chờ duyệt — thường trong ngày làm việc.",
+      "tipRejected": "Bị từ chối — sửa rồi gửi lại.",
+      "tipPaused": "Đang tạm dừng — bật lại khi sẵn sàng.",
+      "tipBudgetLow": "Sắp hết ngân sách (đã dùng ≥ 80%).",
+      "tipCompleted": "Đã kết thúc.",
+      "tipFix": "Sửa & gửi lại",
+      "tipCreate": "Tạo ad mới"
     },
     "analytics": {
       "title": "Phân tích chi tiết",
@@ -2440,6 +2447,16 @@
       "preflightDailyOverBudget": "Ngân sách/ngày lớn hơn tổng ngân sách.",
       "preflightFree": "CPM và CPC đều bằng 0 — quảng cáo sẽ chạy miễn phí.",
       "preflightShortTitle": "Tiêu đề hơi ngắn (khuyến nghị từ {n} ký tự).",
+      "templateButton": "Dùng mẫu có sẵn",
+      "templateTitle": "Chọn mẫu nội dung",
+      "templateHint": "Mẫu chỉ điền tiêu đề và nội dung; bạn vẫn chỉnh sửa và chọn ảnh sau đó.",
+      "templateOverwrite": "Form đang có nội dung. Ghi đè bằng mẫu này?",
+      "templateOverwriteConfirm": "Ghi đè",
+      "templateBack": "Quay lại",
+      "draftTitle": "Có bản nháp chưa gửi",
+      "draftDesc": "Bạn đã điền form lúc {time}. Tiếp tục hay bắt đầu mới? (ảnh/video cần chọn lại)",
+      "draftResume": "Tiếp tục",
+      "draftDiscard": "Bắt đầu mới",
       "checkingPackage": "Đang kiểm tra gói quảng cáo…",
       "packageLine": "Gói {name} · còn {left}/{max} slot",
       "noPackageTitle": "Bạn cần gói đang hoạt động để tạo quảng cáo",
@@ -2501,6 +2518,18 @@
       "manageBody": "Sửa được khi quảng cáo đang Chờ duyệt, Bị từ chối, Đang chạy hoặc Tạm dừng. Ad bị từ chối có thêm nút \"Lưu & gửi duyệt lại\". Xoá trong menu ⋮ và thao tác này không hoàn tác.",
       "targetingTitle": "Nhắm mục tiêu",
       "targetingBody": "Chọn giới tính, độ tuổi và tỉnh/thành. Không chọn tỉnh nào = chạy toàn quốc. Tỉnh/thành được so khớp với nơi ở hiện tại trong hồ sơ người xem."
+    },
+    "onboarding": {
+      "title": "Bắt đầu với quảng cáo",
+      "subtitle": "Hoàn thành {done}/{total} bước để chiến dịch đầu tiên chạy.",
+      "stepPlan": "Có gói quảng cáo đang hoạt động",
+      "stepCreate": "Tạo quảng cáo đầu tiên",
+      "stepApprove": "Được duyệt",
+      "stepReach": "Có lượt hiển thị đầu tiên",
+      "ctaPlan": "Mua gói quảng cáo",
+      "ctaCreate": "Tạo quảng cáo",
+      "help": "Xem hướng dẫn",
+      "dismiss": "Ẩn checklist"
     }
   },
   "packages": {

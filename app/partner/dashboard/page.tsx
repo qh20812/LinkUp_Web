@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { getOverview } from '../../../api/partner'
 import StatCard from '../../../components/StatCard'
+import OnboardingChecklist from '../../../components/partner/OnboardingChecklist'
 import type { AdOverview } from '../../../types'
 import styles from './Dashboard.module.css'
 
@@ -18,6 +19,8 @@ export default function PartnerDashboardPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>{t('partner.overview.title')}</h1>
+
+      <OnboardingChecklist />
 
       <div className={styles.statsGrid}>
         <StatCard

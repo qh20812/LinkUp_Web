@@ -492,6 +492,65 @@ fieldset.formSection > legend {
   cursor: pointer;
 }
 
+/* ─── C3/C5: draft card + template button ─── */
+.draftCard {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  max-width: 720px;
+  padding: var(--space-xl);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+}
+
+.draftCard > i {
+  font-size: 32px;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.draftTitle {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.draftText {
+  margin: 0 0 var(--space-md);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.draftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.templateRow {
+  margin-bottom: var(--space-md);
+}
+
+.templateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.templateBtn:hover {
+  background: var(--color-primary-light);
+}
+
 /* ─── Mức B1: wizard 4 bước ─── */
 .steps {
   margin-bottom: var(--space-lg);
