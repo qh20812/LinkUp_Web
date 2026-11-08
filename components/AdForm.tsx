@@ -13,6 +13,17 @@ import { ApiError } from '../api/api'
 import { invalidate } from '../api/swr'
 import { toDateTimeLocal } from '../lib/ad-datetime'
 import { estimateAdReach, formatVnd } from '../lib/ads-estimate'
+import {
+  AD_MEDIA_LIMITS,
+  checkAdMediaFiles,
+  formatFileSize,
+  isCompatibleMedia,
+  mediaIssueKey,
+  mediaKindOf,
+  probeVideoDuration,
+  type AdMediaCheck,
+} from '../lib/ad-media'
+import { buildAdPreflight } from '../lib/ad-preflight'
 import type { SubscriptionResponse } from '../types'
 import AdCard from './ads/AdCard'
 import FieldHelp from './ads/FieldHelp'
@@ -104,8 +115,17 @@ export default function AdForm({
   const [targetAgeMin, setTargetAgeMin] = useState('0')
   const [targetAgeMax, setTargetAgeMax] = useState('100')
   const [targetProvinces, setTargetProvinces] = useState<string[]>([])
-  const [mediaFile, setMediaFile] = useState<File | null>(null)
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null)
+  interface MediaItem {
+    id: number
+    file: File
+    preview: string
+    /** null = chưa đọc được duration (video đang kiểm tra hoặc lỗi). */
+    durationSeconds: number | null
+    probing: boolean
+  }
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
+  const mediaItemsRef = useRef<MediaItem[]>([])
+  const mediaIdRef = useRef(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -138,16 +158,12 @@ export default function AdForm({
       content: content.trim() || t('partner.form.previewContentPlaceholder'),
       target_url: targetUrl || 'https://linkup.vn',
       format,
-      media_list: mediaPreview
-        ? [
-            {
-              url: mediaPreview,
-              media_type: mediaFile?.type.startsWith('video') ? 'video' : 'image',
-            },
-          ]
-        : [],
+      media_list: mediaItems.map((item) => ({
+        url: item.preview,
+        media_type: mediaKindOf(item.file) === 'video' ? 'video' : 'image',
+      })),
     }),
-    [title, content, targetUrl, format, mediaPreview, mediaFile, t],
+    [title, content, targetUrl, format, mediaItems, t],
   )
 
   // Wizard chỉ bật ở /partner/ads/new; mặc định render một trang như trước.
@@ -178,11 +194,119 @@ export default function AdForm({
 
   const dateLabel = (value: string) => value.replace('T', ' ')
 
+  const maxMediaFiles = format === 'carousel' ? AD_MEDIA_LIMITS.carouselMaxFiles : 1
+  const canAddMedia = mediaItems.length < maxMediaFiles
+
+  const mediaCheck: AdMediaCheck = useMemo(
+    () =>
+      checkAdMediaFiles(
+        mediaItems.map((item) => ({
+          name: item.file.name,
+          size: item.file.size,
+          type: item.file.type,
+          durationSeconds: item.durationSeconds,
+        })),
+        format,
+      ),
+    [mediaItems, format],
+  )
+
+  const preflight = useMemo(
+    () =>
+      buildAdPreflight({
+        title,
+        content,
+        targetUrl,
+        budget: Number(budget) || 0,
+        dailyBudget: Number(dailyBudget) || 0,
+        cpm: Number(cpmPrice) || 0,
+        cpc: Number(cpcPrice) || 0,
+        startedAt,
+        expiresAt,
+        ageMin: Number(targetAgeMin) || 0,
+        ageMax: Number(targetAgeMax) || 100,
+        format,
+        mediaCount: mediaItems.length,
+        mediaCheck,
+        estimate,
+      }),
+    [
+      title,
+      content,
+      targetUrl,
+      budget,
+      dailyBudget,
+      cpmPrice,
+      cpcPrice,
+      startedAt,
+      expiresAt,
+      targetAgeMin,
+      targetAgeMax,
+      format,
+      mediaItems.length,
+      mediaCheck,
+      estimate,
+    ],
+  )
+  const preflightErrors = preflight.filter((issue) => issue.level === 'error')
+
+  const pendingFocusRef = useRef<string | null>(null)
+  const FIELD_STEP: Record<string, number> = {
+    'ad-title': 0,
+    'ad-content': 0,
+    'ad-target-url': 0,
+    'ad-media-input': 0,
+    'ad-format': 0,
+    'ad-budget': 1,
+    'ad-daily-budget': 1,
+    'ad-cpm-price': 1,
+    'ad-cpc-price': 1,
+    'ad-max-impressions': 1,
+    'ad-started-at': 1,
+    'ad-expires-at': 1,
+    'ad-age-min': 2,
+    'ad-age-max': 2,
+  }
+
+  const jumpToField = (fieldId: string) => {
+    pendingFocusRef.current = fieldId
+    goToStep(FIELD_STEP[fieldId] ?? 0)
+  }
+
+  // Đọc duration video sau khi chọn file để checkAdMediaFiles chặn được video dài.
+  const probeVideoItems = (items: MediaItem[]) => {
+    for (const item of items) {
+      if (!item.probing) continue
+      void probeVideoDuration(item.file).then((duration) => {
+        setMediaItems((prev) =>
+          prev.map((current) =>
+            current.id === item.id
+              ? { ...current, durationSeconds: duration, probing: false }
+              : current,
+          ),
+        )
+      })
+    }
+  }
+
+  // Dọn object URL của preview khi rời form.
+  useEffect(() => {
+    mediaItemsRef.current = mediaItems
+  }, [mediaItems])
+
+  useEffect(() => {
+    return () => {
+      mediaItemsRef.current.forEach((item) => URL.revokeObjectURL(item.preview))
+    }
+  }, [])
+
   // Chuyển bước bằng bàn phím/chuột đều đưa focus về field đầu của bước mới;
-  // lần render đầu tiên thì không cướp focus của trang.
+  // lần render đầu tiên thì không cướp focus của trang. Khi bấm vào một gợi ý
+  // preflight thì ưu tiên focus đúng field của gợi ý đó.
   useEffect(() => {
     if (!wizard || !stepTouched.current) return
-    const id = FOCUS_FIELD_BY_STEP[step]
+    const id = pendingFocusRef.current ?? FOCUS_FIELD_BY_STEP[step]
+    pendingFocusRef.current = null
     if (id) document.getElementById(id)?.focus()
   }, [wizard, step])
 
@@ -203,17 +327,69 @@ export default function AdForm({
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (mediaPreview) URL.revokeObjectURL(mediaPreview)
-    setMediaFile(file)
-    setMediaPreview(URL.createObjectURL(file))
+    const incoming = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    const compatibleIncoming = incoming.filter((file) => isCompatibleMedia(file, format))
+    if (compatibleIncoming.length === 0) return
+
+    // image/video: thay file cũ; carousel: nối thêm, tối đa 6.
+    const base = format === 'carousel' ? [...mediaItems] : []
+    if (format !== 'carousel') {
+      mediaItems.forEach((item) => URL.revokeObjectURL(item.preview))
+    }
+
+    const next = [...base]
+    for (const file of compatibleIncoming) {
+      if (next.length >= maxMediaFiles) break
+      next.push({
+        id: ++mediaIdRef.current,
+        file,
+        preview: URL.createObjectURL(file),
+        durationSeconds: null,
+        probing: mediaKindOf(file) === 'video',
+      })
+    }
+
+    setMediaItems(next)
+    probeVideoItems(next)
+  }
+
+  const removeMedia = (id: number) => {
+    setMediaItems((prev) => {
+      const target = prev.find((item) => item.id === id)
+      if (target) URL.revokeObjectURL(target.preview)
+      return prev.filter((item) => item.id !== id)
+    })
+  }
+
+  const moveMedia = (id: number, direction: -1 | 1) => {
+    setMediaItems((prev) => {
+      const index = prev.findIndex((item) => item.id === id)
+      const nextIndex = index + direction
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
+      return next
+    })
   }
 
   const clearMedia = () => {
-    if (mediaPreview) URL.revokeObjectURL(mediaPreview)
-    setMediaFile(null)
-    setMediaPreview(null)
+    mediaItems.forEach((item) => URL.revokeObjectURL(item.preview))
+    setMediaItems([])
+  }
+
+  // Đổi định dạng: bỏ media không còn tương thích (vd đang là ảnh mà chọn video).
+  const handleFormatChange = (nextFormat: string) => {
+    setFormat(nextFormat)
+    setMediaItems((prev) => {
+      const compatible = prev.filter((item) => isCompatibleMedia(item.file, nextFormat))
+      const max = nextFormat === 'carousel' ? AD_MEDIA_LIMITS.carouselMaxFiles : 1
+      const kept = compatible.slice(0, max)
+      prev
+        .filter((item) => !kept.includes(item))
+        .forEach((item) => URL.revokeObjectURL(item.preview))
+      return kept
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,6 +397,10 @@ export default function AdForm({
     setSubmitError(null)
     if (!title || !content || !targetUrl || !budget) {
       toast({ title: t('common.error'), type: 'error' })
+      return
+    }
+    if (mediaCheck.errors.length > 0 || (wizard && preflightErrors.length > 0)) {
+      toast({ title: t('partner.form.preflightBlocked'), type: 'error' })
       return
     }
     setSubmitting(true)
@@ -241,7 +421,7 @@ export default function AdForm({
         target_age_min: Number(targetAgeMin) || 0,
         target_age_max: Number(targetAgeMax) || 100,
         target_locations: targetProvinces.length > 0 ? targetProvinces : undefined,
-      }, mediaFile ?? undefined)
+      }, mediaItems.length > 0 ? mediaItems.map((item) => item.file) : undefined)
       toast({ title: successMessage ?? t('partner.form.createSuccess'), type: 'success' })
       invalidate('/ads-management')
       invalidate('/admin/ads')
@@ -397,34 +577,107 @@ export default function AdForm({
               </legend>
 
               <div className={styles.section}>
-                <label className={styles.label}>{t('partner.form.uploadMedia')}</label>
+                <div className={styles.labelRow}>
+                  <label className={styles.label} htmlFor="ad-media-input">{t('partner.form.uploadMedia')}</label>
+                  {format === 'carousel' && (
+                    <span className={styles.mediaCount}>
+                      {t('partner.form.mediaCount', { count: mediaItems.length, max: maxMediaFiles })}
+                    </span>
+                  )}
+                </div>
+
                 <div className={styles.uploadArea}>
-                  {mediaPreview ? (
-                    <div className={styles.preview}>
-                      {mediaFile?.type.startsWith('video') ? (
-                        <video src={mediaPreview} controls className={styles.previewVideo} />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={mediaPreview} alt="Preview" className={styles.previewImg} />
-                      )}
-                      <button type="button" className={styles.removeBtn} onClick={clearMedia}>
-                        <i className="bx bx-x" />
-                      </button>
+                  {mediaItems.length > 0 && (
+                    <div className={styles.mediaGrid}>
+                      {mediaItems.map((item, index) => (
+                        <div key={item.id} className={styles.mediaItem}>
+                          {mediaKindOf(item.file) === 'video' ? (
+                            <video src={item.preview} controls className={styles.mediaThumb} />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.preview} alt={item.file.name} className={styles.mediaThumb} />
+                          )}
+                          {index === 0 && format === 'carousel' && (
+                            <span className={styles.coverBadge}>{t('partner.form.mediaCover')}</span>
+                          )}
+                          <div className={styles.mediaActions}>
+                            <button
+                              type="button"
+                              className={styles.mediaBtn}
+                              aria-label={t('partner.form.mediaMoveLeft')}
+                              disabled={index === 0}
+                              onClick={() => moveMedia(item.id, -1)}
+                            >
+                              <i className="bx bx-left-arrow-alt" />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.mediaBtn}
+                              aria-label={t('partner.form.mediaMoveRight')}
+                              disabled={index === mediaItems.length - 1}
+                              onClick={() => moveMedia(item.id, 1)}
+                            >
+                              <i className="bx bx-right-arrow-alt" />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.mediaBtnDanger}
+                              aria-label={t('partner.form.mediaRemove')}
+                              onClick={() => removeMedia(item.id)}
+                            >
+                              <i className="bx bx-x" />
+                            </button>
+                          </div>
+                          <span className={styles.mediaSize}>
+                            {item.probing
+                              ? t('partner.form.mediaProbing')
+                              : formatFileSize(item.file.size)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
+                  )}
+
+                  {mediaItems.length > 1 && (
+                    <button type="button" className={styles.mediaClearAll} onClick={clearMedia}>
+                      {t('partner.form.mediaClearAll')}
+                    </button>
+                  )}
+
+                  {canAddMedia && (
                     <label className={styles.uploadLabel}>
                       <i className="bx bx-cloud-upload" />
                       <span>{t('partner.form.uploadMedia')}</span>
-                      <input type="file" accept="image/*,video/*" className={styles.fileInput} onChange={handleFileChange} />
+                      <input
+                        id="ad-media-input"
+                        type="file"
+                        accept={format === 'video' ? 'video/*' : format === 'carousel' ? 'image/*' : 'image/*,video/*'}
+                        multiple={format === 'carousel'}
+                        className={styles.fileInput}
+                        onChange={handleFileChange}
+                      />
                     </label>
                   )}
                 </div>
+
                 <p className={styles.hint}>{t('partner.form.mediaHint')}</p>
-                {!mediaFile && format !== 'carousel' && (
+                {mediaItems.length === 0 && format !== 'carousel' && (
                   <p className={styles.softWarn}>
                     <i className="bx bx-info-circle" aria-hidden="true" /> {t('partner.form.mediaWarn')}
                   </p>
                 )}
+                {mediaCheck.errors.map((issue, index) => (
+                  <p key={`media-error-${index}`} className={styles.mediaError}>
+                    <i className="bx bx-error-circle" aria-hidden="true" />{' '}
+                    {t(mediaIssueKey(issue.code), issue.params)}
+                  </p>
+                ))}
+                {mediaCheck.warnings.map((issue, index) => (
+                  <p key={`media-warning-${index}`} className={styles.softWarn}>
+                    <i className="bx bx-info-circle" aria-hidden="true" />{' '}
+                    {t(mediaIssueKey(issue.code), issue.params)}
+                  </p>
+                ))}
               </div>
 
               <div className={styles.section}>
@@ -433,7 +686,7 @@ export default function AdForm({
                   id="ad-format"
                   className={styles.select}
                   value={format}
-                  onChange={(e) => setFormat(e.target.value)}
+                  onChange={(e) => handleFormatChange(e.target.value)}
                   aria-describedby="ad-hint-format"
                 >
                   <option value="image">{t('partner.form.formatImage')}</option>
@@ -788,6 +1041,44 @@ export default function AdForm({
                   </p>
                 )}
 
+                <div className={styles.preflight} aria-labelledby="ad-preflight-title">
+                  <h3 id="ad-preflight-title" className={styles.preflightTitle}>
+                    {t('partner.form.preflightHeading')}
+                  </h3>
+                  {preflight.length === 0 ? (
+                    <p className={styles.preflightOk}>
+                      <i className="bx bx-check-circle" aria-hidden="true" /> {t('partner.form.preflightOk')}
+                    </p>
+                  ) : (
+                    <ul className={styles.preflightList}>
+                      {[...preflightErrors, ...preflight.filter((issue) => issue.level === 'warning')].map(
+                        (issue, index) => (
+                          <li
+                            key={`${issue.key}-${index}`}
+                            className={issue.level === 'error' ? styles.preflightError : styles.preflightWarning}
+                          >
+                            <i
+                              className={`bx ${issue.level === 'error' ? 'bx-error-circle' : 'bx-info-circle'}`}
+                              aria-hidden="true"
+                            />
+                            {issue.fieldId ? (
+                              <button
+                                type="button"
+                                className={styles.preflightLink}
+                                onClick={() => jumpToField(issue.fieldId as string)}
+                              >
+                                {t(issue.key, issue.params)}
+                              </button>
+                            ) : (
+                              <span>{t(issue.key, issue.params)}</span>
+                            )}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  )}
+                </div>
+
                 <p className={styles.pendingNote}>
                   <i className="bx bx-time-five" aria-hidden="true" /> {t('partner.form.pendingNote')}
                 </p>
@@ -818,7 +1109,11 @@ export default function AdForm({
                       {t('partner.form.next')} <i className="bx bx-right-arrow-alt" aria-hidden="true" />
                     </button>
                   ) : (
-                    <button type="submit" className={styles.btnSubmit} disabled={submitting}>
+                    <button
+                      type="submit"
+                      className={styles.btnSubmit}
+                      disabled={submitting || preflightErrors.length > 0}
+                    >
                       {submitting ? t('common.loading') : submitLabel}
                     </button>
                   )}

@@ -261,6 +261,28 @@ describe('AdForm', () => {
     expect(screen.getByRole('link', { name: 'Xem các gói quảng cáo' })).toHaveAttribute('href', '/packages')
   })
 
+  it('chặn ảnh vượt 10MB trước khi gọi API', async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    // Chờ form render xong (SWR subscription xong) rồi mới lấy input file.
+    await screen.findByLabelText(/^Tiêu đề/)
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const big = new File(['x'], 'big.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(big, 'size', { value: 10 * 1024 * 1024 + 1 })
+    await user.upload(input, big)
+
+    expect(await screen.findByText('File vượt quá 10 MB.')).toBeInTheDocument()
+
+    await fillRequiredFields(user)
+    await user.click(screen.getByRole('button', { name: 'Tạo quảng cáo' }))
+
+    expect(createAdMock).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText('Vui lòng sửa các lỗi được đánh dấu trước khi gửi.'),
+    ).toBeInTheDocument()
+  })
+
   it('hiện toast thành công sau khi tạo', async () => {
     const user = userEvent.setup()
     renderForm()

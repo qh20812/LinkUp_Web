@@ -59,6 +59,8 @@ beforeEach(() => {
     expires_at: '2026-12-31T00:00:00Z',
     status: 'active',
   })
+  Object.defineProperty(URL, 'createObjectURL', { value: jest.fn(() => 'blob:preview'), configurable: true })
+  Object.defineProperty(URL, 'revokeObjectURL', { value: jest.fn(), configurable: true })
 })
 
 describe('AdForm wizard', () => {
@@ -169,5 +171,55 @@ describe('AdForm wizard', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tiếp tục' }))
     expect(await screen.findByRole('group', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Lịch chạy' })).toBeInTheDocument()
+  })
+
+  it('carousel gửi nhiều ảnh theo đúng thứ tự sau khi đổi thứ tự', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.selectOptions(await screen.findByLabelText('Định dạng'), 'carousel')
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const files = ['1.jpg', '2.jpg', '3.jpg'].map(
+      (name, index) => new File([`${index}`], name, { type: 'image/jpeg' }),
+    )
+    await user.upload(input, files)
+
+    // Đưa ảnh đầu tiên sang phải → thứ tự gửi phải là 2, 1, 3.
+    await user.click(screen.getAllByLabelText('Chuyển sang phải')[0])
+
+    await user.type(screen.getByLabelText(/^Tiêu đề/), 'Carousel khuyến mãi tháng 11')
+    await user.type(screen.getByRole('textbox', { name: /Nội dung/i }), 'Bộ sưu tập mới')
+    await user.type(screen.getByLabelText(/URL đích/i), 'https://linkup.vn/sale')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    await user.click(await screen.findByRole('button', { name: 'Tiếp tục' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo quảng cáo' }))
+
+    await waitFor(() => expect(createAdMock).toHaveBeenCalledTimes(1))
+    const [payload, media] = createAdMock.mock.calls[0]
+    expect(payload.format).toBe('carousel')
+    expect((media as File[]).map((file) => file.name)).toEqual(['2.jpg', '1.jpg', '3.jpg'])
+  })
+
+  it('bước xem lại chặn gửi khi còn lỗi cứng và nhảy về field lỗi', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.click(await screen.findByRole('button', { name: 'Tiếp tục' }))
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 4/4')).toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: 'Tạo quảng cáo' })
+    expect(submit).toBeDisabled()
+    expect(screen.getByText('Chưa nhập tiêu đề.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Chưa nhập tiêu đề.' }))
+
+    expect(await screen.findByText('Bước 1/4')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByLabelText(/^Tiêu đề/))
   })
 })

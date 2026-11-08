@@ -321,6 +321,177 @@ fieldset.formSection > legend {
   padding: 0 var(--space-md) var(--space-md);
 }
 
+/* ─── C8/C1: media grid + preflight ─── */
+.mediaCount {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  text-align: left;
+}
+
+.mediaItem {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.mediaThumb {
+  display: block;
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  background: var(--color-bg-secondary);
+}
+
+.mediaActions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.mediaBtn,
+.mediaBtnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mediaBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mediaBtnDanger {
+  background: var(--color-danger);
+}
+
+.mediaSize {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+}
+
+.coverBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mediaError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.mediaClearAll {
+  margin-bottom: var(--space-sm);
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mediaClearAll:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.preflight {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.preflightTitle {
+  margin: 0 0 var(--space-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.preflightOk {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-success, #16a34a);
+}
+
+.preflightList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preflightError,
+.preflightWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.preflightError {
+  color: var(--color-danger);
+}
+
+.preflightWarning {
+  color: var(--color-warning, #b45309);
+}
+
+.preflightLink {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ─── Mức B1: wizard 4 bước ─── */
 .steps {
   margin-bottom: var(--space-lg);

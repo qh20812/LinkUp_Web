@@ -26,7 +26,7 @@ import { toAdISOString } from '../lib/ad-datetime'
 
 export { toAdISOString }
 
-export const createAd = (input: CreateAdInput, mediaFile?: File) => {
+export const createAd = (input: CreateAdInput, mediaFiles?: File | File[]) => {
   const formData = new FormData()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { media: _media, ...rest } = input as CreateAdInput & { media?: File }
@@ -36,8 +36,9 @@ export const createAd = (input: CreateAdInput, mediaFile?: File) => {
     expires_at: toAdISOString(rest.expires_at),
   }
   formData.append('data', JSON.stringify(payload))
-  if (mediaFile) {
-    formData.append('media', mediaFile)
+  const files = mediaFiles == null ? [] : Array.isArray(mediaFiles) ? mediaFiles : [mediaFiles]
+  for (const file of files) {
+    formData.append('media', file)
   }
   return request<{ message: string; data: PartnerAdListItem }>('/ads-management', {
     method: 'POST',
