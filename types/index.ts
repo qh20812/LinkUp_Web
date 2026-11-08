@@ -995,6 +995,7 @@ export interface PartnerAdListItem {
   clicks: number
   ctr: number
   media_uri: string
+  media_list?: { url: string; media_type?: string }[]
   target_gender: string
   target_age_min: number
   target_age_max: number

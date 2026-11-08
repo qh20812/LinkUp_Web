@@ -59,6 +59,18 @@ export const updateAd = (id: string, input: UpdateAdInput) =>
 export const deleteAd = (id: string) =>
   request(`/ads-management/${id}`, { method: 'DELETE' })
 
+/** Thay toàn bộ media của ad (multipart field `media`). */
+export const replaceAdMedia = (id: string, mediaFiles: File[]) => {
+  const formData = new FormData()
+  for (const file of mediaFiles) {
+    formData.append('media', file)
+  }
+  return request<{ message: string; data: PartnerAdListItem }>(`/ads-management/${id}/media`, {
+    method: 'PUT',
+    body: formData,
+  })
+}
+
 /** Gửi lại quảng cáo bị từ chối vào hàng đợi duyệt. */
 export const submitAdForReview = (id: string) =>
   request<{ message: string; data: PartnerAdListItem }>(`/ads-management/${id}/submit`, {

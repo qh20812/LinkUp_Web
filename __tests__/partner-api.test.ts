@@ -8,7 +8,7 @@ import {
 
 mockLocalStorage()
 
-import { createAd, getAdAnalytics, getFeedAds, getOverview, updateAd } from '@/api/partner'
+import { createAd, getAdAnalytics, getFeedAds, getOverview, replaceAdMedia, updateAd } from '@/api/partner'
 
 afterEach(() => {
   restoreFetch()
@@ -144,6 +144,24 @@ describe('getAdAnalytics', () => {
     const result = await getAdAnalytics('ad-1')
 
     expect(result.ctr).toBe(3.2)
+  })
+})
+
+describe('replaceAdMedia', () => {
+  it('gửi PUT multipart với toàn bộ file media', async () => {
+    mockFetch({ body: { message: 'ok', data: { id: 'ad-1' } } })
+    const files = [
+      new File(['1'], '1.jpg', { type: 'image/jpeg' }),
+      new File(['2'], '2.jpg', { type: 'image/jpeg' }),
+    ]
+
+    await replaceAdMedia('ad-1', files)
+
+    expect(getLastFetchPath()).toBe('/api/ads-management/ad-1/media')
+    expect(getLastFetchOptions()?.method).toBe('PUT')
+    const form = getLastFetchOptions()?.body as FormData
+    expect(form.getAll('media')).toHaveLength(2)
+    expect((form.getAll('media')[1] as File).name).toBe('2.jpg')
   })
 })
 

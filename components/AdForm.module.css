@@ -431,6 +431,11 @@ fieldset.formSection > legend {
   border-color: var(--color-danger);
 }
 
+.mediaPreviewCard {
+  margin-top: var(--space-md);
+  max-width: 360px;
+}
+
 .preflight {
   margin-top: var(--space-md);
   padding: var(--space-md);
