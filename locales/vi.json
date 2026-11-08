@@ -2346,7 +2346,13 @@
       "rangeCost": "Chi phí trong kỳ",
       "limited30": "Gói hiện tại chỉ xem được 30 ngày gần nhất.",
       "upgrade": "Nâng gói",
-      "close": "Đóng"
+      "close": "Đóng",
+      "insightsTitle": "Gợi ý tối ưu",
+      "insightsDisclaimer": "Gợi ý tham khảo dựa trên số liệu hiện tại, không phải cam kết kết quả.",
+      "insightLowCtr": "CTR đang ở {ctr}% (dưới 0,5%) — thử đổi tiêu đề hoặc ảnh bìa.",
+      "insightLowReach": "Mới có {impressions} lượt hiển thị — tăng CPM hoặc ngân sách/ngày để tiếp cận nhiều hơn.",
+      "insightHighCpc": "Mỗi click đang tốn khoảng {cpc}đ — xem lại CTA và trang đích.",
+      "insightShortVideo": "Ít người xem hết video — thử rút ngắn video."
     },
     "packages": {
       "title": "Gói dịch vụ",
@@ -2537,6 +2543,12 @@
     "subtitle": "Đăng ký gói quảng cáo để bắt đầu chạy chiến dịch trên LinkUp",
     "currentPackage": "Gói hiện tại",
     "currentHint": "Bạn đang dùng gói này. Chọn gói khác nếu muốn nâng cấp hoặc đổi gói.",
+    "perMonth": "/tháng",
+    "slotCount": "{n} slot",
+    "dayCount": "{n} ngày",
+    "video": "Video",
+    "carousel": "Carousel",
+    "advancedAnalytics": "Phân tích nâng cao",
     "noPackage": "Chưa có gói — chọn gói bên dưới để bắt đầu",
     "daysLeft": "còn {days} ngày",
     "slotsUsed": "{used}/{max} slot",

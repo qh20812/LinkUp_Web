@@ -89,4 +89,23 @@ describe('AdAnalyticsModal', () => {
     expect(await screen.findByText('Ad cũ')).toBeInTheDocument()
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
+
+  it('hiện gợi ý tối ưu khi CTR thấp', async () => {
+    analyticsMock.mockResolvedValue({ ...fullPerformance, ctr: 0.2 })
+
+    renderWithProviders(<AdAnalyticsModal open adId="ad-1" onClose={jest.fn()} />)
+
+    expect(await screen.findByText('Gợi ý tối ưu')).toBeInTheDocument()
+    expect(screen.getByText(/CTR đang ở 0\.20%/)).toBeInTheDocument()
+    expect(screen.getByText(/không phải cam kết/)).toBeInTheDocument()
+  })
+
+  it('im lặng khi chưa đủ 100 impression', async () => {
+    analyticsMock.mockResolvedValue({ ...fullPerformance, impressions: 40, ctr: 0.1 })
+
+    renderWithProviders(<AdAnalyticsModal open adId="ad-1" onClose={jest.fn()} />)
+
+    expect(await screen.findByText('Khuyến mãi tháng 11')).toBeInTheDocument()
+    expect(screen.queryByText('Gợi ý tối ưu')).not.toBeInTheDocument()
+  })
 })

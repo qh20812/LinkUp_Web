@@ -18,6 +18,7 @@ import { getAdAnalytics } from '../api/partner'
 import { getAdAnalytics as getAdminAdAnalytics } from '../api/admin'
 import { adRangeQuery } from '../lib/ad-datetime'
 import { formatVnd } from '../lib/ads-estimate'
+import { buildAdInsights, type AdInsightCode } from '../lib/ad-insights'
 import type { AdPerformance } from '../types'
 import styles from './AdAnalyticsModal.module.css'
 
@@ -75,6 +76,14 @@ export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner
     const map: Record<string, string> = { active: t('partner.ads.active'), paused: t('partner.ads.paused'), completed: t('partner.ads.completed'), pending: t('partner.ads.pending'), rejected: t('partner.ads.rejected'), suspended: t('partner.ads.suspended') }
     return map[s] ?? s
   }
+
+  const insightKeys: Record<AdInsightCode, string> = {
+    lowCtr: 'insightLowCtr',
+    lowReach: 'insightLowReach',
+    highCpc: 'insightHighCpc',
+    shortVideo: 'insightShortVideo',
+  }
+  const insights = data ? buildAdInsights(data) : []
 
   return (
     <Modal open={open} onClose={onClose} title={t('partner.analytics.title')}>
@@ -141,6 +150,22 @@ export default function AdAnalyticsModal({ open, adId, onClose, scope = 'partner
             <div className={styles.videoRow}>
               <span>{t('partner.analytics.videoStarts')}: {formatNumber(data.video_starts ?? 0)}</span>
               <span>{t('partner.analytics.videoCompletions')}: {formatNumber(data.video_completions ?? 0)}</span>
+            </div>
+          )}
+
+          {insights.length > 0 && (
+            <div className={styles.insights}>
+              <h4 className={styles.insightsTitle}>
+                <i className="bx bx-bulb" aria-hidden="true" /> {t('partner.analytics.insightsTitle')}
+              </h4>
+              <ul className={styles.insightsList}>
+                {insights.map((insight) => (
+                  <li key={insight.code}>
+                    {t(`partner.analytics.${insightKeys[insight.code]}`, insight.params)}
+                  </li>
+                ))}
+              </ul>
+              <p className={styles.insightsHint}>{t('partner.analytics.insightsDisclaimer')}</p>
             </div>
           )}
 

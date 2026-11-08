@@ -17,7 +17,7 @@ function daysLeftFrom(expiresAt: string): number {
 }
 
 export default function PackagesPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { toast } = useToast()
   const { isAuthenticated, isPartner, initializing } = useAuth()
 
@@ -73,7 +73,11 @@ export default function PackagesPage() {
   const selectedIsCurrent = !!selectedPackage && isCurrentPackage(selectedPackage)
 
   const formatPrice = (v: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
+    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(v)
 
   const handleSelect = (pkgId: string) => {
     if (!isAuthenticated && !initializing) {
@@ -167,29 +171,29 @@ export default function PackagesPage() {
               <h3 className={styles.cardName}>{pkg.name}</h3>
               <p className={styles.cardPrice}>
                 {formatPrice(pkg.price_monthly)}
-                <span>/tháng</span>
+                <span>{t('packages.perMonth')}</span>
               </p>
               <p className={styles.cardDesc}>{pkg.description}</p>
               <ul className={styles.cardFeatures}>
                 <li>
-                  <i className="bx bx-check" /> {pkg.max_slots} slot
+                  <i className="bx bx-check" /> {t('packages.slotCount', { n: pkg.max_slots })}
                 </li>
                 <li>
-                  <i className="bx bx-check" /> {pkg.max_duration_days} ngày
+                  <i className="bx bx-check" /> {t('packages.dayCount', { n: pkg.max_duration_days })}
                 </li>
                 {pkg.supports_video && (
                   <li>
-                    <i className="bx bx-check" /> Video
+                    <i className="bx bx-check" /> {t('packages.video')}
                   </li>
                 )}
                 {pkg.supports_carousel && (
                   <li>
-                    <i className="bx bx-check" /> Carousel
+                    <i className="bx bx-check" /> {t('packages.carousel')}
                   </li>
                 )}
                 {pkg.has_advanced_analytics && (
                   <li>
-                    <i className="bx bx-check" /> Phân tích nâng cao
+                    <i className="bx bx-check" /> {t('packages.advancedAnalytics')}
                   </li>
                 )}
               </ul>

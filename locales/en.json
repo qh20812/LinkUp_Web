@@ -2356,7 +2356,13 @@
       "rangeCost": "Cost in range",
       "limited30": "Your plan can only view the last 30 days.",
       "upgrade": "Upgrade plan",
-      "close": "Close"
+      "close": "Close",
+      "insightsTitle": "Optimization tips",
+      "insightsDisclaimer": "These are suggestions based on current numbers, not a guarantee of results.",
+      "insightLowCtr": "CTR is {ctr}% (below 0.5%) — try a different title or cover image.",
+      "insightLowReach": "Only {impressions} impressions so far — raise CPM or the daily budget to reach more people.",
+      "insightHighCpc": "Each click costs about {cpc} VND — review your CTA and landing page.",
+      "insightShortVideo": "Few viewers finish the video — try a shorter clip."
     },
     "packages": {
       "title": "Packages",
@@ -2547,6 +2553,12 @@
     "subtitle": "Subscribe to an ad package to start running campaigns on LinkUp",
     "currentPackage": "Current Package",
     "currentHint": "You are on this plan. Choose another plan to upgrade or switch.",
+    "perMonth": "/month",
+    "slotCount": "{n} slots",
+    "dayCount": "{n} days",
+    "video": "Video",
+    "carousel": "Carousel",
+    "advancedAnalytics": "Advanced analytics",
     "noPackage": "No package yet — choose a package below to get started",
     "daysLeft": "{days} days left",
     "slotsUsed": "{used}/{max} slots",

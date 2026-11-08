@@ -17,7 +17,7 @@ interface ProvinceMultiSelectProps {
  * tên tỉnh nên gần như không bao giờ khớp khi phân phối.
  */
 export default function ProvinceMultiSelect({ value, onChange }: ProvinceMultiSelectProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { data: provinces, isLoading } = useSWR<Place[]>('/locations/provinces', () =>
     getProvinces().then((res) => res.data ?? []),
   )
@@ -39,7 +39,7 @@ export default function ProvinceMultiSelect({ value, onChange }: ProvinceMultiSe
                 checked={value.includes(province.id)}
                 onChange={() => toggle(province.id)}
               />
-              <span>{province.name.vi}</span>
+              <span>{province.name[language] ?? province.name.vi}</span>
             </label>
           ))}
         </div>

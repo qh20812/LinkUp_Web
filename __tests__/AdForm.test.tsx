@@ -341,6 +341,14 @@ describe('AdForm', () => {
     )
   })
 
+  it('hiển thị tên tỉnh theo ngôn ngữ đang chọn', async () => {
+    localStorage.setItem('language', 'en')
+    renderForm()
+
+    expect(await screen.findByRole('checkbox', { name: 'Hanoi' })).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'Hà Nội' })).not.toBeInTheDocument()
+  })
+
   it('hiện toast thành công sau khi tạo', async () => {
     const user = userEvent.setup()
     renderForm()

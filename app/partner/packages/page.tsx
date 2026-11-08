@@ -10,7 +10,7 @@ import type { AdPackage, SubscriptionResponse } from '../../../types'
 import styles from './Packages.module.css'
 
 export default function PackagesPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { toast } = useToast()
 
   const { data: packages, isLoading: loadingPkgs } = useSWR<AdPackage[]>('/ads/packages', () => getPackages())
@@ -35,7 +35,11 @@ export default function PackagesPage() {
   }
 
   const formatPrice = (v: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
+    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(v)
 
   const isActive = (pkgId: string) => {
     if (!sub) return false
@@ -80,14 +84,14 @@ export default function PackagesPage() {
           {packages.map((pkg) => (
             <div key={pkg.id} className={`${styles.card} ${isActive(pkg.id) ? styles.cardActive : ''}`}>
               <h3 className={styles.cardName}>{pkg.name}</h3>
-              <p className={styles.cardPrice}>{formatPrice(pkg.price_monthly)}<span>/tháng</span></p>
+              <p className={styles.cardPrice}>{formatPrice(pkg.price_monthly)}<span>{t('packages.perMonth')}</span></p>
               <p className={styles.cardDesc}>{pkg.description}</p>
               <ul className={styles.cardFeatures}>
-                <li><i className="bx bx-check" /> {pkg.max_slots} slot</li>
-                <li><i className="bx bx-check" /> {pkg.max_duration_days} ngày</li>
-                {pkg.supports_video && <li><i className="bx bx-check" /> Video</li>}
-                {pkg.supports_carousel && <li><i className="bx bx-check" /> Carousel</li>}
-                {pkg.has_advanced_analytics && <li><i className="bx bx-check" /> Phân tích nâng cao</li>}
+                <li><i className="bx bx-check" /> {t('packages.slotCount', { n: pkg.max_slots })}</li>
+                <li><i className="bx bx-check" /> {t('packages.dayCount', { n: pkg.max_duration_days })}</li>
+                {pkg.supports_video && <li><i className="bx bx-check" /> {t('packages.video')}</li>}
+                {pkg.supports_carousel && <li><i className="bx bx-check" /> {t('packages.carousel')}</li>}
+                {pkg.has_advanced_analytics && <li><i className="bx bx-check" /> {t('packages.advancedAnalytics')}</li>}
               </ul>
               <button
                 className={`${styles.btnSubscribe} ${isActive(pkg.id) ? styles.btnSubscribed : ''}`}

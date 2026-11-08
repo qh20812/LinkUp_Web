@@ -10,11 +10,15 @@ import type { AdOverview } from '../../../types'
 import styles from './Dashboard.module.css'
 
 export default function PartnerDashboardPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { data, isLoading } = useSWR<AdOverview>('/ads-management/overview', () => getOverview())
 
   const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
+    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(v)
 
   return (
     <div className={styles.page}>
@@ -90,7 +94,7 @@ export default function PartnerDashboardPage() {
             {data.expires_at && (
               <div className={styles.subRow}>
                 <span className={styles.subLabel}>{t('partner.overview.expiresAt')}</span>
-                <span className={styles.subValue}>{new Date(data.expires_at).toLocaleDateString('vi-VN')}</span>
+                <span className={styles.subValue}>{new Date(data.expires_at).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN')}</span>
               </div>
             )}
           </div>
