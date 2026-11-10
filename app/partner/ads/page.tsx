@@ -6,11 +6,15 @@ import Link from 'next/link'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { deleteAd, updateAdStatus } from '../../../api/partner'
+import { deleteAd, submitAdForReview, updateAdStatus } from '../../../api/partner'
+import { getMySubscription } from '../../../api/package'
+import { ApiError } from '../../../api/api'
+import { getAdTip } from '../../../lib/ad-tips'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import Pagination from '../../../components/Pagination'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
-import type { PartnerAdListItem, PartnerAdListResponse } from '../../../types'
+import TruncatedText from '../../../components/common/TruncatedText'
+import type { PartnerAdListItem, PartnerAdListResponse, SubscriptionResponse } from '../../../types'
 import styles from './Ads.module.css'
 
 export default function PartnerAdsPage() {
@@ -37,10 +41,33 @@ export default function PartnerAdsPage() {
   if (keyword) params.set('keyword', keyword)
   if (statusFilter) params.set('status', statusFilter)
   const swrKey = `/ads-management?${params}`
-  const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<PartnerAdListResponse>(url))
+  const {
+    data: res,
+    isLoading: loading,
+    error: listError,
+    mutate: mutateList,
+  } = useSWR(swrKey, (url: string) => swrFetcher<PartnerAdListResponse>(url))
   const items = res?.data ?? []
   const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Admin mở nhầm /partner/ads: server trả 400 kèm hướng dẫn dùng /admin/ads.
+  // Hiện thông báo riêng thay vì để lỗi thành danh sách trống.
+  const isAdminEndpoint =
+    listError instanceof ApiError &&
+    listError.status === 400 &&
+    /partner/i.test(listError.message)
+
+  // Empty state cần biết partner đã có gói chưa để gợi ý mua gói thay vì tạo ad
+  // (tạo ad khi chưa có gói sẽ bị server chặn).
+  const { error: subscriptionError } = useSWR<SubscriptionResponse>(
+    '/ads-management/subscription',
+    () => getMySubscription(),
+    { shouldRetryOnError: false },
+  )
+  const needsPlan =
+    subscriptionError instanceof ApiError &&
+    (subscriptionError.code === 'package.NOT_SUBSCRIBED' || subscriptionError.status === 404)
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -112,6 +139,7 @@ export default function PartnerAdsPage() {
       completed: styles.badgeCompleted,
       pending: styles.badgePending,
       rejected: styles.badgeRejected,
+      suspended: styles.badgeSuspended,
     }
     return map[s] ?? ''
   }
@@ -123,12 +151,30 @@ export default function PartnerAdsPage() {
       completed: t('partner.ads.completed'),
       pending: t('partner.ads.pending'),
       rejected: t('partner.ads.rejected'),
+      suspended: t('partner.ads.suspended'),
     }
     return map[s] ?? s
   }
 
-  const canEdit = (s: string) => s === 'active' || s === 'paused'
+  // Sửa được cả khi chờ duyệt / bị từ chối (để gửi duyệt lại), nhưng không sửa
+  // quảng cáo đã kết thúc hoặc bị admin hạ.
+  const canEdit = (s: string) =>
+    s === 'active' || s === 'paused' || s === 'pending' || s === 'rejected'
   const canTogglePause = (s: string) => s === 'active' || s === 'paused'
+
+  const handleSubmitForReview = async (ad: PartnerAdListItem) => {
+    closeMenu()
+    setActionLoading(true)
+    try {
+      await submitAdForReview(ad.id)
+      toast({ title: t('partner.ads.submitSuccess'), type: 'success' })
+      invalidate('/ads-management')
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const skeletonRows = () => (
     <>
@@ -167,6 +213,7 @@ export default function PartnerAdsPage() {
             <option value="paused">{t('partner.ads.paused')}</option>
             <option value="pending">{t('partner.ads.pending')}</option>
             <option value="rejected">{t('partner.ads.rejected')}</option>
+            <option value="suspended">{t('partner.ads.suspended')}</option>
             <option value="completed">{t('partner.ads.completed')}</option>
           </select>
           <Link href="/partner/ads/new" className={styles.btnPrimary}>
@@ -176,6 +223,40 @@ export default function PartnerAdsPage() {
         </div>
       </div>
 
+      {listError ? (
+        <div className={styles.errorState} role="alert">
+          <i className="bx bx-error-circle" aria-hidden="true" />
+          <h2 className={styles.errorTitle}>
+            {isAdminEndpoint
+              ? t('partner.ads.adminEndpointTitle')
+              : t('partner.ads.listErrorTitle')}
+          </h2>
+          <p className={styles.errorDesc}>
+            {isAdminEndpoint
+              ? t('partner.ads.adminEndpointDesc')
+              : t('partner.ads.listErrorDesc')}
+          </p>
+          {!isAdminEndpoint && listError instanceof Error && (
+            <p className={styles.errorDetail}>{listError.message}</p>
+          )}
+          <div className={styles.errorActions}>
+            {isAdminEndpoint ? (
+              <Link href="/admin/ads" className={styles.btnPrimary}>
+                {t('partner.ads.openAdminAds')}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => { void mutateList() }}
+              >
+                {t('common.retry')}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       <div className={styles.tableWrap}>
         <div className={styles.tableHeader}>
           <span className={styles.colTitle}>{t('partner.form.title')}</span>
@@ -188,22 +269,103 @@ export default function PartnerAdsPage() {
         </div>
 
         {loading ? skeletonRows() : items.length === 0 ? (
-          <div className={styles.empty}>
-            <i className="bx bx-dollar" />
-            <p>{t('partner.ads.noAds')}</p>
-            <Link href="/partner/ads/new" className={styles.btnPrimary}>
-              {t('partner.ads.create')}
-            </Link>
-          </div>
+          keyword || statusFilter ? (
+            <div className={styles.empty}>
+              <i className="bx bx-dollar" />
+              <p>{t('partner.ads.noAds')}</p>
+              <Link href="/partner/ads/new" className={styles.btnPrimary}>
+                {t('partner.ads.create')}
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <i className="bx bx-rocket" />
+              <h2 className={styles.emptyTitle}>{t('partner.ads.emptyTitle')}</h2>
+              <p className={styles.emptyDesc}>{t('partner.ads.emptyDesc')}</p>
+              <ol className={styles.emptySteps}>
+                {[1, 2, 3].map((n) => (
+                  <li key={n}>
+                    <span className={styles.emptyStepNum}>{n}</span>
+                    <div>
+                      <strong>{t(`partner.ads.emptyStep${n}Title`)}</strong>
+                      <p>{t(`partner.ads.emptyStep${n}Desc`)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className={styles.emptyActions}>
+                <Link href="/partner/ads/new" className={styles.btnPrimary}>
+                  <i className="bx bx-plus" /> {t('partner.ads.create')}
+                </Link>
+                {needsPlan && (
+                  <Link href="/packages" className={styles.btnSecondary}>
+                    {t('partner.ads.emptyBuyPlan')}
+                  </Link>
+                )}
+                <Link href="/partner/help/ads" className={styles.emptyHelp}>
+                  {t('partner.ads.emptyHelp')}
+                </Link>
+              </div>
+            </div>
+          )
         ) : items.map((ad) => (
           <div key={ad.id} className={styles.tableRow}>
             <span className={styles.colTitle}>
-              <span className={styles.adTitle}>{ad.title}</span>
-              {ad.rejection_reason && (
-                <span className={styles.rejectionHint} title={ad.rejection_reason}>
-                  <i className="bx bx-error-circle" />
-                </span>
-              )}
+              <span className={styles.titleLine}>
+                <TruncatedText value={ad.title} className={styles.adTitle} />
+                {(ad.rejection_reason || ad.suspended_reason) && (
+                  <span
+                    className={styles.rejectionHint}
+                    title={ad.rejection_reason || ad.suspended_reason || ''}
+                  >
+                    <i className="bx bx-error-circle" />
+                  </span>
+                )}
+              </span>
+              {(() => {
+                const tip = getAdTip(ad)
+                if (!tip) return null
+                const tipKey =
+                  tip === 'pending'
+                    ? 'tipPending'
+                    : tip === 'rejected'
+                      ? 'tipRejected'
+                      : tip === 'paused'
+                        ? 'tipPaused'
+                        : tip === 'budgetLow'
+                          ? 'tipBudgetLow'
+                          : 'tipCompleted'
+                const icon =
+                  tip === 'pending'
+                    ? 'bx-time-five'
+                    : tip === 'rejected'
+                      ? 'bx-error-circle'
+                      : tip === 'paused'
+                        ? 'bx-pause-circle'
+                        : tip === 'budgetLow'
+                          ? 'bx-error'
+                          : 'bx-check-circle'
+                return (
+                  <span className={`${styles.rowTip} ${tip === 'budgetLow' ? styles.rowTipWarn : ''}`}>
+                    <i className={`bx ${icon}`} aria-hidden="true" />
+                    <span>{t(`partner.ads.${tipKey}`)}</span>
+                    {tip === 'rejected' && (
+                      <button
+                        type="button"
+                        className={styles.tipAction}
+                        onClick={() => router.push(`/partner/ads/${ad.id}/edit`)}
+                      >
+                        {t('partner.ads.tipFix')}
+                      </button>
+                    )}
+                    {tip === 'completed' && (
+                      <Link href="/partner/ads/new" className={styles.tipAction}>
+                        {t('partner.ads.tipCreate')}
+                      </Link>
+                    )}
+                  </span>
+                )
+              })()}
             </span>
             <span className={styles.colStatus}>
               <span className={`${styles.badge} ${statusBadgeClass(ad.status)}`}>
@@ -232,6 +394,8 @@ export default function PartnerAdsPage() {
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
+        </>
+      )}
 
       {openMenuId && menuStyle && (
         <>
@@ -254,6 +418,11 @@ export default function PartnerAdsPage() {
                     <button className={styles.menuItem} onClick={() => handleTogglePause(ad)}>
                       <i className={`bx bx-${ad.status === 'active' ? 'pause' : 'play'}`} />
                       {ad.status === 'active' ? t('partner.ads.paused') : t('partner.ads.active')}
+                    </button>
+                  )}
+                  {ad.status === 'rejected' && (
+                    <button className={styles.menuItem} onClick={() => handleSubmitForReview(ad)}>
+                      <i className="bx bx-upload" /> {t('partner.ads.submitForReview')}
                     </button>
                   )}
                   <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { closeMenu(); setDeleteTarget(ad) }}>

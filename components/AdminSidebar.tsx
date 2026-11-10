@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import useSWR from 'swr'
   import { useTranslation } from '../hooks/useTranslation'
   import { logout } from '../api/auth'
   import { clearSession } from '../api/api'
   import { clearSWRCache } from '../api/swr'
+  import { adminListTopups } from '../api/wallet'
   import { useNotification } from '../contexts/NotificationContext'
   import styles from './AdminSidebar.module.css'
 
@@ -25,6 +27,9 @@ const menuItems = [
   { key: 'groups', icon: 'bx bx-chat', href: '/admin/groups' },
   { key: 'communities', icon: 'bx bx-world', href: '/admin/communities' },
   { key: 'ads', icon: 'bx bx-dollar', href: '/admin/ads' },
+  { key: 'packages', icon: 'bx bx-package', href: '/admin/packages' },
+  { key: 'payments', icon: 'bx bx-credit-card', href: '/admin/payments' },
+  { key: 'walletTopups', icon: 'bx bx-wallet', href: '/admin/wallet-topups' },
 ]
 
 export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProps) {
@@ -33,6 +38,14 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
   const router = useRouter()
   const { closeWs } = useNotification()
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Badge hàng đợi nạp ví: số yêu cầu đang chờ duyệt (gồm cả đã báo chuyển).
+  const { data: pendingTopups } = useSWR(
+    '/admin/wallet/topups?status=pending&page=1&page_size=1',
+    () => adminListTopups({ status: 'pending', page: 1, page_size: 1 }),
+    { refreshInterval: 60000, shouldRetryOnError: false },
+  )
+  const pendingTopupCount = pendingTopups?.total ?? 0
 
   useEffect(() => {
     try {
@@ -64,6 +77,9 @@ export default function AdminSidebar({ collapsed, mobileOpen }: AdminSidebarProp
             <Link href={item.href}>
               <i className={item.icon} />
               <span>{t(`nav.${item.key}`)}</span>
+              {item.key === 'walletTopups' && pendingTopupCount > 0 && (
+                <span className={styles.navBadge}>{pendingTopupCount > 99 ? '99+' : pendingTopupCount}</span>
+              )}
             </Link>
           </li>
         ))}

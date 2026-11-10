@@ -1,3 +1,6 @@
+/* Landing navbar = header of the hero window: flush against the hero
+   (no bottom gap), top corners only. The shadow is opt-in via .navStuck
+   so the composed window reads as one block at rest. */
 .nav {
   position: sticky;
   top: var(--space-md);
@@ -7,7 +10,12 @@
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: none;
+  transition: box-shadow 0.18s ease;
+}
+
+.navStuck {
   box-shadow: var(--glass-shadow);
 }
 
@@ -173,6 +181,10 @@
 
 /* Mobile */
 @media screen and (max-width: 576px) {
+  .nav {
+    margin: var(--space-sm) var(--space-sm) 0;
+  }
+
   .inner {
     padding: 0 var(--space-md);
   }
@@ -220,6 +232,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .menuToggle::after {
+    transition: none;
+  }
+
+  .nav {
     transition: none;
   }
 }

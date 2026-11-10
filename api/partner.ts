@@ -1,8 +1,8 @@
 import { request } from './api'
+import { normalizeAdPerformance, type AdPerformanceWire } from '../lib/ad-performance'
 import type {
   PartnerAdListResponse,
   PartnerAdListItem,
-  AdPerformance,
   AdOverview,
   CreateAdInput,
   UpdateAdInput,
@@ -26,7 +26,7 @@ import { toAdISOString } from '../lib/ad-datetime'
 
 export { toAdISOString }
 
-export const createAd = (input: CreateAdInput, mediaFile?: File) => {
+export const createAd = (input: CreateAdInput, mediaFiles?: File | File[]) => {
   const formData = new FormData()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { media: _media, ...rest } = input as CreateAdInput & { media?: File }
@@ -36,8 +36,9 @@ export const createAd = (input: CreateAdInput, mediaFile?: File) => {
     expires_at: toAdISOString(rest.expires_at),
   }
   formData.append('data', JSON.stringify(payload))
-  if (mediaFile) {
-    formData.append('media', mediaFile)
+  const files = mediaFiles == null ? [] : Array.isArray(mediaFiles) ? mediaFiles : [mediaFiles]
+  for (const file of files) {
+    formData.append('media', file)
   }
   return request<{ message: string; data: PartnerAdListItem }>('/ads-management', {
     method: 'POST',
@@ -58,17 +59,47 @@ export const updateAd = (id: string, input: UpdateAdInput) =>
 export const deleteAd = (id: string) =>
   request(`/ads-management/${id}`, { method: 'DELETE' })
 
+/** Thay toàn bộ media của ad (multipart field `media`). */
+export const replaceAdMedia = (id: string, mediaFiles: File[]) => {
+  const formData = new FormData()
+  for (const file of mediaFiles) {
+    formData.append('media', file)
+  }
+  return request<{ message: string; data: PartnerAdListItem }>(`/ads-management/${id}/media`, {
+    method: 'PUT',
+    body: formData,
+  })
+}
+
+/** Gửi lại quảng cáo bị từ chối vào hàng đợi duyệt. */
+export const submitAdForReview = (id: string) =>
+  request<{ message: string; data: PartnerAdListItem }>(`/ads-management/${id}/submit`, {
+    method: 'POST',
+  })
+
 export const updateAdStatus = (id: string, status: string) =>
   request(`/ads-management/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   })
 
-export const getAdAnalytics = (id: string) =>
-  request<AdPerformance>(`/ads-management/${id}/analytics`)
+export const getAdAnalytics = async (
+  id: string,
+  range?: { from: string; to: string },
+) => {
+  const query = range
+    ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : ''
+  // Controller bọc response trong { data: report } — trước đây web trả nguyên
+  // wrapper nên mọi field (impressions, ctr…) đều undefined.
+  const res = await request<{ data: AdPerformanceWire }>(`/ads-management/${id}/analytics${query}`)
+  return normalizeAdPerformance(res.data)
+}
 
-export const getOverview = () =>
-  request<AdOverview>('/ads-management/overview')
+export const getOverview = async () => {
+  const res = await request<{ data: AdOverview }>('/ads-management/overview')
+  return res.data
+}
 
 export interface FeedAdMedia {
   url: string

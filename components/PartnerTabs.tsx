@@ -10,6 +10,8 @@ const TABS = [
   { key: 'dashboard', href: '/partner/dashboard', icon: 'bx-bar-chart-alt-2' },
   { key: 'ads', href: '/partner/ads', icon: 'bx-dollar' },
   { key: 'packages', href: '/partner/packages', icon: 'bx-package' },
+  { key: 'payments', href: '/partner/payments', icon: 'bx-credit-card' },
+  { key: 'wallet', href: '/partner/wallet', icon: 'bx-wallet' },
 ]
 
 /**

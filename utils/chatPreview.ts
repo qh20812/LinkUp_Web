@@ -1,7 +1,7 @@
 // Preview + system-text helpers shared by ConversationList (sidebar preview)
-// and ChatWindow (system rows). Sidebar has no member-name map, so the actor
-// name ALWAYS falls back to t('chat.unknown') — raw user ids must never leak
-// into preview text (content wire format is `key|actorId|extra`).
+// and ChatWindow (system rows). Sidebar không có member-name map nên dùng
+// sender_name của last_message (server join profiles); nếu thiếu thì fallback
+// t('chat.unknown') — raw user ids must never leak into preview text.
 //
 // IMPORTANT: the chat-list endpoints return a TRIMMED last_message (server
 // builds it from a hand-written SELECT — no `type`, no `message_category`,
@@ -83,9 +83,9 @@ export function isSystemPreviewMessage(
   return systemContentKey(msg.content) !== null
 }
 
-/** Translated system text with the actor resolved to "unknown" — never an id. */
-export function getSystemPreviewText(content: string, t: TFn): string {
-  const unknown = t('chat.unknown')
+/** Translated system text with the actor resolved to a name (or "unknown") — never an id. */
+export function getSystemPreviewText(content: string, t: TFn, actorName?: string): string {
+  const unknown = actorName?.trim() || t('chat.unknown')
   const key = systemContentKey(content)
   if (key === null) return content
   const extra = content.split('|')[2] || ''

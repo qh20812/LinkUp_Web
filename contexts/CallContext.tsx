@@ -13,6 +13,7 @@ import { useToast } from './ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { getProfileByUserID } from '../api/profile'
 import { getIceServers } from '../api/calls'
+import { CALL_AUDIO_CONSTRAINTS } from '../utils/callAudio'
 import { playRingtone, playRinging, stopRingtone } from '../utils/ringtone'
 import type {
   CallBusyPayload,
@@ -422,7 +423,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: CALL_AUDIO_CONSTRAINTS,
         video: type === 'video',
       })
     } catch {
@@ -455,7 +456,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: CALL_AUDIO_CONSTRAINTS,
         video: active.callType === 'video',
       })
     } catch {

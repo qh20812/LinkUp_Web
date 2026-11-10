@@ -26,6 +26,7 @@ const TITLE_KEYS: Record<ReportTargetType, string> = {
   comment: 'report.commentTitle',
   user: 'report.userTitle',
   community: 'report.communityTitle',
+  ad: 'report.adTitle',
 }
 
 function severityClass(severity: string): string {

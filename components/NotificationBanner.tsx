@@ -26,6 +26,17 @@ function getIconClass(type: NotificationType): string {
       return 'bx bx-group ' + styles.iconFriend
     case 'voice_call':
       return 'bx bx-phone ' + styles.iconCall
+    case 'report_submitted':
+    case 'report_result':
+      return 'bx bx-flag ' + styles.iconReport
+    case 'moderation':
+      return 'bx bx-shield-quarter ' + styles.iconReport
+    case 'wallet':
+      return 'bx bx-wallet ' + styles.iconWallet
+    case 'package':
+      return 'bx bx-package ' + styles.iconPackage
+    case 'message_react':
+      return 'bx bx-heart ' + styles.iconLike
     case 'media_approved':
       return 'bx bx-check-circle ' + styles.iconFollow
     case 'media_rejected':
@@ -113,6 +124,8 @@ export default function NotificationBanner() {
         redirect_post_id: latest.redirect_post_id,
         redirect_user_id: latest.redirect_user_id,
         redirect_comment_id: latest.redirect_comment_id,
+        redirect_community_id: latest.redirect_community_id,
+        redirect_ad_id: latest.redirect_ad_id,
       }
 
       if (timerRef.current) clearTimeout(timerRef.current)

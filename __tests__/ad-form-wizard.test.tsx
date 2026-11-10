@@ -1,0 +1,236 @@
+import React from 'react'
+import { SWRConfig } from 'swr'
+import { renderWithProviders, screen, userEvent, waitFor, mockLocalStorage, within } from './test-utils'
+
+jest.mock('@/api/partner', () => ({
+  createAd: jest.fn(),
+  trackAdAction: jest.fn().mockResolvedValue({}),
+}))
+
+jest.mock('@/api/swr', () => ({
+  invalidate: jest.fn(),
+}))
+
+jest.mock('@/api/package', () => ({
+  getMySubscription: jest.fn(),
+}))
+
+jest.mock('@/api/wallet', () => ({
+  getWallet: jest.fn().mockResolvedValue({
+    balance: 10_000_000,
+    reserved: 0,
+    available: 10_000_000,
+    currency: 'VND',
+    total_topup: 0,
+    total_spent: 0,
+  }),
+}))
+
+jest.mock('@/api/locations', () => ({
+  getProvinces: jest.fn().mockResolvedValue({
+    data: [
+      { id: '01', name: { vi: 'Hà Nội', en: 'Hanoi' } },
+      { id: '79', name: { vi: 'Hồ Chí Minh', en: 'Ho Chi Minh' } },
+    ],
+  }),
+}))
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() }),
+}))
+
+import { createAd } from '@/api/partner'
+import { getMySubscription } from '@/api/package'
+import AdForm from '@/components/AdForm'
+
+const createAdMock = createAd as jest.Mock
+const subscriptionMock = getMySubscription as jest.Mock
+
+function renderWizard() {
+  return renderWithProviders(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <AdForm heading="Tạo quảng cáo" submitLabel="Tạo quảng cáo" redirectTo="/partner/ads" wizard />
+    </SWRConfig>,
+  )
+}
+
+beforeEach(() => {
+  mockLocalStorage()
+  createAdMock.mockReset()
+  createAdMock.mockResolvedValue({ message: 'ok', data: { id: 'ad-1' } })
+  subscriptionMock.mockReset()
+  subscriptionMock.mockResolvedValue({
+    id: 'sub-1',
+    package_name: 'Gói Cơ bản',
+    max_slots: 3,
+    slots_used: 1,
+    slots_left: 2,
+    price_monthly: 100000,
+    started_at: '2026-01-01T00:00:00Z',
+    expires_at: '2026-12-31T00:00:00Z',
+    status: 'active',
+  })
+  Object.defineProperty(URL, 'createObjectURL', { value: jest.fn(() => 'blob:preview'), configurable: true })
+  Object.defineProperty(URL, 'revokeObjectURL', { value: jest.fn(), configurable: true })
+})
+
+describe('AdForm wizard', () => {
+  it('bắt đầu ở bước 1 và chỉ hiện phần nội dung', async () => {
+    renderWizard()
+
+    expect(await screen.findByText('Bước 1/4')).toBeInTheDocument()
+    expect(await screen.findByLabelText(/^Tiêu đề/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Tổng ngân sách/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo quảng cáo' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeInTheDocument()
+  })
+
+  it('next/back giữ nguyên dữ liệu đã nhập', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.type(await screen.findByLabelText(/^Tiêu đề/), 'Khuyến mãi tháng 11')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 2/4')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Tổng ngân sách/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Quay lại' }))
+
+    expect(await screen.findByText('Bước 1/4')).toBeInTheDocument()
+    expect((screen.getByLabelText(/^Tiêu đề/) as HTMLInputElement).value).toBe('Khuyến mãi tháng 11')
+  })
+
+  it('ước tính hiện ở bước ngân sách', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.click(await screen.findByRole('button', { name: 'Tiếp tục' }))
+    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+
+    expect(await screen.findByText(/4\.000 lượt hiển thị/)).toBeInTheDocument()
+  })
+
+  it('bước 4 tóm tắt, nhắc chờ duyệt và chỉ submit ở đây', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.type(await screen.findByLabelText(/^Tiêu đề/), 'Cà phê giảm giá')
+    await user.type(screen.getByRole('textbox', { name: /Nội dung/i }), 'Mua 1 tặng 1')
+    await user.type(screen.getByLabelText(/URL đích/i), 'https://linkup.vn/sale')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 3/4')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 4/4')).toBeInTheDocument()
+    const review = screen.getByRole('heading', { name: 'Xem lại & gửi' }).closest('section') as HTMLElement
+    expect(review).not.toBeNull()
+    expect(within(review).getByText('Cà phê giảm giá')).toBeInTheDocument()
+    expect(within(review).getByText(/chưa trừ tiền cho tới khi được duyệt/i)).toBeInTheDocument()
+    expect(within(review).getByText(/4\.000 lượt hiển thị/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Tạo quảng cáo' }))
+
+    await waitFor(() => expect(createAdMock).toHaveBeenCalledTimes(1))
+    expect(createAdMock.mock.calls[0][0]).toMatchObject({
+      title: 'Cà phê giảm giá',
+      budget: 100000,
+      target_age_min: 0,
+      target_age_max: 100,
+    })
+
+    // B4: ở lại màn hình xác nhận thay vì redirect ngay.
+    expect(await screen.findByRole('heading', { name: 'Đã gửi duyệt!' })).toBeInTheDocument()
+    expect(screen.getByText(/chưa chạy và chưa trừ tiền cho tới khi được duyệt/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sửa quảng cáo' })).toHaveAttribute(
+      'href',
+      '/partner/ads/ad-1/edit',
+    )
+    expect(screen.getByRole('link', { name: 'Xem danh sách quảng cáo' })).toHaveAttribute(
+      'href',
+      '/partner/ads',
+    )
+  })
+
+  it('đưa focus về field đầu của bước mới và chặn Enter submit sớm', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    const title = await screen.findByLabelText(/^Tiêu đề/)
+    await user.type(title, 'A{Enter}')
+    // Enter ở bước 1 không được submit form.
+    expect(createAdMock).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 2/4')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByLabelText(/Tổng ngân sách/i))
+
+    await user.keyboard('{Enter}')
+    expect(createAdMock).not.toHaveBeenCalled()
+  })
+
+  it('gom mỗi section vào fieldset có legend', async () => {
+    renderWizard()
+
+    expect(await screen.findByRole('group', { name: 'Nội dung quảng cáo' })).toBeInTheDocument()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    expect(await screen.findByRole('group', { name: 'Ngân sách & giá thầu' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Lịch chạy' })).toBeInTheDocument()
+  })
+
+  it('carousel gửi nhiều ảnh theo đúng thứ tự sau khi đổi thứ tự', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.selectOptions(await screen.findByLabelText('Định dạng'), 'carousel')
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const files = ['1.jpg', '2.jpg', '3.jpg'].map(
+      (name, index) => new File([`${index}`], name, { type: 'image/jpeg' }),
+    )
+    await user.upload(input, files)
+
+    // Đưa ảnh đầu tiên sang phải → thứ tự gửi phải là 2, 1, 3.
+    await user.click(screen.getAllByLabelText('Chuyển sang phải')[0])
+
+    await user.type(screen.getByLabelText(/^Tiêu đề/), 'Carousel khuyến mãi tháng 11')
+    await user.type(screen.getByRole('textbox', { name: /Nội dung/i }), 'Bộ sưu tập mới')
+    await user.type(screen.getByLabelText(/URL đích/i), 'https://linkup.vn/sale')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    await user.click(await screen.findByRole('button', { name: 'Tiếp tục' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo quảng cáo' }))
+
+    await waitFor(() => expect(createAdMock).toHaveBeenCalledTimes(1))
+    const [payload, media] = createAdMock.mock.calls[0]
+    expect(payload.format).toBe('carousel')
+    expect((media as File[]).map((file) => file.name)).toEqual(['2.jpg', '1.jpg', '3.jpg'])
+  })
+
+  it('bước xem lại chặn gửi khi còn lỗi cứng và nhảy về field lỗi', async () => {
+    const user = userEvent.setup()
+    renderWizard()
+
+    await user.click(await screen.findByRole('button', { name: 'Tiếp tục' }))
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+
+    expect(await screen.findByText('Bước 4/4')).toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: 'Tạo quảng cáo' })
+    expect(submit).toBeDisabled()
+    expect(screen.getByText('Chưa nhập tiêu đề.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Chưa nhập tiêu đề.' }))
+
+    expect(await screen.findByText('Bước 1/4')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByLabelText(/^Tiêu đề/))
+  })
+})

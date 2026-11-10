@@ -140,18 +140,66 @@
   background: var(--color-bg-secondary);
 }
 
+.tableHeader > *,
+.tableRow > * {
+  min-width: 0;
+}
+
+.colTitle {
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .adTitle {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .rejectionHint {
+  flex: 0 0 auto;
   color: var(--color-danger);
-  margin-left: 6px;
+  margin-left: 0;
   cursor: help;
   font-size: 16px;
+}
+
+.rowTip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 1 0 100%;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.rowTip i {
+  font-size: 13px;
+}
+
+.rowTipWarn {
+  color: var(--color-warning, #b45309);
+}
+
+.tipAction {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .badge {
@@ -187,6 +235,11 @@
 .badgeRejected {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.badgeSuspended {
+  background: #ede9fe;
+  color: #5b21b6;
 }
 
 .colActions {
@@ -226,6 +279,165 @@
 
 .empty p {
   margin-bottom: var(--space-lg);
+}
+
+/* Empty state 3 bước (Mức B3) */
+.emptyState {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.emptyState > i {
+  display: block;
+  margin-bottom: var(--space-md);
+  font-size: 48px;
+  color: var(--color-primary);
+}
+
+.emptyTitle {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.emptyDesc {
+  max-width: 520px;
+  margin: 0 auto var(--space-lg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.emptySteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 640px;
+  margin: 0 auto var(--space-lg);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.emptySteps li {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.emptyStepNum {
+  flex: 0 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emptySteps strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.emptySteps p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btnSecondary:hover {
+  background: var(--color-bg-secondary);
+}
+
+.emptyHelp {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.emptyHelp:hover {
+  text-decoration: underline;
+}
+
+/* Lỗi tải danh sách: hiện thông báo, KHÔNG giả làm empty state */
+.errorState {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-light);
+}
+
+.errorState > i {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: 40px;
+  color: var(--color-danger);
+}
+
+.errorTitle {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.errorDesc {
+  max-width: 520px;
+  margin: 0 auto var(--space-md);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.errorDetail {
+  max-width: 640px;
+  margin: 0 auto var(--space-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
 }
 
 .paginationWrap {

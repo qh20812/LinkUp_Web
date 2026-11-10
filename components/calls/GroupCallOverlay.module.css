@@ -26,6 +26,9 @@
   padding-bottom: 80px;
   flex: 1;
   min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .gridSingle {

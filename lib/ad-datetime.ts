@@ -22,3 +22,14 @@ export function toDateTimeLocal(value?: string): string {
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   )
 }
+
+/**
+ * Khoảng thời gian (ISO) cho bộ lọc analytics: `days` ngày tính tới `now`.
+ * Kẹp trong [1, 365] để client không gửi khoảng vô nghĩa.
+ */
+export function adRangeQuery(days: number, now: Date = new Date()): { from: string; to: string } {
+  const safeDays = Math.min(365, Math.max(1, Math.floor(days) || 1))
+  const to = now
+  const from = new Date(to.getTime() - safeDays * 86_400_000)
+  return { from: from.toISOString(), to: to.toISOString() }
+}

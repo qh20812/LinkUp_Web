@@ -17,11 +17,14 @@ export function adIndexForPost(idx: number, adCount: number): number | null {
  * `media_uri` chỉ xuất hiện ở danh sách partner — giữ làm fallback.
  */
 export function feedAdImageUrl(ad: {
-  media_list?: { url?: string | null }[]
+  media_list?: { url?: string | null; media_type?: string | null }[]
   media_uri?: string | null
 } | null | undefined): string | null {
   if (!ad) return null
-  const fromList = ad.media_list?.find((m) => !!m?.url)?.url
+  // Chỉ lấy media là ảnh; item cũ thiếu media_type được coi là ảnh.
+  const fromList = ad.media_list?.find(
+    (m) => !!m?.url && (m.media_type == null || m.media_type === 'image'),
+  )?.url
   if (fromList) return fromList
   return ad.media_uri || null
 }

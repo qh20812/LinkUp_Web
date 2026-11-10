@@ -73,17 +73,19 @@
 
 /* === Hero stage === */
 
+/* The hero is the body of the window whose header is the navbar:
+   square top edge (flush with the navbar), rounded bottom corners. */
 .hero {
   position: relative;
   overflow: hidden;
   margin: 0 var(--space-md) var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   padding: clamp(40px, 6vw, 72px) clamp(24px, 5vw, 64px);
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   align-items: center;
   gap: var(--space-xl);
-  min-height: clamp(540px, calc(100dvh - 140px), 780px);
+  min-height: clamp(540px, calc(100dvh - 88px), 780px);
   color: #ffffff;
   background:
     radial-gradient(120% 80% at 12% 6%, rgba(255, 255, 255, 0.16), transparent 55%),

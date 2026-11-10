@@ -379,7 +379,7 @@ export interface AdminHidePostInput {
 }
 
 // ===== Reports =====
-export type ReportTargetType = "post" | "comment" | "user" | "community";
+export type ReportTargetType = "post" | "comment" | "user" | "community" | "ad";
 
 export interface ViolationRule {
   id: string;
@@ -433,6 +433,7 @@ export interface AdminReportListItem {
   target_post_id?: string
   target_comment_id?: string
   target_community_id?: string
+  target_ad_id?: string
   report_type: string
   violation_rule_id?: string
   violation_rule_title?: string
@@ -454,6 +455,15 @@ export interface AdminReportDetailResponse extends AdminReportListItem {
   target_comment?: AdminReportTargetComment
   target_user?: AdminReportTargetUser
   target_community?: AdminReportTargetCommunity
+  target_ad?: AdminReportTargetAd
+}
+
+export interface AdminReportTargetAd {
+  ad_id: string
+  title: string
+  status: string
+  partner_id: string
+  media_uri?: string
 }
 
 export interface AdminReportTargetCommunity {
@@ -802,6 +812,8 @@ export type NotificationType =
   | 'community_invitation_received' | 'community_invitation_accepted'
   | 'voice_call'
   | 'media_approved' | 'media_rejected' | 'media_flagged'
+  | 'report_submitted' | 'report_result'
+  | 'moderation' | 'wallet' | 'package' | 'message_react'
 
 export interface NotificationItem {
   id: string
@@ -815,6 +827,8 @@ export interface NotificationItem {
   redirect_post_id?: string
   redirect_user_id?: string
   redirect_comment_id?: string
+  redirect_community_id?: string
+  redirect_ad_id?: string
 }
 
 export interface NotificationGroup {
@@ -831,6 +845,8 @@ export interface NotificationGroup {
   redirect_post_id?: string
   redirect_user_id?: string
   redirect_comment_id?: string
+  redirect_community_id?: string
+  redirect_ad_id?: string
 }
 
 export interface NotificationListResponse {
@@ -888,7 +904,7 @@ export interface AdminAdListItem {
   media_id?: string
   media_uri: string
   target_url: string
-  status: 'active' | 'paused' | 'completed' | 'pending' | 'rejected'
+  status: 'active' | 'paused' | 'completed' | 'pending' | 'rejected' | 'suspended'
   budget: number
   impressions: number
   clicks: number
@@ -897,6 +913,7 @@ export interface AdminAdListItem {
   expires_at: string
   created_at: string
   rejection_reason?: string
+  suspended_reason?: string
 }
 
 export interface AdminAdListResponse {
@@ -926,6 +943,147 @@ export interface AdPerformance {
   video_completions?: number
   started_at?: string
   expires_at?: string
+  /** Chi phí trong khoảng đang xem (legacy: toàn đời). */
+  cost?: number
+  from?: string
+  to?: string
+  /** Gói hiện tại không có advanced analytics → bị giới hạn 30 ngày. */
+  limited?: boolean
+  series?: AdDailyMetric[]
+}
+
+export interface AdDailyMetric {
+  date: string
+  impressions: number
+  clicks: number
+  views: number
+  swipes: number
+  video_starts: number
+  video_completions: number
+  cost: number
+}
+
+export interface PaymentTransaction {
+  id: string
+  txn_ref: string
+  user_id: string
+  package_id: string
+  amount: number
+  status: 'pending' | 'success' | 'failed' | 'cancelled'
+  gateway: string
+  response_code?: string
+  created_at: string
+  paid_at?: string
+  package?: { id: string; name: string; max_slots?: number; max_duration_days?: number }
+}
+
+export interface PaymentListResponse {
+  data: PaymentTransaction[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// ── Ví trả trước (Track E) ───────────────────────────────────────────
+
+export interface WalletResponse {
+  balance: number
+  reserved: number
+  available: number
+  currency: string
+  total_topup: number
+  total_spent: number
+}
+
+export type WalletTopupStatus = 'pending' | 'paid' | 'rejected' | 'expired' | 'cancelled'
+
+export interface WalletTopup {
+  id: string
+  code: string
+  amount: number
+  status: WalletTopupStatus
+  expires_at: string
+  user_reported_at?: string
+  proof_url?: string
+  confirmed_amount?: number
+  admin_note?: string
+  paid_at?: string
+  created_at: string
+  user_id?: string
+  username?: string
+  email?: string
+  display_name?: string
+  avatar_uri?: string
+}
+
+export interface WalletTopupListResponse {
+  data: WalletTopup[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface WalletBankInfo {
+  bank_name: string
+  bank_bin: string
+  account_no: string
+  account_name: string
+}
+
+export interface WalletTopupCreated {
+  id: string
+  code: string
+  amount: number
+  status: WalletTopupStatus
+  expires_at: string
+  expires_in_seconds: number
+  qr_url: string
+  bank: WalletBankInfo
+  memo: string
+}
+
+export type WalletTransactionType = 'topup' | 'reserve' | 'release' | 'spend' | 'adjust' | 'package_purchase'
+
+export interface WalletTransaction {
+  id: string
+  type: WalletTransactionType
+  amount: number
+  balance_after: number
+  reserved_after: number
+  ref_type?: string
+  ref_id?: string
+  note?: string
+  created_at: string
+}
+
+export interface WalletTransactionListResponse {
+  data: WalletTransaction[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdminWallet {
+  user_id: string
+  username?: string
+  email?: string
+  display_name?: string
+  avatar_uri?: string
+  balance: number
+  reserved: number
+  available: number
+  total_topup: number
+  updated_at: string
+}
+
+export interface AdminWalletListResponse {
+  data: AdminWallet[]
+  total: number
+  page: number
+  page_size: number
+  total_balance: number
+  total_reserved: number
+  total_topup_all: number
 }
 
 export interface PartnerAdListItem {
@@ -945,6 +1103,7 @@ export interface PartnerAdListItem {
   clicks: number
   ctr: number
   media_uri: string
+  media_list?: { url: string; media_type?: string }[]
   target_gender: string
   target_age_min: number
   target_age_max: number
@@ -953,6 +1112,7 @@ export interface PartnerAdListItem {
   expires_at?: string
   created_at: string
   rejection_reason?: string
+  suspended_reason?: string | null
 }
 
 export interface PartnerAdListResponse {
@@ -987,11 +1147,27 @@ export interface AdPackage {
   supports_carousel: boolean
   has_advanced_analytics: boolean
   sort_order: number
+  is_active: boolean
   created_at: string
+}
+
+export interface PackageInput {
+  name: string
+  description: string
+  price_monthly: number
+  max_slots: number
+  max_duration_days: number
+  supports_video: boolean
+  supports_carousel: boolean
+  has_advanced_analytics: boolean
+  sort_order: number
+  is_active: boolean
 }
 
 export interface SubscriptionResponse {
   id: string
+  /** ID gói đang dùng; server cũ có thể chưa trả nên web fallback theo tên. */
+  package_id?: string
   package_name: string
   max_slots: number
   slots_used: number
@@ -1008,6 +1184,33 @@ export interface CreatePaymentResponse {
   txn_ref: string
   amount: number
   expires_at: string
+}
+
+/** Phương thức thanh toán gói đang bật (server bật/tắt bằng env). */
+export interface PaymentMethodOption {
+  key: 'wallet' | 'momo' | 'vnpay' | string
+  enabled: boolean
+}
+
+export interface PaymentMethodsResponse {
+  methods: PaymentMethodOption[]
+  default: string
+}
+
+/** Số dư ví trả về kèm kết quả mua gói. */
+export interface WalletBalance {
+  balance: number
+  reserved: number
+  available: number
+  currency: string
+}
+
+/** Kết quả POST /ads-management/payments/wallet — trừ ví và kích hoạt gói ngay. */
+export interface WalletPurchaseResponse {
+  subscription: SubscriptionResponse
+  payment: PaymentTransaction
+  wallet?: WalletBalance
+  replayed: boolean
 }
 
 export interface CreateAdInput {

@@ -387,18 +387,22 @@ function MessagesContent() {
           setConversations(hydrated)
           setGroupConversations(groupRes.data ?? [])
 
-          if (!autoSelectRef.current) {
-            autoSelectRef.current = true
-            const queryChat = searchParams.get('chat_id')
-            const queryType = searchParams.get('type') as 'direct' | 'group' | null
+          const queryChat = searchParams.get('chat_id')
+          const queryType = searchParams.get('type') as 'direct' | 'group' | null
+          const groupList = groupRes.data ?? []
 
-            if (queryChat && queryType === 'group') {
+          if (queryChat) {
+            // Notification/deep link không mang type → dò chat_id trong cả 2 danh sách.
+            if (queryType === 'group' || groupList.some((c) => c.chat_id === queryChat)) {
               setActiveChatId(queryChat)
               setActiveChatType('group')
-            } else if (queryChat && hydrated.some((c) => c.chat_id === queryChat)) {
+            } else if (hydrated.some((c) => c.chat_id === queryChat)) {
               setActiveChatId(queryChat)
               setActiveChatType('direct')
-            } else if (!activeChatId && hydrated.length > 0) {
+            }
+          } else if (!autoSelectRef.current) {
+            autoSelectRef.current = true
+            if (hydrated.length > 0) {
               setActiveChatId(hydrated[0].chat_id)
               setActiveChatType('direct')
             }

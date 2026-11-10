@@ -7,15 +7,16 @@ import useSWR from 'swr'
 import styles from './Feed.module.css'
 import { getFeedPosts, reactPost, savePost, getEmojis, hidePost, unhidePost } from '../api/posts'
 import { getFeedStories, toggleMuteStoryUser } from '../api/stories'
-import { getFeedAds, trackAdAction } from '../api/partner'
+import { getFeedAds } from '../api/partner'
 import type { FeedAd } from '../api/partner'
 import { getTokenPayload } from '../api/auth'
 import { request } from '../api/api'
 import { dedupeRepostOriginals } from '../lib/feed-dedupe'
 import { removePostById, insertPostAt } from '../lib/feed-hide'
-import { adIndexForPost, feedAdImageUrl } from '../lib/feed-ads'
+import { adIndexForPost } from '../lib/feed-ads'
 import type { FeedPost, EmojiItem, StoryFeedItem, StoryItem, ViewProfileResponse, MediaReadyEvent } from '../types'
 import PostCard from './PostCard'
+import AdCard from './ads/AdCard'
 import PostComposer from './PostComposer'
 import PostDetailModal from './PostDetailModal'
 import StoryBar from './story/StoryBar'
@@ -61,7 +62,6 @@ function FeedContent() {
   const [storyViewer, setStoryViewer] = useState<StoryItem[] | null>(null)
   const [showCreateStory, setShowCreateStory] = useState(false)
   const [feedAds, setFeedAds] = useState<FeedAd[]>([])
-  const [trackedAds, setTrackedAds] = useState<Set<string>>(new Set())
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const cursorRef = useRef<string | null>(null)
@@ -385,41 +385,9 @@ function FeedContent() {
         // render (trước đây setAdIndex() chạy trong render làm quảng cáo nhảy).
         const adSlot = adIndexForPost(idx, feedAds.length)
         const ad = adSlot === null ? null : feedAds[adSlot]
-        const adImage = feedAdImageUrl(ad)
         return (
           <div key={post.id}>
-            {ad && (
-              <div className={styles.adCard}>
-                <div className={styles.adBadge}>{t('ads.sponsored')}</div>
-                {adImage && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={adImage}
-                    alt={ad.title}
-                    className={styles.adImage}
-                    onLoad={() => {
-                      if (!trackedAds.has(ad.id)) {
-                        setTrackedAds((prev) => new Set(prev).add(ad.id))
-                        trackAdAction(ad.id, 'impression').catch(() => {})
-                      }
-                    }}
-                  />
-                )}
-                <div className={styles.adContent}>
-                  <h4 className={styles.adTitle}>{ad.title}</h4>
-                  <p className={styles.adText}>{ad.content}</p>
-                  <a
-                    href={ad.target_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.adCta}
-                    onClick={() => trackAdAction(ad.id, 'click').catch(() => {})}
-                  >
-                    {t('ads.learnMore')}
-                  </a>
-                </div>
-              </div>
-            )}
+            {ad && <AdCard ad={ad} />}
             <PostCard
               post={post}
               onLike={handleLike}

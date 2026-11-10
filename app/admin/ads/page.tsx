@@ -12,6 +12,7 @@ import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
 import type { AdminAdListItem, AdminAdListResponse } from '../../../types'
 import styles from './Ads.module.css'
 import { toErrorMessage } from '../../../utils/errorMessage'
+import { formatVnd } from '../../../lib/ads-estimate'
 
 export default function AdsPage() {
   const { t } = useTranslation()
@@ -20,7 +21,8 @@ export default function AdsPage() {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  // Mặc định mở hàng đợi duyệt để admin không bỏ sót quảng cáo mới.
+  const [statusFilter, setStatusFilter] = useState('pending')
 
   const [searchInput, setSearchInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -31,6 +33,8 @@ export default function AdsPage() {
   const [statusTarget, setStatusTarget] = useState<AdminAdListItem | null>(null)
   const [statusValue, setStatusValue] = useState<string>('')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [suspendedReason, setSuspendedReason] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const [deleteTarget, setDeleteTarget] = useState<AdminAdListItem | null>(null)
 
@@ -49,7 +53,8 @@ export default function AdsPage() {
 
   const [userRole] = useState(() => getUserRoleFromToken())
   const canDelete = userRole === null || userRole === 'SUPER_ADMIN'
-  const canSetActive = userRole === null || userRole === 'SUPER_ADMIN'
+  // ADMIN cũng phải duyệt được — không chỉ SUPER_ADMIN.
+  const canSetActive = userRole === null || userRole === 'SUPER_ADMIN' || userRole === 'ADMIN'
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value)
@@ -84,16 +89,67 @@ export default function AdsPage() {
   const handleConfirmStatusChange = async () => {
     if (!statusTarget || !statusValue) return
     if (statusValue === 'rejected' && !rejectionReason.trim()) return
+    if (statusValue === 'suspended' && !suspendedReason.trim()) return
     setActionLoading(true)
     try {
-      await updateAdStatus(statusTarget.id, statusValue, statusValue === 'rejected' ? rejectionReason : undefined)
+      await updateAdStatus(
+        statusTarget.id,
+        statusValue,
+        statusValue === 'rejected' ? rejectionReason : undefined,
+        statusValue === 'suspended' ? suspendedReason : undefined,
+      )
       toast({ title: t('ads.statusUpdated'), type: 'success' })
       setStatusTarget(null)
       setStatusValue('')
       setRejectionReason('')
+      setSuspendedReason('')
       invalidate('/admin/ads')
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Duyệt nhanh một quảng cáo đang chờ.
+  const handleApproveOne = async (ad: AdminAdListItem) => {
+    closeMenu()
+    setActionLoading(true)
+    try {
+      await updateAdStatus(ad.id, 'active')
+      toast({ title: t('ads.statusUpdated'), type: 'success' })
+      invalidate('/admin/ads')
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.size === items.length ? new Set<string>() : new Set(items.map((a) => a.id))))
+  }
+
+  // Duyệt hàng loạt: chỉ gửi PATCH cho ad đang pending để tránh lỗi transition.
+  const handleBulkApprove = async () => {
+    const ids = items.filter((a) => selectedIds.has(a.id) && a.status === 'pending').map((a) => a.id)
+    if (ids.length === 0) return
+    setActionLoading(true)
+    try {
+      const results = await Promise.allSettled(ids.map((id) => updateAdStatus(id, 'active')))
+      const ok = results.filter((r) => r.status === 'fulfilled').length
+      toast({ title: t('ads.bulkApproveSuccess', { count: String(ok) }), type: ok > 0 ? 'success' : 'error' })
+      setSelectedIds(new Set())
+      invalidate('/admin/ads')
     } finally {
       setActionLoading(false)
     }
@@ -126,10 +182,6 @@ export default function AdsPage() {
     return pages
   }
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(value)
-  }
-
   const formatNumber = (value: number): string => {
     if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
     if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
@@ -147,6 +199,7 @@ export default function AdsPage() {
       completed: styles.badgeCompleted,
       pending: styles.badgePending,
       rejected: styles.badgeRejected,
+      suspended: styles.badgeSuspended,
     }
     return map[status] ?? ''
   }
@@ -158,6 +211,7 @@ export default function AdsPage() {
       completed: t('ads.completed'),
       pending: t('ads.pending'),
       rejected: t('ads.rejected'),
+      suspended: t('ads.suspended'),
     }
     return map[status] ?? status
   }
@@ -205,8 +259,15 @@ export default function AdsPage() {
             <option value="paused">{t('ads.paused')}</option>
             <option value="pending">{t('ads.pending')}</option>
             <option value="rejected">{t('ads.rejected')}</option>
+            <option value="suspended">{t('ads.suspended')}</option>
             <option value="completed">{t('ads.completed')}</option>
           </select>
+          {selectedIds.size > 0 && (
+            <button className={styles.btnCreate} disabled={actionLoading} onClick={handleBulkApprove}>
+              <i className="bx bx-check-double" />
+              {t('ads.bulkApprove', { count: String(selectedIds.size) })}
+            </button>
+          )}
           <Link href="/admin/ads/new" className={styles.btnCreate}>
             <i className="bx bx-plus" />
             {t('ads.create')}
@@ -232,6 +293,14 @@ export default function AdsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th style={{ width: 32 }}>
+                    <input
+                      type="checkbox"
+                      aria-label={t('ads.selectAll')}
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th>#</th>
                   <th>{t('posts.title')}</th>
                   <th>{t('ads.partner')}</th>
@@ -245,6 +314,14 @@ export default function AdsPage() {
               <tbody>
                 {items.map((ad, idx) => (
                   <tr key={ad.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={ad.title}
+                        checked={selectedIds.has(ad.id)}
+                        onChange={() => toggleSelect(ad.id)}
+                      />
+                    </td>
                     <td className={styles.cellDate}>{(page - 1) * pageSize + idx + 1}</td>
                     <td>
                       <div className={styles.titleCell}>{ad.title || '—'}</div>
@@ -260,7 +337,7 @@ export default function AdsPage() {
                         {statusLabel(ad.status)}
                       </span>
                     </td>
-                    <td className={styles.cellBudget}>{formatCurrency(ad.budget)}</td>
+                    <td className={styles.cellBudget}>{formatVnd(ad.budget)}</td>
                     <td className={styles.cellDate}>{formatNumber(ad.impressions)}</td>
                     <td className={`${styles.cellCtr} ${ctrClass(ad.ctr)}`}>
                       {formatNumber(ad.clicks)} / {formatCtr(ad.ctr)}
@@ -300,6 +377,13 @@ export default function AdsPage() {
                               }}>
                               <i className="bx bx-line-chart" /> {t('ads.viewAnalytics')}
                             </button>
+                            {canSetActive && ad.status === 'pending' && (
+                              <button
+                                className={styles.actionMenuItem}
+                                onClick={() => { void handleApproveOne(ad) }}>
+                                <i className="bx bx-check" /> {t('ads.approve')}
+                              </button>
+                            )}
                             <button
                               className={styles.actionMenuItem}
                               onClick={() => {
@@ -358,6 +442,7 @@ export default function AdsPage() {
         <AdAnalyticsModal
           open
           adId={analyticsTarget.id}
+          scope="admin"
           onClose={() => setAnalyticsTarget(null)}
         />
       )}
@@ -376,7 +461,7 @@ export default function AdsPage() {
                 {t('ads.changeStatusTo')}: <strong>{statusTarget.title}</strong>
               </p>
               <div className={styles.radioGroup}>
-                {['active', 'paused', 'completed', 'rejected'].map((s) => {
+                {['active', 'paused', 'completed', 'rejected', 'suspended'].map((s) => {
                   const isAllowed = s !== 'active' || canSetActive
                   return (
                     <label
@@ -401,17 +486,21 @@ export default function AdsPage() {
                   )
                 })}
               </div>
-              {statusValue === 'rejected' && (
+              {(statusValue === 'rejected' || statusValue === 'suspended') && (
                 <div style={{ marginTop: 'var(--space-md)' }}>
                   <label className={styles.confirmText} style={{ fontWeight: 600, display: 'block', marginBottom: 'var(--space-sm)' }}>
-                    Lý do từ chối:
+                    {statusValue === 'suspended' ? t('ads.suspendedReason') : t('ads.rejectionReason')}:
                   </label>
                   <textarea
                     className={styles.rejectionInput}
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
+                    value={statusValue === 'suspended' ? suspendedReason : rejectionReason}
+                    onChange={(e) =>
+                      statusValue === 'suspended'
+                        ? setSuspendedReason(e.target.value)
+                        : setRejectionReason(e.target.value)
+                    }
                     rows={3}
-                    placeholder="Nhập lý do từ chối..."
+                    placeholder={statusValue === 'suspended' ? t('ads.suspendedReasonPlaceholder') : t('ads.rejectionReasonPlaceholder')}
                   />
                 </div>
               )}
@@ -422,7 +511,7 @@ export default function AdsPage() {
               </button>
               <button
                 className={styles.btnPrimary}
-                disabled={actionLoading || !statusValue || statusValue === statusTarget.status || (statusValue === 'rejected' && !rejectionReason.trim())}
+                disabled={actionLoading || !statusValue || statusValue === statusTarget.status || (statusValue === 'rejected' && !rejectionReason.trim()) || (statusValue === 'suspended' && !suspendedReason.trim())}
                 onClick={handleConfirmStatusChange}>
                 {actionLoading ? t('common.loading') : t('common.confirm')}
               </button>

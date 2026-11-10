@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
-import { getReport, reviewReport } from '../../../api/admin'
+import { getReport, reviewReport, updateAdStatus } from '../../../api/admin'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminReportListItem, AdminReportDetailResponse, AdminReportListResponse } from '../../../types'
 import Pagination from '../../../components/Pagination'
@@ -136,6 +136,7 @@ export default function ReportsPage() {
       post: t('reports.post'),
       comment: t('reports.comment'),
       community: t('reports.community'),
+      ad: t('reports.ad'),
     }
     return map[type] ?? type
   }
@@ -147,6 +148,7 @@ export default function ReportsPage() {
     if (report.target_user_id) return report.target_user_id
     if (report.target_comment_id) return report.target_comment_id
     if (report.target_community_id) return report.target_community_id
+    if (report.target_ad_id) return report.target_ad_id
     return '-'
   }
 
@@ -501,6 +503,60 @@ export default function ReportsPage() {
                     >
                       <i className="bx bx-link-external" /> {t('reports.viewFull')}
                     </a>
+                  </div>
+                )}
+                {detailTarget.target_ad && (
+                  <div className={styles.previewCard}>
+                    <div className={styles.previewAuthor}>
+                      <span className={styles.previewAvatar}>
+                        {detailTarget.target_ad.media_uri ? (
+                          <ExternalImage src={detailTarget.target_ad.media_uri} alt="" />
+                        ) : (
+                          <i className="bx bx-image" />
+                        )}
+                      </span>
+                      <span className={styles.previewMeta}>
+                        <strong>{detailTarget.target_ad.title}</strong>
+                        <span className={styles.previewSub}>
+                          @{detailTarget.target_ad.partner_id}
+                        </span>
+                      </span>
+                      <span className={`${styles.badge} ${styles.badgeTargetType}`}>
+                        {detailTarget.target_ad.status}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 'var(--space-sm)' }}>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 12px',
+                          border: 'none',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--color-danger)',
+                          color: '#fff',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                        onClick={async () => {
+                          const reason = window.prompt(t('reports.adSuspendReason'))?.trim()
+                          if (!reason) return
+                          const adId = detailTarget.target_ad?.ad_id
+                          if (!adId) return
+                          try {
+                            await updateAdStatus(adId, 'suspended', undefined, reason)
+                            toast({ title: t('reports.adSuspendSuccess'), type: 'success' })
+                            invalidate('/admin/reports')
+                          } catch (err) {
+                            toast({
+                              title: err instanceof Error ? err.message : t('common.error'),
+                              type: 'error',
+                            })
+                          }
+                        }}
+                      >
+                        {t('reports.adSuspend')}
+                      </button>
+                    </div>
                   </div>
                 )}
                 {detailTarget.target_community && (

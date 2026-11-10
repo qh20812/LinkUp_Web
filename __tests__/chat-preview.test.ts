@@ -27,6 +27,18 @@ describe('getSystemPreviewText', () => {
     expect(text).not.toContain('abc-xyz')
   })
 
+  it('uses the last-message sender name when the server provides it', () => {
+    const text = getSystemPreviewText('member_joined|user-123', t, 'Alice')
+    expect(text).toContain('Alice')
+    expect(text).not.toContain('user-123')
+    expect(text).not.toContain('chat.unknown')
+  })
+
+  it('falls back to chat.unknown when the sender name is blank', () => {
+    const text = getSystemPreviewText('member_joined|user-123', t, '   ')
+    expect(text).toContain('chat.unknown')
+  })
+
   it('passes through legacy content without a pipe separator', () => {
     expect(getSystemPreviewText('plain legacy text', t)).toBe('plain legacy text')
   })

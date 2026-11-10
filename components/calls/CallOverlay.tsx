@@ -41,6 +41,26 @@ function VideoFeed({
   )
 }
 
+/**
+ * Voice call không có phần tử <video> để phát audio; tách riêng <audio> cho
+ * remote stream và mute <video> để tránh phát đúp ở video call.
+ */
+function RemoteAudio({ stream }: { stream: MediaStream }) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    const el = audioRef.current
+    if (!el) return
+    el.srcObject = stream
+    el.play().catch(() => {})
+    return () => {
+      el.srcObject = null
+    }
+  }, [stream])
+
+  return <audio ref={audioRef} autoPlay />
+}
+
 const STATUS_LABELS: Record<CallStatus, string> = {
   calling: 'statusCalling',
   ringing: 'statusRinging',
@@ -119,9 +139,10 @@ export default function CallOverlay() {
         role="dialog"
         aria-label={isVideo ? t('call.inCallVideo') : t('call.inCallVoice')}
       >
+        {remoteStream && <RemoteAudio stream={remoteStream} />}
         {isVideo && remoteStream && remoteVideoOn ? (
           <div className={styles.miniThumb}>
-            <VideoFeed stream={remoteStream} className={styles.miniVideo} />
+            <VideoFeed stream={remoteStream} muted className={styles.miniVideo} />
           </div>
         ) : (
           <div className={styles.miniAvatar}>
@@ -184,9 +205,10 @@ export default function CallOverlay() {
   if (showFullscreenVideo) {
     return (
       <div className={styles.backdropVideo} role="dialog" aria-modal="true">
+        {remoteStream && <RemoteAudio stream={remoteStream} />}
         {/* Remote video / avatar fallback */}
         {remoteStream && remoteVideoOn ? (
-          <VideoFeed stream={remoteStream} className={styles.remoteVideo} />
+          <VideoFeed stream={remoteStream} muted className={styles.remoteVideo} />
         ) : (
           <div className={styles.remoteOffOverlay}>
             <span className={styles.bigAvatar}>
@@ -256,6 +278,7 @@ export default function CallOverlay() {
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true">
+      {isActive && remoteStream && <RemoteAudio stream={remoteStream} />}
       <div className={styles.panel}>
         <div className={styles.avatarWrap}>
           {call.peer.avatar_uri ? (

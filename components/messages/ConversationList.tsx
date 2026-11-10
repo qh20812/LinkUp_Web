@@ -196,7 +196,7 @@ export default function ConversationList({
                         {conv.last_message.type === 'group_invite' || isInvitePreviewContent(conv.last_message.content)
                           ? t('chat.groupInviteTitle')
                           : isSystemPreviewMessage(conv.last_message)
-                            ? getSystemPreviewText(conv.last_message.content, t)
+                            ? getSystemPreviewText(conv.last_message.content, t, conv.last_message.sender_name)
                             : isVoicePreviewMessage(conv.last_message)
                               ? t('chat.voicePreview')
                               : mediaKey
@@ -317,7 +317,7 @@ export default function ConversationList({
                         {lastMsg.type === 'group_invite' || isInvitePreviewContent(lastMsg.content)
                           ? t('chat.groupInviteTitle')
                           : lastIsSystem
-                            ? getSystemPreviewText(lastMsg.content, t)
+                            ? getSystemPreviewText(lastMsg.content, t, lastMsg.sender_name)
                             : isVoicePreviewMessage(lastMsg)
                               ? t('chat.voicePreview')
                               : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}

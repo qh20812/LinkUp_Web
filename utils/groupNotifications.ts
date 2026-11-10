@@ -7,7 +7,13 @@ type GroupFields = Omit<NotificationGroup, 'key' | 'ids' | 'count'>
 export function groupKey(
   item: Pick<
     NotificationItem,
-    'type' | 'sender_id' | 'redirect_post_id' | 'redirect_user_id' | 'redirect_comment_id'
+    | 'type'
+    | 'sender_id'
+    | 'redirect_post_id'
+    | 'redirect_user_id'
+    | 'redirect_comment_id'
+    | 'redirect_community_id'
+    | 'redirect_ad_id'
   >
 ): string {
   return [
@@ -16,6 +22,8 @@ export function groupKey(
     item.redirect_post_id ?? 'null',
     item.redirect_user_id ?? 'null',
     item.redirect_comment_id ?? 'null',
+    item.redirect_community_id ?? 'null',
+    item.redirect_ad_id ?? 'null',
   ].join('|')
 }
 
@@ -81,6 +89,8 @@ function representativeFields(item: NotificationItem): GroupFields {
     redirect_post_id: item.redirect_post_id,
     redirect_user_id: item.redirect_user_id,
     redirect_comment_id: item.redirect_comment_id,
+    redirect_community_id: item.redirect_community_id,
+    redirect_ad_id: item.redirect_ad_id,
   }
 }
 
@@ -93,4 +103,6 @@ function copyRepresentative(target: NotificationGroup, item: NotificationItem) {
   target.redirect_post_id = item.redirect_post_id
   target.redirect_user_id = item.redirect_user_id
   target.redirect_comment_id = item.redirect_comment_id
+  target.redirect_community_id = item.redirect_community_id
+  target.redirect_ad_id = item.redirect_ad_id
 }

@@ -4,20 +4,23 @@ import React from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { getOverview } from '../../../api/partner'
+import { formatVnd } from '../../../lib/ads-estimate'
 import StatCard from '../../../components/StatCard'
+import OnboardingChecklist from '../../../components/partner/OnboardingChecklist'
 import type { AdOverview } from '../../../types'
 import styles from './Dashboard.module.css'
 
 export default function PartnerDashboardPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const { data, isLoading } = useSWR<AdOverview>('/ads-management/overview', () => getOverview())
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v)
+  const formatCurrency = (v: number) => formatVnd(v)
 
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>{t('partner.overview.title')}</h1>
+
+      <OnboardingChecklist />
 
       <div className={styles.statsGrid}>
         <StatCard
@@ -87,7 +90,7 @@ export default function PartnerDashboardPage() {
             {data.expires_at && (
               <div className={styles.subRow}>
                 <span className={styles.subLabel}>{t('partner.overview.expiresAt')}</span>
-                <span className={styles.subValue}>{new Date(data.expires_at).toLocaleDateString('vi-VN')}</span>
+                <span className={styles.subValue}>{new Date(data.expires_at).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN')}</span>
               </div>
             )}
           </div>

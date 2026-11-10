@@ -1,4 +1,5 @@
-import { request, extractErrorMessage } from "./api";
+import { request } from "./api";
+import { normalizeAdPerformance, type AdPerformanceWire } from "../lib/ad-performance";
 import type {
   AdminAdListResponse,
   AdPerformance,
@@ -26,6 +27,8 @@ import type {
   ViolationRule,
   ViolationRuleListResponse,
   AdminViolationRuleInput,
+  AdPackage,
+  PackageInput,
 } from "../types";
 
 // Dashboard
@@ -300,10 +303,19 @@ export const getAds = (page = 1, pageSize = 20, keyword?: string, status?: strin
   return request<AdminAdListResponse>(`/admin/ads?${params}`);
 };
 
-export const updateAdStatus = (id: string, status: string, rejectionReason?: string) =>
+export const updateAdStatus = (
+  id: string,
+  status: string,
+  rejectionReason?: string,
+  suspendedReason?: string,
+) =>
   request<{ message: string }>(`/admin/ads/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, rejection_reason: rejectionReason || undefined }),
+    body: JSON.stringify({
+      status,
+      rejection_reason: status === "rejected" ? rejectionReason || undefined : undefined,
+      suspended_reason: status === "suspended" ? suspendedReason || undefined : undefined,
+    }),
   });
 
 export const deleteAd = (id: string) =>
@@ -314,16 +326,34 @@ export const deleteAd = (id: string) =>
 export const getAdminProfile = () =>
   request<ViewProfileResponse>("/profile");
 
-export const getAdAnalytics = async (id: string): Promise<{ data: AdPerformance }> => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`/api/ads-management/${id}/analytics`, { headers })
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res))
-  }
-  return res.json()
+// Admin xem thống kê của bất kỳ quảng cáo nào (endpoint admin đã bỏ kiểm tra
+// ownership theo partner).
+export const getAdAnalytics = async (
+  id: string,
+  range?: { from: string; to: string },
+): Promise<AdPerformance> => {
+  const query = range
+    ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : ''
+  const res = await request<{ data: AdPerformanceWire }>(`/admin/ads/${id}/analytics${query}`)
+  return normalizeAdPerformance(res.data)
 }
+
+// ── Packages (admin) ──
+export const getAdminPackages = () =>
+  request<{ data: AdPackage[] }>('/admin/packages')
+
+export const createAdminPackage = (input: PackageInput) =>
+  request<{ message: string; data: AdPackage }>('/admin/packages', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+
+export const updateAdminPackage = (id: string, input: PackageInput) =>
+  request<{ message: string; data: AdPackage }>(`/admin/packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
 
 export const getAdminSettings = () =>
   request<AdminSettingsResponse>('/admin/settings')

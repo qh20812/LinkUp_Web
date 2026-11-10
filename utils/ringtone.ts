@@ -1,5 +1,8 @@
 let ctx: AudioContext | null = null
 let timer: ReturnType<typeof setInterval> | null = null
+let activeOsc: OscillatorNode | null = null
+let activeGain: GainNode | null = null
+let currentFrequency: number | null = null
 
 function getContext(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -9,6 +12,30 @@ function getContext(): AudioContext | null {
   if (!Ctor) return null
   if (!ctx) ctx = new Ctor()
   return ctx
+}
+
+function stopActiveTone(): void {
+  if (activeOsc) {
+    try {
+      activeOsc.stop()
+    } catch {
+      /* oscillator already stopped */
+    }
+    try {
+      activeOsc.disconnect()
+    } catch {
+      /* ignore */
+    }
+    activeOsc = null
+  }
+  if (activeGain) {
+    try {
+      activeGain.disconnect()
+    } catch {
+      /* ignore */
+    }
+    activeGain = null
+  }
 }
 
 function beep(ctx: AudioContext, frequency: number): void {
@@ -22,6 +49,9 @@ function beep(ctx: AudioContext, frequency: number): void {
   gain.connect(ctx.destination)
   osc.start()
 
+  activeOsc = osc
+  activeGain = gain
+
   const now = ctx.currentTime
   gain.gain.setValueAtTime(0, now)
   gain.gain.linearRampToValueAtTime(0.35, now + 0.02)
@@ -31,17 +61,32 @@ function beep(ctx: AudioContext, frequency: number): void {
   const stopAt = now + 1.15
   osc.stop(stopAt)
   osc.onended = () => {
-    osc.disconnect()
-    gain.disconnect()
+    if (activeOsc === osc) {
+      activeOsc = null
+      activeGain = null
+    }
+    try {
+      osc.disconnect()
+    } catch {
+      /* ignore */
+    }
+    try {
+      gain.disconnect()
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 function startLoop(frequency: number): void {
+  // Tránh chồng nhiều oscillator khi server gửi calling/ringing liên tiếp.
+  if (timer && currentFrequency === frequency) return
   stopRingtone()
   const audio = getContext()
   if (!audio) return
 
   if (audio.state === 'suspended') audio.resume().catch(() => {})
+  currentFrequency = frequency
   beep(audio, frequency)
   timer = setInterval(() => beep(audio, frequency), 1600)
 }
@@ -59,4 +104,6 @@ export function stopRingtone(): void {
     clearInterval(timer)
     timer = null
   }
+  currentFrequency = null
+  stopActiveTone()
 }
