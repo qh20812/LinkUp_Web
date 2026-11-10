@@ -38,6 +38,17 @@ export default function NotificationDropdown({
         return "bx bx-group";
       case "voice_call":
         return "bx bx-phone";
+      case "report_submitted":
+      case "report_result":
+        return "bx bx-flag";
+      case "moderation":
+        return "bx bx-shield-quarter";
+      case "wallet":
+        return "bx bx-wallet";
+      case "package":
+        return "bx bx-package";
+      case "message_react":
+        return "bx bx-heart";
       case "community_join_request":
       case "community_join_approved":
       case "community_join_rejected":
@@ -70,6 +81,17 @@ export default function NotificationDropdown({
         return styles.iconFriend;
       case "voice_call":
         return styles.iconCall;
+      case "report_submitted":
+      case "report_result":
+        return styles.iconReport;
+      case "moderation":
+        return styles.iconReport;
+      case "wallet":
+        return styles.iconWallet;
+      case "package":
+        return styles.iconPackage;
+      case "message_react":
+        return styles.iconLike;
       default:
         return styles.iconCommunity;
     }
@@ -104,10 +126,16 @@ export default function NotificationDropdown({
     }
     onClose();
 
-    if (item.redirect_post_id) {
+    if (item.redirect_community_id) {
+      router.push("/admin/communities");
+    } else if (item.redirect_ad_id) {
+      router.push("/admin/ads");
+    } else if (item.redirect_post_id) {
       router.push("/admin/posts");
     } else if (item.redirect_user_id) {
       router.push("/admin/users");
+    } else if (item.type === "moderation" && item.redirect_comment_id) {
+      router.push("/admin/groups");
     } else {
       router.push("/admin/notifications");
     }

@@ -31,6 +31,8 @@ type Kind =
   | 'message'
   | 'call'
   | 'media'
+  | 'report'
+  | 'system'
 type TimeBucket = 'today' | 'yesterday' | 'week' | 'older'
 
 const PAGE_SIZE = 20
@@ -46,6 +48,8 @@ const ALLOWED_KINDS: Kind[] = [
   'message',
   'call',
   'media',
+  'report',
+  'system',
 ]
 const BUCKET_ORDER: TimeBucket[] = ['today', 'yesterday', 'week', 'older']
 
@@ -54,7 +58,7 @@ function matchesKind(type: NotificationType, kind: Kind): boolean {
     case 'all':
       return true
     case 'like':
-      return type === 'like' || type === 'story_react' || type === 'share'
+      return type === 'like' || type === 'story_react' || type === 'share' || type === 'message_react'
     case 'comment':
       return type === 'comment'
     case 'follow':
@@ -69,6 +73,10 @@ function matchesKind(type: NotificationType, kind: Kind): boolean {
       return type === 'voice_call'
     case 'media':
       return type.startsWith('media_')
+    case 'report':
+      return type.startsWith('report_')
+    case 'system':
+      return type === 'moderation' || type === 'wallet' || type === 'package'
   }
 }
 
@@ -309,6 +317,17 @@ function NotificationsContent() {
         return 'bx bx-x-circle'
       case 'media_flagged':
         return 'bx bx-error'
+      case 'report_submitted':
+      case 'report_result':
+        return 'bx bx-flag'
+      case 'moderation':
+        return 'bx bx-shield-quarter'
+      case 'wallet':
+        return 'bx bx-wallet'
+      case 'package':
+        return 'bx bx-package'
+      case 'message_react':
+        return 'bx bx-heart'
       case 'community_join_request':
       case 'community_join_approved':
       case 'community_join_rejected':
@@ -347,6 +366,17 @@ function NotificationsContent() {
         return styles.iconDanger
       case 'media_flagged':
         return styles.iconFlagged
+      case 'report_submitted':
+      case 'report_result':
+        return styles.iconFlagged
+      case 'moderation':
+        return styles.iconFlagged
+      case 'wallet':
+        return styles.iconApproved
+      case 'package':
+        return styles.iconCommunity
+      case 'message_react':
+        return styles.iconLike
       default:
         return styles.iconCommunity
     }
@@ -372,6 +402,17 @@ function NotificationsContent() {
         return t('notifications.typeLabel_friend_accepted')
       case 'voice_call':
         return t('notifications.typeLabel_voice_call')
+      case 'report_submitted':
+      case 'report_result':
+        return t('notifications.typeLabel_report')
+      case 'moderation':
+        return t('notifications.typeLabel_moderation')
+      case 'wallet':
+        return t('notifications.typeLabel_wallet')
+      case 'package':
+        return t('notifications.typeLabel_package')
+      case 'message_react':
+        return t('notifications.typeLabel_message_react')
       default:
         if (type.startsWith('community_'))
           return t('notifications.typeLabel_community')

@@ -812,6 +812,8 @@ export type NotificationType =
   | 'community_invitation_received' | 'community_invitation_accepted'
   | 'voice_call'
   | 'media_approved' | 'media_rejected' | 'media_flagged'
+  | 'report_submitted' | 'report_result'
+  | 'moderation' | 'wallet' | 'package' | 'message_react'
 
 export interface NotificationItem {
   id: string
@@ -825,6 +827,8 @@ export interface NotificationItem {
   redirect_post_id?: string
   redirect_user_id?: string
   redirect_comment_id?: string
+  redirect_community_id?: string
+  redirect_ad_id?: string
 }
 
 export interface NotificationGroup {
@@ -841,6 +845,8 @@ export interface NotificationGroup {
   redirect_post_id?: string
   redirect_user_id?: string
   redirect_comment_id?: string
+  redirect_community_id?: string
+  redirect_ad_id?: string
 }
 
 export interface NotificationListResponse {

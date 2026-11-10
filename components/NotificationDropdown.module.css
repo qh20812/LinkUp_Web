@@ -154,6 +154,18 @@
   color: #607d8b;
 }
 
+.iconReport {
+  color: #ea580c;
+}
+
+.iconWallet {
+  color: #059669;
+}
+
+.iconPackage {
+  color: #0284c7;
+}
+
 .contentWrap {
   flex: 1;
   display: flex;
