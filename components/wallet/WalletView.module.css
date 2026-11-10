@@ -153,6 +153,16 @@
   color: var(--color-text);
 }
 
+.formError {
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-light);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
 .amountRow {
   display: flex;
   align-items: flex-start;

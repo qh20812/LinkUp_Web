@@ -268,13 +268,14 @@ export default function AdminWalletTopupsPage() {
                     />
                     {topup.proof_url && (
                       <a
-                        className={styles.proofLink}
+                        className={styles.proofThumb}
                         href={topup.proof_url}
                         target="_blank"
                         rel="noreferrer noopener"
                         title={t('walletAdmin.proof')}
                       >
-                        <i className="bx bx-link-external" aria-hidden="true" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={topup.proof_url} alt={t('walletAdmin.proof')} loading="lazy" />
                       </a>
                     )}
                   </td>
@@ -363,6 +364,30 @@ export default function AdminWalletTopupsPage() {
             </dd>
           </div>
         </dl>
+        <div className={styles.proofBlock}>
+          <span className={styles.label}>{t('walletAdmin.proof')}</span>
+          {approveTarget?.proof_url ? (
+            <a
+              className={styles.proofPreviewLink}
+              href={approveTarget.proof_url}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className={styles.proofPreview}
+                src={approveTarget.proof_url}
+                alt={t('walletAdmin.proof')}
+              />
+              <span>
+                <i className="bx bx-link-external" aria-hidden="true" />{' '}
+                {t('walletAdmin.openProof')}
+              </span>
+            </a>
+          ) : (
+            <p className={styles.hint}>{t('walletAdmin.proofNone')}</p>
+          )}
+        </div>
         <label className={styles.label} htmlFor="admin-confirmed-amount">
           {t('walletAdmin.confirmedAmount')}
         </label>

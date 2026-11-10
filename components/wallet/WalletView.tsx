@@ -19,7 +19,10 @@ import Modal from '../Modal'
 import Pagination from '../Pagination'
 import MoneyInput from '../forms/MoneyInput'
 import CopyIconButton from './CopyIconButton'
+import ProofUpload from './ProofUpload'
 import TruncatedText from '../common/TruncatedText'
+import { deleteMedia, uploadMedia, type UploadedMedia } from '../../api/media'
+import { ApiError } from '../../api/api'
 import type {
   WalletResponse,
   WalletTopup,
@@ -55,10 +58,11 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<WalletTopupCreated | null>(null)
   const [reported, setReported] = useState(false)
-  const [proofUrl, setProofUrl] = useState('')
+  const [proofFile, setProofFile] = useState<File | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
   const [reportTargetId, setReportTargetId] = useState<string | null>(null)
-  const [reporting, setReporting] = useState(false)
+  const [reportPhase, setReportPhase] = useState<'idle' | 'uploading' | 'sending'>('idle')
+  const [reportError, setReportError] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [topupPage, setTopupPage] = useState(1)
@@ -139,7 +143,7 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
       const res = await createTopup(value)
       setCreated(res)
       setReported(false)
-      setProofUrl('')
+      setProofFile(null)
       setNow(Date.now())
       paidNoticeRef.current = null
       setAmount('')
@@ -152,27 +156,50 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
     }
   }
 
+  const reporting = reportPhase !== 'idle'
+
+  const closeReport = () => {
+    if (reporting) return
+    setReportOpen(false)
+    setReportTargetId(null)
+    setProofFile(null)
+    setReportError('')
+  }
+
   const handleReport = async () => {
     const targetID = reportTargetId ?? created?.id
-    if (!targetID) return
-    setReporting(true)
+    if (!targetID || !proofFile || reporting) return
+
+    setReportError('')
+    setReportPhase('uploading')
+    let uploaded: UploadedMedia | null = null
     try {
-      await reportTopup(targetID, proofUrl.trim() || undefined)
+      uploaded = await uploadMedia(proofFile)
+      setReportPhase('sending')
+      await reportTopup(targetID, uploaded.file_uri)
       if (created?.id === targetID) setReported(true)
       setReportOpen(false)
       setReportTargetId(null)
+      setProofFile(null)
       toast({ title: t('wallet.reportSuccess'), type: 'success' })
       void mutateTopups()
     } catch (err) {
-      toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
+      // Ảnh đã upload nhưng report bị server từ chối (4xx) → xoá best-effort
+      // để không chiếm quota. Lỗi mạng/5xx có thể đã ghi report thành công nên
+      // giữ ảnh lại, tránh làm hỏng bằng chứng.
+      if (uploaded && err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        void deleteMedia(uploaded.id).catch(() => {})
+      }
+      setReportError(err instanceof Error ? err.message : t('common.error'))
     } finally {
-      setReporting(false)
+      setReportPhase('idle')
     }
   }
 
   const openReport = (id: string) => {
     setReportTargetId(id)
-    setProofUrl('')
+    setProofFile(null)
+    setReportError('')
     setReportOpen(true)
   }
 
@@ -500,32 +527,44 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
 
       <Modal
         open={reportOpen}
-        onClose={() => setReportOpen(false)}
+        onClose={closeReport}
         title={t('wallet.reportTitle')}
         footer={
           <>
-            <button type="button" className={styles.btnGhost} onClick={() => setReportOpen(false)}>
+            <button type="button" className={styles.btnGhost} onClick={closeReport} disabled={reporting}>
               {t('common.cancel')}
             </button>
-            <button type="button" className={styles.btnPrimary} onClick={handleReport} disabled={reporting}>
-              {reporting ? t('common.loading') : t('wallet.reportTransferred')}
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleReport}
+              disabled={reporting || !proofFile}
+            >
+              {reportPhase === 'uploading'
+                ? t('wallet.uploading')
+                : reportPhase === 'sending'
+                  ? t('wallet.sendingProof')
+                  : t('wallet.reportTransferred')}
             </button>
           </>
         }
       >
         <p className={styles.hint}>{t('wallet.reportDesc')}</p>
-        <label className={styles.label} htmlFor="wallet-proof">
-          {t('wallet.proofUrl')}
-        </label>
-        <input
-          id="wallet-proof"
-          className={styles.input}
-          type="url"
-          value={proofUrl}
-          onChange={(e) => setProofUrl(e.target.value)}
-          placeholder="https://"
+        <label className={styles.label}>{t('wallet.proofImage')}</label>
+        <ProofUpload
+          value={proofFile}
+          onChange={(file) => {
+            setProofFile(file)
+            setReportError('')
+          }}
+          disabled={reporting}
         />
         <p className={styles.hint}>{t('wallet.proofHint')}</p>
+        {reportError && (
+          <p className={styles.formError} role="alert">
+            {reportError}
+          </p>
+        )}
       </Modal>
     </div>
   )

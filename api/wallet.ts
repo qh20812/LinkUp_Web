@@ -33,11 +33,11 @@ export const createTopup = async (amount: number): Promise<WalletTopupCreated> =
   return res.data
 }
 
-/** Báo đã chuyển khoản (ảnh biên lai tuỳ chọn, chỉ để tham khảo). */
-export const reportTopup = async (id: string, proofUrl?: string): Promise<WalletTopup> => {
+/** Báo đã chuyển khoản kèm URL ảnh biên lai (server bắt buộc ảnh). */
+export const reportTopup = async (id: string, proofUrl: string): Promise<WalletTopup> => {
   const res = await request<{ message: string; data: WalletTopup }>(`/wallet/topups/${id}/report`, {
     method: 'POST',
-    body: JSON.stringify({ proof_url: proofUrl ?? '' }),
+    body: JSON.stringify({ proof_url: proofUrl }),
   })
   return res.data
 }
