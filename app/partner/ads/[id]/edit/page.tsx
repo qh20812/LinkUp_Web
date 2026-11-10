@@ -11,6 +11,7 @@ import { getWallet } from '../../../../../api/wallet'
 import { formatVnd } from '../../../../../lib/ads-estimate'
 import ProvinceMultiSelect from '../../../../../components/ads/ProvinceMultiSelect'
 import AdCard from '../../../../../components/ads/AdCard'
+import MoneyInput from '../../../../../components/forms/MoneyInput'
 import { toDateTimeLocal } from '../../../../../lib/ad-datetime'
 import {
   AD_MEDIA_LIMITS,
@@ -285,24 +286,30 @@ export default function EditAdPage() {
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.section}>
-          <label className={styles.label}>{t('partner.form.title')} <span className={styles.required}>*</span></label>
-          <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} />
+          <label className={styles.label} htmlFor="edit-ad-title">{t('partner.form.title')} <span className={styles.required}>*</span></label>
+          <input id="edit-ad-title" className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} />
         </div>
 
         <div className={styles.section}>
-          <label className={styles.label}>{t('partner.form.content')}</label>
-          <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} maxLength={2000} rows={4} />
+          <label className={styles.label} htmlFor="edit-ad-content">{t('partner.form.content')}</label>
+          <textarea id="edit-ad-content" className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} maxLength={2000} rows={4} />
         </div>
 
         <div className={styles.section}>
-          <label className={styles.label}>{t('partner.form.targetUrl')}</label>
-          <input className={styles.input} type="url" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} placeholder="https://" />
+          <label className={styles.label} htmlFor="edit-ad-target-url">{t('partner.form.targetUrl')}</label>
+          <input id="edit-ad-target-url" className={styles.input} type="url" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} placeholder="https://" />
         </div>
 
         <div className={styles.row}>
           <div className={styles.section}>
-            <label className={styles.label}>{t('partner.form.budget')} <span className={styles.required}>*</span></label>
-            <input className={styles.input} type="number" value={budget} onChange={(e) => setBudget(e.target.value)} min="0" />
+            <label className={styles.label} htmlFor="edit-ad-budget">{t('partner.form.budget')} <span className={styles.required}>*</span></label>
+            <MoneyInput
+              id="edit-ad-budget"
+              className={styles.input}
+              value={budget}
+              onValueChange={setBudget}
+              suffix="VND"
+            />
             {wallet && (
               <p className={styles.hint}>
                 {t('partner.form.walletAvailable', { amount: formatVnd(wallet.available) })}
@@ -315,23 +322,50 @@ export default function EditAdPage() {
             )}
           </div>
           <div className={styles.section}>
-            <label className={styles.label}>{t('partner.form.dailyBudget')}</label>
-            <input className={styles.input} type="number" value={dailyBudget} onChange={(e) => setDailyBudget(e.target.value)} min="0" />
+            <label className={styles.label} htmlFor="edit-ad-daily-budget">{t('partner.form.dailyBudget')}</label>
+            <MoneyInput
+              id="edit-ad-daily-budget"
+              className={styles.input}
+              value={dailyBudget}
+              onValueChange={setDailyBudget}
+              suffix="VND"
+              showWords={false}
+            />
           </div>
         </div>
 
         <div className={styles.row}>
           <div className={styles.section}>
-            <label className={styles.label}>{t('partner.form.maxImpressions')}</label>
-            <input className={styles.input} type="number" value={maxImpressions} onChange={(e) => setMaxImpressions(e.target.value)} min="0" />
+            <label className={styles.label} htmlFor="edit-ad-max-impressions">{t('partner.form.maxImpressions')}</label>
+            <MoneyInput
+              id="edit-ad-max-impressions"
+              className={styles.input}
+              value={maxImpressions}
+              onValueChange={setMaxImpressions}
+              showWords={false}
+            />
           </div>
           <div className={styles.section}>
-            <label className={styles.label}>{t('partner.form.cpmPrice')}</label>
-            <input className={styles.input} type="number" value={cpmPrice} onChange={(e) => setCpmPrice(e.target.value)} min="0" />
+            <label className={styles.label} htmlFor="edit-ad-cpm-price">{t('partner.form.cpmPrice')}</label>
+            <MoneyInput
+              id="edit-ad-cpm-price"
+              className={styles.input}
+              value={cpmPrice}
+              onValueChange={setCpmPrice}
+              suffix="VND"
+              showWords={false}
+            />
           </div>
           <div className={styles.section}>
-            <label className={styles.label}>{t('partner.form.cpcPrice')}</label>
-            <input className={styles.input} type="number" value={cpcPrice} onChange={(e) => setCpcPrice(e.target.value)} min="0" />
+            <label className={styles.label} htmlFor="edit-ad-cpc-price">{t('partner.form.cpcPrice')}</label>
+            <MoneyInput
+              id="edit-ad-cpc-price"
+              className={styles.input}
+              value={cpcPrice}
+              onValueChange={setCpcPrice}
+              suffix="VND"
+              showWords={false}
+            />
           </div>
         </div>
 

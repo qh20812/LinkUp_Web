@@ -3,6 +3,7 @@
 import React from 'react'
 import Modal from '../Modal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { formatVnd } from '../../lib/ads-estimate'
 import type { WalletBalance } from '../../types'
 import styles from './WalletPurchaseModal.module.css'
 
@@ -25,14 +26,9 @@ export default function WalletPurchaseModal({
   onClose,
   onConfirm,
 }: WalletPurchaseModalProps) {
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
 
-  const formatMoney = (v: number) =>
-    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(v)
+  const formatMoney = (v: number) => formatVnd(v)
 
   const available = wallet?.available ?? 0
   const after = available - amount

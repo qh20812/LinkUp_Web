@@ -283,25 +283,6 @@ fieldset.formSection > legend {
   color: var(--color-text-secondary);
 }
 
-.inputWithUnit {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.inputWithUnit .input {
-  padding-right: 52px;
-}
-
-.unit {
-  position: absolute;
-  right: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
 .advanced {
   margin-top: var(--space-sm);
   border: 1px solid var(--color-border);
@@ -642,6 +623,11 @@ fieldset.formSection > legend {
   font-size: 13px;
   color: var(--color-text);
   word-break: break-word;
+}
+
+.summaryUrl {
+  width: 36ch;
+  max-width: 100%;
 }
 
 .pendingNote {

@@ -26,6 +26,7 @@
       }
     },
     "loading": "Loading...",
+    "amountInWords": "In words: {words}",
     "error": "Error",
     "save": "Save",
     "cancel": "Cancel",

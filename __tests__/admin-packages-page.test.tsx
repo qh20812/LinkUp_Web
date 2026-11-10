@@ -108,4 +108,25 @@ describe('AdminPackagesPage', () => {
       is_active: true,
     })
   })
+
+  it('format giá gói khi nhập và gửi số nguyên', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Tạo gói' }))
+    await user.type(screen.getByLabelText(/Tên gói/i), 'Gói Định Dạng')
+
+    const price = screen.getByLabelText(/Giá\/tháng/i)
+    await user.type(price, '99000')
+    expect(price).toHaveValue('99.000')
+    expect(screen.getByText('Bằng chữ: Chín mươi chín nghìn đồng')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Lưu gói' }))
+
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1))
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      name: 'Gói Định Dạng',
+      price_monthly: 99000,
+    })
+  })
 })

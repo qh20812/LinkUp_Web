@@ -6,6 +6,27 @@
   min-width: 0;
 }
 
+.inputRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.hasSuffix input {
+  padding-right: 56px;
+}
+
+.suffix {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
 .input {
   width: 100%;
   min-height: 44px;

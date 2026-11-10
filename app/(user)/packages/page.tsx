@@ -11,6 +11,7 @@ import { getWallet } from '../../../api/wallet'
 import { clearSWRCache } from '../../../api/swr'
 import { ApiError, refreshSession, storeTokens } from '../../../api/api'
 import { redirectToExternal } from '../../../lib/navigate'
+import { formatVnd } from '../../../lib/ads-estimate'
 import PaymentMethodPicker from '../../../components/checkout/PaymentMethodPicker'
 import WalletPurchaseModal from '../../../components/checkout/WalletPurchaseModal'
 import type { AdPackage, PaymentMethodsResponse, SubscriptionResponse, WalletResponse } from '../../../types'
@@ -21,7 +22,7 @@ function daysLeftFrom(expiresAt: string): number {
 }
 
 export default function PackagesPage() {
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { isAuthenticated, isPartner, initializing } = useAuth()
 
@@ -98,12 +99,7 @@ export default function PackagesPage() {
   const selectedPackage = packages?.find((p) => p.id === selectedId) ?? null
   const selectedIsCurrent = !!selectedPackage && isCurrentPackage(selectedPackage)
 
-  const formatPrice = (v: number) =>
-    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(v)
+  const formatPrice = (v: number) => formatVnd(v)
 
   const handleSelect = (pkgId: string) => {
     if (!isAuthenticated && !initializing) {
@@ -309,11 +305,7 @@ export default function PackagesPage() {
         {walletInsufficient && (
           <p className={styles.ctaHint}>
             {t('payment.insufficientWallet', {
-              amount: new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-                style: 'currency',
-                currency: 'VND',
-                maximumFractionDigits: 0,
-              }).format(selectedPackage!.price_monthly - (wallet?.available ?? 0)),
+              amount: formatVnd(selectedPackage!.price_monthly - (wallet?.available ?? 0)),
             })}{' '}
             <Link href="/wallet">{t('payment.topUp')}</Link>
           </p>

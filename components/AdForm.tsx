@@ -31,6 +31,8 @@ import AdCard from './ads/AdCard'
 import AdTemplatePicker from './ads/AdTemplatePicker'
 import FieldHelp from './ads/FieldHelp'
 import ProvinceMultiSelect from './ads/ProvinceMultiSelect'
+import MoneyInput from './forms/MoneyInput'
+import TruncatedText from './common/TruncatedText'
 import styles from './AdForm.module.css'
 
 export interface AdFormProps {
@@ -900,18 +902,14 @@ export default function AdForm({
 
               <div className={styles.section}>
                 <label className={styles.label} htmlFor="ad-budget">{t('partner.form.budget')} <span className={styles.required}>*</span></label>
-                <div className={styles.inputWithUnit}>
-                  <input
-                    id="ad-budget"
-                    className={styles.input}
-                    type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    min="0"
-                    aria-describedby="ad-hint-budget"
-                  />
-                  <span className={styles.unit}>VND</span>
-                </div>
+                <MoneyInput
+                  id="ad-budget"
+                  className={styles.input}
+                  value={budget}
+                  onValueChange={setBudget}
+                  suffix="VND"
+                  describedBy="ad-hint-budget"
+                />
                 <p id="ad-hint-budget" className={styles.hint}>{t('partner.form.budgetHint')}</p>
 
                 {walletAvailable !== null && (
@@ -957,18 +955,15 @@ export default function AdForm({
                           text={t('partner.form.dailyBudgetHelp')}
                         />
                       </div>
-                      <div className={styles.inputWithUnit}>
-                        <input
-                          id="ad-daily-budget"
-                          className={styles.input}
-                          type="number"
-                          value={dailyBudget}
-                          onChange={(e) => setDailyBudget(e.target.value)}
-                          min="0"
-                          aria-describedby="ad-hint-daily-budget"
-                        />
-                        <span className={styles.unit}>VND</span>
-                      </div>
+                      <MoneyInput
+                        id="ad-daily-budget"
+                        className={styles.input}
+                        value={dailyBudget}
+                        onValueChange={setDailyBudget}
+                        suffix="VND"
+                        showWords={false}
+                        describedBy="ad-hint-daily-budget"
+                      />
                       <p id="ad-hint-daily-budget" className={styles.hint}>{t('partner.form.dailyBudgetHint')}</p>
                     </div>
                     <div className={styles.section}>
@@ -979,14 +974,13 @@ export default function AdForm({
                           text={t('partner.form.maxImpressionsHelp')}
                         />
                       </div>
-                      <input
+                      <MoneyInput
                         id="ad-max-impressions"
                         className={styles.input}
-                        type="number"
                         value={maxImpressions}
-                        onChange={(e) => setMaxImpressions(e.target.value)}
-                        min="0"
-                        aria-describedby="ad-hint-max-impressions"
+                        onValueChange={setMaxImpressions}
+                        showWords={false}
+                        describedBy="ad-hint-max-impressions"
                       />
                       <p id="ad-hint-max-impressions" className={styles.hint}>{t('partner.form.maxImpressionsHint')}</p>
                     </div>
@@ -1001,18 +995,15 @@ export default function AdForm({
                           text={t('partner.form.cpmHelp')}
                         />
                       </div>
-                      <div className={styles.inputWithUnit}>
-                        <input
-                          id="ad-cpm-price"
-                          className={styles.input}
-                          type="number"
-                          value={cpmPrice}
-                          onChange={(e) => setCpmPrice(e.target.value)}
-                          min="0"
-                          aria-describedby="ad-hint-cpm-price"
-                        />
-                        <span className={styles.unit}>VND</span>
-                      </div>
+                      <MoneyInput
+                        id="ad-cpm-price"
+                        className={styles.input}
+                        value={cpmPrice}
+                        onValueChange={setCpmPrice}
+                        suffix="VND"
+                        showWords={false}
+                        describedBy="ad-hint-cpm-price"
+                      />
                       <p id="ad-hint-cpm-price" className={styles.hint}>{t('partner.form.cpmHint')}</p>
                     </div>
                     <div className={styles.section}>
@@ -1023,18 +1014,15 @@ export default function AdForm({
                           text={t('partner.form.cpcHelp')}
                         />
                       </div>
-                      <div className={styles.inputWithUnit}>
-                        <input
-                          id="ad-cpc-price"
-                          className={styles.input}
-                          type="number"
-                          value={cpcPrice}
-                          onChange={(e) => setCpcPrice(e.target.value)}
-                          min="0"
-                          aria-describedby="ad-hint-cpc-price"
-                        />
-                        <span className={styles.unit}>VND</span>
-                      </div>
+                      <MoneyInput
+                        id="ad-cpc-price"
+                        className={styles.input}
+                        value={cpcPrice}
+                        onValueChange={setCpcPrice}
+                        suffix="VND"
+                        showWords={false}
+                        describedBy="ad-hint-cpc-price"
+                      />
                       <p id="ad-hint-cpc-price" className={styles.hint}>{t('partner.form.cpcHint')}</p>
                     </div>
                   </div>
@@ -1157,7 +1145,9 @@ export default function AdForm({
                   </div>
                   <div className={styles.summaryRow}>
                     <dt>{t('partner.form.targetUrl')}</dt>
-                    <dd>{targetUrl || '—'}</dd>
+                    <dd>
+                      <TruncatedText value={targetUrl || '—'} className={styles.summaryUrl} />
+                    </dd>
                   </div>
                   <div className={styles.summaryRow}>
                     <dt>{t('partner.form.format')}</dt>

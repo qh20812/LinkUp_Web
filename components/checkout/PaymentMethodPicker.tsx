@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from '../../hooks/useTranslation'
+import { formatVnd } from '../../lib/ads-estimate'
 import type { PaymentMethodOption, WalletBalance } from '../../types'
 import styles from './PaymentMethodPicker.module.css'
 
@@ -31,15 +32,10 @@ export default function PaymentMethodPicker({
   amount,
   disabled = false,
 }: PaymentMethodPickerProps) {
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const enabled = methods.filter((method) => method.enabled)
 
-  const formatMoney = (v: number) =>
-    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(v)
+  const formatMoney = (v: number) => formatVnd(v)
 
   const shortfall = Math.max(0, amount - (wallet?.available ?? 0))
 

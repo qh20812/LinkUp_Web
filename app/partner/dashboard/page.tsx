@@ -4,6 +4,7 @@ import React from 'react'
 import useSWR from 'swr'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { getOverview } from '../../../api/partner'
+import { formatVnd } from '../../../lib/ads-estimate'
 import StatCard from '../../../components/StatCard'
 import OnboardingChecklist from '../../../components/partner/OnboardingChecklist'
 import type { AdOverview } from '../../../types'
@@ -13,12 +14,7 @@ export default function PartnerDashboardPage() {
   const { t, language } = useTranslation()
   const { data, isLoading } = useSWR<AdOverview>('/ads-management/overview', () => getOverview())
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(v)
+  const formatCurrency = (v: number) => formatVnd(v)
 
   return (
     <div className={styles.page}>

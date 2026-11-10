@@ -12,6 +12,7 @@ import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
 import type { AdminAdListItem, AdminAdListResponse } from '../../../types'
 import styles from './Ads.module.css'
 import { toErrorMessage } from '../../../utils/errorMessage'
+import { formatVnd } from '../../../lib/ads-estimate'
 
 export default function AdsPage() {
   const { t } = useTranslation()
@@ -181,10 +182,6 @@ export default function AdsPage() {
     return pages
   }
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(value)
-  }
-
   const formatNumber = (value: number): string => {
     if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
     if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
@@ -340,7 +337,7 @@ export default function AdsPage() {
                         {statusLabel(ad.status)}
                       </span>
                     </td>
-                    <td className={styles.cellBudget}>{formatCurrency(ad.budget)}</td>
+                    <td className={styles.cellBudget}>{formatVnd(ad.budget)}</td>
                     <td className={styles.cellDate}>{formatNumber(ad.impressions)}</td>
                     <td className={`${styles.cellCtr} ${ctrClass(ad.ctr)}`}>
                       {formatNumber(ad.clicks)} / {formatCtr(ad.ctr)}

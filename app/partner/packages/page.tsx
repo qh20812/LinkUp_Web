@@ -16,6 +16,7 @@ import {
 import { getWallet } from '../../../api/wallet'
 import { ApiError, storeTokens } from '../../../api/api'
 import { redirectToExternal } from '../../../lib/navigate'
+import { formatVnd } from '../../../lib/ads-estimate'
 import PaymentMethodPicker from '../../../components/checkout/PaymentMethodPicker'
 import WalletPurchaseModal from '../../../components/checkout/WalletPurchaseModal'
 import type {
@@ -27,7 +28,7 @@ import type {
 import styles from './Packages.module.css'
 
 export default function PackagesPage() {
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const { toast } = useToast()
 
   const { data: packages, isLoading: loadingPkgs } = useSWR<AdPackage[]>('/ads/packages', () => getPackages())
@@ -58,12 +59,7 @@ export default function PackagesPage() {
       ? methodData!.default
       : (enabledMethods[0]?.key ?? '')
 
-  const formatPrice = (v: number) =>
-    new Intl.NumberFormat(language === 'en' ? 'en-US' : 'vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(v)
+  const formatPrice = (v: number) => formatVnd(v)
 
   const isActive = (pkgId: string) => {
     if (!sub) return false

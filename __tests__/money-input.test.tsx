@@ -3,7 +3,15 @@ import { fireEvent } from '@testing-library/react'
 import { renderWithProviders, screen, userEvent, mockLocalStorage } from './test-utils'
 import MoneyInput from '@/components/forms/MoneyInput'
 
-function Harness({ error }: { error?: string }) {
+function Harness({
+  error,
+  suffix,
+  showWords,
+}: {
+  error?: string
+  suffix?: string
+  showWords?: boolean
+}) {
   const [value, setValue] = useState('')
   return (
     <MoneyInput
@@ -12,6 +20,8 @@ function Harness({ error }: { error?: string }) {
       onValueChange={setValue}
       describedBy="amount-hint"
       error={error}
+      suffix={suffix}
+      showWords={showWords}
     />
   )
 }
@@ -63,5 +73,15 @@ describe('MoneyInput', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '50000' } })
 
     expect(screen.getByText('In words: Fifty thousand dong')).toBeInTheDocument()
+  })
+
+  it('hiện hậu tố VND và có thể tắt dòng đọc số', () => {
+    renderWithProviders(<Harness suffix="VND" showWords={false} />)
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '25000' } })
+
+    expect(screen.getByRole('textbox')).toHaveValue('25.000')
+    expect(screen.getByText('VND')).toBeInTheDocument()
+    expect(screen.queryByText(/Bằng chữ:/)).not.toBeInTheDocument()
   })
 })

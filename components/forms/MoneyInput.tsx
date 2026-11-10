@@ -23,6 +23,10 @@ interface MoneyInputProps {
   describedBy?: string
   /** Lỗi validate hiển thị ngay dưới dòng đọc số. */
   error?: string
+  /** Hiện dòng đọc số bằng chữ (mặc định true). */
+  showWords?: boolean
+  /** Hậu tố trong khung input, ví dụ "VND". */
+  suffix?: string
 }
 
 /**
@@ -41,6 +45,8 @@ export default function MoneyInput({
   autoFocus = false,
   describedBy,
   error,
+  showWords = true,
+  suffix,
 }: MoneyInputProps) {
   const { t, language } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,7 +58,7 @@ export default function MoneyInput({
   const formatted = formatGroupedNumber(value)
   const numericValue = value ? Number(value) : 0
   const words =
-    numericValue > 0 && Number.isSafeInteger(numericValue)
+    showWords && numericValue > 0 && Number.isSafeInteger(numericValue)
       ? vndInWords(numericValue, language)
       : ''
 
@@ -89,25 +95,32 @@ export default function MoneyInput({
 
   return (
     <div className={styles.wrapper}>
-      <input
-        ref={inputRef}
-        id={id}
-        className={className ?? styles.input}
-        type="text"
-        inputMode="numeric"
-        autoComplete="off"
-        autoFocus={autoFocus}
-        disabled={disabled}
-        value={formatted}
-        onChange={handleChange}
-        placeholder={placeholder}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedByIds || undefined}
-      />
+      <div className={`${styles.inputRow} ${suffix ? styles.hasSuffix : ''}`}>
+        <input
+          ref={inputRef}
+          id={id}
+          className={className ?? styles.input}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          autoFocus={autoFocus}
+          disabled={disabled}
+          value={formatted}
+          onChange={handleChange}
+          placeholder={placeholder}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedByIds || undefined}
+        />
+        {suffix && (
+          <span className={styles.suffix} aria-hidden="true">
+            {suffix}
+          </span>
+        )}
+      </div>
 
       {words && (
         <p id={wordsId} className={styles.words} aria-live="polite">
-          {t('wallet.amountInWords', { words })}
+          {t('common.amountInWords', { words })}
         </p>
       )}
 

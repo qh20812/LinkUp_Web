@@ -173,8 +173,8 @@ describe('AdForm', () => {
 
     const cpm = screen.getByLabelText('Giá mỗi 1.000 lượt hiển thị (CPM)') as HTMLInputElement
     const cpc = screen.getByLabelText('Giá mỗi click (CPC)') as HTMLInputElement
-    expect(cpm.value).toBe('25000')
-    expect(cpc.value).toBe('1000')
+    expect(cpm.value).toBe('25.000')
+    expect(cpc.value).toBe('1.000')
     expect(cpm.closest('details')).toBe(advanced)
 
     const budget = screen.getByLabelText(/Tổng ngân sách/i) as HTMLInputElement
@@ -213,8 +213,11 @@ describe('AdForm', () => {
     const user = userEvent.setup()
     renderForm()
 
-    await user.type(await screen.findByLabelText(/Tổng ngân sách/i), '100000')
+    const budgetInput = await screen.findByLabelText(/Tổng ngân sách/i)
+    await user.type(budgetInput, '100000')
 
+    expect(budgetInput).toHaveValue('100.000')
+    expect(await screen.findByText('Bằng chữ: Một trăm nghìn đồng')).toBeInTheDocument()
     expect(await screen.findByText(/4\.000 lượt hiển thị/)).toBeInTheDocument()
   })
 

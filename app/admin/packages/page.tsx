@@ -7,6 +7,8 @@ import { useTranslation } from '../../../hooks/useTranslation'
 import { useToast } from '../../../contexts/ToastContext'
 import { createAdminPackage, updateAdminPackage } from '../../../api/admin'
 import Modal from '../../../components/Modal'
+import MoneyInput from '../../../components/forms/MoneyInput'
+import { formatVnd } from '../../../lib/ads-estimate'
 import type { AdPackage, PackageInput } from '../../../types'
 import styles from './Packages.module.css'
 
@@ -38,18 +40,13 @@ function toInput(pkg: AdPackage): PackageInput {
   }
 }
 
-function formatPrice(value: number, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value)
+function formatPrice(value: number): string {
+  return formatVnd(value)
 }
 
 export default function AdminPackagesPage() {
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const { toast } = useToast()
-  const locale = language === 'en' ? 'en-US' : 'vi-VN'
 
   const { data, isLoading, mutate } = useSWR<AdPackage[]>('/admin/packages', () =>
     swrFetcher<{ data: AdPackage[] }>('/admin/packages').then((res) => res.data ?? []),
@@ -59,6 +56,7 @@ export default function AdminPackagesPage() {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<PackageInput>(EMPTY)
+  const [priceText, setPriceText] = useState('0')
   const [serverError, setServerError] = useState('')
 
   const errors = {
@@ -70,7 +68,7 @@ export default function AdminPackagesPage() {
     description:
       form.description.length > 500 ? t('packagesAdmin.errDescLong') : '',
     price:
-      !Number.isFinite(form.price_monthly) || form.price_monthly < 0
+      priceText === '' || !Number.isFinite(Number(priceText)) || Number(priceText) < 0
         ? t('packagesAdmin.errPrice')
         : '',
     slots:
@@ -93,6 +91,7 @@ export default function AdminPackagesPage() {
   const openCreate = () => {
     setEditing(null)
     setForm(EMPTY)
+    setPriceText('0')
     setServerError('')
     setOpen(true)
   }
@@ -100,6 +99,7 @@ export default function AdminPackagesPage() {
   const openEdit = (pkg: AdPackage) => {
     setEditing(pkg)
     setForm(toInput(pkg))
+    setPriceText(String(pkg.price_monthly))
     setServerError('')
     setOpen(true)
   }
@@ -119,12 +119,13 @@ export default function AdminPackagesPage() {
     if (hasErrors || saving) return
     setSaving(true)
     setServerError('')
+    const payload: PackageInput = { ...form, price_monthly: Number(priceText) || 0 }
     try {
       if (editing) {
-        await updateAdminPackage(editing.id, form)
+        await updateAdminPackage(editing.id, payload)
         toast({ title: t('packagesAdmin.updated'), type: 'success' })
       } else {
-        await createAdminPackage(form)
+        await createAdminPackage(payload)
         toast({ title: t('packagesAdmin.created'), type: 'success' })
       }
       setOpen(false)
@@ -189,7 +190,7 @@ export default function AdminPackagesPage() {
                 data?.map((pkg) => (
                   <tr key={pkg.id}>
                     <td className={styles.nameCell}>{pkg.name}</td>
-                    <td className={styles.num}>{formatPrice(pkg.price_monthly, locale)}</td>
+                    <td className={styles.num}>{formatPrice(pkg.price_monthly)}</td>
                     <td className={styles.num}>{pkg.max_slots}</td>
                     <td className={styles.num}>
                       {t('packagesAdmin.days', { n: String(pkg.max_duration_days) })}
@@ -325,24 +326,18 @@ export default function AdminPackagesPage() {
                 <label className={styles.label} htmlFor="pkg-price">
                   {t('packagesAdmin.price')}
                 </label>
-                <div className={styles.inputWithUnit}>
-                  <input
-                    id="pkg-price"
-                    className={styles.input}
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={form.price_monthly}
-                    onChange={(e) => setField('price_monthly', Number(e.target.value))}
-                    aria-invalid={!!errors.price}
-                    aria-describedby="pkg-price-hint"
-                  />
-                  <span className={styles.unit}>VND</span>
-                </div>
+                <MoneyInput
+                  id="pkg-price"
+                  className={styles.input}
+                  value={priceText}
+                  onValueChange={setPriceText}
+                  suffix="VND"
+                  describedBy="pkg-price-hint"
+                  error={errors.price}
+                />
                 <span id="pkg-price-hint" className={styles.hint}>
                   {t('packagesAdmin.hintPrice')}
                 </span>
-                {errors.price && <p className={styles.error} role="alert">{errors.price}</p>}
               </div>
 
               <div className={styles.field}>

@@ -13,6 +13,7 @@ import { getAdTip } from '../../../lib/ad-tips'
 import { swrFetcher, invalidate } from '../../../api/swr'
 import Pagination from '../../../components/Pagination'
 import AdAnalyticsModal from '../../../components/AdAnalyticsModal'
+import TruncatedText from '../../../components/common/TruncatedText'
 import type { PartnerAdListItem, PartnerAdListResponse, SubscriptionResponse } from '../../../types'
 import styles from './Ads.module.css'
 
@@ -310,15 +311,17 @@ export default function PartnerAdsPage() {
         ) : items.map((ad) => (
           <div key={ad.id} className={styles.tableRow}>
             <span className={styles.colTitle}>
-              <span className={styles.adTitle}>{ad.title}</span>
-              {(ad.rejection_reason || ad.suspended_reason) && (
-                <span
-                  className={styles.rejectionHint}
-                  title={ad.rejection_reason || ad.suspended_reason || ''}
-                >
-                  <i className="bx bx-error-circle" />
-                </span>
-              )}
+              <span className={styles.titleLine}>
+                <TruncatedText value={ad.title} className={styles.adTitle} />
+                {(ad.rejection_reason || ad.suspended_reason) && (
+                  <span
+                    className={styles.rejectionHint}
+                    title={ad.rejection_reason || ad.suspended_reason || ''}
+                  >
+                    <i className="bx bx-error-circle" />
+                  </span>
+                )}
+              </span>
               {(() => {
                 const tip = getAdTip(ad)
                 if (!tip) return null

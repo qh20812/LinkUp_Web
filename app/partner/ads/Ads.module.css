@@ -140,16 +140,32 @@
   background: var(--color-bg-secondary);
 }
 
+.tableHeader > *,
+.tableRow > * {
+  min-width: 0;
+}
+
+.colTitle {
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .adTitle {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .rejectionHint {
+  flex: 0 0 auto;
   color: var(--color-danger);
-  margin-left: 6px;
+  margin-left: 0;
   cursor: help;
   font-size: 16px;
 }
@@ -159,6 +175,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  flex: 1 0 100%;
   margin-top: 2px;
   font-size: 11px;
   font-weight: 400;
