@@ -16,6 +16,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useToast } from './ToastContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { getIceServers } from '../api/calls'
+import { CALL_AUDIO_CONSTRAINTS } from '../utils/callAudio'
 import { playRingtone, stopRingtone } from '../utils/ringtone'
 import {
   bufferIce,
@@ -815,7 +816,7 @@ export function GroupCallProvider({
     }
     try {
       return await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: CALL_AUDIO_CONSTRAINTS,
         video: true,
       })
     } catch {
