@@ -1,12 +1,17 @@
 .page {
   width: 100%;
-  max-width: var(--layout-feed-width, 720px);
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md) var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   color: var(--color-text);
+}
+
+/* Trong khu partner, layout cha đã lo padding (và PartnerTabs đã có margin
+   bottom) — bỏ padding của trang ví để nội dung rộng bằng các tab khác. */
+.embedded {
+  padding: 0;
 }
 
 .header {
@@ -325,8 +330,10 @@
   margin: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-sm);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   font-weight: 600;
 }
 
@@ -334,6 +341,21 @@
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+}
+
+/* Số tài khoản trong khối QR có thể dài — cho phép bẻ dòng an toàn. */
+.bankRow .mono {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Cột dữ liệu dài: một dòng + ellipsis, hover xem đầy đủ qua title. */
+.codeText {
+  max-width: 10ch;
+}
+
+.noteText {
+  max-width: 28ch;
 }
 
 .amountStrong {
@@ -349,30 +371,6 @@
   color: var(--color-primary);
   font-weight: 700;
   letter-spacing: 0.08em;
-}
-
-.copyBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 44px;
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  font: var(--text-caption);
-  cursor: pointer;
-}
-
-.copyBtn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.copyBtn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 .qrActions {
@@ -495,8 +493,7 @@
 
 .noteCell {
   color: var(--color-text-secondary);
-  max-width: 280px;
-  overflow-wrap: anywhere;
+  max-width: 320px;
 }
 
 .reportBtn {
@@ -599,8 +596,7 @@
   .helpLink,
   .preset,
   .btnPrimary,
-  .btnGhost,
-  .copyBtn {
+  .btnGhost {
     transition: none;
   }
 }

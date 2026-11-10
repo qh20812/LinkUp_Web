@@ -32,6 +32,10 @@
   font-size: 12px;
 }
 
+.txnRef {
+  max-width: 16ch;
+}
+
 .gateway {
   font-weight: 600;
   font-size: 12px;

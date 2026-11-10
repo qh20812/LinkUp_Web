@@ -2723,6 +2723,8 @@
     "memo": "Nội dung chuyển khoản",
     "copy": "Sao chép",
     "copied": "Đã sao chép",
+    "copySuccess": "Sao chép thành công",
+    "copyField": "Sao chép {field}",
     "expiresIn": "Mã hết hạn sau {{time}}",
     "expired": "Mã đã hết hạn",
     "pending": "Chờ xác nhận",

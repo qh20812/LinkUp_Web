@@ -8,5 +8,5 @@ import WalletView from '../../../components/wallet/WalletView'
  * PartnerLayout + PartnerTabs để partner chuyển tab qua lại thuận tiện.
  */
 export default function PartnerWalletPage() {
-  return <WalletView />
+  return <WalletView embedded />
 }

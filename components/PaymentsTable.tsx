@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslation } from '../hooks/useTranslation'
+import TruncatedText from './common/TruncatedText'
 import type { PaymentTransaction } from '../types'
 import styles from './PaymentsTable.module.css'
 
@@ -53,7 +54,9 @@ export default function PaymentsTable({ rows, showUser = false, loading = false 
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td className={styles.mono}>{row.txn_ref}</td>
+              <td className={styles.mono}>
+                <TruncatedText value={row.txn_ref} className={styles.txnRef} />
+              </td>
               {showUser && <td className={styles.mono}>{row.user_id}</td>}
               <td>{row.package?.name || row.package_id}</td>
               <td>{formatCurrency(row.amount)}</td>

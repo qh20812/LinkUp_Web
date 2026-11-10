@@ -18,6 +18,8 @@ import { canReportTransfer, formatCountdown, topupStatusKey } from '../../lib/wa
 import Modal from '../Modal'
 import Pagination from '../Pagination'
 import MoneyInput from '../forms/MoneyInput'
+import CopyIconButton from './CopyIconButton'
+import TruncatedText from '../common/TruncatedText'
 import type {
   WalletResponse,
   WalletTopup,
@@ -44,7 +46,7 @@ function formatDateTime(value: string, locale: string): string {
   })
 }
 
-export default function WalletView() {
+export default function WalletView({ embedded = false }: { embedded?: boolean }) {
   const { t, language } = useTranslation()
   const { toast } = useToast()
   const locale = language === 'en' ? 'en-US' : 'vi-VN'
@@ -118,13 +120,10 @@ export default function WalletView() {
         : ''
     : ''
 
-  const handleCopy = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value)
-      toast({ title: t('wallet.copied'), type: 'success' })
-    } catch {
-      toast({ title: value, type: 'info' })
-    }
+  const handleCopyError = (value: string) => {
+    // Clipboard bị chặn (http, quyền trình duyệt): hiện chính giá trị để người
+    // dùng chép tay thay vì im lặng.
+    toast({ title: value, type: 'info' })
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -218,7 +217,7 @@ export default function WalletView() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${embedded ? styles.embedded : ''}`}>
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>{t('wallet.title')}</h1>
@@ -289,13 +288,11 @@ export default function WalletView() {
                   <dt>{t('wallet.accountNo')}</dt>
                   <dd>
                     <span className={styles.mono}>{created.bank.account_no}</span>
-                    <button
-                      type="button"
-                      className={styles.copyBtn}
-                      onClick={() => handleCopy(created.bank.account_no)}
-                    >
-                      <i className="bx bx-copy" aria-hidden="true" /> {t('wallet.copy')}
-                    </button>
+                    <CopyIconButton
+                      value={created.bank.account_no}
+                      fieldLabel={t('wallet.accountNo')}
+                      onError={handleCopyError}
+                    />
                   </dd>
                 </div>
                 <div className={styles.bankRow}>
@@ -306,26 +303,22 @@ export default function WalletView() {
                   <dt>{t('wallet.amount')}</dt>
                   <dd>
                     <strong className={styles.amountStrong}>{formatVnd(created.amount)}</strong>
-                    <button
-                      type="button"
-                      className={styles.copyBtn}
-                      onClick={() => handleCopy(String(created.amount))}
-                    >
-                      <i className="bx bx-copy" aria-hidden="true" /> {t('wallet.copy')}
-                    </button>
+                    <CopyIconButton
+                      value={String(created.amount)}
+                      fieldLabel={t('wallet.amount')}
+                      onError={handleCopyError}
+                    />
                   </dd>
                 </div>
                 <div className={styles.bankRow}>
                   <dt>{t('wallet.memo')}</dt>
                   <dd>
                     <span className={styles.memo}>{created.code}</span>
-                    <button
-                      type="button"
-                      className={styles.copyBtn}
-                      onClick={() => handleCopy(created.code)}
-                    >
-                      <i className="bx bx-copy" aria-hidden="true" /> {t('wallet.copy')}
-                    </button>
+                    <CopyIconButton
+                      value={created.code}
+                      fieldLabel={t('wallet.memo')}
+                      onError={handleCopyError}
+                    />
                   </dd>
                 </div>
               </dl>
@@ -420,7 +413,12 @@ export default function WalletView() {
               ) : (
                 topups?.data.map((item) => (
                   <tr key={item.id}>
-                    <td><span className={styles.mono}>{item.code}</span></td>
+                    <td>
+                      <TruncatedText
+                        value={item.code}
+                        className={`${styles.mono} ${styles.codeText}`}
+                      />
+                    </td>
                     <td className={styles.num}>{formatVnd(item.confirmed_amount ?? item.amount)}</td>
                     <td>
                       <span className={`${styles.badge} ${statusClass(item.status)}`}>
@@ -483,7 +481,9 @@ export default function WalletView() {
                       {ledgerAmount(row.type, row.amount)}
                     </td>
                     <td className={styles.num}>{formatVnd(row.balance_after)}</td>
-                    <td className={styles.noteCell}>{row.note || '—'}</td>
+                    <td className={styles.noteCell}>
+                      <TruncatedText value={row.note || '—'} className={styles.noteText} />
+                    </td>
                     <td>{formatDateTime(row.created_at, locale)}</td>
                   </tr>
                 ))

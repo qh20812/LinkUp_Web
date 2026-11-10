@@ -2733,6 +2733,8 @@
     "memo": "Transfer memo",
     "copy": "Copy",
     "copied": "Copied",
+    "copySuccess": "Copied successfully",
+    "copyField": "Copy {field}",
     "expiresIn": "Code expires in {{time}}",
     "expired": "Code expired",
     "pending": "Awaiting confirmation",

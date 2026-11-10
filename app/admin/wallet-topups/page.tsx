@@ -14,6 +14,7 @@ import { formatVnd } from '../../../lib/ads-estimate'
 import Modal from '../../../components/Modal'
 import Pagination from '../../../components/Pagination'
 import MoneyInput from '../../../components/forms/MoneyInput'
+import TruncatedText from '../../../components/common/TruncatedText'
 import type {
   AdminWalletListResponse,
   WalletTopup,
@@ -261,7 +262,10 @@ export default function AdminWalletTopupsPage() {
               topups?.data.map((topup) => (
                 <tr key={topup.id}>
                   <td>
-                    <span className={styles.mono}>{topup.code}</span>
+                    <TruncatedText
+                      value={topup.code}
+                      className={`${styles.mono} ${styles.codeText}`}
+                    />
                     {topup.proof_url && (
                       <a
                         className={styles.proofLink}
@@ -276,8 +280,17 @@ export default function AdminWalletTopupsPage() {
                   </td>
                   <td>
                     <div className={styles.userCell}>
-                      <strong>{topup.display_name || topup.username || topup.user_id}</strong>
-                      {topup.email && <span>{topup.email}</span>}
+                      <strong>
+                        <TruncatedText
+                          value={topup.display_name || topup.username || topup.user_id || topup.id}
+                          className={styles.userName}
+                        />
+                      </strong>
+                      {topup.email && (
+                        <span>
+                          <TruncatedText value={topup.email ?? ''} className={styles.userEmail} />
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className={styles.num}>{formatVnd(topup.amount)}</td>
