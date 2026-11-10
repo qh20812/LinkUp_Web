@@ -40,10 +40,22 @@ export default function PartnerAdsPage() {
   if (keyword) params.set('keyword', keyword)
   if (statusFilter) params.set('status', statusFilter)
   const swrKey = `/ads-management?${params}`
-  const { data: res, isLoading: loading } = useSWR(swrKey, (url: string) => swrFetcher<PartnerAdListResponse>(url))
+  const {
+    data: res,
+    isLoading: loading,
+    error: listError,
+    mutate: mutateList,
+  } = useSWR(swrKey, (url: string) => swrFetcher<PartnerAdListResponse>(url))
   const items = res?.data ?? []
   const total = res?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Admin mở nhầm /partner/ads: server trả 400 kèm hướng dẫn dùng /admin/ads.
+  // Hiện thông báo riêng thay vì để lỗi thành danh sách trống.
+  const isAdminEndpoint =
+    listError instanceof ApiError &&
+    listError.status === 400 &&
+    /partner/i.test(listError.message)
 
   // Empty state cần biết partner đã có gói chưa để gợi ý mua gói thay vì tạo ad
   // (tạo ad khi chưa có gói sẽ bị server chặn).
@@ -210,6 +222,40 @@ export default function PartnerAdsPage() {
         </div>
       </div>
 
+      {listError ? (
+        <div className={styles.errorState} role="alert">
+          <i className="bx bx-error-circle" aria-hidden="true" />
+          <h2 className={styles.errorTitle}>
+            {isAdminEndpoint
+              ? t('partner.ads.adminEndpointTitle')
+              : t('partner.ads.listErrorTitle')}
+          </h2>
+          <p className={styles.errorDesc}>
+            {isAdminEndpoint
+              ? t('partner.ads.adminEndpointDesc')
+              : t('partner.ads.listErrorDesc')}
+          </p>
+          {!isAdminEndpoint && listError instanceof Error && (
+            <p className={styles.errorDetail}>{listError.message}</p>
+          )}
+          <div className={styles.errorActions}>
+            {isAdminEndpoint ? (
+              <Link href="/admin/ads" className={styles.btnPrimary}>
+                {t('partner.ads.openAdminAds')}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => { void mutateList() }}
+              >
+                {t('common.retry')}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       <div className={styles.tableWrap}>
         <div className={styles.tableHeader}>
           <span className={styles.colTitle}>{t('partner.form.title')}</span>
@@ -344,6 +390,8 @@ export default function PartnerAdsPage() {
         <div className={styles.paginationWrap}>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
+      )}
+        </>
       )}
 
       {openMenuId && menuStyle && (

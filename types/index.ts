@@ -978,6 +978,108 @@ export interface PaymentListResponse {
   page_size: number
 }
 
+// ── Ví trả trước (Track E) ───────────────────────────────────────────
+
+export interface WalletResponse {
+  balance: number
+  reserved: number
+  available: number
+  currency: string
+  total_topup: number
+  total_spent: number
+}
+
+export type WalletTopupStatus = 'pending' | 'paid' | 'rejected' | 'expired' | 'cancelled'
+
+export interface WalletTopup {
+  id: string
+  code: string
+  amount: number
+  status: WalletTopupStatus
+  expires_at: string
+  user_reported_at?: string
+  proof_url?: string
+  confirmed_amount?: number
+  admin_note?: string
+  paid_at?: string
+  created_at: string
+  user_id?: string
+  username?: string
+  email?: string
+  display_name?: string
+  avatar_uri?: string
+}
+
+export interface WalletTopupListResponse {
+  data: WalletTopup[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface WalletBankInfo {
+  bank_name: string
+  bank_bin: string
+  account_no: string
+  account_name: string
+}
+
+export interface WalletTopupCreated {
+  id: string
+  code: string
+  amount: number
+  status: WalletTopupStatus
+  expires_at: string
+  expires_in_seconds: number
+  qr_url: string
+  bank: WalletBankInfo
+  memo: string
+}
+
+export type WalletTransactionType = 'topup' | 'reserve' | 'release' | 'spend' | 'adjust' | 'package_purchase'
+
+export interface WalletTransaction {
+  id: string
+  type: WalletTransactionType
+  amount: number
+  balance_after: number
+  reserved_after: number
+  ref_type?: string
+  ref_id?: string
+  note?: string
+  created_at: string
+}
+
+export interface WalletTransactionListResponse {
+  data: WalletTransaction[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdminWallet {
+  user_id: string
+  username?: string
+  email?: string
+  display_name?: string
+  avatar_uri?: string
+  balance: number
+  reserved: number
+  available: number
+  total_topup: number
+  updated_at: string
+}
+
+export interface AdminWalletListResponse {
+  data: AdminWallet[]
+  total: number
+  page: number
+  page_size: number
+  total_balance: number
+  total_reserved: number
+  total_topup_all: number
+}
+
 export interface PartnerAdListItem {
   id: string
   title: string
@@ -1076,6 +1178,33 @@ export interface CreatePaymentResponse {
   txn_ref: string
   amount: number
   expires_at: string
+}
+
+/** Phương thức thanh toán gói đang bật (server bật/tắt bằng env). */
+export interface PaymentMethodOption {
+  key: 'wallet' | 'momo' | 'vnpay' | string
+  enabled: boolean
+}
+
+export interface PaymentMethodsResponse {
+  methods: PaymentMethodOption[]
+  default: string
+}
+
+/** Số dư ví trả về kèm kết quả mua gói. */
+export interface WalletBalance {
+  balance: number
+  reserved: number
+  available: number
+  currency: string
+}
+
+/** Kết quả POST /ads-management/payments/wallet — trừ ví và kích hoạt gói ngay. */
+export interface WalletPurchaseResponse {
+  subscription: SubscriptionResponse
+  payment: PaymentTransaction
+  wallet?: WalletBalance
+  replayed: boolean
 }
 
 export interface CreateAdInput {

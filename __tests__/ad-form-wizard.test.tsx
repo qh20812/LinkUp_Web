@@ -15,6 +15,17 @@ jest.mock('@/api/package', () => ({
   getMySubscription: jest.fn(),
 }))
 
+jest.mock('@/api/wallet', () => ({
+  getWallet: jest.fn().mockResolvedValue({
+    balance: 10_000_000,
+    reserved: 0,
+    available: 10_000_000,
+    currency: 'VND',
+    total_topup: 0,
+    total_spent: 0,
+  }),
+}))
+
 jest.mock('@/api/locations', () => ({
   getProvinces: jest.fn().mockResolvedValue({
     data: [

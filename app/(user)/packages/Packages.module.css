@@ -19,6 +19,13 @@
   min-width: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .title {
   font: var(--text-h2);
   font-family: var(--font-family-heading);
@@ -65,7 +72,6 @@
 .hint,
 .grid,
 .empty,
-.payment,
 .actions {
   max-width: 100%;
   margin-left: auto;
@@ -272,93 +278,6 @@
 .btnSelected:hover {
   background: var(--color-primary-hover);
   color: #fff;
-}
-
-.payment {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  margin-bottom: 24px;
-}
-
-.paymentTitle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 var(--space-lg);
-}
-
-.paymentTitle i {
-  font-size: 20px;
-  color: var(--color-primary);
-}
-
-.payOption {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.payOption + .payOption {
-  margin-top: 10px;
-}
-
-.payOption:has(input:checked:not(:disabled)) {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-.payOption input[type='radio'] {
-  margin-top: 3px;
-  accent-color: var(--color-primary);
-}
-
-.payText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.payLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.payDesc {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.payDisabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-warning-light, #fff8e1);
-  color: var(--color-warning, #b45309);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .actions {

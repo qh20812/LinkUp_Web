@@ -128,6 +128,10 @@ export default function LeftSidebar() {
               <i className="bx bx-cog" />
               <span>{t('nav.settings')}</span>
             </Link>
+            <Link href="/wallet" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
+              <i className="bx bx-wallet" />
+              <span>{t('sidebar.wallet')}</span>
+            </Link>
             {!initializing && isAuthenticated && isUser && (
               <>
                 <div className={styles.dropdownDivider} />

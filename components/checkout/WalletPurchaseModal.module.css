@@ -1,0 +1,132 @@
+.intro {
+  margin: 0 0 var(--space-md);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.summary {
+  margin: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.row dt {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.total {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-divider);
+}
+
+.positive {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.negative {
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.warn {
+  margin: var(--space-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-light);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.hint {
+  margin: var(--space-md) 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.cancelBtn,
+.confirmBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.16s ease-out;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+
+.confirmBtn {
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--color-cta-hover);
+}
+
+.cancelBtn:disabled,
+.confirmBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cancelBtn:focus-visible,
+.confirmBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  .cancelBtn,
+  .confirmBtn {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cancelBtn,
+  .confirmBtn {
+    transition: none;
+  }
+}

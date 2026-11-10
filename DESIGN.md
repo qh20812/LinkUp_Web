@@ -266,7 +266,7 @@ The shared recipe for anything that floats — landing navbar/footer, auth heade
 - Background: `var(--glass-bg)` (`color-mix` card + transparent; `--glass-bg-strong` when content behind must stay legible)
 - `backdrop-filter: blur(var(--glass-blur))` (+ `-webkit-` prefix)
 - Border: `1px solid var(--glass-border)`
-- Radius: `var(--radius-lg)` (all four corners)
+- Radius: `var(--radius-lg)` (all four corners) — except the landing navbar, which is the header of the hero window and rounds its top corners only (see §5)
 - Shadow: `var(--glass-shadow)`
 - Tokens live in `globals.css` (light + `[data-theme="dark"]` overrides) — never inline a `color-mix`/`blur` value per component
 - Glass needs a backdrop: place it over a tinted canvas, mesh gradient, or scrolling content — never over a flat same-color surface (the blur does nothing)
@@ -410,8 +410,8 @@ The landing page is the first impression for unauthenticated visitors.
 **Floating glass chrome + split gradient hero + zig-zag sections:**
 
 - **Canvas:** the page sits on `--color-bg-secondary` — the same tinted canvas as Track 3; all chrome floats
-- **Navbar:** sticky `top: var(--space-md)`, inset `var(--space-md)`, glass surface (`--glass-bg` + `backdrop-filter: blur(var(--glass-blur))`), `border-radius: var(--radius-lg)`, `--glass-shadow`. Mobile dropdown is a glass sheet with rounded bottom corners
-- **Hero stage:** rounded gradient card inset `var(--space-md)` — mesh background (base `linear-gradient(135deg, #12A5A1, #0A1F44)` + white bloom top-left + faint warm ember bottom-right) with two slowly drifting decorative orbs (`aria-hidden`)
+- **Navbar:** sticky `top: var(--space-md)`, inset `var(--space-md)`, glass surface (`--glass-bg` + `backdrop-filter: blur(var(--glass-blur))`), top corners `var(--radius-lg)` only, hairline bottom border instead of a gap. It is the **header of the hero window**, not a separate floating pill — no shadow at rest, `--glass-shadow` appears only once it sticks (`scrollY > 8`). Mobile dropdown is a glass sheet with rounded bottom corners
+- **Hero stage:** the body of the same window — square top edge (flush under the navbar), rounded bottom corners, inset `var(--space-md)` — mesh background (base `linear-gradient(135deg, #12A5A1, #0A1F44)` + white bloom top-left + faint warm ember bottom-right) with two slowly drifting decorative orbs (`aria-hidden`)
 - **Split grid** `1.05fr 0.95fr` — asymmetric by rule (never equal columns):
   - **Left:** inverted white logo + brand, `H1` tagline, subline, CTA pair, 3 glass value-prop chips (`brand.point1..3`) — content left-aligned, never centered
   - **Right:** decorative "app preview" composition (`aria-hidden`) — glass post card (avatar + line placeholders + media block + action chips), glass chat card (2 bubbles), glass notification pill with orange dot; each floats with a slow `floatY` drift
@@ -431,7 +431,7 @@ The landing page is the first impression for unauthenticated visitors.
 ### Mobile
 
 - ≤967px: hero collapses to single column, preview composition hidden, feature rows stack (text above visual), closing band stacks
-- ≤576px: hero/footer/closing inset shrinks to `var(--space-sm)`, buttons full-width
+- ≤576px: hero/footer/closing inset shrinks to `var(--space-sm)` (the navbar inset matches it so the window stays flush), buttons full-width
 - Gradient stage remains full-bleed-inset; glass chrome unchanged
 
 ---
@@ -444,20 +444,23 @@ LinkUp has **five distinct layout tracks** — each screen type has its own spat
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Glass Navbar (floating, sticky, inset 16px) │
-├──────────────────────────────────────────────┤
-│  ┌─ Gradient Hero Stage (inset, rounded) ──┐ │
-│  │ Left: logo, tagline, CTAs, glass chips  │ │
-│  │ Right: glass app-preview (decorative)   │ │
-│  └─────────────────────────────────────────┘ │
-│  Features — zig-zag rows, glass mock panels │
-│  Closing band — gradient + glass CTA panel  │
+│ ┌─ Hero Window (inset 16px, radius-lg) ────┐ │
+│ │ Glass Navbar — sticky header, top corners│ │
+│ ├──────────────────────────────────────────┤ │
+│ │ Gradient Hero Stage — square top edge    │ │
+│ │ Left: logo, tagline, CTAs, glass chips   │ │
+│ │ Right: glass app-preview (decorative)    │ │
+│ └──────────────────────────────────────────┘ │
+│  Features — zig-zag rows, glass mock panels  │
+│  Closing band — gradient + glass CTA panel   │
 ├──────────────────────────────────────────────┤
 │  Glass Footer (floating, inset 16px)         │
 └──────────────────────────────────────────────┘
 ```
 
 - Canvas is `--color-bg-secondary`; navbar, footer, hero stage and closing band are all inset by `var(--space-md)` and rounded `var(--radius-lg)` — the same floating language as Track 3
+- **Navbar + hero form one window:** no vertical gap between them — the navbar rounds its top corners only and closes with a `1px` `--glass-border` hairline, the hero is square at the top and rounds the bottom corners. The navbar keeps `box-shadow: none` at rest and gains `--glass-shadow` only while sticky, so the window reads as a single block
+- The navbar must stay a direct child of the page wrapper (not a nested shell): `position: sticky` is constrained by its containing block and would stop sticking once the hero scrolls away
 
 ### Track 2: Auth Pages (Login, Register, Forgot/Reset Password, Verify Email, Onboarding)
 
@@ -758,7 +761,8 @@ Do NOT use `linear` easing for UI interactions — it feels robotic and unnatura
 ### Landing Page (`/`)
 
 **Purpose:** Convert visitors to registered users. First impression.
-**Layout:** Track 1 — glass navbar + gradient hero stage + zig-zag features + closing band + glass footer (see §5)
+**Layout:** Track 1 — glass navbar merged into the gradient hero window (navbar = header of the same block, no gap), zig-zag features, closing band, glass footer (see §5)
+**Hero window:** navbar sticky, top corners only + hairline bottom, no shadow at rest; hero square at the top and rounded at the bottom, `min-height: clamp(540px, calc(100dvh - 88px), 780px)` (16px top inset + 56px navbar + 16px breathing room)
 **Hero content:** left = inverted logo, "LinkUp", Vietnamese tagline (`landing.tagline`), subline (`landing.sub`), 2 CTA buttons, 3 glass value chips (`brand.point1..3`); right = decorative glass app-preview (post card, chat card, notification pill, `aria-hidden`)
 **Features:** 3 zig-zag rows (`landing.feature1..3`), each with a glass mock panel (friend list / encrypted chat / group call)
 **Closing:** gradient band — trust copy + badges (`landing.trust*`, `landing.badge*`) left, glass CTA panel (`landing.ctaTitle/Body`) right

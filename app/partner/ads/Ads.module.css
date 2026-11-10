@@ -376,6 +376,53 @@
   text-decoration: underline;
 }
 
+/* Lỗi tải danh sách: hiện thông báo, KHÔNG giả làm empty state */
+.errorState {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-light);
+}
+
+.errorState > i {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: 40px;
+  color: var(--color-danger);
+}
+
+.errorTitle {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-h3);
+  color: var(--color-text);
+}
+
+.errorDesc {
+  max-width: 520px;
+  margin: 0 auto var(--space-md);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.errorDetail {
+  max-width: 640px;
+  margin: 0 auto var(--space-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+}
+
 .paginationWrap {
   display: flex;
   justify-content: center;

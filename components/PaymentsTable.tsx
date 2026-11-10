@@ -20,6 +20,12 @@ function formatDate(value?: string) {
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN')
 }
 
+const GATEWAY_LABEL_KEYS: Record<string, string> = {
+  wallet: 'payments.gatewayWallet',
+  momo: 'payments.gatewayMomo',
+  vnpay: 'payments.gatewayVnpay',
+}
+
 export default function PaymentsTable({ rows, showUser = false, loading = false }: PaymentsTableProps) {
   const { t } = useTranslation()
 
@@ -51,7 +57,11 @@ export default function PaymentsTable({ rows, showUser = false, loading = false 
               {showUser && <td className={styles.mono}>{row.user_id}</td>}
               <td>{row.package?.name || row.package_id}</td>
               <td>{formatCurrency(row.amount)}</td>
-              <td className={styles.gateway}>{row.gateway.toUpperCase()}</td>
+              <td className={styles.gateway}>
+                {GATEWAY_LABEL_KEYS[row.gateway.toLowerCase()]
+                  ? t(GATEWAY_LABEL_KEYS[row.gateway.toLowerCase()])
+                  : row.gateway.toUpperCase()}
+              </td>
               <td>
                 <span className={`${styles.badge} ${styles[`badge_${row.status}`] ?? ''}`}>
                   {t(`payments.status_${row.status}`)}

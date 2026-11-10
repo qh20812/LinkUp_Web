@@ -1,10 +1,14 @@
 'use client'
 
 import React, { useMemo, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
+import useSWR from 'swr'
 import { useTranslation } from '../../../../../hooks/useTranslation'
 import { useToast } from '../../../../../contexts/ToastContext'
 import { getMyAds, replaceAdMedia, submitAdForReview, updateAd } from '../../../../../api/partner'
+import { getWallet } from '../../../../../api/wallet'
+import { formatVnd } from '../../../../../lib/ads-estimate'
 import ProvinceMultiSelect from '../../../../../components/ads/ProvinceMultiSelect'
 import AdCard from '../../../../../components/ads/AdCard'
 import { toDateTimeLocal } from '../../../../../lib/ad-datetime'
@@ -18,7 +22,7 @@ import {
   probeVideoDuration,
   type AdMediaCheck,
 } from '../../../../../lib/ad-media'
-import type { PartnerAdListItem, PartnerAdListResponse } from '../../../../../types'
+import type { PartnerAdListItem, PartnerAdListResponse, WalletResponse } from '../../../../../types'
 import styles from '../../../../../components/AdForm.module.css'
 
 export default function EditAdPage() {
@@ -58,6 +62,10 @@ export default function EditAdPage() {
   const [newMedia, setNewMedia] = useState<EditMediaItem[]>([])
   const mediaIdRef = useRef(0)
   const newMediaRef = useRef<EditMediaItem[]>([])
+
+  const { data: wallet } = useSWR<WalletResponse>('/wallet', () => getWallet(), {
+    shouldRetryOnError: false,
+  })
 
   const maxNewMedia = ad?.format === 'carousel' ? AD_MEDIA_LIMITS.carouselMaxFiles : 1
   const canAddMedia = newMedia.length < maxNewMedia
@@ -295,6 +303,16 @@ export default function EditAdPage() {
           <div className={styles.section}>
             <label className={styles.label}>{t('partner.form.budget')} <span className={styles.required}>*</span></label>
             <input className={styles.input} type="number" value={budget} onChange={(e) => setBudget(e.target.value)} min="0" />
+            {wallet && (
+              <p className={styles.hint}>
+                {t('partner.form.walletAvailable', { amount: formatVnd(wallet.available) })}
+                {wallet.reserved > 0 && (
+                  <> · {t('partner.form.walletReserved', { amount: formatVnd(wallet.reserved) })}</>
+                )}
+                {' · '}
+                <Link href="/wallet">{t('partner.form.walletTopupCta')}</Link>
+              </p>
+            )}
           </div>
           <div className={styles.section}>
             <label className={styles.label}>{t('partner.form.dailyBudget')}</label>

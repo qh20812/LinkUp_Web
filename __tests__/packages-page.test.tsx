@@ -5,8 +5,15 @@ import { renderWithProviders, screen, userEvent, waitFor, mockLocalStorage } fro
 jest.mock('@/api/package', () => ({
   getPackages: jest.fn(),
   getMySubscription: jest.fn(),
+  getPaymentMethods: jest.fn(),
   createMoMoPayment: jest.fn(),
   createVNPayPayment: jest.fn(),
+  createWalletPayment: jest.fn(),
+  newPaymentRequestId: jest.fn(() => 'req-test'),
+}))
+
+jest.mock('@/api/wallet', () => ({
+  getWallet: jest.fn(),
 }))
 
 jest.mock('@/hooks/useAuth', () => ({
@@ -17,14 +24,24 @@ jest.mock('@/lib/navigate', () => ({
   redirectToExternal: jest.fn(),
 }))
 
-import { createMoMoPayment, getMySubscription, getPackages } from '@/api/package'
+import {
+  createMoMoPayment,
+  createWalletPayment,
+  getMySubscription,
+  getPackages,
+  getPaymentMethods,
+} from '@/api/package'
+import { getWallet } from '@/api/wallet'
 import { redirectToExternal } from '@/lib/navigate'
 import PackagesPage from '@/app/(user)/packages/page'
-import type { AdPackage, SubscriptionResponse } from '@/types'
+import type { AdPackage, PaymentMethodsResponse, SubscriptionResponse, WalletResponse } from '@/types'
 
 const packagesMock = getPackages as jest.Mock
 const subscriptionMock = getMySubscription as jest.Mock
+const methodsMock = getPaymentMethods as jest.Mock
+const walletMock = getWallet as jest.Mock
 const paymentMock = createMoMoPayment as jest.Mock
+const walletPaymentMock = createWalletPayment as jest.Mock
 const redirectMock = redirectToExternal as jest.Mock
 
 function buildPackage(overrides: Partial<AdPackage>): AdPackage {
@@ -61,6 +78,24 @@ const activeSub: SubscriptionResponse = {
   status: 'active',
 }
 
+const wallet: WalletResponse = {
+  balance: 1000000,
+  reserved: 0,
+  available: 1000000,
+  currency: 'VND',
+  total_topup: 1000000,
+  total_spent: 0,
+}
+
+const methods: PaymentMethodsResponse = {
+  methods: [
+    { key: 'wallet', enabled: true },
+    { key: 'momo', enabled: true },
+    { key: 'vnpay', enabled: true },
+  ],
+  default: 'wallet',
+}
+
 function renderPage() {
   return renderWithProviders(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -73,12 +108,22 @@ beforeEach(() => {
   mockLocalStorage()
   packagesMock.mockReset()
   subscriptionMock.mockReset()
+  methodsMock.mockReset()
+  walletMock.mockReset()
   paymentMock.mockReset()
+  walletPaymentMock.mockReset()
   redirectMock.mockReset()
 
   packagesMock.mockResolvedValue([currentPackage, otherPackage])
   subscriptionMock.mockResolvedValue({ ...activeSub })
+  methodsMock.mockResolvedValue(methods)
+  walletMock.mockResolvedValue({ ...wallet })
   paymentMock.mockResolvedValue({ payment_url: 'https://momo.test/pay', txn_ref: 't', amount: 1, expires_at: '' })
+  walletPaymentMock.mockResolvedValue({
+    message: 'ok',
+    data: { subscription: activeSub, payment: { id: 'txn-1' }, replayed: false },
+    tokens: { access_token: 'new-token', refresh_token: 'new-refresh' },
+  })
 })
 
 describe('PackagesPage — gói hiện tại', () => {
@@ -104,17 +149,52 @@ describe('PackagesPage — gói hiện tại', () => {
     expect(await screen.findByRole('button', { name: 'Gói hiện tại' })).toBeDisabled()
   })
 
-  it('chọn gói khác được và gọi đúng API thanh toán', async () => {
+  it('chọn gói khác rồi thanh toán qua MoMo gọi đúng API', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Chọn gói' }))
+    await user.click(await screen.findByRole('radio', { name: /MoMo/ }))
+
+    const pay = screen.getByRole('button', { name: 'Thanh toán ngay' })
+    await waitFor(() => expect(pay).toBeEnabled())
+    await user.click(pay)
+
+    await waitFor(() => expect(paymentMock).toHaveBeenCalledWith('p2'))
+    expect(redirectMock).toHaveBeenCalledWith('https://momo.test/pay')
+  })
+
+  it('ví là mặc định: mở xác nhận, gọi API ví và lưu token mới', async () => {
     const user = userEvent.setup()
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Chọn gói' }))
 
     const pay = screen.getByRole('button', { name: 'Thanh toán ngay' })
-    expect(pay).toBeEnabled()
+    await waitFor(() => expect(pay).toBeEnabled())
     await user.click(pay)
 
-    await waitFor(() => expect(paymentMock).toHaveBeenCalledWith('p2'))
-    expect(redirectMock).toHaveBeenCalledWith('https://momo.test/pay')
+    // Modal xác nhận hiện số dư khả dụng trước khi trừ tiền.
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('1.000.000 ₫')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Thanh toán' }))
+
+    await waitFor(() =>
+      expect(walletPaymentMock).toHaveBeenCalledWith('p2', 'req-test'),
+    )
+    expect(localStorage.getItem('token')).toBe('new-token')
+  })
+
+  it('chặn thanh toán khi số dư ví không đủ giá gói', async () => {
+    walletMock.mockResolvedValue({ ...wallet, balance: 50000, available: 50000 })
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Chọn gói' }))
+
+    const pay = screen.getByRole('button', { name: 'Thanh toán ngay' })
+    await waitFor(() => expect(pay).toBeDisabled())
+    expect(screen.getAllByText(/250.000/).length).toBeGreaterThan(0)
   })
 })

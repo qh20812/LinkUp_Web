@@ -9,6 +9,7 @@ import { useToast } from '../contexts/ToastContext'
 import { createAd } from '../api/partner'
 import type { FeedAd } from '../api/partner'
 import { getMySubscription } from '../api/package'
+import { getWallet } from '../api/wallet'
 import { ApiError } from '../api/api'
 import { invalidate } from '../api/swr'
 import { toDateTimeLocal } from '../lib/ad-datetime'
@@ -25,7 +26,7 @@ import {
 } from '../lib/ad-media'
 import { buildAdPreflight } from '../lib/ad-preflight'
 import { clearAdDraft, loadAdDraft, saveAdDraft, type AdDraft, type AdDraftData } from '../lib/ad-draft'
-import type { SubscriptionResponse } from '../types'
+import type { SubscriptionResponse, WalletResponse } from '../types'
 import AdCard from './ads/AdCard'
 import AdTemplatePicker from './ads/AdTemplatePicker'
 import FieldHelp from './ads/FieldHelp'
@@ -75,6 +76,11 @@ function isPackageError(code: string): boolean {
     code === 'ad.SLOTS_EXHAUSTED' ||
     code.startsWith('ad.FORMAT_NOT_SUPPORTED')
   )
+}
+
+/** Lỗi ví: hiện tại chỗ kèm link nạp tiền thay vì toast. */
+function isWalletError(code: string): boolean {
+  return code === 'wallet.INSUFFICIENT_BALANCE' || code === 'wallet.NOT_CONFIGURED'
 }
 
 /**
@@ -130,6 +136,8 @@ export default function AdForm({
   const mediaIdRef = useRef(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  /** Link đi kèm submitError: nâng cấp gói hay nạp ví. */
+  const [submitErrorAction, setSubmitErrorAction] = useState<'packages' | 'wallet'>('packages')
   const [templateOpen, setTemplateOpen] = useState(false)
   /** Bản nháp tìm thấy khi mở form; chưa chọn Tiếp tục/Bắt đầu mới thì chưa render form. */
   const [draftPrompt, setDraftPrompt] = useState<AdDraft | null>(null)
@@ -164,6 +172,17 @@ export default function AdForm({
     (subscriptionError.code === 'package.NOT_SUBSCRIBED' || subscriptionError.status === 404)
   const subscriptionLoadFailed = !!subscriptionError && !notSubscribed
   const noSlotsLeft = !!subscription && subscription.slots_left <= 0
+
+  // Ví trả trước: partner phải đủ số dư khả dụng cho ngân sách trước khi gửi.
+  // Admin tạo hộ không bị trừ ví nên không cần gọi API này.
+  const { data: wallet } = useSWR<WalletResponse>(
+    requireSubscription ? '/wallet' : null,
+    () => getWallet(),
+    { shouldRetryOnError: false },
+  )
+  const walletAvailable = wallet?.available ?? null
+  const budgetValue = Number(budget) || 0
+  const budgetExceedsWallet = walletAvailable !== null && budgetValue > walletAvailable
 
   const estimate = estimateAdReach({
     budget: Number(budget) || 0,
@@ -505,6 +524,11 @@ export default function AdForm({
       toast({ title: t('partner.form.preflightBlocked'), type: 'error' })
       return
     }
+    if (budgetExceedsWallet) {
+      setSubmitError(t('partner.form.walletInsufficient'))
+      setSubmitErrorAction('wallet')
+      return
+    }
     setSubmitting(true)
     try {
       const created = await createAd({
@@ -541,7 +565,14 @@ export default function AdForm({
         // Gói/slot/định dạng: hiện ngay trong form kèm link nâng cấp và làm mới
         // trạng thái gói để banner chặn form cập nhật theo.
         setSubmitError(err instanceof Error ? err.message : t('common.error'))
+        setSubmitErrorAction('packages')
         void mutate('/ads-management/subscription')
+      } else if (isWalletError(code)) {
+        // Ví không đủ hoặc chưa cấu hình: hiện tại chỗ kèm link nạp tiền và làm
+        // mới số dư để banner cập nhật ngay.
+        setSubmitError(err instanceof Error ? err.message : t('partner.form.walletInsufficient'))
+        setSubmitErrorAction('wallet')
+        void mutate('/wallet')
       } else {
         toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
       }
@@ -882,6 +913,25 @@ export default function AdForm({
                   <span className={styles.unit}>VND</span>
                 </div>
                 <p id="ad-hint-budget" className={styles.hint}>{t('partner.form.budgetHint')}</p>
+
+                {walletAvailable !== null && (
+                  <p className={styles.hint}>
+                    <i className="bx bx-wallet" aria-hidden="true" />{' '}
+                    {t('partner.form.walletAvailable', { amount: formatVnd(walletAvailable) })}
+                    {wallet && wallet.reserved > 0 && (
+                      <> · {t('partner.form.walletReserved', { amount: formatVnd(wallet.reserved) })}</>
+                    )}
+                    {' · '}
+                    <Link href="/wallet">{t('partner.form.walletTopupCta')}</Link>
+                  </p>
+                )}
+
+                {budgetExceedsWallet && (
+                  <p className={styles.submitError} role="alert">
+                    {t('partner.form.walletInsufficient')}{' '}
+                    <Link href="/wallet">{t('partner.form.walletTopupCta')}</Link>
+                  </p>
+                )}
 
                 {estimate !== null && (
                   <p className={styles.estimate} aria-live="polite">
@@ -1225,7 +1275,11 @@ export default function AdForm({
             {submitError && (
               <p className={styles.submitError} role="alert">
                 {submitError}{' '}
-                <Link href="/packages">{t('partner.form.viewPackages')}</Link>
+                <Link href={submitErrorAction === 'wallet' ? '/wallet' : '/packages'}>
+                  {submitErrorAction === 'wallet'
+                    ? t('partner.form.walletTopupCta')
+                    : t('partner.form.viewPackages')}
+                </Link>
               </p>
             )}
 
@@ -1249,7 +1303,7 @@ export default function AdForm({
                     <button
                       type="submit"
                       className={styles.btnSubmit}
-                      disabled={submitting || preflightErrors.length > 0}
+                      disabled={submitting || preflightErrors.length > 0 || budgetExceedsWallet}
                     >
                       {submitting ? t('common.loading') : submitLabel}
                     </button>
@@ -1260,7 +1314,7 @@ export default function AdForm({
                   <button type="button" className={styles.btnCancel} onClick={() => router.back()}>
                     {t('partner.form.cancel')}
                   </button>
-                  <button type="submit" className={styles.btnSubmit} disabled={submitting}>
+                  <button type="submit" className={styles.btnSubmit} disabled={submitting || budgetExceedsWallet}>
                     {submitting ? t('common.loading') : submitLabel}
                   </button>
                 </>
