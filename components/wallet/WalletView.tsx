@@ -17,6 +17,7 @@ import { formatVnd } from '../../lib/ads-estimate'
 import { canReportTransfer, formatCountdown, topupStatusKey } from '../../lib/wallet'
 import Modal from '../Modal'
 import Pagination from '../Pagination'
+import MoneyInput from '../forms/MoneyInput'
 import type {
   WalletResponse,
   WalletTopup,
@@ -28,6 +29,9 @@ import styles from './WalletView.module.css'
 
 const PAGE_SIZE = 10
 const PRESETS = [50000, 100000, 200000, 500000]
+// Khớp giới hạn server (services/wallet.service.go).
+const TOPUP_MIN = 10000
+const TOPUP_MAX = 50000000
 
 function formatDateTime(value: string, locale: string): string {
   if (!value) return '—'
@@ -105,6 +109,15 @@ export default function WalletView() {
   const expiresInMs = created ? new Date(created.expires_at).getTime() - now : 0
   const expired = !!created && expiresInMs <= 0
 
+  const amountValue = amount ? Number(amount) : 0
+  const amountError = amount
+    ? amountValue < TOPUP_MIN
+      ? t('wallet.amountTooSmall', { min: formatVnd(TOPUP_MIN) })
+      : amountValue > TOPUP_MAX
+        ? t('wallet.amountTooLarge', { max: formatVnd(TOPUP_MAX) })
+        : ''
+    : ''
+
   const handleCopy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -116,6 +129,7 @@ export default function WalletView() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (amountError) return
     const value = Number(amount)
     if (!Number.isFinite(value) || value <= 0) {
       toast({ title: t('wallet.amountPlaceholder'), type: 'error' })
@@ -365,22 +379,19 @@ export default function WalletView() {
               {t('wallet.amount')}
             </label>
             <div className={styles.amountRow}>
-              <input
+              <MoneyInput
                 id="wallet-amount"
-                className={styles.input}
-                type="number"
-                inputMode="numeric"
-                min={10000}
-                step={1000}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
                 placeholder={t('wallet.amountPlaceholder')}
+                describedBy="wallet-amount-hint"
+                error={amountError}
               />
-              <button type="submit" className={styles.btnPrimary} disabled={creating}>
+              <button type="submit" className={styles.btnPrimary} disabled={creating || !!amountError}>
                 {creating ? t('wallet.creating') : t('wallet.createTopup')}
               </button>
             </div>
-            <p className={styles.hint}>{t('wallet.amountMismatchNote')}</p>
+            <p id="wallet-amount-hint" className={styles.hint}>{t('wallet.amountMismatchNote')}</p>
           </form>
         </section>
       )}

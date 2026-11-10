@@ -13,6 +13,7 @@ import {
 import { formatVnd } from '../../../lib/ads-estimate'
 import Modal from '../../../components/Modal'
 import Pagination from '../../../components/Pagination'
+import MoneyInput from '../../../components/forms/MoneyInput'
 import type {
   AdminWalletListResponse,
   WalletTopup,
@@ -352,14 +353,10 @@ export default function AdminWalletTopupsPage() {
         <label className={styles.label} htmlFor="admin-confirmed-amount">
           {t('walletAdmin.confirmedAmount')}
         </label>
-        <input
+        <MoneyInput
           id="admin-confirmed-amount"
-          className={styles.input}
-          type="number"
-          min={1}
-          step={1000}
           value={confirmedAmount}
-          onChange={(e) => setConfirmedAmount(e.target.value)}
+          onValueChange={setConfirmedAmount}
         />
         <label className={styles.label} htmlFor="admin-note">
           {t('walletAdmin.note')}
