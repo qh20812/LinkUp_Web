@@ -2159,6 +2159,7 @@
     "addStory": "Add Story",
     "replyPlaceholder": "Reply...",
     "noStory": "No stories yet",
+    "notFound": "This story no longer exists or has expired.",
     "stories": "Stories",
     "viewers": "{count} viewers",
     "createTitle": "Create story",

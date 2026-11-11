@@ -301,7 +301,7 @@ export default function StoryViewer({
 
   const handleShare = async () => {
     if (!story) return
-    const link = `${window.location.origin}/posts?story=${story.id}`
+    const link = `${window.location.origin}/stories/${story.id}`
     try {
       await navigator.clipboard.writeText(link)
     } catch { /* clipboard may be unavailable */ }

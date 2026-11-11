@@ -2149,6 +2149,7 @@
     "addStory": "Thêm tin",
     "replyPlaceholder": "Trả lời...",
     "noStory": "Chưa có tin nào",
+    "notFound": "Tin không tồn tại hoặc đã hết hạn.",
     "stories": "Tin",
     "viewers": "{count} người xem",
     "createTitle": "Tạo tin mới",
