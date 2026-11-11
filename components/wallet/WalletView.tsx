@@ -16,6 +16,7 @@ import {
 import { formatVnd } from '../../lib/ads-estimate'
 import { canReportTransfer, formatCountdown, topupStatusKey } from '../../lib/wallet'
 import Modal from '../Modal'
+import ConfirmDialog from '../ConfirmDialog'
 import Pagination from '../Pagination'
 import MoneyInput from '../forms/MoneyInput'
 import CopyIconButton from './CopyIconButton'
@@ -64,6 +65,7 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
   const [reportPhase, setReportPhase] = useState<'idle' | 'uploading' | 'sending'>('idle')
   const [reportError, setReportError] = useState('')
   const [cancelling, setCancelling] = useState(false)
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [topupPage, setTopupPage] = useState(1)
   const [ledgerPage, setLedgerPage] = useState(1)
@@ -203,9 +205,13 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
     setReportOpen(true)
   }
 
-  const handleCancel = async () => {
+  const openCancelConfirm = () => {
     if (!created) return
-    if (!window.confirm(t('wallet.cancelConfirm'))) return
+    setCancelConfirmOpen(true)
+  }
+
+  const doCancel = async () => {
+    if (!created) return
     setCancelling(true)
     try {
       await cancelTopup(created.id)
@@ -218,6 +224,7 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
       toast({ title: err instanceof Error ? err.message : t('common.error'), type: 'error' })
     } finally {
       setCancelling(false)
+      setCancelConfirmOpen(false)
     }
   }
 
@@ -368,7 +375,7 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
                 <button
                   type="button"
                   className={styles.btnGhost}
-                  onClick={handleCancel}
+                  onClick={openCancelConfirm}
                   disabled={cancelling || reported}
                 >
                   {t('wallet.cancelTopup')}
@@ -566,6 +573,17 @@ export default function WalletView({ embedded = false }: { embedded?: boolean })
           </p>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        title={t('wallet.cancelTopup')}
+        description={t('wallet.cancelConfirm')}
+        confirmLabel={t('wallet.cancelTopup')}
+        tone="danger"
+        loading={cancelling}
+        onConfirm={doCancel}
+        onClose={() => setCancelConfirmOpen(false)}
+      />
     </div>
   )
 }

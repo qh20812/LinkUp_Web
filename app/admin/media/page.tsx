@@ -9,6 +9,7 @@ import { cleanupRejectedMedia } from "../../../api/admin";
 import type { AdminMediaItem, AdminMediaGroupedResponse, AdminMediaListResponse } from "../../../types";
 import Pagination from "../../../components/Pagination";
 import Modal from "../../../components/Modal";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 import ExternalImage from '../../../components/ExternalImage'
 import styles from "./Media.module.css";
 import { toErrorMessage } from '../../../utils/errorMessage'
@@ -27,6 +28,7 @@ export default function MediaPage() {
   const [previewMedia, setPreviewMedia] = useState<AdminMediaItem | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [cleaning, setCleaning] = useState(false);
+  const [cleanupConfirmOpen, setCleanupConfirmOpen] = useState(false);
   const [brokenMedia, setBrokenMedia] = useState<Set<string>>(new Set());
 
   const mediaParams = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
@@ -131,8 +133,12 @@ export default function MediaPage() {
     );
   };
 
-  const handleCleanup = async () => {
-    if (!window.confirm(t("media.cleanupConfirm"))) return;
+  const openCleanupConfirm = () => {
+    if (cleaning) return;
+    setCleanupConfirmOpen(true);
+  };
+
+  const doCleanup = async () => {
     setCleaning(true);
     try {
       const res = await cleanupRejectedMedia();
@@ -148,6 +154,7 @@ export default function MediaPage() {
       });
     } finally {
       setCleaning(false);
+      setCleanupConfirmOpen(false);
     }
   };
 
@@ -378,7 +385,7 @@ export default function MediaPage() {
               />
               <button
                 className={styles.buttonDanger}
-                onClick={handleCleanup}
+                onClick={openCleanupConfirm}
                 disabled={cleaning}
               >
                 <i className="bx bx-trash" />
@@ -476,6 +483,17 @@ export default function MediaPage() {
           )}
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={cleanupConfirmOpen}
+        title={t("media.cleanupRejected")}
+        description={t("media.cleanupConfirm")}
+        confirmLabel={t("media.cleanupRejected")}
+        tone="danger"
+        loading={cleaning}
+        onConfirm={doCleanup}
+        onClose={() => setCleanupConfirmOpen(false)}
+      />
     </div>
   );
 }

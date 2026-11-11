@@ -1,4 +1,4 @@
-import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../utils/chatPreview'
+import { getSystemPreviewText, getCallPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../utils/chatPreview'
 
 // Minimal t() stub: returns the key with interpolated params rendered inline.
 const t = (key: string, params?: Record<string, string>) =>
@@ -78,5 +78,33 @@ describe('isVoicePreviewMessage', () => {
     expect(isVoicePreviewMessage({ media_type: 'image/png' })).toBe(false)
     expect(isVoicePreviewMessage({ media_type: 'video/mp4' })).toBe(false)
     expect(isVoicePreviewMessage({})).toBe(false)
+  })
+})
+
+describe('getCallPreviewText', () => {
+  const call = (patch: Partial<Parameters<typeof getCallPreviewText>[0]>) => ({
+    call_id: 'c1',
+    call_type: 'voice' as const,
+    status: 'ended' as const,
+    is_missed: false,
+    direction: 'incoming' as const,
+    duration: 0,
+    created_at: new Date().toISOString(),
+    ...patch,
+  })
+
+  it('ưu tiên cuộc gọi nhỡ', () => {
+    expect(getCallPreviewText(call({ is_missed: true, status: 'missed' }), t)).toBe('call.historyMissed')
+  })
+
+  it('phân biệt cuộc gọi đến/đi', () => {
+    expect(getCallPreviewText(call({ direction: 'incoming' }), t)).toBe('call.historyIncoming')
+    expect(getCallPreviewText(call({ direction: 'outgoing' }), t)).toBe('call.historyOutgoing')
+  })
+
+  it('map trạng thái từ chối/huỷ/bận', () => {
+    expect(getCallPreviewText(call({ status: 'rejected' }), t)).toBe('call.statusRejected')
+    expect(getCallPreviewText(call({ status: 'cancelled' }), t)).toBe('call.statusCancelled')
+    expect(getCallPreviewText(call({ status: 'busy' }), t)).toBe('call.statusBusy')
   })
 })

@@ -1076,7 +1076,7 @@ export default function PostDetailModal({
               {replyingTo && (
                 <div className={styles.replyChip}>
                   <span>
-                    {t('postDetail.replyingTo')} @{replyingTo.username}
+                    {t('postDetail.replyingTo', { username: replyingTo.username })}
                   </span>
                   <button
                     type="button"

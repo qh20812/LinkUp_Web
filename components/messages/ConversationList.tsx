@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useEmojis } from '../../hooks/useEmojis'
 import { formatChatTime } from '../../utils/chat'
 import { mediaPreviewKey } from '../../utils/chatMediaPreview'
-import { getSystemPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../../utils/chatPreview'
+import { getSystemPreviewText, getCallPreviewText, isInvitePreviewContent, isSystemPreviewMessage, isVoicePreviewMessage } from '../../utils/chatPreview'
 import { emojiByCode, getEmotionEmojis } from '../../utils/emojis'
 import { renderEmojiContent } from './EmojiImage'
 import type { ChatConversation, EmojiItem, GroupChatConversation } from '../../types'
@@ -154,6 +154,10 @@ export default function ConversationList({
                 ? mediaPreviewKey(conv.last_message)
                 : null
               const unread = isUnread(conv.last_message)
+              const callAt = conv.last_call ? Date.parse(conv.last_call.created_at) : 0
+              const msgAt = conv.last_message ? Date.parse(conv.last_message.created_at) : 0
+              const showCall = !!conv.last_call && callAt > msgAt
+              const lastAt = showCall ? conv.last_call!.created_at : conv.last_message?.created_at
               return (
               <button
                 key={conv.chat_id}
@@ -176,16 +180,18 @@ export default function ConversationList({
                       {conv.partner.display_name || t('chat.unknown')}
                     </span>
                     <span className={styles.rowRight}>
-                      {conv.last_message && (
+                      {lastAt && (
                         <span className={`${styles.time} ${unread ? styles.timeUnread : ''}`}>
-                          {formatChatTime(conv.last_message.created_at, t)}
+                          {formatChatTime(lastAt, t)}
                         </span>
                       )}
                       {unread && <span className={styles.unreadDot} aria-label={t('chat.unread')} />}
                     </span>
                   </div>
                   <span className={styles.preview}>
-                    {conv.last_message ? (
+                    {showCall ? (
+                      getCallPreviewText(conv.last_call!, t)
+                    ) : conv.last_message ? (
                       <>
                         {conv.last_message.sender_id === myUserId
                           ? t('chat.youPrefix')
@@ -193,26 +199,28 @@ export default function ConversationList({
                         {conv.last_message.forwarded_from
                           ? t('chat.forwardedPreview') + ' · '
                           : ''}
-                        {conv.last_message.type === 'group_invite' || isInvitePreviewContent(conv.last_message.content)
-                          ? t('chat.groupInviteTitle')
-                          : isSystemPreviewMessage(conv.last_message)
-                            ? getSystemPreviewText(conv.last_message.content, t, conv.last_message.sender_name)
-                            : isVoicePreviewMessage(conv.last_message)
-                              ? t('chat.voicePreview')
-                              : mediaKey
-                          ? t(mediaKey)
-                          : conv.last_message.media_id
-                            ? t('chat.mediaMessage')
-                            : conv.last_message.emoji_id
-                              ? t('chat.emojiMessage')
-                              : conv.is_encrypted && !conv.last_message.content
-                                ? t('chat.encryptedPreview')
-                                : renderEmojiContent(
-                                    conv.last_message.content ||
-                                      t('chat.mediaMessage'),
-                                    emojiCodeMap,
-                                    `pv-${conv.chat_id}`,
-                                  )}
+                        {conv.last_message.deleted
+                          ? t('chat.messageDeleted')
+                          : conv.last_message.type === 'group_invite' || isInvitePreviewContent(conv.last_message.content)
+                            ? t('chat.groupInviteTitle')
+                            : isSystemPreviewMessage(conv.last_message)
+                              ? getSystemPreviewText(conv.last_message.content, t, conv.last_message.sender_name)
+                              : isVoicePreviewMessage(conv.last_message)
+                                ? t('chat.voicePreview')
+                                : mediaKey
+                                  ? t(mediaKey)
+                                  : conv.last_message.media_id
+                                    ? t('chat.mediaMessage')
+                                    : conv.last_message.emoji_id
+                                      ? t('chat.emojiMessage')
+                                      : conv.is_encrypted && !conv.last_message.content
+                                        ? t('chat.encryptedPreview')
+                                        : renderEmojiContent(
+                                            conv.last_message.content ||
+                                              t('chat.mediaMessage'),
+                                            emojiCodeMap,
+                                            `pv-${conv.chat_id}`,
+                                          )}
                       </>
                     ) : (
                       t('chat.newChat')
@@ -314,13 +322,15 @@ export default function ConversationList({
                         {lastMsg.forwarded_from
                           ? t('chat.forwardedPreview') + ' · '
                           : ''}
-                        {lastMsg.type === 'group_invite' || isInvitePreviewContent(lastMsg.content)
-                          ? t('chat.groupInviteTitle')
-                          : lastIsSystem
-                            ? getSystemPreviewText(lastMsg.content, t, lastMsg.sender_name)
-                            : isVoicePreviewMessage(lastMsg)
-                              ? t('chat.voicePreview')
-                              : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}
+                        {lastMsg.deleted
+                          ? t('chat.messageDeleted')
+                          : lastMsg.type === 'group_invite' || isInvitePreviewContent(lastMsg.content)
+                            ? t('chat.groupInviteTitle')
+                            : lastIsSystem
+                              ? getSystemPreviewText(lastMsg.content, t, lastMsg.sender_name)
+                              : isVoicePreviewMessage(lastMsg)
+                                ? t('chat.voicePreview')
+                                : mediaKey ? t(mediaKey) : lastMsg.content || t('chat.mediaMessage')}
                       </>
                     ) : (
                       <>{group.member_count} {t('chat.members')}</>

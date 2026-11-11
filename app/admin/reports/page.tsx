@@ -9,6 +9,7 @@ import { swrFetcher, invalidate } from '../../../api/swr'
 import type { AdminReportListItem, AdminReportDetailResponse, AdminReportListResponse } from '../../../types'
 import Pagination from '../../../components/Pagination'
 import Modal from '../../../components/Modal'
+import ConfirmDialog from '../../../components/ConfirmDialog'
 import ExternalImage from '../../../components/ExternalImage'
 import styles from './Reports.module.css'
 import { toErrorMessage } from '../../../utils/errorMessage'
@@ -79,6 +80,10 @@ export default function ReportsPage() {
   const [reviewReason, setReviewReason] = useState('')
   const [reviewDuration, setReviewDuration] = useState('permanent')
   const [reviewing, setReviewing] = useState(false)
+  const [adSuspendOpen, setAdSuspendOpen] = useState(false)
+  const [adSuspendTarget, setAdSuspendTarget] = useState<string | null>(null)
+  const [adSuspendReason, setAdSuspendReason] = useState('')
+  const [adSuspending, setAdSuspending] = useState(false)
 
   const closeMenu = () => {
     setOpenMenuId(null)
@@ -184,6 +189,31 @@ export default function ReportsPage() {
         return t('communities.removeBackground')
       default:
         return ''
+    }
+  }
+
+  const openAdSuspend = (adId: string) => {
+    setAdSuspendTarget(adId)
+    setAdSuspendReason('')
+    setAdSuspendOpen(true)
+  }
+
+  const handleAdSuspend = async () => {
+    const reason = adSuspendReason.trim()
+    if (!adSuspendTarget || !reason) return
+    setAdSuspending(true)
+    try {
+      await updateAdStatus(adSuspendTarget, 'suspended', undefined, reason)
+      toast({ title: t('reports.adSuspendSuccess'), type: 'success' })
+      invalidate('/admin/reports')
+      setAdSuspendOpen(false)
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : t('common.error'),
+        type: 'error',
+      })
+    } finally {
+      setAdSuspending(false)
     }
   }
 
@@ -537,21 +567,9 @@ export default function ReportsPage() {
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
-                        onClick={async () => {
-                          const reason = window.prompt(t('reports.adSuspendReason'))?.trim()
-                          if (!reason) return
+                        onClick={() => {
                           const adId = detailTarget.target_ad?.ad_id
-                          if (!adId) return
-                          try {
-                            await updateAdStatus(adId, 'suspended', undefined, reason)
-                            toast({ title: t('reports.adSuspendSuccess'), type: 'success' })
-                            invalidate('/admin/reports')
-                          } catch (err) {
-                            toast({
-                              title: err instanceof Error ? err.message : t('common.error'),
-                              type: 'error',
-                            })
-                          }
+                          if (adId) openAdSuspend(adId)
                         }}
                       >
                         {t('reports.adSuspend')}
@@ -733,6 +751,27 @@ export default function ReportsPage() {
           </>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={adSuspendOpen}
+        title={t('reports.adSuspend')}
+        description={t('reports.adSuspendReason')}
+        confirmLabel={t('reports.adSuspend')}
+        tone="danger"
+        loading={adSuspending}
+        confirmDisabled={!adSuspendReason.trim()}
+        layer={1}
+        onConfirm={handleAdSuspend}
+        onClose={() => setAdSuspendOpen(false)}
+      >
+        <input
+          type="text"
+          className={styles.fieldInput}
+          value={adSuspendReason}
+          onChange={(e) => setAdSuspendReason(e.target.value)}
+          placeholder={t('reports.reviewReason')}
+        />
+      </ConfirmDialog>
     </div>
   )
 }

@@ -9,7 +9,7 @@
 // below is therefore CONTENT-based (JSON sniff / `key|...` prefix) and works
 // regardless of which metadata fields the payload carries.
 
-import type { ChatMessage, GroupChatInviteContent } from '../types'
+import type { ChatMessage, GroupChatInviteContent, LastCall } from '../types'
 
 type TFn = (key: string, params?: Record<string, string>) => string
 
@@ -67,6 +67,26 @@ export function isInvitePreviewContent(content: string): boolean {
  */
 export function isVoicePreviewMessage(msg: Pick<ChatMessage, 'media_type'>): boolean {
   return msg.media_type?.startsWith('audio/') === true
+}
+
+/** Preview ngắn cho cuộc gọi 1-1 gần nhất trong conversation list. */
+export function getCallPreviewText(call: LastCall, t: TFn): string {
+  if (call.is_missed) return t('call.historyMissed')
+  switch (call.status) {
+    case 'rejected':
+      return t('call.statusRejected')
+    case 'cancelled':
+      return t('call.statusCancelled')
+    case 'busy':
+      return t('call.statusBusy')
+    case 'calling':
+    case 'ringing':
+      return t('call.statusCalling')
+    default:
+      return call.direction === 'incoming'
+        ? t('call.historyIncoming')
+        : t('call.historyOutgoing')
+  }
 }
 
 export function isSystemPreviewMessage(

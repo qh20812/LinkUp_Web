@@ -18,12 +18,16 @@ interface ModalProps {
    * để nó luôn nằm trên modal cha thay vì phụ thuộc thứ tự chèn vào DOM.
    */
   layer?: number
+  /** Vai trò ARIA — dùng 'alertdialog' cho hộp thoại xác nhận phá huỷ. */
+  role?: 'dialog' | 'alertdialog'
+  /** id của phần mô tả (aria-describedby), thường là description trong body. */
+  describedBy?: string
 }
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export default function Modal({ open, onClose, title, children, footer, size, layer = 0 }: ModalProps) {
+export default function Modal({ open, onClose, title, children, footer, size, layer = 0, role = 'dialog', describedBy }: ModalProps) {
   const { t } = useTranslation()
   const titleId = useId()
   const modalRef = useRef<HTMLDivElement>(null)
@@ -82,9 +86,10 @@ export default function Modal({ open, onClose, title, children, footer, size, la
       <div
         ref={modalRef}
         className={`${styles.modal}${size === 'lg' ? ` ${styles.modalLg}` : ''}`}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >

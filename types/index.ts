@@ -1482,10 +1482,21 @@ export interface ChatPartner {
   is_online?: boolean
 }
 
+export interface LastCall {
+  call_id: string
+  call_type: CallType
+  status: CallStatus
+  is_missed: boolean
+  direction: 'outgoing' | 'incoming'
+  duration: number
+  created_at: string
+}
+
 export interface ChatConversation {
   chat_id: string
   partner: ChatPartner
   last_message?: ChatMessage | null
+  last_call?: LastCall | null
   is_encrypted?: boolean
   updated_at: string
   background_type?: string
